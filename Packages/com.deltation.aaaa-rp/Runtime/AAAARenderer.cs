@@ -1,14 +1,18 @@
-using System;
+using DELTation.AAAARP.Passes;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP
 {
-    public class AAAARenderer
+    public class AAAARenderer : AAAARendererBase
     {
-        public void RecordRenderGraph(RenderGraph renderGraph, ScriptableRenderContext context)
+        private readonly BlitToCameraTargetPass _blitToCameraTargetPass;
+        
+        public AAAARenderer() => _blitToCameraTargetPass = new BlitToCameraTargetPass(AAAARenderPassEvent.AfterRendering);
+        
+        protected override void Setup(RenderGraph renderGraph, ScriptableRenderContext context)
         {
-            throw new NotImplementedException();
+            EnqueuePass(_blitToCameraTargetPass);
         }
     }
 }
