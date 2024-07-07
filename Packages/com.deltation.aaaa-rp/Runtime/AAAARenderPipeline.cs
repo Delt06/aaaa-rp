@@ -42,9 +42,10 @@ namespace DELTation.AAAARP
         private void RenderSingleCamera(ScriptableRenderContext context, AAAARendererBase renderer, Camera camera)
         {
             ContextContainer frameData = renderer.FrameData;
-            AAAARenderingData renderingData = CreateRenderingData(frameData);
+            CreateRenderingData(frameData);
             AAAACameraData cameraData = CreateCameraData(frameData, camera, renderer);
-            AAAAResourceData resourceData = CreateResourceData(frameData, cameraData);
+            CreateResourceData(frameData, cameraData);
+            CreateRendererListData(frameData);
             
             RenderSingleCameraImpl(context, renderer, cameraData);
         }
@@ -139,11 +140,14 @@ namespace DELTation.AAAARP
             }
             else
             {
-                cameraData.ClearDepth = true;
+                cameraData.ClearDepth = camera.clearFlags != CameraClearFlags.Nothing;
                 cameraData.UseScreenCoordOverride = false;
                 cameraData.ScreenSizeOverride = cameraData.PixelRect.size;
                 cameraData.ScreenCoordScaleBias = new Vector4(1, 1, 0, 0);
             }
+            
+            cameraData.ClearColor = camera.clearFlags == CameraClearFlags.Color;
+            cameraData.BackgroundColor = camera.backgroundColor;
             
             ///////////////////////////////////////////////////////////////////
             // Descriptor settings                                            /
@@ -166,6 +170,13 @@ namespace DELTation.AAAARP
             cameraData.WorldSpaceCameraPos = camera.transform.position;
             
             return cameraData;
+        }
+        
+        private static AAAARendererListData CreateRendererListData(ContextContainer frameData)
+        {
+            AAAARendererListData rendererListData = frameData.GetOrCreate<AAAARendererListData>();
+            
+            return rendererListData;
         }
     }
 }

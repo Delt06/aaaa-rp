@@ -22,6 +22,14 @@ namespace DELTation.AAAARP
         [ResourcePath("Shaders/Utils/CoreBlitColorAndDepth.shader")]
         private Shader _coreBlitColorAndDepthPS;
         
+        [SerializeField]
+        [ResourcePath("Shaders/VisibilityBuffer/VisibilityBuffer.shader")]
+        private Shader _visibilityBufferPS;
+        
+        [SerializeField]
+        [ResourcePath("Shaders/VisibilityBuffer/VisibilityBufferPreview.shader")]
+        private Shader _visibilityBufferPreviewPS;
+        
         public Shader CoreBlitPS
         {
             get => _coreBlitPS;
@@ -32,6 +40,18 @@ namespace DELTation.AAAARP
         {
             get => _coreBlitColorAndDepthPS;
             set => this.SetValueAndNotify(ref _coreBlitColorAndDepthPS, value, nameof(_coreBlitColorAndDepthPS));
+        }
+        
+        public Shader VisibilityBufferPS
+        {
+            get => _visibilityBufferPS;
+            set => this.SetValueAndNotify(ref _visibilityBufferPS, value, nameof(_visibilityBufferPS));
+        }
+        
+        public Shader VisibilityBufferPreviewPS
+        {
+            get => _visibilityBufferPreviewPS;
+            set => this.SetValueAndNotify(ref _visibilityBufferPreviewPS, value, nameof(_visibilityBufferPreviewPS));
         }
         
         public int version => _version;

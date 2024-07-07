@@ -60,6 +60,9 @@ namespace DELTation.AAAARP
                 
                 InitRenderGraphFrame(renderGraph);
                 
+                AAAAResourceData resourceData = FrameData.Get<AAAAResourceData>();
+                SetupRenderGraphCameraProperties(renderGraph, resourceData.IsActiveTargetBackBuffer);
+                
                 using (new ProfilingScope(Profiling.RecordRenderGraphImpl))
                 {
                     RecordRenderGraphImpl(renderGraph, context);
@@ -132,6 +135,7 @@ namespace DELTation.AAAARP
             builder.SetRenderFunc((PassData data, RasterGraphContext context) =>
                 {
                     bool yFlip = !SystemInfo.graphicsUVStartsAtTop || data.IsTargetBackbuffer;
+                    context.cmd.SetupCameraProperties(data.CameraData.Camera);
                     data.Renderer.SetPerCameraShaderVariables(context.cmd, data.CameraData, data.CameraTargetSizeCopy, !yFlip);
                     data.Renderer.SetPerCameraClippingPlaneProperties(context.cmd, in data.CameraData, !yFlip);
                     

@@ -1,8 +1,8 @@
+using System;
 using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP
 {
-    
     internal static class AAAAProfiling
     {
         public static class Pipeline
@@ -15,4 +15,5 @@ namespace DELTation.AAAARP
             }
         }
     }
+    
 }

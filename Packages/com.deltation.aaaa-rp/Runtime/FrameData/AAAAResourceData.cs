@@ -8,73 +8,101 @@ namespace DELTation.AAAARP.FrameData
 {
     public class AAAAResourceData : AAAAResourceDataBase
     {
+        
         private TextureHandle _cameraColorBuffer;
         private TextureHandle _cameraDepthBuffer;
         private TextureHandle _cameraResolveColorBuffer;
         private TextureHandle _cameraResolveDepthBuffer;
         private TextureHandle _cameraScaledColorBuffer;
         private TextureHandle _cameraScaledDepthBuffer;
+        private TextureHandle _visibilityBuffer;
+        internal ActiveID ActiveColorID { get; set; }
         
-        public TextureHandle CameraScaledColorBuffer
-        {
-            get => CheckAndGetTextureHandle(ref _cameraScaledColorBuffer);
-            set => CheckAndSetTextureHandle(ref _cameraScaledColorBuffer, value);
-        }
+        public TextureHandle CameraScaledColorBuffer => CheckAndGetTextureHandle(ref _cameraScaledColorBuffer);
         
-        public TextureHandle CameraScaledDepthBuffer
+        public TextureHandle CameraScaledDepthBuffer => CheckAndGetTextureHandle(ref _cameraScaledDepthBuffer);
+        public TextureHandle CameraColorBuffer => CheckAndGetTextureHandle(ref _cameraColorBuffer);
+        public TextureHandle CameraDepthBuffer => CheckAndGetTextureHandle(ref _cameraDepthBuffer);
+        public TextureHandle CameraResolveColorBuffer => CheckAndGetTextureHandle(ref _cameraResolveColorBuffer);
+        public TextureHandle CameraResolveDepthBuffer => CheckAndGetTextureHandle(ref _cameraResolveDepthBuffer);
+        
+        public TextureHandle VisibilityBuffer => CheckAndGetTextureHandle(ref _visibilityBuffer);
+        
+        public bool IsActiveTargetBackBuffer
         {
-            get => CheckAndGetTextureHandle(ref _cameraScaledDepthBuffer);
-            set => CheckAndSetTextureHandle(ref _cameraScaledDepthBuffer, value);
-        }
-        public TextureHandle CameraColorBuffer
-        {
-            get => CheckAndGetTextureHandle(ref _cameraColorBuffer);
-            set => CheckAndSetTextureHandle(ref _cameraColorBuffer, value);
-        }
-        public TextureHandle CameraDepthBuffer
-        {
-            get => CheckAndGetTextureHandle(ref _cameraDepthBuffer);
-            set => CheckAndSetTextureHandle(ref _cameraDepthBuffer, value);
-        }
-        public TextureHandle CameraResolveColorBuffer
-        {
-            get => CheckAndGetTextureHandle(ref _cameraResolveColorBuffer);
-            set => CheckAndSetTextureHandle(ref _cameraResolveColorBuffer, value);
-        }
-        public TextureHandle CameraResolveDepthBuffer
-        {
-            get => CheckAndGetTextureHandle(ref _cameraResolveDepthBuffer);
-            set => CheckAndSetTextureHandle(ref _cameraResolveDepthBuffer, value);
+            get
+            {
+                if (!isAccessible)
+                {
+                    Debug.LogError("Trying to access frameData outside of the current frame setup.");
+                    return false;
+                }
+                
+                return ActiveColorID == ActiveID.BackBuffer;
+            }
         }
         
         public void InitTextures(RenderGraph renderGraph, AAAACameraData cameraData)
         {
-            TextureDesc cameraColorDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
-            cameraColorDesc.depthBufferBits = DepthBits.None;
-            cameraColorDesc.filterMode = FilterMode.Bilinear;
-            cameraColorDesc.wrapMode = TextureWrapMode.Clamp;
-            cameraColorDesc.enableRandomWrite = true;
+            ActiveColorID = ActiveID.Camera;
             
-            TextureDesc cameraDepthDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
-            cameraDepthDesc.colorFormat = GraphicsFormat.D24_UNorm_S8_UInt;
-            cameraDepthDesc.depthBufferBits = DepthBits.Depth32;
-            cameraDepthDesc.filterMode = FilterMode.Point;
-            cameraDepthDesc.wrapMode = TextureWrapMode.Clamp;
-            
+            CreateTargets(renderGraph, cameraData);
+            ImportFinalTarget(renderGraph, cameraData);
+        }
+        
+        private void CreateTargets(RenderGraph renderGraph, AAAACameraData cameraData)
+        {
             var scaledCameraTargetViewportSize = new int2(cameraData.ScaledWidth, cameraData.ScaledHeight);
             
-            // Scaled color
-            cameraColorDesc.name = "CameraColor_Scaled";
-            cameraColorDesc.width = scaledCameraTargetViewportSize.x;
-            cameraColorDesc.height = scaledCameraTargetViewportSize.y;
-            _cameraScaledColorBuffer = renderGraph.CreateTexture(cameraColorDesc);
+            {
+                TextureDesc cameraColorDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
+                cameraColorDesc.depthBufferBits = DepthBits.None;
+                cameraColorDesc.filterMode = FilterMode.Bilinear;
+                cameraColorDesc.wrapMode = TextureWrapMode.Clamp;
+                cameraColorDesc.clearBuffer = cameraData.ClearColor;
+                cameraColorDesc.clearColor = cameraData.BackgroundColor;
+                
+                TextureDesc cameraDepthDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
+                cameraDepthDesc.colorFormat = GraphicsFormat.D24_UNorm_S8_UInt;
+                cameraDepthDesc.depthBufferBits = DepthBits.Depth32;
+                cameraDepthDesc.filterMode = FilterMode.Point;
+                cameraDepthDesc.wrapMode = TextureWrapMode.Clamp;
+                cameraDepthDesc.clearBuffer = cameraData.ClearDepth;
+                
+                // Scaled color
+                cameraColorDesc.name = "CameraColor_Scaled";
+                cameraColorDesc.width = scaledCameraTargetViewportSize.x;
+                cameraColorDesc.height = scaledCameraTargetViewportSize.y;
+                _cameraScaledColorBuffer = renderGraph.CreateTexture(cameraColorDesc);
+                
+                // Scaled depth
+                cameraDepthDesc.name = "CameraDepth_Scaled";
+                cameraDepthDesc.width = scaledCameraTargetViewportSize.x;
+                cameraDepthDesc.height = scaledCameraTargetViewportSize.y;
+                _cameraScaledDepthBuffer = renderGraph.CreateTexture(cameraDepthDesc);
+                
+                _cameraColorBuffer = _cameraScaledColorBuffer;
+                _cameraDepthBuffer = _cameraScaledDepthBuffer;
+            }
             
-            // Scaled depth
-            cameraDepthDesc.name = "CameraDepth_Scaled";
-            cameraDepthDesc.width = scaledCameraTargetViewportSize.x;
-            cameraDepthDesc.height = scaledCameraTargetViewportSize.y;
-            _cameraScaledDepthBuffer = renderGraph.CreateTexture(cameraDepthDesc);
-            
+            {
+                TextureDesc visibilityBufferDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
+                visibilityBufferDesc.colorFormat = GraphicsFormat.R32G32_UInt;
+                visibilityBufferDesc.depthBufferBits = DepthBits.None;
+                visibilityBufferDesc.filterMode = FilterMode.Point;
+                visibilityBufferDesc.wrapMode = TextureWrapMode.Clamp;
+                visibilityBufferDesc.clearBuffer = true;
+                visibilityBufferDesc.clearColor = new Color(-1, -1, 0.0f, 0.0f);
+                visibilityBufferDesc.name = "VisibilityBuffer";
+                visibilityBufferDesc.width = scaledCameraTargetViewportSize.x;
+                visibilityBufferDesc.height = scaledCameraTargetViewportSize.y;
+                
+                _visibilityBuffer = renderGraph.CreateTexture(visibilityBufferDesc);
+            }
+        }
+        
+        private void ImportFinalTarget(RenderGraph renderGraph, AAAACameraData cameraData)
+        {
             //BuiltinRenderTextureType.CameraTarget so this is either system render target or camera.targetTexture if non null
             //NOTE: Careful what you use here as many of the properties bake-in the camera rect so for example
             //cameraData.cameraTargetDescriptor.width is the width of the rectangle but not the actual render target
@@ -117,10 +145,6 @@ namespace DELTation.AAAARP.FrameData
             
             TextureHandle finalTarget = renderGraph.ImportTexture(cameraData.Renderer.CurrentColorBuffer, importInfo);
             TextureHandle finalTargetDepth = renderGraph.ImportTexture(cameraData.Renderer.CurrentDepthBuffer, importInfoDepth);
-            
-            _cameraColorBuffer = _cameraScaledColorBuffer;
-            _cameraDepthBuffer = _cameraScaledDepthBuffer;
-            
             _cameraResolveColorBuffer = finalTarget;
             _cameraResolveDepthBuffer = finalTargetDepth;
         }
@@ -129,6 +153,11 @@ namespace DELTation.AAAARP.FrameData
         {
             _cameraScaledColorBuffer = default;
             _cameraScaledDepthBuffer = default;
+            _cameraColorBuffer = default;
+            _cameraDepthBuffer = default;
+            _cameraResolveColorBuffer = default;
+            _cameraResolveDepthBuffer = default;
+            _visibilityBuffer = default;
         }
     }
 }

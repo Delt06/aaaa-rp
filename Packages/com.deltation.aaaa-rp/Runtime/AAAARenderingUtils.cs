@@ -1,6 +1,7 @@
 ﻿using DELTation.AAAARP.FrameData;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RendererUtils;
 using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP
@@ -27,6 +28,54 @@ namespace DELTation.AAAARP
                 !yFlip ? new Vector4(viewportScale.x, -viewportScale.y, 0, viewportScale.y) : new Vector4(viewportScale.x, viewportScale.y, 0, 0);
             
             return scaleBias;
+        }
+        
+        internal static RendererListDesc CreateRendererListDesc(
+            CullingResults cull,
+            Camera camera,
+            ShaderTagId passName,
+            PerObjectData rendererConfiguration = 0,
+            RenderQueueRange? renderQueueRange = null,
+            SortingCriteria sortingCriteria = SortingCriteria.CommonOpaque,
+            RenderStateBlock? stateBlock = null,
+            Material overrideMaterial = null,
+            bool excludeObjectMotionVectors = false
+        )
+        {
+            var result = new RendererListDesc(passName, cull, camera)
+            {
+                rendererConfiguration = rendererConfiguration,
+                renderQueueRange = renderQueueRange ?? RenderQueueRange.opaque,
+                sortingCriteria = sortingCriteria,
+                stateBlock = stateBlock,
+                overrideMaterial = overrideMaterial,
+                excludeObjectMotionVectors = excludeObjectMotionVectors,
+            };
+            return result;
+        }
+        
+        internal static RendererListDesc CreateRendererListDesc(
+            CullingResults cull,
+            Camera camera,
+            ShaderTagId[] passNames,
+            PerObjectData rendererConfiguration = 0,
+            RenderQueueRange? renderQueueRange = null,
+            SortingCriteria sortingCriteria = SortingCriteria.CommonOpaque,
+            RenderStateBlock? stateBlock = null,
+            Material overrideMaterial = null,
+            bool excludeObjectMotionVectors = false
+        )
+        {
+            var result = new RendererListDesc(passNames, cull, camera)
+            {
+                rendererConfiguration = rendererConfiguration,
+                renderQueueRange = renderQueueRange ?? RenderQueueRange.opaque,
+                sortingCriteria = sortingCriteria,
+                stateBlock = stateBlock,
+                overrideMaterial = overrideMaterial,
+                excludeObjectMotionVectors = excludeObjectMotionVectors,
+            };
+            return result;
         }
     }
 }

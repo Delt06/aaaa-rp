@@ -3,14 +3,16 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.FrameData
 {
+    
     public class AAAACameraData : ContextItem
     {
-        
         public float AspectRatio;
         public Camera Camera;
         public RenderTextureDescriptor CameraTargetDescriptor;
         public CameraType CameraType;
         public bool ClearDepth;
+        public bool ClearColor;
+        public Color BackgroundColor;
         public HDRColorBufferPrecision HDRColorBufferPrecision;
         public bool IsAlphaOutputEnabled;
         public bool IsDefaultViewport;
@@ -39,6 +41,9 @@ namespace DELTation.AAAARP.FrameData
             
             Camera = default;
             CameraType = CameraType.Game;
+            ClearDepth = false;
+            ClearColor = false;
+            BackgroundColor = Color.black;
             CameraTargetDescriptor = default;
             IsDefaultViewport = false;
             PixelRect = default;
@@ -52,7 +57,6 @@ namespace DELTation.AAAARP.FrameData
             IsHdrEnabled = false;
             IsAlphaOutputEnabled = default;
             HDRColorBufferPrecision = HDRColorBufferPrecision._32Bits;
-            ClearDepth = false;
             TargetTexture = null;
             
             ProjectionMatrix = Matrix4x4.identity;
