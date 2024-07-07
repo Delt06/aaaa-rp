@@ -1,0 +1,19 @@
+{
+    "name": "com.deltation.aaaa-rp",
+    "displayName": "AAAA RP",
+    "description": "Custom Scriptable Render Pipeline (WIP).",
+    "version": "0.1.0",
+    "unity": "2023.3",
+    "unityRelease": "0f1",
+    "author": {
+        "name": "Vladislav Kantaev",
+        "email": "vvkantaev3@gmail.com",
+        "url": "https://deltation.tatar/"
+    },
+    "dependencies": {
+        "com.unity.render-pipelines.core": "17.0.3",
+        "com.unity.mathematics": "1.3.1",
+        "com.unity.burst": "1.8.13",
+        "com.unity.collections": "2.4.0"
+    }
+}
