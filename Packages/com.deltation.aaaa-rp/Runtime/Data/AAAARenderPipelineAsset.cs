@@ -12,5 +12,14 @@ namespace DELTation.AAAARP.Data
         public bool isImmediateModeSupported => false;
         
         protected override RenderPipeline CreatePipeline() => new AAAARenderPipeline(this);
+        
+        protected override void EnsureGlobalSettings()
+        {
+            base.EnsureGlobalSettings();
+            
+#if UNITY_EDITOR
+            AAAARenderPipelineGlobalSettings.Ensure();
+#endif
+        }
     }
 }

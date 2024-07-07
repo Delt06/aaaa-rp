@@ -72,6 +72,26 @@ namespace DELTation.AAAARP.FrameData
             JitterMatrix * GL.GetGPUProjectionMatrix(ProjectionMatrix, renderIntoTexture);
         
         internal Matrix4x4 GetProjectionMatrixJittered() => JitterMatrix * ProjectionMatrix;
+        
+        public bool IsRenderTargetProjectionMatrixFlipped(RTHandle color, RTHandle depth = null)
+        {
+            if (!SystemInfo.graphicsUVStartsAtTop)
+                return true;
+            
+            return TargetTexture != null || IsHandleYFlipped(color ?? depth);
+        }
+        
+        public bool IsHandleYFlipped(RTHandle handle)
+        {
+            if (!SystemInfo.graphicsUVStartsAtTop)
+                return true;
+            
+            if (CameraType is CameraType.SceneView or CameraType.Preview)
+                return true;
+            
+            var handleID = new RenderTargetIdentifier(handle.nameID, 0, CubemapFace.Unknown, 0);
+            bool isBackbuffer = handleID == BuiltinRenderTextureType.CameraTarget || handleID == BuiltinRenderTextureType.Depth;
+            return !isBackbuffer;
+        }
     }
-    
 }

@@ -7,13 +7,13 @@ namespace DELTation.AAAARP
     public class AAAARenderer : AAAARendererBase
     {
         private readonly ClearCameraTargetPass _clearCameraTargetPass;
-        private readonly ResolveCameraTargetPass _resolveCameraTargetPass;
+        private readonly FinalBlitPass _finalBlitPass;
         private readonly SkyboxPass _skyboxPass;
         
         public AAAARenderer()
         {
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
-            _resolveCameraTargetPass = new ResolveCameraTargetPass(AAAARenderPassEvent.AfterRendering);
+            _finalBlitPass = new FinalBlitPass(AAAARenderPassEvent.AfterRendering);
             _clearCameraTargetPass = new ClearCameraTargetPass(AAAARenderPassEvent.BeforeRenderingGbuffer);
         }
         
@@ -21,7 +21,7 @@ namespace DELTation.AAAARP
         {
             EnqueuePass(_clearCameraTargetPass);
             EnqueuePass(_skyboxPass);
-            EnqueuePass(_resolveCameraTargetPass);
+            EnqueuePass(_finalBlitPass);
         }
     }
 }

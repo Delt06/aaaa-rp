@@ -22,6 +22,9 @@ namespace DELTation.AAAARP
             _renderer = new AAAARenderer();
             _renderGraph = new RenderGraph("AAAARPRenderGraph");
             
+            AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
+            Blitter.Initialize(shaders.CoreBlitPS, shaders.CoreBlitColorAndDepthPS);
+            
             RTHandles.Initialize(Screen.width, Screen.height);
             ShaderGlobalKeywords.InitializeShaderGlobalKeywords();
         }
@@ -83,6 +86,8 @@ namespace DELTation.AAAARP
         
         protected override void Dispose(bool disposing)
         {
+            Blitter.Cleanup();
+            
             base.Dispose(disposing);
             
             _renderer?.Dispose();

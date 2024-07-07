@@ -1,0 +1,7 @@
+{
+    "name": "DELTation.AAAARP.ShaderLibrary",
+    "rootNamespace": "DELTation.AAAARP",
+    "references": [
+        "GUID:df380645f10b7bc4b97d4f5eb6303d95"
+    ]
+}
