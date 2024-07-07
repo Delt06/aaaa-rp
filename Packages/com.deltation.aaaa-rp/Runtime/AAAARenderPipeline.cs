@@ -119,6 +119,7 @@ namespace DELTation.AAAARP
             cameraData.PixelRect = camera.pixelRect;
             cameraData.PixelWidth = camera.pixelWidth;
             cameraData.PixelHeight = camera.pixelHeight;
+            cameraData.RenderScale = 1.0f;
             cameraData.AspectRatio = cameraData.PixelWidth / (float) cameraData.PixelHeight;
             cameraData.IsDefaultViewport = !(Mathf.Abs(cameraRect.x) > 0.0f || Mathf.Abs(cameraRect.y) > 0.0f ||
                                              Mathf.Abs(cameraRect.width) < 1.0f || Mathf.Abs(cameraRect.height) < 1.0f);

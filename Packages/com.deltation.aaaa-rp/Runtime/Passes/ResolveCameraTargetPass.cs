@@ -10,9 +10,9 @@ namespace DELTation.AAAARP.Passes
         public Color ClearColor;
     }
     
-    public class BlitToCameraTargetPass : AAAARasterRenderPass<BlitToCameraTargetPassData>
+    public class ResolveCameraTargetPass : AAAARasterRenderPass<BlitToCameraTargetPassData>
     {
-        public BlitToCameraTargetPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
+        public ResolveCameraTargetPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
         
         public override string Name => "BlitToCameraTarget";
         
