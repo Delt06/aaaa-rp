@@ -18,6 +18,9 @@ Shader "Hidden/AAAA/VisibilityBuffer"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Utils.hlsl"
 
+            #define UNITY_INDIRECT_DRAW_ARGS IndirectDrawArgs
+            #include "UnityIndirect.cginc"
+
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
@@ -47,16 +50,21 @@ Shader "Hidden/AAAA/VisibilityBuffer"
                 return positionOs;
             }
 
-            Varyings VS(const uint instanceID : SV_InstanceID, const uint triangleID : SV_VertexID)
+            Varyings VS(const uint svInstanceID : SV_InstanceID, const uint svIndexID : SV_VertexID)
             {
+                InitIndirectDrawArgs(0);
+                
                 Varyings OUT = (Varyings) 0;
 
+                const uint instanceID = GetIndirectInstanceID_Base(svInstanceID);
+                const uint indexID = GetIndirectVertexID_Base(svIndexID);
+                
                 const float3 center = float3(instanceID * 1.1, 0, 0);
-                const float3 offset = LoadPosition(triangleID % INDEX_BUFFER_SIZE);
-                const float3 positionWS = center + offset + float3(0, 0, triangleID / INDEX_BUFFER_SIZE);
+                const float3 offset = LoadPosition(indexID % INDEX_BUFFER_SIZE);
+                const float3 positionWS = center + offset + float3(0, indexID / INDEX_BUFFER_SIZE, 0);
 
                 OUT.positionCS = TransformWorldToHClip(positionWS);
-                OUT.visibilityValue = uint2(instanceID, triangleID / 3);
+                OUT.visibilityValue = uint2(instanceID, indexID / 3);
 
                 return OUT;
             }
