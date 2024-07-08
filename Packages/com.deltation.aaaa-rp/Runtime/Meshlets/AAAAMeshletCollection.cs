@@ -7,13 +7,19 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Meshlets
 {
+    [GenerateHLSL]
     public class AAAAMeshletCollection : ScriptableObject
     {
+        public const uint MaxMeshletVertices = 128;
+        public const uint MaxMeshletTriangles = 128;
+        public const uint MaxMeshletIndices = MaxMeshletTriangles * 3;
+        public const float MeshletConeWeight = 0.5f;
+        
         public static readonly AAAAMeshOptimizer.MeshletGenerationParams MeshletGenerationParams = new()
         {
-            MaxVertices = 128,
-            MaxTriangles = 128,
-            ConeWeight = 0.5f,
+            MaxVertices = MaxMeshletVertices,
+            MaxTriangles = MaxMeshletTriangles,
+            ConeWeight = MeshletConeWeight,
         };
         
         public AAAAMeshlet[] Meshlets = Array.Empty<AAAAMeshlet>();

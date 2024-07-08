@@ -4,6 +4,14 @@
 
 #ifndef AAAAMESHLETCOLLECTION_CS_HLSL
 #define AAAAMESHLETCOLLECTION_CS_HLSL
+//
+// DELTation.AAAARP.Meshlets.AAAAMeshletCollection:  static fields
+//
+#define MAX_MESHLET_VERTICES (128)
+#define MAX_MESHLET_TRIANGLES (128)
+#define MAX_MESHLET_INDICES (384)
+#define MESHLET_CONE_WEIGHT (0.5)
+
 // Generated from DELTation.AAAARP.Meshlets.AAAAMeshlet
 // PackingRules = Exact
 struct AAAAMeshlet

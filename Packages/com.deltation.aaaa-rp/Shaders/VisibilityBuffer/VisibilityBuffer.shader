@@ -34,6 +34,7 @@ Shader "Hidden/AAAA/VisibilityBuffer"
             StructuredBuffer<AAAAMeshlet> _Meshlets;
             StructuredBuffer<AAAAMeshletVertex> _SharedVertexBuffer;
             ByteAddressBuffer _SharedIndexBuffer;
+            StructuredBuffer<float4x4> _ObjectToWorldMatrices;
 
             uint PullIndex(const AAAAMeshlet meshlet, const uint indexID)
             {
@@ -65,17 +66,20 @@ Shader "Hidden/AAAA/VisibilityBuffer"
                 Varyings OUT = (Varyings) 0;
 
                 const uint instanceID = GetIndirectInstanceID_Base(svInstanceID);
-                const uint indexID = GetIndirectVertexID_Base(svIndexID);
+                const uint rawIndexID = GetIndirectVertexID_Base(svIndexID);
 
-                const AAAAMeshlet meshlet = _Meshlets[instanceID % _MeshletCount];
+                const uint meshletID = rawIndexID / MAX_MESHLET_INDICES;
+
+                const AAAAMeshlet meshlet = _Meshlets[meshletID];
+                const uint indexID = rawIndexID % MAX_MESHLET_INDICES;
                 const uint index = PullIndex(meshlet, indexID);
                 const AAAAMeshletVertex vertex = PullVertex(meshlet, index);
-                
-                const float3 center = float3(instanceID / _MeshletCount * 0.1, 0, 0);
-                const float3 positionWS = center + vertex.Position;
+
+                const float4x4 objectToWorldMatrix = _ObjectToWorldMatrices[instanceID];
+                const float3 positionWS = mul(objectToWorldMatrix, float4(vertex.Position.xyz, 1.0f)).xyz;
 
                 OUT.positionCS = TransformWorldToHClip(positionWS);
-                OUT.visibilityValue = uint2(instanceID, indexID / 3);
+                OUT.visibilityValue = PackVisibilityBufferValue(instanceID, meshletID, indexID);
 
                 return OUT;
             }

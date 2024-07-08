@@ -22,6 +22,8 @@ Shader "Hidden/AAAA/VisibilityBufferPreview"
                 #pragma vertex Vert
                 #pragma fragment Frag
 
+                #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Utils.hlsl"
+
                 #define DIM 0.15
                 #define BRIGHT 0.8
                 #define COLORS_COUNT 6
@@ -35,10 +37,30 @@ Shader "Hidden/AAAA/VisibilityBufferPreview"
                     float3(DIM, DIM, BRIGHT),
                 };
 
+                // #define DISPLAY_INSTANCE_ID
+                #define DISPLAY_MESHLET_ID
+                // #define DISPLAY_INDEX_ID
+
+                uint DisplayedValue(const uint2 visibilityValue)
+                {
+                    uint instanceID, meshletID, indexID; 
+                    UnpackVisibilityBufferValue(visibilityValue, instanceID, meshletID, indexID);
+#if defined(DISPLAY_INSTANCE_ID)
+                    return instanceID;
+#elif defined(DISPLAY_MESHLET_ID)
+                    return meshletID;
+#elif defined(DISPLAY_INDEX_ID)
+                    return indexID;
+#else
+                    return 0;
+#endif
+                }
+
                 float4 Frag(const Varyings IN) : SV_Target
                 {
-                    uint2 visibilityValue = asuint(FragBlit(IN, sampler_PointClamp).xy);
-                    const float3 displayColor = colors[(visibilityValue.x * 7 + visibilityValue.y) % COLORS_COUNT];
+                    const uint2 visibilityValue = asuint(FragBlit(IN, sampler_PointClamp).xy);
+                    const uint displayedValue = DisplayedValue(visibilityValue);
+                    const float3 displayColor = colors[displayedValue % COLORS_COUNT];
                     return float4(displayColor, 1);
                 }
             ENDHLSL
