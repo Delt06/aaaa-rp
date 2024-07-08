@@ -152,8 +152,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.021927135, y: -0.4914252, z: -0.012393312, w: -0.8705556}
-  m_LocalPosition: {x: -2.3754492, y: 3.5000875, z: -4.0541053}
+  m_LocalRotation: {x: -0.18265171, y: -0.5129253, z: 0.11270772, w: -0.83116966}
+  m_LocalPosition: {x: -0.21548466, y: 0.14369957, z: -0.2603028}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -210,51 +210,6 @@ Camera:
   m_OcclusionCulling: 0
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!1 &376335116
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 376335118}
-  - component: {fileID: 376335117}
-  m_Layer: 0
-  m_Name: GameObject
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &376335117
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 376335116}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 47d5e23147d82c1468bd24d38f6ed348, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Mesh: {fileID: 4013275331872712965, guid: 629a3fb25c206b64ba93e7ff2bd8df7b, type: 3}
---- !u!4 &376335118
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 376335116}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 14.726195, y: 4.5072575, z: 6.2667174}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -381,8 +336,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a92882650f94e5896815848a0ae8b1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  VertexCount: 39
-  InstanceCount: 8
+  MeshletCollection: {fileID: 6161669500401564628, guid: 22a4184c92273f2429c9cc39373ead31, type: 3}
   CommandCount: 5
 --- !u!4 &827496354
 Transform:
@@ -406,4 +360,3 @@ SceneRoots:
   - {fileID: 330585546}
   - {fileID: 410087041}
   - {fileID: 827496354}
-  - {fileID: 376335118}

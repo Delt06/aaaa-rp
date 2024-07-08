@@ -50,12 +50,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults = AAAAMeshOptimizer.BuildMeshlets(Allocator.Temp, vertexData,
                     (uint) vertexPositionOffset,
                     (uint) vertexBufferStride, indexDataU32,
-                    new AAAAMeshOptimizer.MeshletGenerationParams
-                    {
-                        MaxVertices = 128,
-                        MaxTriangles = 128,
-                        ConeWeight = 0.5f,
-                    }
+                    AAAAMeshletCollection.MeshletGenerationParams
                 );
                 
                 meshletCollection.Meshlets = new AAAAMeshlet[meshletBuildResults.Meshlets.Length];
@@ -89,14 +84,14 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     
                     meshletCollection.VertexBuffer[i] = new AAAAMeshletVertex
                     {
-                        Position = *(float3*) (pVertex + vertexPositionOffset),
-                        Normal = *(float3*) (pVertex + vertexNormalOffset),
+                        Position = math.float4(*(float3*) (pVertex + vertexPositionOffset), 1),
+                        Normal = math.float4(*(float3*) (pVertex + vertexNormalOffset), 1),
                         Tangent = *(float4*) (pVertex + vertexTangentOffset),
                         UV = *(float2*) (pVertex + vertexUVOffset),
                     };
                 }
                 
-                meshletCollection.IndexBuffer = new ushort[meshletBuildResults.Indices.Length];
+                meshletCollection.IndexBuffer = new byte[meshletBuildResults.Indices.Length];
                 
                 for (int i = 0; i < meshletBuildResults.Indices.Length; ++i)
                 {
