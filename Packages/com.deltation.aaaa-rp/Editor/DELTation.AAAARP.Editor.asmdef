@@ -3,13 +3,16 @@
     "rootNamespace": "DELTation.AAAARP",
     "references": [
         "GUID:3eae0364be2026648bf74846acb8a731",
-        "GUID:c8cfe85cf6e953044a8ddf1e87cc105a"
+        "GUID:d8b63aba1907145bea998dd612889d6b",
+        "GUID:c8cfe85cf6e953044a8ddf1e87cc105a",
+        "GUID:72cf399525f74f02aa4b06a531bc951c",
+        "GUID:59fc71919a9e4318b6d7bb0f75d1f870"
     ],
     "includePlatforms": [
         "Editor"
     ],
     "excludePlatforms": [],
-    "allowUnsafeCode": false,
+    "allowUnsafeCode": true,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
