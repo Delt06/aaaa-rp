@@ -67,7 +67,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                         TriangleOffset = meshoptMeshlet.TriangleOffset,
                         VertexCount = meshoptMeshlet.VertexCount,
                         TriangleCount = meshoptMeshlet.TriangleCount,
-                        BoundingSphere = math.float4(meshoptBounds.Center, meshoptBounds.Radius),
+                        BoundingSphere = math.float4(meshoptBounds.Center[0], meshoptBounds.Center[1], meshoptBounds.Center[2], meshoptBounds.Radius),
                     };
                 }
                 

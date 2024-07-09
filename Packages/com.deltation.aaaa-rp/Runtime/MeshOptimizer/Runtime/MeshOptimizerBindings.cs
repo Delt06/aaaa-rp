@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using Unity.Mathematics;
 
 namespace DELTation.AAAARP.MeshOptimizer.Runtime
 {
@@ -35,19 +34,19 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
     }
     
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public struct meshopt_Bounds
+    public unsafe struct meshopt_Bounds
     {
         /* bounding sphere, useful for frustum and occlusion culling */
-        public float3 Center;
+        public fixed float Center[3];
         public float Radius;
         
         /* normal cone, useful for backface culling */
-        public float3 ConeApex;
-        public float3 ConeAxis;
+        public fixed float ConeApex[3];
+        public fixed float ConeAxis[3];
         public float ConeCutoff; /* = cos(angle/2) */
         
         /* normal cone axis and cutoff, stored in 8-bit SNORM format; decode using x/127.0 */
-        public sbyte3 coneAxisS8;
+        public fixed sbyte coneAxisS8[3];
         public sbyte ConeCutoffS8;
     }
     
