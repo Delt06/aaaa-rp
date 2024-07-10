@@ -6,17 +6,16 @@ namespace DELTation.AAAARP.FrameData
 {
     public abstract class AAAAResourceDataBase : ContextItem
     {
-        
-        internal bool isAccessible { get; set; }
+        internal bool IsAccessible { get; set; }
         
         internal void BeginFrame()
         {
-            isAccessible = true;
+            IsAccessible = true;
         }
         
         internal void EndFrame()
         {
-            isAccessible = false;
+            IsAccessible = false;
         }
         
         /// <summary>
@@ -105,12 +104,12 @@ namespace DELTation.AAAARP.FrameData
         /// <returns>Returns true if the texture is accessible and false otherwise.</returns>
         protected bool CheckAndWarnAboutAccessibility()
         {
-            if (!isAccessible)
+            if (!IsAccessible)
             {
                 Debug.LogError("Trying to access resources outside of the current frame setup.");
             }
             
-            return isAccessible;
+            return IsAccessible;
         }
         
         internal enum ActiveID

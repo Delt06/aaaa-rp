@@ -28,6 +28,13 @@ namespace DELTation.AAAARP.Meshlets
     }
     
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
+    public struct AAAAPerInstanceData
+    {
+        public float4x4 ObjectToWorldMatrix;
+        public float4x4 WorldToObjectMatrix;
+    }
+    
+    [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     [Serializable]
     public struct AAAAMeshlet
     {

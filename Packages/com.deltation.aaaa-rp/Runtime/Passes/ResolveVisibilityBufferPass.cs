@@ -7,7 +7,6 @@ namespace DELTation.AAAARP.Passes
 {
     public class ResolveVisibilityBufferPassData : PassDataBase
     {
-        public TextureHandle Destination;
         public TextureHandle Source;
     }
     
@@ -24,10 +23,11 @@ namespace DELTation.AAAARP.Passes
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             passData.Source = resourceData.VisibilityBuffer;
-            passData.Destination = resourceData.CameraColorBuffer;
             
             builder.UseTexture(passData.Source, AccessFlags.Read);
-            builder.SetRenderAttachment(passData.Destination, 0, AccessFlags.ReadWrite);
+            builder.SetRenderAttachment(resourceData.GBufferAlbedo, 0, AccessFlags.ReadWrite);
+            builder.SetRenderAttachment(resourceData.GBufferNormals, 1, AccessFlags.ReadWrite);
+            builder.SetRenderAttachmentDepth(resourceData.CameraDepthBuffer, AccessFlags.Read);
         }
         
         protected override void Render(ResolveVisibilityBufferPassData data, RasterGraphContext context)

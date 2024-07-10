@@ -33,5 +33,13 @@ struct AAAAMeshletVertex
     float2 UV;
 };
 
+// Generated from DELTation.AAAARP.Meshlets.AAAAPerInstanceData
+// PackingRules = Exact
+struct AAAAPerInstanceData
+{
+    float4x4 ObjectToWorldMatrix;
+    float4x4 WorldToObjectMatrix;
+};
+
 
 #endif

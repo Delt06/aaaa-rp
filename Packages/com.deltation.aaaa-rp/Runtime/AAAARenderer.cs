@@ -7,9 +7,10 @@ namespace DELTation.AAAARP
 {
     public class AAAARenderer : AAAARendererBase
     {
+        private readonly DeferredLightingPass _deferredLightingPass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferPass;
-        private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly FinalBlitPass _finalBlitPass;
+        private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly SkyboxPass _skyboxPass;
         
         private Material _visibilityBufferPreviewMaterial;
@@ -21,6 +22,7 @@ namespace DELTation.AAAARP
             
             _drawVisibilityBufferPass = new DrawVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer);
             _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, _visibilityBufferPreviewMaterial);
+            _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
             _finalBlitPass = new FinalBlitPass(AAAARenderPassEvent.AfterRendering);
         }
@@ -29,7 +31,10 @@ namespace DELTation.AAAARP
         {
             EnqueuePass(_drawVisibilityBufferPass);
             EnqueuePass(_resolveVisibilityBufferPass);
+            
+            EnqueuePass(_deferredLightingPass);
             EnqueuePass(_skyboxPass);
+            
             EnqueuePass(_finalBlitPass);
         }
         

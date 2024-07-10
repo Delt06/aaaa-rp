@@ -3,7 +3,6 @@ using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Meshlets;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
-using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Random = UnityEngine.Random;
@@ -28,7 +27,7 @@ namespace DELTation.AAAARP
         private GraphicsBuffer _indirectArgsBuffer;
         private Material _material;
         private GraphicsBuffer _meshletsBuffer;
-        private GraphicsBuffer _objectToWorldMatricesBuffer;
+        private GraphicsBuffer _perInstanceDataBuffer;
         private GraphicsBuffer _sharedIndexBuffer;
         private GraphicsBuffer _sharedVertexBuffer;
         
@@ -49,9 +48,9 @@ namespace DELTation.AAAARP
             _sharedIndexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
                 AAAAMathUtils.AlignUp(MeshletCollection.IndexBuffer.Length / sizeof(uint), sizeof(uint)), sizeof(uint)
             );
-            _objectToWorldMatricesBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
+            _perInstanceDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
                 100,
-                UnsafeUtility.SizeOf<float4x4>()
+                UnsafeUtility.SizeOf<AAAAPerInstanceData>()
             );
         }
         
@@ -79,28 +78,31 @@ namespace DELTation.AAAARP
             _sharedVertexBuffer.SetData(MeshletCollection.VertexBuffer);
             _sharedIndexBuffer.SetData(MeshletCollection.IndexBuffer);
             
-            var objectToWorldMatrices = new NativeArray<float4x4>(InstanceCount * CommandCount, Allocator.Temp);
-            for (int i = 0; i < objectToWorldMatrices.Length; i++)
+            var perInstanceData = new NativeArray<AAAAPerInstanceData>(InstanceCount * CommandCount, Allocator.Temp);
+            for (int i = 0; i < perInstanceData.Length; i++)
             {
-                objectToWorldMatrices[i] = Matrix4x4.TRS(
+                var objectToWorld = Matrix4x4.TRS(
                     Random.insideUnitSphere * MaxDistance,
                     Random.rotationUniform,
                     Scale
                 );
+                perInstanceData[i] = new AAAAPerInstanceData
+                {
+                    ObjectToWorldMatrix = objectToWorld,
+                    WorldToObjectMatrix = objectToWorld.inverse,
+                };
             }
             
-            _objectToWorldMatricesBuffer.SetData(objectToWorldMatrices);
+            _perInstanceDataBuffer.SetData(perInstanceData);
             
-            var materialPropertyBlock = new MaterialPropertyBlock();
-            materialPropertyBlock.SetInt(SharedIDs._MeshletCount, MeshletCollection.Meshlets.Length);
-            materialPropertyBlock.SetBuffer(SharedIDs._Meshlets, _meshletsBuffer);
-            materialPropertyBlock.SetBuffer(SharedIDs._SharedVertexBuffer, _sharedVertexBuffer);
-            materialPropertyBlock.SetBuffer(SharedIDs._SharedIndexBuffer, _sharedIndexBuffer);
-            materialPropertyBlock.SetBuffer(SharedIDs._ObjectToWorldMatrices, _objectToWorldMatricesBuffer);
+            Shader.SetGlobalInt(SharedIDs._MeshletCount, MeshletCollection.Meshlets.Length);
+            Shader.SetGlobalBuffer(SharedIDs._Meshlets, _meshletsBuffer);
+            Shader.SetGlobalBuffer(SharedIDs._SharedVertexBuffer, _sharedVertexBuffer);
+            Shader.SetGlobalBuffer(SharedIDs._SharedIndexBuffer, _sharedIndexBuffer);
+            Shader.SetGlobalBuffer(SharedIDs._PerInstanceData, _perInstanceDataBuffer);
             var renderParams = new RenderParams(_material)
             {
                 worldBounds = new Bounds(Vector3.zero, Vector3.one * 100_000_000f),
-                matProps = materialPropertyBlock,
             };
             Graphics.RenderPrimitivesIndirect(renderParams, MeshTopology.Triangles, _indirectArgsBuffer, CommandCount);
             
@@ -113,7 +115,7 @@ namespace DELTation.AAAARP
             _meshletsBuffer?.Dispose();
             _sharedVertexBuffer?.Dispose();
             _sharedIndexBuffer?.Dispose();
-            _objectToWorldMatricesBuffer?.Dispose();
+            _perInstanceDataBuffer?.Dispose();
         }
         
         [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -123,7 +125,7 @@ namespace DELTation.AAAARP
             public static readonly int _Meshlets = Shader.PropertyToID(nameof(_Meshlets));
             public static readonly int _SharedVertexBuffer = Shader.PropertyToID(nameof(_SharedVertexBuffer));
             public static readonly int _SharedIndexBuffer = Shader.PropertyToID(nameof(_SharedIndexBuffer));
-            public static readonly int _ObjectToWorldMatrices = Shader.PropertyToID(nameof(_ObjectToWorldMatrices));
+            public static readonly int _PerInstanceData = Shader.PropertyToID(nameof(_PerInstanceData));
         }
     }
 }

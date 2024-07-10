@@ -8,14 +8,16 @@ namespace DELTation.AAAARP.FrameData
 {
     public class AAAAResourceData : AAAAResourceDataBase
     {
-        
         private TextureHandle _cameraColorBuffer;
         private TextureHandle _cameraDepthBuffer;
         private TextureHandle _cameraResolveColorBuffer;
         private TextureHandle _cameraResolveDepthBuffer;
         private TextureHandle _cameraScaledColorBuffer;
         private TextureHandle _cameraScaledDepthBuffer;
+        private TextureHandle _gbufferAlbedo;
+        private TextureHandle _gbufferNormals;
         private TextureHandle _visibilityBuffer;
+        
         internal ActiveID ActiveColorID { get; set; }
         
         public TextureHandle CameraScaledColorBuffer => CheckAndGetTextureHandle(ref _cameraScaledColorBuffer);
@@ -28,11 +30,14 @@ namespace DELTation.AAAARP.FrameData
         
         public TextureHandle VisibilityBuffer => CheckAndGetTextureHandle(ref _visibilityBuffer);
         
+        public TextureHandle GBufferAlbedo => CheckAndGetTextureHandle(ref _gbufferAlbedo);
+        public TextureHandle GBufferNormals => CheckAndGetTextureHandle(ref _gbufferNormals);
+        
         public bool IsActiveTargetBackBuffer
         {
             get
             {
-                if (!isAccessible)
+                if (!IsAccessible)
                 {
                     Debug.LogError("Trying to access frameData outside of the current frame setup.");
                     return false;
@@ -86,18 +91,45 @@ namespace DELTation.AAAARP.FrameData
             }
             
             {
-                TextureDesc visibilityBufferDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
-                visibilityBufferDesc.colorFormat = GraphicsFormat.R32G32_UInt;
-                visibilityBufferDesc.depthBufferBits = DepthBits.None;
-                visibilityBufferDesc.filterMode = FilterMode.Point;
-                visibilityBufferDesc.wrapMode = TextureWrapMode.Clamp;
-                visibilityBufferDesc.clearBuffer = true;
-                visibilityBufferDesc.clearColor = new Color(-1, -1, 0.0f, 0.0f);
-                visibilityBufferDesc.name = "VisibilityBuffer";
-                visibilityBufferDesc.width = scaledCameraTargetViewportSize.x;
-                visibilityBufferDesc.height = scaledCameraTargetViewportSize.y;
+                TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("VisibilityBuffer", cameraData.CameraTargetDescriptor);
+                desc.colorFormat = GraphicsFormat.R32G32_UInt;
+                desc.depthBufferBits = DepthBits.None;
+                desc.filterMode = FilterMode.Point;
+                desc.wrapMode = TextureWrapMode.Clamp;
+                desc.clearBuffer = true;
+                desc.clearColor = new Color(-1, -1, 0.0f, 0.0f);
+                desc.width = scaledCameraTargetViewportSize.x;
+                desc.height = scaledCameraTargetViewportSize.y;
                 
-                _visibilityBuffer = renderGraph.CreateTexture(visibilityBufferDesc);
+                _visibilityBuffer = renderGraph.CreateTexture(desc);
+            }
+            
+            {
+                TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("GBuffer_Albedo", cameraData.CameraTargetDescriptor);
+                desc.depthBufferBits = DepthBits.None;
+                desc.colorFormat = GraphicsFormat.R8G8B8A8_UNorm;
+                desc.filterMode = FilterMode.Bilinear;
+                desc.wrapMode = TextureWrapMode.Clamp;
+                desc.clearBuffer = true;
+                desc.clearColor = Color.clear;
+                desc.width = scaledCameraTargetViewportSize.x;
+                desc.height = scaledCameraTargetViewportSize.y;
+                
+                _gbufferAlbedo = renderGraph.CreateTexture(desc);
+            }
+            
+            {
+                TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("GBuffer_Normals", cameraData.CameraTargetDescriptor);
+                desc.depthBufferBits = DepthBits.None;
+                desc.colorFormat = GraphicsFormat.R8G8B8A8_UNorm;
+                desc.filterMode = FilterMode.Bilinear;
+                desc.wrapMode = TextureWrapMode.Clamp;
+                desc.clearBuffer = true;
+                desc.clearColor = Color.clear;
+                desc.width = scaledCameraTargetViewportSize.x;
+                desc.height = scaledCameraTargetViewportSize.y;
+                
+                _gbufferNormals = renderGraph.CreateTexture(desc);
             }
         }
         
@@ -157,7 +189,11 @@ namespace DELTation.AAAARP.FrameData
             _cameraDepthBuffer = default;
             _cameraResolveColorBuffer = default;
             _cameraResolveDepthBuffer = default;
+            
             _visibilityBuffer = default;
+            
+            _gbufferAlbedo = default;
+            _gbufferNormals = default;
         }
     }
 }
