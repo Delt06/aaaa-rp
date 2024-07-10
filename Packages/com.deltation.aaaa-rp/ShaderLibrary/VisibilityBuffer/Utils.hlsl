@@ -14,7 +14,7 @@ StructuredBuffer<AAAAPerInstanceData> _PerInstanceData;
 
 uint2 PackVisibilityBufferValue(const uint instanceID, const uint meshletID, const uint indexID)
 {
-    return uint2(instanceID, meshletID << VISIBILITY_BUFFER_INDEX_ID_BITS | indexID / 3 & VISIBILITY_BUFFER_INDEX_ID_MASK);
+    return uint2(instanceID, meshletID << VISIBILITY_BUFFER_INDEX_ID_BITS | (indexID / 3) & VISIBILITY_BUFFER_INDEX_ID_MASK);
 }
 
 void UnpackVisibilityBufferValue(uint2 value, out uint instanceID, out uint meshletID, out uint indexID)
