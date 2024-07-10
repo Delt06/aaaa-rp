@@ -76,20 +76,28 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 byte* pVertices = (byte*) vertexData.GetUnsafeReadOnlyPtr();
                 int vertexNormalOffset = data.GetVertexAttributeOffset(VertexAttribute.Normal);
                 int vertexTangentOffset = data.GetVertexAttributeOffset(VertexAttribute.Tangent);
+                
+                int uvStream = data.GetVertexAttributeStream(VertexAttribute.TexCoord0);
+                int uvStreamStride = data.GetVertexBufferStride(uvStream);
+                NativeArray<float> uvVertexData = data.GetVertexData<float>(uvStream);
+                byte* pVerticesUV = (byte*) uvVertexData.GetUnsafeReadOnlyPtr();
                 int vertexUVOffset = data.GetVertexAttributeOffset(VertexAttribute.TexCoord0);
                 
                 for (int i = 0; i < meshletBuildResults.Vertices.Length; i++)
                 {
                     byte* pVertex = pVertices + vertexBufferStride * meshletBuildResults.Vertices[i];
+                    byte* pVertexUV = pVerticesUV + uvStreamStride * meshletBuildResults.Vertices[i];
                     
                     meshletCollection.VertexBuffer[i] = new AAAAMeshletVertex
                     {
                         Position = math.float4(*(float3*) (pVertex + vertexPositionOffset), 1),
-                        Normal = math.float4(*(float3*) (pVertex + vertexNormalOffset), 1),
+                        Normal = math.float4(*(float3*) (pVertex + vertexNormalOffset), 0),
                         Tangent = *(float4*) (pVertex + vertexTangentOffset),
-                        UV = *(float2*) (pVertex + vertexUVOffset),
+                        UV = math.float4(*(float2*) (pVertexUV + vertexUVOffset), 0, 0),
                     };
                 }
+                
+                uvVertexData.Dispose();
                 
                 meshletCollection.IndexBuffer = new byte[meshletBuildResults.Indices.Length];
                 

@@ -16,10 +16,10 @@
 // PackingRules = Exact
 struct AAAAMeshlet
 {
-    uint VertexOffset;
-    uint TriangleOffset;
-    uint VertexCount;
-    uint TriangleCount;
+    uint   VertexOffset;
+    uint   TriangleOffset;
+    uint   VertexCount;
+    uint   TriangleCount;
     float4 BoundingSphere;
 };
 
@@ -30,7 +30,7 @@ struct AAAAMeshletVertex
     float4 Position;
     float4 Normal;
     float4 Tangent;
-    float2 UV;
+    float4 UV;
 };
 
 // Generated from DELTation.AAAARP.Meshlets.AAAAPerInstanceData

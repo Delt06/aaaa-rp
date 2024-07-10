@@ -18,6 +18,7 @@ Shader "Hidden/AAAA/VisibilityBuffer"
             #pragma fragment PS
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Utils.hlsl"
 
             #define UNITY_INDIRECT_DRAW_ARGS IndirectDrawArgs
@@ -67,7 +68,12 @@ Shader "Hidden/AAAA/VisibilityBuffer"
                 const float3 positionWS = mul(perInstanceData.ObjectToWorldMatrix, float4(vertex.Position.xyz, 1.0f)).xyz;
 
                 OUT.positionCS = TransformWorldToHClip(positionWS);
-                OUT.visibilityValue = PackVisibilityBufferValue(instanceID, meshletID, indexID);
+
+                VisibilityBufferValue visibilityBufferValue;
+                visibilityBufferValue.instanceID = instanceID;
+                visibilityBufferValue.meshletID = meshletID;
+                visibilityBufferValue.indexID = indexID;
+                OUT.visibilityValue = PackVisibilityBufferValue(visibilityBufferValue);
 
                 return OUT;
             }

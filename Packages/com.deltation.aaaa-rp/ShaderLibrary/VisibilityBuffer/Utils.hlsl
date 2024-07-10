@@ -1,41 +1,40 @@
 #ifndef AAAA_VISIBILITY_BUFFER_UTILS_INCLUDED
 #define AAAA_VISIBILITY_BUFFER_UTILS_INCLUDED
 
-#include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletCollection.cs.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 
-uint                                  _MeshletCount;
-StructuredBuffer<AAAAMeshlet>         _Meshlets;
-StructuredBuffer<AAAAMeshletVertex>   _SharedVertexBuffer;
-ByteAddressBuffer                     _SharedIndexBuffer;
-StructuredBuffer<AAAAPerInstanceData> _PerInstanceData;
+TEXTURE2D(_VisibilityBuffer);
+SAMPLER(sampler_VisibilityBuffer);
 
 #define VISIBILITY_BUFFER_INDEX_ID_BITS (8u)
 #define VISIBILITY_BUFFER_INDEX_ID_MASK ((1u << VISIBILITY_BUFFER_INDEX_ID_BITS) - 1u)
 
-uint2 PackVisibilityBufferValue(const uint instanceID, const uint meshletID, const uint indexID)
+struct VisibilityBufferValue
 {
-    return uint2(instanceID, meshletID << VISIBILITY_BUFFER_INDEX_ID_BITS | (indexID / 3) & VISIBILITY_BUFFER_INDEX_ID_MASK);
+    uint instanceID;
+    uint meshletID;
+    uint indexID;
+};
+
+uint2 PackVisibilityBufferValue(const VisibilityBufferValue value)
+{
+    return uint2(value.instanceID, value.meshletID << VISIBILITY_BUFFER_INDEX_ID_BITS | (value.indexID / 3) & VISIBILITY_BUFFER_INDEX_ID_MASK);
 }
 
-void UnpackVisibilityBufferValue(uint2 value, out uint instanceID, out uint meshletID, out uint indexID)
+VisibilityBufferValue UnpackVisibilityBufferValue(uint2 packedValue)
 {
-    instanceID = value.x;
-    meshletID = value.y >> VISIBILITY_BUFFER_INDEX_ID_BITS;
-    indexID = (value.y & VISIBILITY_BUFFER_INDEX_ID_MASK) * 3;
+    VisibilityBufferValue value;
+    value.instanceID = packedValue.x;
+    value.meshletID = packedValue.y >> VISIBILITY_BUFFER_INDEX_ID_BITS;
+    value.indexID = (packedValue.y & VISIBILITY_BUFFER_INDEX_ID_MASK) * 3;
+    return value;
 }
 
-uint PullIndex(const AAAAMeshlet meshlet, const uint indexID)
-{
-    const uint absoluteIndexID = meshlet.TriangleOffset + indexID;
-    const uint indices = _SharedIndexBuffer.Load(absoluteIndexID / 4 * 4);
-    const uint shiftAmount = absoluteIndexID % 4 * 8;
-    const uint mask = 0xFFu << shiftAmount;
-    return (indices & mask) >> shiftAmount;
-}
 
-AAAAMeshletVertex PullVertex(const AAAAMeshlet meshlet, const uint index)
+VisibilityBufferValue SampleVisibilityBuffer(const float2 screenUV)
 {
-    return _SharedVertexBuffer[meshlet.VertexOffset + index];
+    const uint2 visibilityValue = asuint(SAMPLE_TEXTURE2D_LOD(_VisibilityBuffer, sampler_VisibilityBuffer, screenUV, 0).xy);
+    return UnpackVisibilityBufferValue(visibilityValue);
 }
 
 #endif // AAAA_VISIBILITY_BUFFER_UTILS_INCLUDED

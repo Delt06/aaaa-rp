@@ -13,15 +13,17 @@ namespace DELTation.AAAARP
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly SkyboxPass _skyboxPass;
         
-        private Material _visibilityBufferPreviewMaterial;
+        private Material _visibilityBufferResolveMaterial;
         
         public AAAARenderer()
         {
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
-            _visibilityBufferPreviewMaterial = CoreUtils.CreateEngineMaterial(shaders.VisibilityBufferPreviewPS);
+            AAAARenderPipelineDefaultTextures defaultTextures = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineDefaultTextures>();
+            _visibilityBufferResolveMaterial = CoreUtils.CreateEngineMaterial(shaders.VisibilityBufferResolvePS);
+            _visibilityBufferResolveMaterial.SetTexture("_Albedo", defaultTextures.UVTest);
             
             _drawVisibilityBufferPass = new DrawVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer);
-            _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, _visibilityBufferPreviewMaterial);
+            _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, _visibilityBufferResolveMaterial);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
             _finalBlitPass = new FinalBlitPass(AAAARenderPassEvent.AfterRendering);
@@ -42,8 +44,8 @@ namespace DELTation.AAAARP
         {
             base.Dispose(disposing);
             
-            CoreUtils.Destroy(_visibilityBufferPreviewMaterial);
-            _visibilityBufferPreviewMaterial = null;
+            CoreUtils.Destroy(_visibilityBufferResolveMaterial);
+            _visibilityBufferResolveMaterial = null;
         }
     }
 }

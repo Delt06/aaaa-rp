@@ -6,7 +6,6 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP
 {
-    
     [Serializable]
     [SupportedOnRenderPipeline(typeof(AAAARenderPipelineAsset))]
     [CategoryInfo(Name = "R: Runtime Shaders", Order = 1000)]
@@ -27,8 +26,8 @@ namespace DELTation.AAAARP
         private Shader _visibilityBufferPS;
         
         [SerializeField]
-        [ResourcePath("Shaders/VisibilityBuffer/VisibilityBufferPreview.shader")]
-        private Shader _visibilityBufferPreviewPS;
+        [ResourcePath("Shaders/VisibilityBuffer/VisibilityBufferResolve.shader")]
+        private Shader _visibilityBufferResolvePS;
         
         public Shader CoreBlitPS
         {
@@ -48,10 +47,10 @@ namespace DELTation.AAAARP
             set => this.SetValueAndNotify(ref _visibilityBufferPS, value, nameof(_visibilityBufferPS));
         }
         
-        public Shader VisibilityBufferPreviewPS
+        public Shader VisibilityBufferResolvePS
         {
-            get => _visibilityBufferPreviewPS;
-            set => this.SetValueAndNotify(ref _visibilityBufferPreviewPS, value, nameof(_visibilityBufferPreviewPS));
+            get => _visibilityBufferResolvePS;
+            set => this.SetValueAndNotify(ref _visibilityBufferResolvePS, value, nameof(_visibilityBufferResolvePS));
         }
         
         public int version => _version;

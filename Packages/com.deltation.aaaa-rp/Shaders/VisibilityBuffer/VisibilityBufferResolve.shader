@@ -1,5 +1,10 @@
 Shader "Hidden/AAAA/VisibilityBufferResolve"
 {
+    Properties
+    {
+        _Albedo ("Albedo", 2D) = "white" {}
+    }
+    
     HLSLINCLUDE
 
         #pragma target 2.0
@@ -28,8 +33,12 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
             #pragma enable_d3d11_debug_symbols
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
-            #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Utils.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Barycentric.hlsl"
+            #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+            #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Utils.hlsl"
+
+            TEXTURE2D(_Albedo);
+            SAMPLER(sampler_Albedo);
 
             Varyings OverrideVert(Attributes input)
             {
@@ -83,19 +92,22 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 return uv;
             }
 
+            float4 SampleAlbedo(const UV uv)
+            {
+                return SAMPLE_TEXTURE2D_GRAD(_Albedo, sampler_Albedo, uv.uv, uv.ddx, uv.ddy);
+            }
+
             GBufferOutput Frag(const Varyings IN)
             {
-                const uint2 visibilityValue = asuint(FragBlit(IN, sampler_PointClamp).xy);
-                uint instanceID, meshletID, indexID; 
-                UnpackVisibilityBufferValue(visibilityValue, instanceID, meshletID, indexID);
+                const VisibilityBufferValue value = SampleVisibilityBuffer(IN.texcoord); 
 
-                const AAAAPerInstanceData perInstanceData = _PerInstanceData[instanceID];
-                const AAAAMeshlet meshlet = _Meshlets[meshletID];
+                const AAAAPerInstanceData perInstanceData = _PerInstanceData[value.instanceID];
+                const AAAAMeshlet meshlet = _Meshlets[value.meshletID];
 
                 const uint3 indices = uint3(
-                    PullIndex(meshlet, indexID + 0),
-                    PullIndex(meshlet, indexID + 1),
-                    PullIndex(meshlet, indexID + 2)
+                    PullIndex(meshlet, value.indexID + 0),
+                    PullIndex(meshlet, value.indexID + 1),
+                    PullIndex(meshlet, value.indexID + 2)
                 );
                 const AAAAMeshletVertex vertices[3] =
                 {
@@ -122,7 +134,7 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 const BarycentricDerivatives barycentric = CalculateFullBarycentric(positionCS[0], positionCS[1], positionCS[2], pixelNDC, _ScreenSize.zw);
 
                 const UV uv = InterpolateUV(barycentric, vertices[0], vertices[1], vertices[2]);
-                const float3 albedo = float3(uv.uv, 0);
+                const float3 albedo = SampleAlbedo(uv).rgb;
 
                 const float3 normalOS =
                     SafeNormalize(

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -194,6 +195,12 @@ namespace DELTation.AAAARP.FrameData
             
             _gbufferAlbedo = default;
             _gbufferNormals = default;
+        }
+        
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        public static class ShaderPropertyID
+        {
+            public static readonly int _VisibilityBuffer = Shader.PropertyToID(nameof(_VisibilityBuffer));
         }
     }
 }

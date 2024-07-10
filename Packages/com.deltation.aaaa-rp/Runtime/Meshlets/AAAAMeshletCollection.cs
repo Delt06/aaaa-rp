@@ -54,6 +54,6 @@ namespace DELTation.AAAARP.Meshlets
         public float4 Position;
         public float4 Normal;
         public float4 Tangent;
-        public float2 UV;
+        public float4 UV;
     }
 }

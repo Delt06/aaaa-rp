@@ -38,10 +38,10 @@ BarycentricDerivatives CalculateFullBarycentric(const float4 pt0, const float4 p
     ddxSum *= 2.0f * invWinSize.x;
     ddySum *= 2.0f * invWinSize.y;
 
-    #if UNITY_UV_STARTS_AT_TOP
-    ret.ddy *= -1.0f;
-    ddySum    *= -1.0f;
-    #endif
+    // #if UNITY_UV_STARTS_AT_TOP
+    // ret.ddy *= -1.0f;
+    // ddySum    *= -1.0f;
+    // #endif
 
     const float interpW_ddx = 1.0f / (interpInvW + ddxSum);
     const float interpW_ddy = 1.0f / (interpInvW + ddySum);
