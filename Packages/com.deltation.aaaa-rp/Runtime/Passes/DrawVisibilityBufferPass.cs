@@ -24,6 +24,8 @@ namespace DELTation.AAAARP.Passes
             builder.UseRendererList(passData.RendererListHandle);
             builder.SetRenderAttachment(resourceData.VisibilityBuffer, 0, AccessFlags.ReadWrite);
             builder.SetRenderAttachmentDepth(resourceData.CameraScaledDepthBuffer, AccessFlags.ReadWrite);
+            
+            builder.SetGlobalTextureAfterPass(resourceData.VisibilityBuffer, AAAAResourceData.ShaderPropertyID._VisibilityBuffer);
         }
         
         protected override void Render(DrawVisibilityBufferPassData data, RasterGraphContext context)

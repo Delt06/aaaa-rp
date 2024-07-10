@@ -30,8 +30,6 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
-            #pragma enable_d3d11_debug_symbols
-
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Barycentric.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"

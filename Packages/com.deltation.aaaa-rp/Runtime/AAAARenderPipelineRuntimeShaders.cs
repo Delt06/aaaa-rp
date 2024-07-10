@@ -29,6 +29,10 @@ namespace DELTation.AAAARP
         [ResourcePath("Shaders/VisibilityBuffer/VisibilityBufferResolve.shader")]
         private Shader _visibilityBufferResolvePS;
         
+        [SerializeField]
+        [ResourcePath("Shaders/DeferredLighting.shader")]
+        private Shader _deferredLightingPS;
+        
         public Shader CoreBlitPS
         {
             get => _coreBlitPS;
@@ -51,6 +55,12 @@ namespace DELTation.AAAARP
         {
             get => _visibilityBufferResolvePS;
             set => this.SetValueAndNotify(ref _visibilityBufferResolvePS, value, nameof(_visibilityBufferResolvePS));
+        }
+        
+        public Shader DeferredLightingPS
+        {
+            get => _deferredLightingPS;
+            set => this.SetValueAndNotify(ref _deferredLightingPS, value, nameof(_deferredLightingPS));
         }
         
         public int version => _version;

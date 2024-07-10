@@ -201,6 +201,8 @@ namespace DELTation.AAAARP.FrameData
         public static class ShaderPropertyID
         {
             public static readonly int _VisibilityBuffer = Shader.PropertyToID(nameof(_VisibilityBuffer));
+            public static readonly int _GBuffer_Albedo = Shader.PropertyToID(nameof(_GBuffer_Albedo));
+            public static readonly int _GBuffer_Normals = Shader.PropertyToID(nameof(_GBuffer_Normals));
         }
     }
 }

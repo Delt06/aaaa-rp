@@ -22,8 +22,11 @@ namespace DELTation.AAAARP.Meshlets
             ConeWeight = MeshletConeWeight,
         };
         
+        [HideInInspector]
         public AAAAMeshlet[] Meshlets = Array.Empty<AAAAMeshlet>();
+        [HideInInspector]
         public AAAAMeshletVertex[] VertexBuffer = Array.Empty<AAAAMeshletVertex>();
+        [HideInInspector]
         public byte[] IndexBuffer = Array.Empty<byte>();
     }
     

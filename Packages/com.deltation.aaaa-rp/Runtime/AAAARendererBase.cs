@@ -33,6 +33,16 @@ namespace DELTation.AAAARP
                 RTHandles.Release(_currentDepthBuffer);
                 _currentDepthBuffer = null;
             }
+            
+            foreach (AAAARenderPassBase renderPassBase in _activeRenderPassQueue)
+            {
+                if (renderPassBase is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+            _activeRenderPassQueue.Clear();
+            
             Dispose(true);
         }
         

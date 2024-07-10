@@ -1,3 +1,4 @@
+using System;
 using DELTation.AAAARP.FrameData;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -5,21 +6,25 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class DeferredLightingPassData : PassDataBase
-    {
-        public TextureHandle Source;
-    }
+    public class DeferredLightingPassData : PassDataBase { }
     
-    public class DeferredLightingPass : AAAARasterRenderPass<DeferredLightingPassData>
+    public class DeferredLightingPass : AAAARasterRenderPass<DeferredLightingPassData>, IDisposable
     {
-        public DeferredLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
+        private readonly Material _material;
+        
+        public DeferredLightingPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
+            _material = CoreUtils.CreateEngineMaterial(shaders.DeferredLightingPS);
         
         public override string Name => "DeferredLighting";
+        
+        public void Dispose()
+        {
+            CoreUtils.Destroy(_material);
+        }
         
         protected override void Setup(IRasterRenderGraphBuilder builder, DeferredLightingPassData passData, ContextContainer frameData)
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
-            passData.Source = resourceData.GBufferAlbedo;
             
             builder.UseTexture(resourceData.GBufferAlbedo, AccessFlags.Read);
             builder.UseTexture(resourceData.GBufferNormals, AccessFlags.Read);
@@ -29,7 +34,8 @@ namespace DELTation.AAAARP.Passes
         protected override void Render(DeferredLightingPassData data, RasterGraphContext context)
         {
             var scaleBias = new Vector4(1, 1, 0, 0);
-            Blitter.BlitTexture(context.cmd, data.Source, scaleBias, 0, false);
+            const int pass = 0;
+            Blitter.BlitTexture(context.cmd, scaleBias, _material, pass);
         }
     }
 }
