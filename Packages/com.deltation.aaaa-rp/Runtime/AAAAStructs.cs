@@ -46,6 +46,8 @@ namespace DELTation.AAAARP
         public uint TriangleCount;
 
         public float4 BoundingSphere;
+        public float4 ConeApexCutoff;
+        public float4 ConeAxis;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]

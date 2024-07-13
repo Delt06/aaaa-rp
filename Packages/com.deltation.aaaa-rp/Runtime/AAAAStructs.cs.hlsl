@@ -18,10 +18,10 @@ struct AAAAInstanceData
 {
     float4x4 ObjectToWorldMatrix;
     float4x4 WorldToObjectMatrix;
-    uint MeshletStartOffset;
-    uint MeshletCount;
-    uint MaterialIndex;
-    uint Padding0;
+    uint     MeshletStartOffset;
+    uint     MeshletCount;
+    uint     MaterialIndex;
+    uint     Padding0;
 };
 
 // Generated from DELTation.AAAARP.AAAAMaterialData
@@ -38,11 +38,13 @@ struct AAAAMaterialData
 // PackingRules = Exact
 struct AAAAMeshlet
 {
-    uint VertexOffset;
-    uint TriangleOffset;
-    uint VertexCount;
-    uint TriangleCount;
+    uint   VertexOffset;
+    uint   TriangleOffset;
+    uint   VertexCount;
+    uint   TriangleCount;
     float4 BoundingSphere;
+    float4 ConeApexCutoff;
+    float4 ConeAxis;
 };
 
 // Generated from DELTation.AAAARP.AAAAMeshletRenderRequest

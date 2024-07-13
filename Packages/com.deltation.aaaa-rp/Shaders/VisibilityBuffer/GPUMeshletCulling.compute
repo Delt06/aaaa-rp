@@ -2,15 +2,19 @@
 
 #define MESHLET_RENDER_REQUESTS_RW
 
+#pragma enable_d3d11_debug_symbols
+
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAGPUMeshletCulling.cs.hlsl"
 
-#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 
 #define PLANES_IN_FRUSTUM 6
 
 RWByteAddressBuffer _RequestCounter;
-float4              _FrustumPlanes[PLANES_IN_FRUSTUM];
+float4              _CameraPosition;
+float4              _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 
 // https://gist.github.com/XProger/6d1fd465c823bba7138b638691831288
 // Computes signed distance between a point and a plane
@@ -21,14 +25,13 @@ float DistanceToPlane(const float4 plane, const float3 position)
     return dot(float4(position, 1.0), plane);
 }
 
-// Frustum culling versus a sphere. Returns > 0 if visible, <= 0 otherwise
-float CullSphere(const float4 planes[PLANES_IN_FRUSTUM], const float3 center, const float radius)
+bool CullSphere(const float4 planes[PLANES_IN_FRUSTUM], const float3 center, const float radius)
 {
     const float dist01 = min(DistanceToPlane(planes[0], center), DistanceToPlane(planes[1], center));
     const float dist23 = min(DistanceToPlane(planes[2], center), DistanceToPlane(planes[3], center));
     const float dist45 = min(DistanceToPlane(planes[4], center), DistanceToPlane(planes[5], center));
 
-    return min(min(dist01, dist23), dist45) + radius;
+    return min(min(dist01, dist23), dist45) + radius > 0;
 }
 
 float4 TransformBoundingSphere(const float4 boundingSphereOS, const float4x4 objectToWorldMatrix)
@@ -40,11 +43,21 @@ float4 TransformBoundingSphere(const float4 boundingSphereOS, const float4x4 obj
     return float4(centerWS, radiusWS);
 }
 
+bool ConeCulling(const AAAAInstanceData instanceData, const AAAAMeshlet meshlet)
+{
+    const float3 coneApexWS = TransformObjectToWorld(meshlet.ConeApexCutoff.xyz, instanceData.ObjectToWorldMatrix);
+    const float3 coneAxisWS = TransformObjectToWorldNormal(meshlet.ConeAxis.xyz, instanceData.WorldToObjectMatrix);
+    const float  dotResult = dot(normalize(coneApexWS - _CameraPosition.xyz), coneAxisWS);
+    // using !>= handles the case when the meshlet's coneAxis is (0, 0, 0)
+    // dotResult stores NaN in this case
+    return !(dotResult >= meshlet.ConeApexCutoff.w);
+}
+
 bool Culling(const AAAAInstanceData instanceData, const uint relativeMeshletIndex)
 {
     const AAAAMeshlet meshletData = PullMeshletData(instanceData.MeshletStartOffset + relativeMeshletIndex);
     const float4      boundingSphere = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
-    return CullSphere(_FrustumPlanes, boundingSphere.xyz, boundingSphere.w) > 0;
+    return CullSphere(_CameraFrustumPlanes, boundingSphere.xyz, boundingSphere.w) && ConeCulling(instanceData, meshletData);
 }
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]

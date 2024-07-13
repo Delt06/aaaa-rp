@@ -13,6 +13,7 @@ namespace DELTation.AAAARP.Passes
     public class GPUMeshletCullingPassData : PassDataBase
     {
         public readonly Vector4[] FrustumPlanes = new Vector4[6];
+        public Vector4 CameraPosition;
         public BufferHandle RequestCounterBuffer;
         public AAAAVisibilityBufferContainer VisibilityBufferContainer;
     }
@@ -43,6 +44,8 @@ namespace DELTation.AAAARP.Passes
 
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             Camera camera = CullingCameraOverride != null ? CullingCameraOverride : cameraData.Camera;
+            Vector3 cameraPosition = camera.transform.position;
+            passData.CameraPosition = new Vector4(cameraPosition.x, cameraPosition.y, cameraPosition.z, 1);
             GeometryUtility.CalculateFrustumPlanes(camera, TempFrustumPlanes);
 
             for (int i = 0; i < TempFrustumPlanes.Length; i++)
@@ -76,7 +79,8 @@ namespace DELTation.AAAARP.Passes
                 context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, AAAAGPUMeshletCulling.KernelIndex,
                     ShaderID.Culling._RequestCounter, data.RequestCounterBuffer
                 );
-                context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.Culling._FrustumPlanes, data.FrustumPlanes);
+                context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.Culling._CameraFrustumPlanes, data.FrustumPlanes);
+                context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.Culling._CameraPosition, data.CameraPosition);
                 context.cmd.DispatchCompute(_gpuMeshletCullingCS, AAAAGPUMeshletCulling.KernelIndex,
                     AAAAMathUtils.AlignUp(instanceCount, AAAAGPUMeshletCulling.ThreadGroupSize) / AAAAGPUMeshletCulling.ThreadGroupSize, 1, 1
                 );
@@ -107,7 +111,8 @@ namespace DELTation.AAAARP.Passes
             public static class Culling
             {
                 public static int _RequestCounter = Shader.PropertyToID(nameof(_RequestCounter));
-                public static int _FrustumPlanes = Shader.PropertyToID(nameof(_FrustumPlanes));
+                public static int _CameraFrustumPlanes = Shader.PropertyToID(nameof(_CameraFrustumPlanes));
+                public static int _CameraPosition = Shader.PropertyToID(nameof(_CameraPosition));
             }
 
             public static class FixupIndirectArgs

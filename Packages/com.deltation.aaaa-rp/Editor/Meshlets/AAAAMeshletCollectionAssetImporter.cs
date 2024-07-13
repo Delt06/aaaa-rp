@@ -29,11 +29,6 @@ namespace DELTation.AAAARP.Editor.Meshlets
             }
 
             ctx.DependsOnArtifact(AssetDatabase.GetAssetPath(Mesh));
-            if (Mesh.indexFormat != IndexFormat.UInt16)
-            {
-                ctx.LogImportError("Only UInt16 index format is supported.", this);
-                return;
-            }
 
             AAAAMeshletCollectionAsset meshletCollection = ScriptableObject.CreateInstance<AAAAMeshletCollectionAsset>();
             meshletCollection.name = name;
@@ -43,9 +38,19 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 Mesh.MeshData data = dataArray[0];
                 int vertexBufferStride = data.GetVertexBufferStride(0);
                 NativeArray<float> vertexData = data.GetVertexData<float>();
-                NativeArray<ushort> indexData = data.GetIndexData<ushort>();
 
-                NativeArray<uint> indexDataU32 = CastIndices16To32(indexData);
+                NativeArray<uint> indexDataU32;
+                if (data.indexFormat == IndexFormat.UInt16)
+                {
+                    NativeArray<ushort> indexDataU16 = data.GetIndexData<ushort>();
+                    indexDataU32 = CastIndices16To32(indexDataU16);
+                    indexDataU16.Dispose();
+                }
+                else
+                {
+                    indexDataU32 = data.GetIndexData<uint>();
+                }
+
                 int vertexPositionOffset = data.GetVertexAttributeOffset(VertexAttribute.Position);
                 AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults = AAAAMeshOptimizer.BuildMeshlets(Allocator.Temp, vertexData,
                     (uint) vertexPositionOffset,
@@ -68,6 +73,8 @@ namespace DELTation.AAAARP.Editor.Meshlets
                         VertexCount = meshoptMeshlet.VertexCount,
                         TriangleCount = meshoptMeshlet.TriangleCount,
                         BoundingSphere = math.float4(meshoptBounds.Center[0], meshoptBounds.Center[1], meshoptBounds.Center[2], meshoptBounds.Radius),
+                        ConeApexCutoff = math.float4(meshoptBounds.ConeApex[0], meshoptBounds.ConeApex[1], meshoptBounds.ConeApex[2], meshoptBounds.ConeCutoff),
+                        ConeAxis = math.float4(meshoptBounds.ConeAxis[0], meshoptBounds.ConeAxis[1], meshoptBounds.ConeAxis[2], 0),
                     };
                 }
 
@@ -78,38 +85,44 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 int vertexTangentOffset = data.GetVertexAttributeOffset(VertexAttribute.Tangent);
 
                 int uvStream = data.GetVertexAttributeStream(VertexAttribute.TexCoord0);
-                int uvStreamStride = data.GetVertexBufferStride(uvStream);
-                NativeArray<float> uvVertexData = data.GetVertexData<float>(uvStream);
-                byte* pVerticesUV = (byte*) uvVertexData.GetUnsafeReadOnlyPtr();
+                int uvStreamStride = uvStream >= 0 ? data.GetVertexBufferStride(uvStream) : 0;
+                NativeArray<float> uvVertexData = uvStream >= 0 ? data.GetVertexData<float>(uvStream) : default;
+                byte* pVerticesUV = uvVertexData.IsCreated ? (byte*) uvVertexData.GetUnsafeReadOnlyPtr() : null;
                 int vertexUVOffset = data.GetVertexAttributeOffset(VertexAttribute.TexCoord0);
 
                 for (int i = 0; i < meshletBuildResults.Vertices.Length; i++)
                 {
                     byte* pVertex = pVertices + vertexBufferStride * meshletBuildResults.Vertices[i];
-                    byte* pVertexUV = pVerticesUV + uvStreamStride * meshletBuildResults.Vertices[i];
 
-                    meshletCollection.VertexBuffer[i] = new AAAAMeshletVertex
+                    var meshletVertex = new AAAAMeshletVertex
                     {
                         Position = math.float4(*(float3*) (pVertex + vertexPositionOffset), 1),
                         Normal = math.float4(*(float3*) (pVertex + vertexNormalOffset), 0),
                         Tangent = *(float4*) (pVertex + vertexTangentOffset),
-                        UV = math.float4(*(float2*) (pVertexUV + vertexUVOffset), 0, 0),
                     };
+
+                    if (uvStream >= 0)
+                    {
+                        byte* pVertexUV = pVerticesUV + uvStreamStride * meshletBuildResults.Vertices[i];
+                        meshletVertex.UV = math.float4(*(float2*) (pVertexUV + vertexUVOffset), 0, 0);
+                    }
+
+                    meshletCollection.VertexBuffer[i] = meshletVertex;
                 }
 
-                uvVertexData.Dispose();
+                if (uvVertexData.IsCreated)
+                    uvVertexData.Dispose();
 
                 meshletCollection.IndexBuffer = new byte[meshletBuildResults.Indices.Length];
-
-                for (int i = 0; i < meshletBuildResults.Indices.Length; ++i)
+                fixed (byte* pIndexBuffer = meshletCollection.IndexBuffer)
                 {
-                    meshletCollection.IndexBuffer[i] = meshletBuildResults.Indices[i];
+                    UnsafeUtility.MemCpy(pIndexBuffer, meshletBuildResults.Indices.GetUnsafeReadOnlyPtr(), meshletBuildResults.Indices.Length);
                 }
 
                 indexDataU32.Dispose();
 
                 vertexData.Dispose();
-                indexData.Dispose();
+                indexDataU32.Dispose();
 
                 meshletBuildResults.Dispose();
             }

@@ -170,6 +170,11 @@ namespace DELTation.AAAARP
             {
                 AAAAMaterialAsset material = authoring.Material;
                 AAAAMeshletCollectionAsset mesh = authoring.Mesh;
+                if (material == null || mesh == null)
+                {
+                    continue;
+                }
+
                 Transform authoringTransform = authoring.transform;
                 Matrix4x4 objectToWorldMatrix = authoringTransform.localToWorldMatrix;
                 Matrix4x4 worldToObjectMatrix = authoringTransform.worldToLocalMatrix;

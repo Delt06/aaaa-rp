@@ -15,11 +15,11 @@ namespace DELTation.AAAARP
         private int _index;
 
         public override AAAAMeshletCollectionAsset Mesh => _mesh;
-        public override AAAAMaterialAsset Material => _materialPool[Mathf.Clamp(_index, 0, _materialPool.Length - 1)];
+        public override AAAAMaterialAsset Material => _index >= 0 ? _materialPool[Mathf.Clamp(_index, 0, _materialPool.Length - 1)] : null;
 
         private void Awake()
         {
-            _index = Random.Range(0, _materialPool.Length);
+            _index = _materialPool.Length > 0 ? Random.Range(0, _materialPool.Length) : -1;
         }
     }
 }
