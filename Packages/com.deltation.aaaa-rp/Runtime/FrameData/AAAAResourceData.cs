@@ -98,7 +98,7 @@ namespace DELTation.AAAARP.FrameData
                 desc.filterMode = FilterMode.Point;
                 desc.wrapMode = TextureWrapMode.Clamp;
                 desc.clearBuffer = true;
-                desc.clearColor = new Color(-1, -1, 0.0f, 0.0f);
+                desc.clearColor = new Color(float.PositiveInfinity, float.PositiveInfinity, 0.0f, 0.0f);
                 desc.width = scaledCameraTargetViewportSize.x;
                 desc.height = scaledCameraTargetViewportSize.y;
 

@@ -1,10 +1,5 @@
 Shader "Hidden/AAAA/VisibilityBufferResolve"
 {
-    Properties
-    {
-        _Albedo ("Albedo", 2D) = "white" {}
-    }
-    
     HLSLINCLUDE
         #pragma target 2.0
         
@@ -43,30 +38,6 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 output.positionCS.z = UNITY_RAW_FAR_CLIP_VALUE * output.positionCS.w;
 
                 return output;
-            }
-
-            float3 TransformObjectToWorld(const float3 positionOS, const float4x4 objectToWorldMatrix)
-            {
-                return mul(objectToWorldMatrix, float4(positionOS, 1.0f)).xyz;
-            }
-
-            float3 TransformObjectToWorldNormal(const float3 normalOS, const float4x4 worldToObject, const bool doNormalize = true)
-            {
-                float3 normalWS = mul(normalOS, (float3x3)worldToObject);
-                if (doNormalize)
-                {
-                    return SafeNormalize(normalWS);
-                }
-                return normalWS;
-            }
-
-            float2 ScreenCoordsToNDC(float4 screenCoords)
-            {
-                float2 ndc = screenCoords.xy * _ScreenSize.zw * 2 - 1;
-#ifdef UNITY_UV_STARTS_AT_TOP
-                ndc.y *= -1;
-#endif
-                return ndc;
             }
 
             GBufferOutput Frag(const Varyings IN)

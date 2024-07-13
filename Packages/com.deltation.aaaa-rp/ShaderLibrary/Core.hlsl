@@ -210,6 +210,30 @@ struct VertexNormalInputs
     float3 normalWS;
 };
 
+float3 TransformObjectToWorld(const float3 positionOS, const float4x4 objectToWorldMatrix)
+{
+    return mul(objectToWorldMatrix, float4(positionOS, 1.0f)).xyz;
+}
+
+float3 TransformObjectToWorldNormal(const float3 normalOS, const float4x4 worldToObject, const bool doNormalize = true)
+{
+    float3 normalWS = mul(normalOS, (float3x3)worldToObject);
+    if (doNormalize)
+    {
+        return SafeNormalize(normalWS);
+    }
+    return normalWS;
+}
+
+float2 ScreenCoordsToNDC(float4 screenCoords)
+{
+    float2 ndc = screenCoords.xy * _ScreenSize.zw * 2 - 1;
+    #ifdef UNITY_UV_STARTS_AT_TOP
+    ndc.y *= -1;
+    #endif
+    return ndc;
+}
+
 // #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/ShaderVariablesFunctions.hlsl"
 
 #endif // AAAA_CORE_INCLUDED

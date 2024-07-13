@@ -1,4 +1,5 @@
 ﻿using DELTation.AAAARP.Data;
+using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -11,6 +12,7 @@ namespace DELTation.AAAARP
     public sealed partial class AAAARenderPipeline : RenderPipeline
     {
         public const string ShaderTagName = "AAAAPipeline";
+        private readonly DebugDisplaySettingsUI _debugDisplaySettingsUI = new();
 
         private readonly AAAARenderPipelineAsset _pipelineAsset;
         private readonly AAAARendererBase _renderer;
@@ -24,6 +26,12 @@ namespace DELTation.AAAARP
 
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
             Blitter.Initialize(shaders.CoreBlitPS, shaders.CoreBlitColorAndDepthPS);
+
+            DebugManager.instance.RefreshEditor();
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            _debugDisplaySettingsUI.RegisterDebug(AAAARenderPipelineDebugDisplaySettings.Instance);
+#endif
 
             RTHandles.Initialize(Screen.width, Screen.height);
             ShaderGlobalKeywords.InitializeShaderGlobalKeywords();
@@ -87,6 +95,10 @@ namespace DELTation.AAAARP
 
         protected override void Dispose(bool disposing)
         {
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            _debugDisplaySettingsUI.UnregisterDebug();
+#endif
+
             Blitter.Cleanup();
 
             base.Dispose(disposing);

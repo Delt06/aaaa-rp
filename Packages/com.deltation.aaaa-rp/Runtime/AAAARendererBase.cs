@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Passes;
 using UnityEngine;
@@ -15,10 +16,20 @@ namespace DELTation.AAAARP
 
         private RTHandle _currentColorBuffer;
         private RTHandle _currentDepthBuffer;
+
+        protected AAAARendererBase()
+        {
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            DebugHandler = new AAAADebugHandler();
+#endif
+        }
+
         public RTHandle CurrentColorBuffer => _currentColorBuffer;
         public RTHandle CurrentDepthBuffer => _currentDepthBuffer;
 
         internal ContextContainer FrameData { get; } = new();
+
+        internal AAAADebugHandler DebugHandler { get; }
 
         public void Dispose()
         {
@@ -42,6 +53,7 @@ namespace DELTation.AAAARP
                 }
             }
             _activeRenderPassQueue.Clear();
+            DebugHandler?.Dispose();
 
             Dispose(true);
         }
@@ -53,7 +65,7 @@ namespace DELTation.AAAARP
 
         protected virtual void Dispose(bool disposing) { }
 
-        protected void EnqueuePass(AAAARenderPassBase pass)
+        internal void EnqueuePass(AAAARenderPassBase pass)
         {
             _activeRenderPassQueue.Add(pass);
         }

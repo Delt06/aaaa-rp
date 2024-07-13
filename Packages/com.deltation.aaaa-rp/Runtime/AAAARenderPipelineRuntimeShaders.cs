@@ -65,6 +65,6 @@ namespace DELTation.AAAARP
 
         public int version => _version;
 
-        public bool isAvailableInPlayerBuild => true;
+        bool IRenderPipelineGraphicsSettings.isAvailableInPlayerBuild => true;
     }
 }

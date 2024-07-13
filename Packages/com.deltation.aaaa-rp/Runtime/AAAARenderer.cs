@@ -20,7 +20,7 @@ namespace DELTation.AAAARP
 
             _setupLightingPass = new SetupLightingPass(AAAARenderPassEvent.BeforeRendering);
             _drawVisibilityBufferPass = new DrawVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer);
-            _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders, defaultTextures);
+            _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
             _finalBlitPass = new FinalBlitPass(AAAARenderPassEvent.AfterRendering);
@@ -37,6 +37,8 @@ namespace DELTation.AAAARP
             EnqueuePass(_skyboxPass);
 
             EnqueuePass(_finalBlitPass);
+
+            DebugHandler?.Setup(this, renderGraph, context);
         }
     }
 }

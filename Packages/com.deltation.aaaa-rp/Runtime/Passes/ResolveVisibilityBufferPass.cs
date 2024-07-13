@@ -12,12 +12,8 @@ namespace DELTation.AAAARP.Passes
     {
         private readonly Material _material;
 
-        public ResolveVisibilityBufferPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders,
-            AAAARenderPipelineDefaultTextures defaultTextures) : base(renderPassEvent)
-        {
+        public ResolveVisibilityBufferPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
             _material = CoreUtils.CreateEngineMaterial(shaders.VisibilityBufferResolvePS);
-            _material.SetTexture("_Albedo", defaultTextures.UVTest);
-        }
 
         public override string Name => "ResolveVisibilityBuffer";
 
