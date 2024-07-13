@@ -9,6 +9,7 @@ namespace DELTation.AAAARP
         private readonly DeferredLightingPass _deferredLightingPass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferPass;
         private readonly FinalBlitPass _finalBlitPass;
+        private readonly GPUMeshletCullingPass _gpuMeshletCullingPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly SetupLightingPass _setupLightingPass;
         private readonly SkyboxPass _skyboxPass;
@@ -19,6 +20,7 @@ namespace DELTation.AAAARP
             AAAARenderPipelineDefaultTextures defaultTextures = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineDefaultTextures>();
 
             _setupLightingPass = new SetupLightingPass(AAAARenderPassEvent.BeforeRendering);
+            _gpuMeshletCullingPass = new GPUMeshletCullingPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
             _drawVisibilityBufferPass = new DrawVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer);
             _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
@@ -30,6 +32,7 @@ namespace DELTation.AAAARP
         {
             EnqueuePass(_setupLightingPass);
 
+            EnqueuePass(_gpuMeshletCullingPass);
             EnqueuePass(_drawVisibilityBufferPass);
             EnqueuePass(_resolveVisibilityBufferPass);
 

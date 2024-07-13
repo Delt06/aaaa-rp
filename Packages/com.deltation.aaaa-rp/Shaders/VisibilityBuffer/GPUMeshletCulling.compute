@@ -1,0 +1,32 @@
+#pragma kernel CS
+
+#define MESHLET_RENDER_REQUESTS_RW
+
+#include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAGPUMeshletCulling.cs.hlsl"
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
+
+RWByteAddressBuffer _RequestCounter;
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 threadID : SV_DispatchThreadID)
+{
+    const uint instanceID = threadID.x;
+    if (instanceID >= _InstanceCount)
+    {
+        return;
+    }
+
+    const AAAAInstanceData instanceData = PullInstanceData(instanceID);
+    uint                   requestsOffset = 0;
+    _RequestCounter.InterlockedAdd(0, instanceData.MeshletCount, requestsOffset);
+
+    for (uint meshletIndex = 0; meshletIndex < instanceData.MeshletCount; ++meshletIndex)
+    {
+        AAAAMeshletRenderRequest meshletRenderRequest;
+        meshletRenderRequest.InstanceID = instanceID;
+        meshletRenderRequest.RelativeMeshletID = meshletIndex;
+        StoreMeshletRenderRequest(requestsOffset + meshletIndex, meshletRenderRequest);
+    }
+}

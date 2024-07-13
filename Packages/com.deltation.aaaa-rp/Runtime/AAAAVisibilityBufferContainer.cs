@@ -16,7 +16,6 @@ namespace DELTation.AAAARP
     {
         private readonly List<Texture2D> _albedoTextures = new();
 
-        private readonly GraphicsBuffer _indirectArgsBuffer;
         private readonly GraphicsBuffer _instanceDataBuffer;
         private readonly Material _material;
         private readonly GraphicsBuffer _materialDataBuffer;
@@ -85,22 +84,16 @@ namespace DELTation.AAAARP
             );
             _meshletRenderRequestsBuffer.SetData(_meshletRenderRequests.AsArray());
 
-            _indirectArgsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments,
+            IndirectArgsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments,
                 1, GraphicsBuffer.IndirectDrawArgs.size
             );
-            var indirectArgs = new NativeArray<GraphicsBuffer.IndirectDrawArgs>(1, Allocator.Temp);
-            indirectArgs[0] = new GraphicsBuffer.IndirectDrawArgs
-            {
-                startInstance = 0,
-                instanceCount = (uint) _meshletRenderRequests.Length,
-                startVertex = 0,
-                vertexCountPerInstance = AAAAMeshletConfiguration.MaxMeshletIndices,
-            };
-            _indirectArgsBuffer.SetData(indirectArgs);
 
             Texture2DArray albedoTextureArray = BuildTextureArray(_albedoTextures);
             Shader.SetGlobalTexture(ShaderIDs._SharedAlbedoTextureArray, albedoTextureArray);
         }
+
+        public int InstanceCount => _instanceData.IsCreated ? _instanceData.Length : 0;
+        public GraphicsBuffer IndirectArgsBuffer { get; }
 
         public void Dispose()
         {
@@ -134,7 +127,7 @@ namespace DELTation.AAAARP
                 _sharedIndices.Dispose();
             }
 
-            _indirectArgsBuffer?.Dispose();
+            IndirectArgsBuffer?.Dispose();
             _meshletsDataBuffer?.Dispose();
             _sharedVertexBuffer?.Dispose();
             _sharedIndexBuffer?.Dispose();
@@ -153,6 +146,7 @@ namespace DELTation.AAAARP
                 cmd.SetGlobalBuffer(ShaderIDs._SharedVertexBuffer, _sharedVertexBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._SharedIndexBuffer, _sharedIndexBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._InstanceData, _instanceDataBuffer);
+                cmd.SetGlobalInt(ShaderIDs._InstanceCount, _instanceData.Length);
                 cmd.SetGlobalBuffer(ShaderIDs._MaterialData, _materialDataBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._MeshletRenderRequests, _meshletRenderRequestsBuffer);
             }
@@ -160,13 +154,13 @@ namespace DELTation.AAAARP
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
 
-            if (_indirectArgsBuffer != null && _instanceData.Length > 0)
+            if (IndirectArgsBuffer != null && _instanceData.Length > 0)
             {
                 var renderParams = new RenderParams(_material)
                 {
                     worldBounds = new Bounds(Vector3.zero, Vector3.one * 100_000_000f),
                 };
-                Graphics.RenderPrimitivesIndirect(renderParams, MeshTopology.Triangles, _indirectArgsBuffer, 1);
+                Graphics.RenderPrimitivesIndirect(renderParams, MeshTopology.Triangles, IndirectArgsBuffer, 1);
             }
         }
 
@@ -310,6 +304,7 @@ namespace DELTation.AAAARP
             public static readonly int _SharedVertexBuffer = Shader.PropertyToID(nameof(_SharedVertexBuffer));
             public static readonly int _SharedIndexBuffer = Shader.PropertyToID(nameof(_SharedIndexBuffer));
             public static readonly int _InstanceData = Shader.PropertyToID(nameof(_InstanceData));
+            public static readonly int _InstanceCount = Shader.PropertyToID(nameof(_InstanceCount));
             public static readonly int _MaterialData = Shader.PropertyToID(nameof(_MaterialData));
             public static readonly int _MeshletRenderRequests = Shader.PropertyToID(nameof(_MeshletRenderRequests));
 

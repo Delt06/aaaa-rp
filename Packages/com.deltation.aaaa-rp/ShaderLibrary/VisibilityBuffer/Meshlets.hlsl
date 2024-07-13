@@ -7,19 +7,38 @@ uint                                _MeshletCount;
 StructuredBuffer<AAAAMeshlet>       _Meshlets;
 StructuredBuffer<AAAAMeshletVertex> _SharedVertexBuffer;
 ByteAddressBuffer                   _SharedIndexBuffer;
-ByteAddressBuffer                   _MeshletRenderRequests;
+
+#ifdef MESHLET_RENDER_REQUESTS_RW
+RWByteAddressBuffer _MeshletRenderRequests;
+#else
+ByteAddressBuffer _MeshletRenderRequests;
+#endif
+
+uint MeshletRenderRequestIndexToAddress(const uint index)
+{
+    const uint uintSize = 4;
+    return index * uintSize * 2;
+}
 
 AAAAMeshletRenderRequest PullMeshletRenderRequest(const uint index)
 {
-    const uint  uintSize = 4;
-    const uint  baseAddress = index * uintSize * 2;
-    const uint2 value = _MeshletRenderRequests.Load2(baseAddress);
+    const uint  address = MeshletRenderRequestIndexToAddress(index);
+    const uint2 value = _MeshletRenderRequests.Load2(address);
 
     AAAAMeshletRenderRequest renderRequest;
     renderRequest.InstanceID = value.x;
     renderRequest.RelativeMeshletID = value.y;
     return renderRequest;
 }
+
+#ifdef MESHLET_RENDER_REQUESTS_RW
+void StoreMeshletRenderRequest(const uint index, AAAAMeshletRenderRequest renderRequest)
+{
+    const uint  address = MeshletRenderRequestIndexToAddress(index);
+    const uint2 value = uint2(renderRequest.InstanceID, renderRequest.RelativeMeshletID);
+    _MeshletRenderRequests.Store2(address, value);
+}
+#endif
 
 AAAAMeshlet PullMeshletData(const uint meshletID)
 {

@@ -1,0 +1,45 @@
+#pragma kernel CS
+
+#include "Packages/com.deltation.aaaa-rp/Runtime/Utils/AAAARawBufferClear.cs.hlsl"
+
+RWByteAddressBuffer _Buffer;
+int                 _ItemCount;
+uint                _WriteOffset;
+uint                _ClearValue;
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(uint3 id : SV_DispatchThreadID)
+{
+    const int bufferOffset = 4 * id.x;
+    const int remainingItems = _ItemCount - bufferOffset;
+    if (remainingItems <= 0)
+    {
+        return;
+    }
+
+    const int bufferAddress = (_WriteOffset + bufferOffset) << 2;
+
+    switch (remainingItems)
+    {
+    case 1:
+        {
+            _Buffer.Store(bufferAddress, _ClearValue);
+            break;
+        }
+    case 2:
+        {
+            _Buffer.Store2(bufferAddress, _ClearValue);
+            break;
+        }
+    case 3:
+        {
+            _Buffer.Store3(bufferAddress, _ClearValue);
+            break;
+        }
+    default:
+        {
+            _Buffer.Store4(bufferAddress, _ClearValue);
+            break;
+        }
+    }
+}

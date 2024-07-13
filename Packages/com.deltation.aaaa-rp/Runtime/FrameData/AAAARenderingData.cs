@@ -7,11 +7,13 @@ namespace DELTation.AAAARP.FrameData
     {
         public CullingResults CullingResults;
         public RenderGraph RenderGraph;
+        public AAAAVisibilityBufferContainer VisibilityBufferContainer;
 
         public override void Reset()
         {
             RenderGraph = default;
             CullingResults = default;
+            VisibilityBufferContainer = default;
         }
     }
 }

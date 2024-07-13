@@ -22,12 +22,24 @@ namespace DELTation.AAAARP
         private Shader _coreBlitColorAndDepthPS;
 
         [SerializeField]
+        [ResourcePath("Shaders/Utils/RawBufferClear.compute")]
+        private ComputeShader _rawBufferClearCS;
+
+        [SerializeField]
         [ResourcePath("Shaders/VisibilityBuffer/VisibilityBuffer.shader")]
         private Shader _visibilityBufferPS;
 
         [SerializeField]
         [ResourcePath("Shaders/VisibilityBuffer/VisibilityBufferResolve.shader")]
         private Shader _visibilityBufferResolvePS;
+
+        [SerializeField]
+        [ResourcePath("Shaders/VisibilityBuffer/GPUMeshletCulling.compute")]
+        private ComputeShader _gpuMeshletCullingCS;
+
+        [SerializeField]
+        [ResourcePath("Shaders/VisibilityBuffer/FixupMeshletIndirectDrawArgs.compute")]
+        private ComputeShader _fixupMeshletIndirectDrawArgsCS;
 
         [SerializeField]
         [ResourcePath("Shaders/DeferredLighting.shader")]
@@ -45,6 +57,12 @@ namespace DELTation.AAAARP
             set => this.SetValueAndNotify(ref _coreBlitColorAndDepthPS, value, nameof(_coreBlitColorAndDepthPS));
         }
 
+        public ComputeShader RawBufferClearCS
+        {
+            get => _rawBufferClearCS;
+            set => this.SetValueAndNotify(ref _rawBufferClearCS, value, nameof(_rawBufferClearCS));
+        }
+
         public Shader VisibilityBufferPS
         {
             get => _visibilityBufferPS;
@@ -55,6 +73,18 @@ namespace DELTation.AAAARP
         {
             get => _visibilityBufferResolvePS;
             set => this.SetValueAndNotify(ref _visibilityBufferResolvePS, value, nameof(_visibilityBufferResolvePS));
+        }
+
+        public ComputeShader GPUMeshletCullingCS
+        {
+            get => _gpuMeshletCullingCS;
+            set => this.SetValueAndNotify(ref _gpuMeshletCullingCS, value, nameof(_gpuMeshletCullingCS));
+        }
+
+        public ComputeShader FixupMeshletIndirectDrawArgsCS
+        {
+            get => _fixupMeshletIndirectDrawArgsCS;
+            set => this.SetValueAndNotify(ref _fixupMeshletIndirectDrawArgsCS, value, nameof(_fixupMeshletIndirectDrawArgsCS));
         }
 
         public Shader DeferredLightingPS

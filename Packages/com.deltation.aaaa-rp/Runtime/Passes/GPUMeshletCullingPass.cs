@@ -1,0 +1,102 @@
+﻿using System.Diagnostics.CodeAnalysis;
+using DELTation.AAAARP.Core;
+using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.Meshlets;
+using DELTation.AAAARP.Utils;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
+
+namespace DELTation.AAAARP.Passes
+{
+    public class GPUMeshletCullingPassData : PassDataBase
+    {
+        public BufferHandle RequestCounterBuffer;
+        public AAAAVisibilityBufferContainer VisibilityBufferContainer;
+    }
+
+    public class GPUMeshletCullingPass : AAAARenderPass<GPUMeshletCullingPassData>
+    {
+        private readonly ComputeShader _fixupMeshletIndirectDrawArgsCS;
+        private readonly ComputeShader _gpuMeshletCullingCS;
+        private readonly ComputeShader _rawBufferClearCS;
+
+        public GPUMeshletCullingPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent)
+        {
+            _rawBufferClearCS = runtimeShaders.RawBufferClearCS;
+            _gpuMeshletCullingCS = runtimeShaders.GPUMeshletCullingCS;
+            _fixupMeshletIndirectDrawArgsCS = runtimeShaders.FixupMeshletIndirectDrawArgsCS;
+        }
+
+        public override string Name => "GPUMeshletCulling";
+
+        protected override void Setup(RenderGraphBuilder builder, GPUMeshletCullingPassData passData, ContextContainer frameData)
+        {
+            AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
+            passData.VisibilityBufferContainer = renderingData.VisibilityBufferContainer;
+
+            passData.RequestCounterBuffer = builder.CreateTransientBuffer(new BufferDesc(1, sizeof(uint), GraphicsBuffer.Target.Raw)
+                {
+                    name = "MeshletRenderRequestCounter",
+                }
+            );
+        }
+
+        protected override void Render(GPUMeshletCullingPassData data, RenderGraphContext context)
+        {
+            int instanceCount = data.VisibilityBufferContainer.InstanceCount;
+            if (instanceCount == 0)
+            {
+                return;
+            }
+
+            using (new ProfilingScope(context.cmd, Profiling.ClearRenderRequestsCount))
+            {
+                AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.RequestCounterBuffer, 1, 0, 0);
+            }
+
+            using (new ProfilingScope(context.cmd, Profiling.Culling))
+            {
+                context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, AAAAGPUMeshletCulling.KernelIndex,
+                    ShaderID.Culling._RequestCounter, data.RequestCounterBuffer
+                );
+                context.cmd.DispatchCompute(_gpuMeshletCullingCS, AAAAGPUMeshletCulling.KernelIndex,
+                    AAAAMathUtils.AlignUp(instanceCount, AAAAGPUMeshletCulling.ThreadGroupSize) / AAAAGPUMeshletCulling.ThreadGroupSize, 1, 1
+                );
+            }
+
+            using (new ProfilingScope(context.cmd, Profiling.FixupIndirectArgs))
+            {
+                context.cmd.SetComputeBufferParam(_fixupMeshletIndirectDrawArgsCS, AAAAFixupMeshletIndirectDrawArgs.KernelIndex,
+                    ShaderID.FixupIndirectArgs._RequestCounter, data.RequestCounterBuffer
+                );
+                context.cmd.SetComputeBufferParam(_fixupMeshletIndirectDrawArgsCS, AAAAFixupMeshletIndirectDrawArgs.KernelIndex,
+                    ShaderID.FixupIndirectArgs._IndirectArgs, data.VisibilityBufferContainer.IndirectArgsBuffer
+                );
+                context.cmd.DispatchCompute(_fixupMeshletIndirectDrawArgsCS, AAAAFixupMeshletIndirectDrawArgs.KernelIndex, 1, 1, 1);
+            }
+        }
+
+        private static class Profiling
+        {
+            public static readonly ProfilingSampler ClearRenderRequestsCount = new(nameof(ClearRenderRequestsCount));
+            public static readonly ProfilingSampler Culling = new(nameof(Culling));
+            public static readonly ProfilingSampler FixupIndirectArgs = new(nameof(FixupIndirectArgs));
+        }
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        private static class ShaderID
+        {
+            public static class Culling
+            {
+                public static int _RequestCounter = Shader.PropertyToID(nameof(_RequestCounter));
+            }
+
+            public static class FixupIndirectArgs
+            {
+                public static int _RequestCounter = Shader.PropertyToID(nameof(_RequestCounter));
+                public static int _IndirectArgs = Shader.PropertyToID(nameof(_IndirectArgs));
+            }
+        }
+    }
+}

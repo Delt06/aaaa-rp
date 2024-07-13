@@ -126,6 +126,7 @@ namespace DELTation.AAAARP
             AAAARenderingData renderingData = frameData.GetOrCreate<AAAARenderingData>();
 
             renderingData.RenderGraph = _renderGraph;
+            renderingData.VisibilityBufferContainer = _visibilityBufferContainer;
 
             return renderingData;
         }

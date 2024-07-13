@@ -1,0 +1,25 @@
+#pragma kernel CS
+
+#define MESHLET_RENDER_REQUESTS_RW
+
+#include <UnityIndirect.cginc>
+
+#include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAFixupMeshletIndirectDrawArgs.cs.hlsl"
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+
+ByteAddressBuffer                    _RequestCounter;
+RWStructuredBuffer<IndirectDrawArgs> _IndirectArgs;
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS()
+{
+    const uint requestCount = _RequestCounter.Load(0);
+
+    IndirectDrawArgs indirectDrawArgs;
+    indirectDrawArgs.startInstance = 0;
+    indirectDrawArgs.instanceCount = requestCount;
+    indirectDrawArgs.startVertex = 0;
+    indirectDrawArgs.vertexCountPerInstance = MAX_MESHLET_INDICES;
+    _IndirectArgs[0] = indirectDrawArgs;
+}
