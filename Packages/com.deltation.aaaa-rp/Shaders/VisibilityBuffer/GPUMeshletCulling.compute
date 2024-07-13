@@ -7,7 +7,45 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 
+#define PLANES_IN_FRUSTUM 6
+
 RWByteAddressBuffer _RequestCounter;
+float4              _FrustumPlanes[PLANES_IN_FRUSTUM];
+
+// https://gist.github.com/XProger/6d1fd465c823bba7138b638691831288
+// Computes signed distance between a point and a plane
+// vPlane: Contains plane coefficients (a,b,c,d) where: ax + by + cz = d
+// vPoint: Point to be tested against the plane.
+float DistanceToPlane(const float4 plane, const float3 position)
+{
+    return dot(float4(position, 1.0), plane);
+}
+
+// Frustum culling versus a sphere. Returns > 0 if visible, <= 0 otherwise
+float CullSphere(const float4 planes[PLANES_IN_FRUSTUM], const float3 center, const float radius)
+{
+    const float dist01 = min(DistanceToPlane(planes[0], center), DistanceToPlane(planes[1], center));
+    const float dist23 = min(DistanceToPlane(planes[2], center), DistanceToPlane(planes[3], center));
+    const float dist45 = min(DistanceToPlane(planes[4], center), DistanceToPlane(planes[5], center));
+
+    return min(min(dist01, dist23), dist45) + radius;
+}
+
+float4 TransformBoundingSphere(const float4 boundingSphereOS, const float4x4 objectToWorldMatrix)
+{
+    const float3 centerWS = mul(objectToWorldMatrix, float4(boundingSphereOS.xyz, 1)).xyz;
+    const float3 topOS = boundingSphereOS.xyz + float3(0, boundingSphereOS.w, 0);
+    const float3 topWS = mul(objectToWorldMatrix, float4(topOS, 1)).xyz;
+    const float  radiusWS = distance(centerWS, topWS);
+    return float4(centerWS, radiusWS);
+}
+
+bool Culling(const AAAAInstanceData instanceData, const uint relativeMeshletIndex)
+{
+    const AAAAMeshlet meshletData = PullMeshletData(instanceData.MeshletStartOffset + relativeMeshletIndex);
+    const float4      boundingSphere = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
+    return CullSphere(_FrustumPlanes, boundingSphere.xyz, boundingSphere.w) > 0;
+}
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 threadID : SV_DispatchThreadID)
@@ -19,14 +57,18 @@ void CS(const uint3 threadID : SV_DispatchThreadID)
     }
 
     const AAAAInstanceData instanceData = PullInstanceData(instanceID);
-    uint                   requestsOffset = 0;
-    _RequestCounter.InterlockedAdd(0, instanceData.MeshletCount, requestsOffset);
 
-    for (uint meshletIndex = 0; meshletIndex < instanceData.MeshletCount; ++meshletIndex)
+    for (uint relativeMeshletIndex = 0; relativeMeshletIndex < instanceData.MeshletCount; ++relativeMeshletIndex)
     {
-        AAAAMeshletRenderRequest meshletRenderRequest;
-        meshletRenderRequest.InstanceID = instanceID;
-        meshletRenderRequest.RelativeMeshletID = meshletIndex;
-        StoreMeshletRenderRequest(requestsOffset + meshletIndex, meshletRenderRequest);
+        if (Culling(instanceData, relativeMeshletIndex))
+        {
+            AAAAMeshletRenderRequest meshletRenderRequest;
+            meshletRenderRequest.InstanceID = instanceID;
+            meshletRenderRequest.RelativeMeshletID = relativeMeshletIndex;
+
+            uint requestWriteOffset = 0;
+            _RequestCounter.InterlockedAdd(0, 1, requestWriteOffset);
+            StoreMeshletRenderRequest(requestWriteOffset, meshletRenderRequest);
+        }
     }
 }

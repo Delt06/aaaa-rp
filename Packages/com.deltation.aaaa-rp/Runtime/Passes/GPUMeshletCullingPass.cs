@@ -3,6 +3,7 @@ using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.Utils;
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -11,12 +12,14 @@ namespace DELTation.AAAARP.Passes
 {
     public class GPUMeshletCullingPassData : PassDataBase
     {
+        public readonly Vector4[] FrustumPlanes = new Vector4[6];
         public BufferHandle RequestCounterBuffer;
         public AAAAVisibilityBufferContainer VisibilityBufferContainer;
     }
 
     public class GPUMeshletCullingPass : AAAARenderPass<GPUMeshletCullingPassData>
     {
+        private static readonly Plane[] TempFrustumPlanes = new Plane[6];
         private readonly ComputeShader _fixupMeshletIndirectDrawArgsCS;
         private readonly ComputeShader _gpuMeshletCullingCS;
         private readonly ComputeShader _rawBufferClearCS;
@@ -28,12 +31,25 @@ namespace DELTation.AAAARP.Passes
             _fixupMeshletIndirectDrawArgsCS = runtimeShaders.FixupMeshletIndirectDrawArgsCS;
         }
 
+        [CanBeNull]
+        public Camera CullingCameraOverride { get; set; }
+
         public override string Name => "GPUMeshletCulling";
 
         protected override void Setup(RenderGraphBuilder builder, GPUMeshletCullingPassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             passData.VisibilityBufferContainer = renderingData.VisibilityBufferContainer;
+
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
+            Camera camera = CullingCameraOverride != null ? CullingCameraOverride : cameraData.Camera;
+            GeometryUtility.CalculateFrustumPlanes(camera, TempFrustumPlanes);
+
+            for (int i = 0; i < TempFrustumPlanes.Length; i++)
+            {
+                Plane frustumPlane = TempFrustumPlanes[i];
+                passData.FrustumPlanes[i] = new Vector4(frustumPlane.normal.x, frustumPlane.normal.y, frustumPlane.normal.z, frustumPlane.distance);
+            }
 
             passData.RequestCounterBuffer = builder.CreateTransientBuffer(new BufferDesc(1, sizeof(uint), GraphicsBuffer.Target.Raw)
                 {
@@ -60,6 +76,7 @@ namespace DELTation.AAAARP.Passes
                 context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, AAAAGPUMeshletCulling.KernelIndex,
                     ShaderID.Culling._RequestCounter, data.RequestCounterBuffer
                 );
+                context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.Culling._FrustumPlanes, data.FrustumPlanes);
                 context.cmd.DispatchCompute(_gpuMeshletCullingCS, AAAAGPUMeshletCulling.KernelIndex,
                     AAAAMathUtils.AlignUp(instanceCount, AAAAGPUMeshletCulling.ThreadGroupSize) / AAAAGPUMeshletCulling.ThreadGroupSize, 1, 1
                 );
@@ -90,6 +107,7 @@ namespace DELTation.AAAARP.Passes
             public static class Culling
             {
                 public static int _RequestCounter = Shader.PropertyToID(nameof(_RequestCounter));
+                public static int _FrustumPlanes = Shader.PropertyToID(nameof(_FrustumPlanes));
             }
 
             public static class FixupIndirectArgs

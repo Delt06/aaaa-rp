@@ -1,8 +1,11 @@
 ﻿using System;
 using DELTation.AAAARP.Passes;
 using DELTation.AAAARP.Passes.Debugging;
+using JetBrains.Annotations;
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
+using Object = UnityEngine.Object;
 
 namespace DELTation.AAAARP.Debugging
 {
@@ -24,6 +27,22 @@ namespace DELTation.AAAARP.Debugging
         public void Dispose()
         {
             _visibilityBufferDebugPass.Dispose();
+        }
+
+        [CanBeNull] public Camera GetGPUCullingCameraOverride()
+        {
+            if (!_debugDisplaySettings.RenderingSettings.ForceCullingFrustumOfMainCamera)
+            {
+                return null;
+            }
+
+            Camera mainCamera = Camera.main;
+            if (mainCamera != null)
+            {
+                return mainCamera;
+            }
+
+            return Object.FindFirstObjectByType<Camera>(FindObjectsInactive.Exclude);
         }
 
         public void Setup(AAAARendererBase renderer, RenderGraph renderGraph, ScriptableRenderContext context)

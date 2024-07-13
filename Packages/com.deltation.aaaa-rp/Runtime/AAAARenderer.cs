@@ -32,6 +32,7 @@ namespace DELTation.AAAARP
         {
             EnqueuePass(_setupLightingPass);
 
+            _gpuMeshletCullingPass.CullingCameraOverride = DebugHandler?.GetGPUCullingCameraOverride();
             EnqueuePass(_gpuMeshletCullingPass);
             EnqueuePass(_drawVisibilityBufferPass);
             EnqueuePass(_resolveVisibilityBufferPass);
