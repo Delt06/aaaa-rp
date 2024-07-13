@@ -21,6 +21,7 @@ namespace DELTation.AAAARP
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     public struct AAAAMaterialData
     {
+        public float4 AlbedoColor;
         public uint AlbedoIndex;
         public uint Padding0;
         public uint Padding1;

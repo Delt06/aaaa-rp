@@ -6,5 +6,6 @@ namespace DELTation.AAAARP.Materials
     public class AAAAMaterialAsset : ScriptableObject
     {
         public Texture2D Albedo;
+        public Color AlbedoColor = Color.white;
     }
 }

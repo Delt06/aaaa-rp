@@ -249,6 +249,7 @@ namespace DELTation.AAAARP
 
             var materialData = new AAAAMaterialData
             {
+                AlbedoColor = (Vector4) material.AlbedoColor,
                 AlbedoIndex = (uint) GetOrAllocateAlbedoTexture(material.Albedo),
             };
             _materialData.Add(materialData);

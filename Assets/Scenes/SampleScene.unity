@@ -318,7 +318,7 @@ GameObject:
   - component: {fileID: 1057362072}
   - component: {fileID: 1057362073}
   m_Layer: 0
-  m_Name: Bunny
+  m_Name: Bunny_Red
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -417,7 +417,7 @@ GameObject:
   - component: {fileID: 1915570464}
   - component: {fileID: 1915570463}
   m_Layer: 0
-  m_Name: Bunny_01
+  m_Name: Bunny_Blue
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -436,7 +436,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _mesh: {fileID: -6794912392173530250, guid: 0f0cc68fd7199024da40bf3e0d089a56, type: 3}
-  _material: {fileID: 11400000, guid: 4449308858b155c4e82df25982360e06, type: 2}
+  _material: {fileID: 11400000, guid: a63105b6da7fdf247a56b7f77920120c, type: 2}
 --- !u!4 &1915570464
 Transform:
   m_ObjectHideFlags: 0

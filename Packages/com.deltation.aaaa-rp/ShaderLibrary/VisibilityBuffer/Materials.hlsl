@@ -37,7 +37,9 @@ InterpolatedUV InterpolateUV(const BarycentricDerivatives barycentric, const AAA
 
 float4 SampleAlbedo(const InterpolatedUV uv, const AAAAMaterialData materialData)
 {
-    return SAMPLE_TEXTURE2D_ARRAY_GRAD(_SharedAlbedoTextureArray, sampler_SharedAlbedoTextureArray, uv.uv, materialData.AlbedoIndex, uv.ddx, uv.ddy);
+    const float4 textureAlbedo = SAMPLE_TEXTURE2D_ARRAY_GRAD(_SharedAlbedoTextureArray, sampler_SharedAlbedoTextureArray, uv.uv,
+                                                             materialData.AlbedoIndex, uv.ddx, uv.ddy);
+    return materialData.AlbedoColor * textureAlbedo;
 }
 
 
