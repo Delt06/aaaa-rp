@@ -34,7 +34,7 @@ Shader "Hidden/AAAA/VisibilityBufferDEbug"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Utils.hlsl"
             #include "Packages/com.deltation.aaaa-rp/Runtime/Debugging/AAAADebugDisplaySettingsRendering.cs.hlsl"
 
-            #define DIM 0.25
+            #define DIM 0.1
             #define BRIGHT 0.8
             #define COLORS_COUNT 6
             
