@@ -6,9 +6,8 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
     }
     
     HLSLINCLUDE
-
         #pragma target 2.0
-        #pragma editor_sync_compilation
+        
         #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
         #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
