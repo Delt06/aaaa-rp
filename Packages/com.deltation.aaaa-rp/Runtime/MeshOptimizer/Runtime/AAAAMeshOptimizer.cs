@@ -17,16 +17,16 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             Assert.IsTrue(vertices.Length > 0);
             Assert.IsTrue(indices.Length > 0);
             Assert.IsTrue(vertexPositionStride > 0);
-            
+
             Assert.IsTrue(meshletGenerationParams.MaxVertices > 0);
             Assert.IsTrue(meshletGenerationParams.MaxTriangles > 0);
             nuint maxMeshlets = meshopt_buildMeshletsBound((nuint) indices.Length, meshletGenerationParams.MaxVertices, meshletGenerationParams.MaxTriangles);
             Assert.IsTrue(maxMeshlets > 0);
-            
+
             var meshlets = new NativeArray<meshopt_Meshlet>((int) maxMeshlets, allocator);
             var meshletVertices = new NativeArray<uint>((int) (maxMeshlets * meshletGenerationParams.MaxVertices), allocator);
             var meshletIndices = new NativeArray<byte>((int) (maxMeshlets * meshletGenerationParams.MaxTriangles * 3), allocator);
-            
+
             uint floatsInVertex = vertexPositionStride / sizeof(float);
             nuint meshletCount = meshopt_buildMeshlets(
                 (meshopt_Meshlet*) meshlets.GetUnsafePtr(), (uint*) meshletVertices.GetUnsafePtr(), (byte*) meshletIndices.GetUnsafePtr(),
@@ -34,7 +34,7 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
                 (float*) ((byte*) vertices.GetUnsafeReadOnlyPtr() + vertexPositionOffset), (nuint) vertices.Length / floatsInVertex, vertexPositionStride,
                 meshletGenerationParams.MaxVertices, meshletGenerationParams.MaxTriangles, meshletGenerationParams.ConeWeight
             );
-            
+
             ref readonly meshopt_Meshlet lastMeshlet = ref meshlets.ElementAtRefReadonly((int) (meshletCount - 1u));
             return new MeshletBuildResults
             {
@@ -43,13 +43,13 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
                 Indices = meshletIndices.GetSubArray(0, (int) (lastMeshlet.TriangleOffset + (lastMeshlet.TriangleCount * 3 + 3 & ~3))),
             };
         }
-        
+
         public static unsafe meshopt_Bounds ComputeMeshletBounds(in MeshletBuildResults buildResults, int meshletIndex,
             NativeArray<float> vertices, uint vertexPositionOffset,
             uint vertexPositionStride)
         {
             ref readonly meshopt_Meshlet meshlet = ref buildResults.Meshlets.ElementAtRefReadonly(meshletIndex);
-            
+
             uint floatsInVertex = vertexPositionStride / sizeof(float);
             return meshopt_computeMeshletBounds(
                 buildResults.Vertices.ElementPtr((int) meshlet.VertexOffset),
@@ -58,13 +58,13 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
                 (float*) ((byte*) vertices.GetUnsafeReadOnlyPtr() + vertexPositionOffset), (nuint) vertices.Length / floatsInVertex, vertexPositionStride
             );
         }
-        
+
         public struct MeshletBuildResults : IDisposable
         {
             public NativeArray<meshopt_Meshlet> Meshlets;
             public NativeArray<uint> Vertices;
             public NativeArray<byte> Indices;
-            
+
             public void Dispose()
             {
                 Meshlets.Dispose();
@@ -72,7 +72,7 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
                 Indices.Dispose();
             }
         }
-        
+
         public struct MeshletGenerationParams
         {
             public uint MaxVertices;

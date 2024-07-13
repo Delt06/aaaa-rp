@@ -23,7 +23,7 @@ float2 _GlobalMipBias;
 
 half4 _AdditionalLightsCount;
 
-uint _RenderingLayerMaxInt;
+uint  _RenderingLayerMaxInt;
 float _RenderingLayerRcpMaxInt;
 
 // Screen coord override.

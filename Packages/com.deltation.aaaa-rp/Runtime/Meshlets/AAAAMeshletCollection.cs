@@ -14,7 +14,7 @@ namespace DELTation.AAAARP.Meshlets
             MaxTriangles = AAAAMeshletConfiguration.MaxMeshletTriangles,
             ConeWeight = AAAAMeshletConfiguration.MeshletConeWeight,
         };
-        
+
         [HideInInspector]
         public AAAAMeshlet[] Meshlets = Array.Empty<AAAAMeshlet>();
         [HideInInspector]

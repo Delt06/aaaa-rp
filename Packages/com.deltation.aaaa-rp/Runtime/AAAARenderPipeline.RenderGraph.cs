@@ -11,19 +11,19 @@ namespace DELTation.AAAARP
         {
             renderer.RecordRenderGraph(renderGraph, context);
         }
-        
+
         private static void RecordAndExecuteRenderGraph(RenderGraph renderGraph, ScriptableRenderContext context, AAAARendererBase renderer,
             CommandBuffer cmd, string cameraName)
         {
             ContextContainer frameData = renderer.FrameData;
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
-            
+
             const bool stereoAware = false;
             if (!cameraData.Camera.TryGetCullingParameters(stereoAware, out ScriptableCullingParameters cullingParameters))
             {
                 return;
             }
-            
+
             var renderGraphParameters = new RenderGraphParameters
             {
                 executionName = cameraName,
@@ -31,19 +31,19 @@ namespace DELTation.AAAARP
                 scriptableRenderContext = context,
                 currentFrameIndex = Time.frameCount,
             };
-            
+
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAARendererListData rendererListData = frameData.Get<AAAARendererListData>();
-            
+
             renderGraph.BeginRecording(renderGraphParameters);
             {
                 renderingData.CullingResults = context.Cull(ref cullingParameters);
-                
+
                 renderer.ImportBackbuffer(cameraData);
                 resourceData.InitTextures(renderGraph, cameraData);
                 rendererListData.Init(renderingData, cameraData);
-                
+
                 resourceData.BeginFrame();
                 renderer.BeginFrame(renderGraph, context);
                 RecordRenderGraph(renderGraph, context, renderer);

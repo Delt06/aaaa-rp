@@ -7,17 +7,17 @@ namespace DELTation.AAAARP.FrameData
     public abstract class AAAAResourceDataBase : ContextItem
     {
         internal bool IsAccessible { get; set; }
-        
+
         internal void BeginFrame()
         {
             IsAccessible = true;
         }
-        
+
         internal void EndFrame()
         {
             IsAccessible = false;
         }
-        
+
         /// <summary>
         ///     Updates the texture handle if the texture is accessible.
         /// </summary>
@@ -27,10 +27,10 @@ namespace DELTation.AAAARP.FrameData
         {
             if (!CheckAndWarnAboutAccessibility())
                 return;
-            
+
             handle = newHandle;
         }
-        
+
         /// <summary>
         ///     Fetches the texture handle if the texture is accessible.
         /// </summary>
@@ -40,30 +40,30 @@ namespace DELTation.AAAARP.FrameData
         {
             if (!CheckAndWarnAboutAccessibility())
                 return TextureHandle.nullHandle;
-            
+
             return handle;
         }
-        
+
         protected void CheckAndSetBufferHandle(ref BufferHandle handle, BufferHandle newHandle)
         {
             if (!CheckAndWarnAboutAccessibility())
             {
                 return;
             }
-            
+
             handle = newHandle;
         }
-        
+
         protected BufferHandle CheckAndGetBufferHandle(ref BufferHandle handle)
         {
             if (!CheckAndWarnAboutAccessibility())
             {
                 return BufferHandle.nullHandle;
             }
-            
+
             return handle;
         }
-        
+
         /// <summary>
         ///     Updates the texture handles if the texture is accessible. The current and new handles needs to be of the same size.
         /// </summary>
@@ -75,18 +75,18 @@ namespace DELTation.AAAARP.FrameData
             {
                 return;
             }
-            
+
             if (handle == null || handle.Length != newHandle.Length)
             {
                 handle = new TextureHandle[newHandle.Length];
             }
-            
+
             for (int i = 0; i < newHandle.Length; i++)
             {
                 handle[i] = newHandle[i];
             }
         }
-        
+
         /// <summary>
         ///     Fetches the texture handles if the texture is accessible.
         /// </summary>
@@ -95,9 +95,9 @@ namespace DELTation.AAAARP.FrameData
         protected TextureHandle[] CheckAndGetTextureHandle(ref TextureHandle[] handle)
         {
             return !CheckAndWarnAboutAccessibility() ? new[] { TextureHandle.nullHandle } : handle;
-            
+
         }
-        
+
         /// <summary>
         ///     Check if the texture is accessible.
         /// </summary>
@@ -108,18 +108,18 @@ namespace DELTation.AAAARP.FrameData
             {
                 Debug.LogError("Trying to access resources outside of the current frame setup.");
             }
-            
+
             return IsAccessible;
         }
-        
+
         internal enum ActiveID
         {
             /// <summary>The camera buffer.</summary>
             Camera,
-            
+
             /// <summary>The backbuffer.</summary>
             BackBuffer,
         }
     }
-    
+
 }

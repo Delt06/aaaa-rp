@@ -108,68 +108,68 @@ float4x4 unity_CameraToWorld;
 
 // Block Layout should be respected due to SRP Batcher
 CBUFFER_START(UnityPerDraw)
-// Space block Feature
-float4x4 unity_ObjectToWorld;
-float4x4 unity_WorldToObject;
-float4 unity_LODFade; // x is the fade value ranging within [0,1]. y is x quantized into 16 levels
-real4 unity_WorldTransformParams; // w is usually 1.0, or -1.0 for odd-negative scale transforms
+    // Space block Feature
+    float4x4 unity_ObjectToWorld;
+    float4x4 unity_WorldToObject;
+    float4   unity_LODFade; // x is the fade value ranging within [0,1]. y is x quantized into 16 levels
+    real4    unity_WorldTransformParams; // w is usually 1.0, or -1.0 for odd-negative scale transforms
 
-// Render Layer block feature
-// Only the first channel (x) contains valid data and the float must be reinterpreted using asuint() to extract the original 32 bits values.
-float4 unity_RenderingLayer;
+    // Render Layer block feature
+    // Only the first channel (x) contains valid data and the float must be reinterpreted using asuint() to extract the original 32 bits values.
+    float4 unity_RenderingLayer;
 
-// Light Indices block feature
-// These are set internally by the engine upon request by RendererConfiguration.
-half4 unity_LightData;
-half4 unity_LightIndices[2];
+    // Light Indices block feature
+    // These are set internally by the engine upon request by RendererConfiguration.
+    half4 unity_LightData;
+    half4 unity_LightIndices[2];
 
-float4 unity_ProbesOcclusion;
+    float4 unity_ProbesOcclusion;
 
-// Reflection Probe 0 block feature
-// HDR environment map decode instructions
-real4 unity_SpecCube0_HDR;
-real4 unity_SpecCube1_HDR;
+    // Reflection Probe 0 block feature
+    // HDR environment map decode instructions
+    real4 unity_SpecCube0_HDR;
+    real4 unity_SpecCube1_HDR;
 
-float4 unity_SpecCube0_BoxMax;          // w contains the blend distance
-float4 unity_SpecCube0_BoxMin;          // w contains the lerp value
-float4 unity_SpecCube0_ProbePosition;   // w is set to 1 for box projection
-float4 unity_SpecCube1_BoxMax;          // w contains the blend distance
-float4 unity_SpecCube1_BoxMin;          // w contains the sign of (SpecCube0.importance - SpecCube1.importance)
-float4 unity_SpecCube1_ProbePosition;   // w is set to 1 for box projection
+    float4 unity_SpecCube0_BoxMax; // w contains the blend distance
+    float4 unity_SpecCube0_BoxMin; // w contains the lerp value
+    float4 unity_SpecCube0_ProbePosition; // w is set to 1 for box projection
+    float4 unity_SpecCube1_BoxMax; // w contains the blend distance
+    float4 unity_SpecCube1_BoxMin; // w contains the sign of (SpecCube0.importance - SpecCube1.importance)
+    float4 unity_SpecCube1_ProbePosition; // w is set to 1 for box projection
 
-// Lightmap block feature
-float4 unity_LightmapST;
-float4 unity_DynamicLightmapST;
+    // Lightmap block feature
+    float4 unity_LightmapST;
+    float4 unity_DynamicLightmapST;
 
-// SH block feature
-real4 unity_SHAr;
-real4 unity_SHAg;
-real4 unity_SHAb;
-real4 unity_SHBr;
-real4 unity_SHBg;
-real4 unity_SHBb;
-real4 unity_SHC;
+    // SH block feature
+    real4 unity_SHAr;
+    real4 unity_SHAg;
+    real4 unity_SHAb;
+    real4 unity_SHBr;
+    real4 unity_SHBg;
+    real4 unity_SHBb;
+    real4 unity_SHC;
 
-// Renderer bounding box.
-float4 unity_RendererBounds_Min;
-float4 unity_RendererBounds_Max;
+    // Renderer bounding box.
+    float4 unity_RendererBounds_Min;
+    float4 unity_RendererBounds_Max;
 
-// Velocity
-float4x4 unity_MatrixPreviousM;
-float4x4 unity_MatrixPreviousMI;
-//X : Use last frame positions (right now skinned meshes are the only objects that use this
-//Y : Force No Motion
-//Z : Z bias value
-//W : Camera only
-float4 unity_MotionVectorsParams;
+    // Velocity
+    float4x4 unity_MatrixPreviousM;
+    float4x4 unity_MatrixPreviousMI;
+    //X : Use last frame positions (right now skinned meshes are the only objects that use this
+    //Y : Force No Motion
+    //Z : Z bias value
+    //W : Camera only
+    float4 unity_MotionVectorsParams;
 
-// Sprite.
-float4 unity_SpriteColor;
-//X : FlipX
-//Y : FlipY
-//Z : Reserved for future use.
-//W : Reserved for future use.
-float4 unity_SpriteProps;
+    // Sprite.
+    float4 unity_SpriteColor;
+    //X : FlipX
+    //Y : FlipY
+    //Z : Reserved for future use.
+    //W : Reserved for future use.
+    float4 unity_SpriteProps;
 CBUFFER_END
 
 #endif // UNITY_DOTS_INSTANCING_ENABLED
@@ -210,11 +210,11 @@ float4x4 glstate_matrix_transpose_modelview0;
 
 // ----------------------------------------------------------------------------
 
-real4 glstate_lightmodel_ambient;
-real4 unity_AmbientSky;
-real4 unity_AmbientEquator;
-real4 unity_AmbientGround;
-real4 unity_IndirectSpecColor;
+real4  glstate_lightmodel_ambient;
+real4  unity_AmbientSky;
+real4  unity_AmbientEquator;
+real4  unity_AmbientGround;
+real4  unity_IndirectSpecColor;
 float4 unity_FogParams;
 real4  unity_FogColor;
 
@@ -225,8 +225,8 @@ float4x4 unity_MatrixInvV;
 float4x4 unity_MatrixInvP;
 float4x4 unity_MatrixVP;
 float4x4 unity_MatrixInvVP;
-float4 unity_StereoScaleOffset;
-int unity_StereoEyeIndex;
+float4   unity_StereoScaleOffset;
+int      unity_StereoEyeIndex;
 #endif
 
 real4 unity_ShadowColor;
@@ -278,8 +278,8 @@ float4x4 _ViewProjMatrixStereo[2];
 #define  _NonJitteredViewProjMatrix _NonJitteredViewProjMatrixStereo[unity_StereoEyeIndex]
 #define  _ViewProjMatrix      _ViewProjMatrixStereo[unity_StereoEyeIndex]
 #else
-float4x4 _PrevViewProjMatrix;         // non-jittered. Motion vectors.
-float4x4 _NonJitteredViewProjMatrix;  // non-jittered.
+float4x4 _PrevViewProjMatrix; // non-jittered. Motion vectors.
+float4x4 _NonJitteredViewProjMatrix; // non-jittered.
 float4x4 _ViewProjMatrix; // TODO: URP currently uses unity_MatrixVP, see Input.hlsl
 #endif
 float4x4 _ViewMatrix;
@@ -288,7 +288,7 @@ float4x4 _InvViewProjMatrix;
 float4x4 _InvViewMatrix;
 float4x4 _InvProjMatrix;
 float4   _InvProjParam;
-float4   _ScreenSize;       // {w, h, 1/w, 1/h}
+float4   _ScreenSize; // {w, h, 1/w, 1/h}
 float4   _FrustumPlanes[6]; // {(a, b, c) = N, d = -dot(N, P)} [L, R, T, B, N, F]
 
 float4x4 OptimizeProjectionMatrix(float4x4 M)

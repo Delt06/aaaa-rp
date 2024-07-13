@@ -5,9 +5,9 @@ namespace DELTation.AAAARP.FrameData
 {
     public class AAAARenderingData : ContextItem
     {
-        public RenderGraph RenderGraph;
         public CullingResults CullingResults;
-        
+        public RenderGraph RenderGraph;
+
         public override void Reset()
         {
             RenderGraph = default;

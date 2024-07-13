@@ -12,19 +12,19 @@ namespace DELTation.AAAARP
     public class AAAARenderPipelineDefaultTextures : IRenderPipelineResources
     {
         [SerializeField] [HideInInspector] private int _version;
-        
+
         [SerializeField]
         [ResourcePath("Assets/Textures/UVTest.jpg")]
         private Texture2D _uvTest;
-        
+
         public Texture2D UVTest
         {
             get => _uvTest;
             set => this.SetValueAndNotify(ref _uvTest, value, nameof(_uvTest));
         }
-        
+
         public int version => _version;
-        
+
         public bool isAvailableInPlayerBuild => true;
     }
 }

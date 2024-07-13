@@ -3,16 +3,15 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.FrameData
 {
-    
     public class AAAACameraData : ContextItem
     {
         public float AspectRatio;
+        public Color BackgroundColor;
         public Camera Camera;
         public RenderTextureDescriptor CameraTargetDescriptor;
         public CameraType CameraType;
-        public bool ClearDepth;
         public bool ClearColor;
-        public Color BackgroundColor;
+        public bool ClearDepth;
         public HDRColorBufferPrecision HDRColorBufferPrecision;
         public bool IsAlphaOutputEnabled;
         public bool IsDefaultViewport;
@@ -21,7 +20,7 @@ namespace DELTation.AAAARP.FrameData
         public int PixelHeight;
         public Rect PixelRect;
         public int PixelWidth;
-        
+
         public Matrix4x4 ProjectionMatrix;
         public AAAARendererBase Renderer;
         public float RenderScale;
@@ -31,14 +30,14 @@ namespace DELTation.AAAARP.FrameData
         public bool UseScreenCoordOverride;
         public Matrix4x4 ViewMatrix;
         public Vector3 WorldSpaceCameraPos;
-        
+
         public int ScaledWidth => Mathf.Max(1, (int) (Camera.pixelWidth * RenderScale));
         public int ScaledHeight => Mathf.Max(1, (int) (Camera.pixelHeight * RenderScale));
-        
+
         public override void Reset()
         {
             Renderer = default;
-            
+
             Camera = default;
             CameraType = CameraType.Game;
             ClearDepth = false;
@@ -58,41 +57,41 @@ namespace DELTation.AAAARP.FrameData
             IsAlphaOutputEnabled = default;
             HDRColorBufferPrecision = HDRColorBufferPrecision._32Bits;
             TargetTexture = null;
-            
+
             ProjectionMatrix = Matrix4x4.identity;
             ViewMatrix = Matrix4x4.identity;
             JitterMatrix = Matrix4x4.identity;
             WorldSpaceCameraPos = default;
         }
-        
+
         internal void SetViewProjectionAndJitterMatrix(Matrix4x4 viewMatrix, Matrix4x4 projectionMatrix)
         {
             ViewMatrix = viewMatrix;
             ProjectionMatrix = projectionMatrix;
             JitterMatrix = Matrix4x4.identity;
         }
-        
+
         internal Matrix4x4 GetGPUProjectionMatrixJittered(bool renderIntoTexture) =>
             JitterMatrix * GL.GetGPUProjectionMatrix(ProjectionMatrix, renderIntoTexture);
-        
+
         internal Matrix4x4 GetProjectionMatrixJittered() => JitterMatrix * ProjectionMatrix;
-        
+
         public bool IsRenderTargetProjectionMatrixFlipped(RTHandle color, RTHandle depth = null)
         {
             if (!SystemInfo.graphicsUVStartsAtTop)
                 return true;
-            
+
             return TargetTexture != null || IsHandleYFlipped(color ?? depth);
         }
-        
+
         public bool IsHandleYFlipped(RTHandle handle)
         {
             if (!SystemInfo.graphicsUVStartsAtTop)
                 return true;
-            
+
             if (CameraType is CameraType.SceneView or CameraType.Preview)
                 return true;
-            
+
             var handleID = new RenderTargetIdentifier(handle.nameID, 0, CubemapFace.Unknown, 0);
             bool isBackbuffer = handleID == BuiltinRenderTextureType.CameraTarget || handleID == BuiltinRenderTextureType.Depth;
             return !isBackbuffer;

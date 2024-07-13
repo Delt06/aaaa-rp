@@ -10,13 +10,13 @@ namespace DELTation.AAAARP
     {
         public float4x4 ObjectToWorldMatrix;
         public float4x4 WorldToObjectMatrix;
-        
+
         public uint MaterialIndex;
         public uint Padding0;
         public uint Padding1;
         public uint Padding2;
     }
-    
+
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     public struct AAAAMaterialData
     {
@@ -25,7 +25,7 @@ namespace DELTation.AAAARP
         public uint Padding1;
         public uint Padding2;
     }
-    
+
     [GenerateHLSL]
     public static class AAAAMeshletConfiguration
     {
@@ -34,7 +34,7 @@ namespace DELTation.AAAARP
         public const uint MaxMeshletIndices = MaxMeshletTriangles * 3;
         public const float MeshletConeWeight = 0.5f;
     }
-    
+
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     [Serializable]
     public struct AAAAMeshlet
@@ -43,10 +43,10 @@ namespace DELTation.AAAARP
         public uint TriangleOffset;
         public uint VertexCount;
         public uint TriangleCount;
-        
+
         public float4 BoundingSphere;
     }
-    
+
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     [StructLayout(LayoutKind.Sequential)]
     [Serializable]

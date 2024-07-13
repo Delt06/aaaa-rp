@@ -18,22 +18,22 @@ namespace DELTation.AAAARP.FrameData
         private TextureHandle _gbufferAlbedo;
         private TextureHandle _gbufferNormals;
         private TextureHandle _visibilityBuffer;
-        
+
         internal ActiveID ActiveColorID { get; set; }
-        
+
         public TextureHandle CameraScaledColorBuffer => CheckAndGetTextureHandle(ref _cameraScaledColorBuffer);
-        
+
         public TextureHandle CameraScaledDepthBuffer => CheckAndGetTextureHandle(ref _cameraScaledDepthBuffer);
         public TextureHandle CameraColorBuffer => CheckAndGetTextureHandle(ref _cameraColorBuffer);
         public TextureHandle CameraDepthBuffer => CheckAndGetTextureHandle(ref _cameraDepthBuffer);
         public TextureHandle CameraResolveColorBuffer => CheckAndGetTextureHandle(ref _cameraResolveColorBuffer);
         public TextureHandle CameraResolveDepthBuffer => CheckAndGetTextureHandle(ref _cameraResolveDepthBuffer);
-        
+
         public TextureHandle VisibilityBuffer => CheckAndGetTextureHandle(ref _visibilityBuffer);
-        
+
         public TextureHandle GBufferAlbedo => CheckAndGetTextureHandle(ref _gbufferAlbedo);
         public TextureHandle GBufferNormals => CheckAndGetTextureHandle(ref _gbufferNormals);
-        
+
         public bool IsActiveTargetBackBuffer
         {
             get
@@ -43,23 +43,23 @@ namespace DELTation.AAAARP.FrameData
                     Debug.LogError("Trying to access frameData outside of the current frame setup.");
                     return false;
                 }
-                
+
                 return ActiveColorID == ActiveID.BackBuffer;
             }
         }
-        
+
         public void InitTextures(RenderGraph renderGraph, AAAACameraData cameraData)
         {
             ActiveColorID = ActiveID.Camera;
-            
+
             CreateTargets(renderGraph, cameraData);
             ImportFinalTarget(renderGraph, cameraData);
         }
-        
+
         private void CreateTargets(RenderGraph renderGraph, AAAACameraData cameraData)
         {
             var scaledCameraTargetViewportSize = new int2(cameraData.ScaledWidth, cameraData.ScaledHeight);
-            
+
             {
                 TextureDesc cameraColorDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
                 cameraColorDesc.depthBufferBits = DepthBits.None;
@@ -67,30 +67,30 @@ namespace DELTation.AAAARP.FrameData
                 cameraColorDesc.wrapMode = TextureWrapMode.Clamp;
                 cameraColorDesc.clearBuffer = cameraData.ClearColor;
                 cameraColorDesc.clearColor = cameraData.BackgroundColor;
-                
+
                 TextureDesc cameraDepthDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
                 cameraDepthDesc.colorFormat = GraphicsFormat.D24_UNorm_S8_UInt;
                 cameraDepthDesc.depthBufferBits = DepthBits.Depth32;
                 cameraDepthDesc.filterMode = FilterMode.Point;
                 cameraDepthDesc.wrapMode = TextureWrapMode.Clamp;
                 cameraDepthDesc.clearBuffer = cameraData.ClearDepth;
-                
+
                 // Scaled color
                 cameraColorDesc.name = "CameraColor_Scaled";
                 cameraColorDesc.width = scaledCameraTargetViewportSize.x;
                 cameraColorDesc.height = scaledCameraTargetViewportSize.y;
                 _cameraScaledColorBuffer = renderGraph.CreateTexture(cameraColorDesc);
-                
+
                 // Scaled depth
                 cameraDepthDesc.name = "CameraDepth_Scaled";
                 cameraDepthDesc.width = scaledCameraTargetViewportSize.x;
                 cameraDepthDesc.height = scaledCameraTargetViewportSize.y;
                 _cameraScaledDepthBuffer = renderGraph.CreateTexture(cameraDepthDesc);
-                
+
                 _cameraColorBuffer = _cameraScaledColorBuffer;
                 _cameraDepthBuffer = _cameraScaledDepthBuffer;
             }
-            
+
             {
                 TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("VisibilityBuffer", cameraData.CameraTargetDescriptor);
                 desc.colorFormat = GraphicsFormat.R32G32_UInt;
@@ -101,10 +101,10 @@ namespace DELTation.AAAARP.FrameData
                 desc.clearColor = new Color(-1, -1, 0.0f, 0.0f);
                 desc.width = scaledCameraTargetViewportSize.x;
                 desc.height = scaledCameraTargetViewportSize.y;
-                
+
                 _visibilityBuffer = renderGraph.CreateTexture(desc);
             }
-            
+
             {
                 TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("GBuffer_Albedo", cameraData.CameraTargetDescriptor);
                 desc.depthBufferBits = DepthBits.None;
@@ -115,10 +115,10 @@ namespace DELTation.AAAARP.FrameData
                 desc.clearColor = Color.clear;
                 desc.width = scaledCameraTargetViewportSize.x;
                 desc.height = scaledCameraTargetViewportSize.y;
-                
+
                 _gbufferAlbedo = renderGraph.CreateTexture(desc);
             }
-            
+
             {
                 TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("GBuffer_Normals", cameraData.CameraTargetDescriptor);
                 desc.depthBufferBits = DepthBits.None;
@@ -129,11 +129,11 @@ namespace DELTation.AAAARP.FrameData
                 desc.clearColor = Color.clear;
                 desc.width = scaledCameraTargetViewportSize.x;
                 desc.height = scaledCameraTargetViewportSize.y;
-                
+
                 _gbufferNormals = renderGraph.CreateTexture(desc);
             }
         }
-        
+
         private void ImportFinalTarget(RenderGraph renderGraph, AAAACameraData cameraData)
         {
             //BuiltinRenderTextureType.CameraTarget so this is either system render target or camera.targetTexture if non null
@@ -151,21 +151,21 @@ namespace DELTation.AAAARP.FrameData
                     Graphics.preserveFramebufferAlpha
                 ),
             };
-            
+
             RenderTargetInfo importInfoDepth = importInfo;
             importInfoDepth.format = SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil);
-            
+
             // final target (color buffer)
             if (cameraData.TargetTexture != null)
             {
                 importInfo.width = cameraData.TargetTexture.width;
                 importInfo.height = cameraData.TargetTexture.height;
                 importInfo.format = cameraData.TargetTexture.graphicsFormat;
-                
+
                 importInfoDepth.width = cameraData.TargetTexture.width;
                 importInfoDepth.height = cameraData.TargetTexture.height;
                 importInfoDepth.format = cameraData.TargetTexture.depthStencilFormat;
-                
+
                 // We let users know that a depth format is required for correct usage, but we fallback to the old default depth format behaviour to avoid regressions
                 if (importInfoDepth.format == GraphicsFormat.None)
                 {
@@ -175,13 +175,13 @@ namespace DELTation.AAAARP.FrameData
                     );
                 }
             }
-            
+
             TextureHandle finalTarget = renderGraph.ImportTexture(cameraData.Renderer.CurrentColorBuffer, importInfo);
             TextureHandle finalTargetDepth = renderGraph.ImportTexture(cameraData.Renderer.CurrentDepthBuffer, importInfoDepth);
             _cameraResolveColorBuffer = finalTarget;
             _cameraResolveDepthBuffer = finalTargetDepth;
         }
-        
+
         public override void Reset()
         {
             _cameraScaledColorBuffer = default;
@@ -190,13 +190,13 @@ namespace DELTation.AAAARP.FrameData
             _cameraDepthBuffer = default;
             _cameraResolveColorBuffer = default;
             _cameraResolveDepthBuffer = default;
-            
+
             _visibilityBuffer = default;
-            
+
             _gbufferAlbedo = default;
             _gbufferNormals = default;
         }
-        
+
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         public static class ShaderPropertyID
         {

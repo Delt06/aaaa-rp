@@ -7,7 +7,7 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
     #region Material Settings
 
     /// <summary>
-    /// Debug material modes.
+    ///     Debug material modes.
     /// </summary>
     [GenerateHLSL]
     public enum DebugMaterialMode
@@ -39,7 +39,7 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
     }
 
     /// <summary>
-    /// Debug mode for displaying vertex attributes interpolated from vertex to pixel shader.
+    ///     Debug mode for displaying vertex attributes interpolated from vertex to pixel shader.
     /// </summary>
     [GenerateHLSL]
     public enum DebugVertexAttributeMode
@@ -63,7 +63,7 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
     }
 
     /// <summary>
-    /// Debug mode for validating out-of-range values of different material channels.
+    ///     Debug mode for validating out-of-range values of different material channels.
     /// </summary>
     [GenerateHLSL]
     public enum DebugMaterialValidationMode
@@ -73,7 +73,7 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
         /// <summary>Validate albedo values according to validation settings.</summary>
         Albedo,
         /// <summary>Validate metallic values according to validation settings.</summary>
-        Metallic
+        Metallic,
     }
 
     #endregion
@@ -81,7 +81,7 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
     #region Rendering Settings
 
     /// <summary>
-    /// Debug mode for displaying intermediate render targets.
+    ///     Debug mode for displaying intermediate render targets.
     /// </summary>
     [GenerateHLSL]
     public enum DebugFullScreenMode
@@ -96,24 +96,27 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
         /// <summary>Display the main shadow map.</summary>
         MainLightShadowMap,
         /// <summary>
-        /// Display the reflection probe atlas used for the Forward+ rendering path.
+        ///     Display the reflection probe atlas used for the Forward+ rendering path.
         /// </summary>
         ReflectionProbeAtlas,
         /// <summary>
-        /// Displays the active STP debug view.
+        ///     Displays the active STP debug view.
         /// </summary>
         STP,
     }
 
     /// <summary>
-    /// Debug mode that overrides how the renderer behaves.
+    ///     Debug mode that overrides how the renderer behaves.
     /// </summary>
     [GenerateHLSL]
     public enum DebugSceneOverrideMode
     {
         /// <summary>No debug override.</summary>
         None,
-        /// <summary>Visualize overdraw by drawing geometry using a semitransparent material. Areas that look opaque contain more overdraw.</summary>
+        /// <summary>
+        ///     Visualize overdraw by drawing geometry using a semitransparent material. Areas that look opaque contain more
+        ///     overdraw.
+        /// </summary>
         Overdraw,
         /// <summary>Render using wireframe only.</summary>
         Wireframe,
@@ -124,7 +127,7 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
     }
 
     /// <summary>
-    /// Debug mode of the overdraw
+    ///     Debug mode of the overdraw
     /// </summary>
     public enum DebugOverdrawMode
     {
@@ -135,12 +138,13 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
         /// <summary>Debug overdraw of transparent only.</summary>
         Transparent,
         /// <summary>Debug overdraw of everything only.</summary>
-        All
+        All,
     }
 
     /// <summary>
-    /// Debug mode for texture mipmap streaming.
+    ///     Debug mode for texture mipmap streaming.
     /// </summary>
+
     // Keep in sync with DebugMipMapMode in HDRP's Runtime/Debug/MipMapDebug.cs
     [GenerateHLSL]
     public enum DebugMipInfoMode
@@ -162,8 +166,9 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
     }
 
     /// <summary>
-    /// Aggregation mode for texture mipmap streaming debugging information.
+    ///     Aggregation mode for texture mipmap streaming debugging information.
     /// </summary>
+
     // Keep in sync with DebugMipMapStatusMode in HDRP's Runtime/Debug/MipMapDebug.cs
     [GenerateHLSL]
     public enum DebugMipMapStatusMode
@@ -175,7 +180,7 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
     }
 
     /// <summary>
-    /// Terrain layer for texture mipmap streaming debugging.
+    ///     Terrain layer for texture mipmap streaming debugging.
     /// </summary>
     [GenerateHLSL]
     public enum DebugMipMapModeTerrainTexture
@@ -193,10 +198,10 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
     }
 
     /// <summary>
-    /// Mode that controls if post-processing is allowed.
+    ///     Mode that controls if post-processing is allowed.
     /// </summary>
     /// <remarks>
-    /// When "Auto" is used, post-processing can be either on or off, depending on other active debug modes.
+    ///     When "Auto" is used, post-processing can be either on or off, depending on other active debug modes.
     /// </remarks>
     [GenerateHLSL]
     public enum DebugPostProcessingMode
@@ -206,11 +211,11 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
         /// <summary>Post-processing is either on or off, depending on other debug modes.</summary>
         Auto,
         /// <summary>Post-processing enabled.</summary>
-        Enabled
-    };
+        Enabled,
+    }
 
     /// <summary>
-    /// Debug modes for validating illegal output values.
+    ///     Debug modes for validating illegal output values.
     /// </summary>
     [GenerateHLSL]
     public enum DebugValidationMode
@@ -224,15 +229,15 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
 
         /// <summary>Highlight all pixels with values outside the specified range.</summary>
         [InspectorName("Highlight Values Outside Range")]
-        HighlightOutsideOfRange
+        HighlightOutsideOfRange,
     }
 
     /// <summary>
-    /// The channels used by DebugValidationMode.HighlightOutsideOfRange.
+    ///     The channels used by DebugValidationMode.HighlightOutsideOfRange.
     /// </summary>
     /// <remarks>
-    /// When "RGB" is used, the pixel's RGB value is first converted to a luminance value.
-    /// Individual channels (R, G, B, and A) are tested individually against the range.
+    ///     When "RGB" is used, the pixel's RGB value is first converted to a luminance value.
+    ///     Individual channels (R, G, B, and A) are tested individually against the range.
     /// </remarks>
     [GenerateHLSL]
     public enum PixelValidationChannels
@@ -246,14 +251,15 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
         /// <summary>Validate the blue channel value.</summary>
         B,
         /// <summary>Validate the alpha channel value.</summary>
-        A
+        A,
     }
+
     #endregion
 
     #region Lighting settings
 
     /// <summary>
-    /// Debug modes for lighting.
+    ///     Debug modes for lighting.
     /// </summary>
     [GenerateHLSL]
     public enum DebugLightingMode
@@ -275,7 +281,7 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
     }
 
     /// <summary>
-    /// HDR debug mode.
+    ///     HDR debug mode.
     /// </summary>
     [GenerateHLSL]
     public enum HDRDebugMode
@@ -284,16 +290,22 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
         None,
         /// <summary>Gamut view: show the gamuts and what part of the gamut the image shows.</summary>
         GamutView,
-        /// <summary>Gamut clip: show what part of the Scene is covered by the Rec709 gamut and which parts are in the Rec2020 gamut.</summary>
+        /// <summary>
+        ///     Gamut clip: show what part of the Scene is covered by the Rec709 gamut and which parts are in the Rec2020
+        ///     gamut.
+        /// </summary>
         GamutClip,
-        /// <summary>If the luminance value exceeds the paper white value, show the exceeding value in colors between yellow and red. Shows luminance values otherwise.</summary>
-        ValuesAbovePaperWhite
+        /// <summary>
+        ///     If the luminance value exceeds the paper white value, show the exceeding value in colors between yellow and
+        ///     red. Shows luminance values otherwise.
+        /// </summary>
+        ValuesAbovePaperWhite,
     }
 
     /// <summary>
-    /// Debug mode that allows selective disabling of individual lighting components.
+    ///     Debug mode that allows selective disabling of individual lighting components.
     /// </summary>
-    [GenerateHLSL, Flags]
+    [GenerateHLSL] [Flags]
     public enum DebugLightingFeatureFlags
     {
         /// <summary>The debug mode is not active.</summary>
@@ -311,5 +323,6 @@ namespace DELTation.AAAARP.ShaderLibrary.Debug
         /// <summary>Display contribution from ambient occlusion.</summary>
         AmbientOcclusion = 0x20,
     }
+
     #endregion
 }

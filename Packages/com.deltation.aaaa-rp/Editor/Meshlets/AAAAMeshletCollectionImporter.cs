@@ -18,33 +18,33 @@ namespace DELTation.AAAARP.Editor.Meshlets
     internal class AAAAMeshletCollectionImporter : ScriptedImporter
     {
         private const string Extension = "aaaameshletcollection";
-        
+
         public Mesh Mesh;
-        
+
         public override unsafe void OnImportAsset(AssetImportContext ctx)
         {
             if (Mesh == null)
             {
                 return;
             }
-            
+
             ctx.DependsOnArtifact(AssetDatabase.GetAssetPath(Mesh));
             if (Mesh.indexFormat != IndexFormat.UInt16)
             {
                 ctx.LogImportError("Only UInt16 index format is supported.", this);
                 return;
             }
-            
+
             AAAAMeshletCollection meshletCollection = ScriptableObject.CreateInstance<AAAAMeshletCollection>();
             meshletCollection.name = name;
-            
+
             using (Mesh.MeshDataArray dataArray = Mesh.AcquireReadOnlyMeshData(Mesh))
             {
                 Mesh.MeshData data = dataArray[0];
                 int vertexBufferStride = data.GetVertexBufferStride(0);
                 NativeArray<float> vertexData = data.GetVertexData<float>();
                 NativeArray<ushort> indexData = data.GetIndexData<ushort>();
-                
+
                 NativeArray<uint> indexDataU32 = CastIndices16To32(indexData);
                 int vertexPositionOffset = data.GetVertexAttributeOffset(VertexAttribute.Position);
                 AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults = AAAAMeshOptimizer.BuildMeshlets(Allocator.Temp, vertexData,
@@ -52,15 +52,15 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     (uint) vertexBufferStride, indexDataU32,
                     AAAAMeshletCollection.MeshletGenerationParams
                 );
-                
+
                 meshletCollection.Meshlets = new AAAAMeshlet[meshletBuildResults.Meshlets.Length];
-                
+
                 for (int i = 0; i < meshletBuildResults.Meshlets.Length; i++)
                 {
                     ref readonly meshopt_Meshlet meshoptMeshlet = ref meshletBuildResults.Meshlets.ElementAtRefReadonly(i);
                     meshopt_Bounds meshoptBounds =
                         AAAAMeshOptimizer.ComputeMeshletBounds(meshletBuildResults, i, vertexData, (uint) vertexPositionOffset, (uint) vertexBufferStride);
-                    
+
                     meshletCollection.Meshlets[i] = new AAAAMeshlet
                     {
                         VertexOffset = meshoptMeshlet.VertexOffset,
@@ -70,24 +70,24 @@ namespace DELTation.AAAARP.Editor.Meshlets
                         BoundingSphere = math.float4(meshoptBounds.Center[0], meshoptBounds.Center[1], meshoptBounds.Center[2], meshoptBounds.Radius),
                     };
                 }
-                
+
                 meshletCollection.VertexBuffer = new AAAAMeshletVertex[meshletBuildResults.Vertices.Length];
-                
+
                 byte* pVertices = (byte*) vertexData.GetUnsafeReadOnlyPtr();
                 int vertexNormalOffset = data.GetVertexAttributeOffset(VertexAttribute.Normal);
                 int vertexTangentOffset = data.GetVertexAttributeOffset(VertexAttribute.Tangent);
-                
+
                 int uvStream = data.GetVertexAttributeStream(VertexAttribute.TexCoord0);
                 int uvStreamStride = data.GetVertexBufferStride(uvStream);
                 NativeArray<float> uvVertexData = data.GetVertexData<float>(uvStream);
                 byte* pVerticesUV = (byte*) uvVertexData.GetUnsafeReadOnlyPtr();
                 int vertexUVOffset = data.GetVertexAttributeOffset(VertexAttribute.TexCoord0);
-                
+
                 for (int i = 0; i < meshletBuildResults.Vertices.Length; i++)
                 {
                     byte* pVertex = pVertices + vertexBufferStride * meshletBuildResults.Vertices[i];
                     byte* pVertexUV = pVerticesUV + uvStreamStride * meshletBuildResults.Vertices[i];
-                    
+
                     meshletCollection.VertexBuffer[i] = new AAAAMeshletVertex
                     {
                         Position = math.float4(*(float3*) (pVertex + vertexPositionOffset), 1),
@@ -96,28 +96,28 @@ namespace DELTation.AAAARP.Editor.Meshlets
                         UV = math.float4(*(float2*) (pVertexUV + vertexUVOffset), 0, 0),
                     };
                 }
-                
+
                 uvVertexData.Dispose();
-                
+
                 meshletCollection.IndexBuffer = new byte[meshletBuildResults.Indices.Length];
-                
+
                 for (int i = 0; i < meshletBuildResults.Indices.Length; ++i)
                 {
                     meshletCollection.IndexBuffer[i] = meshletBuildResults.Indices[i];
                 }
-                
+
                 indexDataU32.Dispose();
-                
+
                 vertexData.Dispose();
                 indexData.Dispose();
-                
+
                 meshletBuildResults.Dispose();
             }
-            
+
             ctx.AddObjectToAsset(nameof(AAAAMeshletCollection), meshletCollection);
             ctx.SetMainObject(meshletCollection);
         }
-        
+
         private static NativeArray<uint> CastIndices16To32(NativeArray<ushort> indices)
         {
             var result = new NativeArray<uint>(indices.Length, Allocator.Temp);
@@ -127,7 +127,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
             }
             return result;
         }
-        
+
         [MenuItem("Assets/Create/AAAA RP/Meshlet Collection")]
         public static void CreateNewAsset(MenuCommand menuCommand)
         {
@@ -136,13 +136,13 @@ namespace DELTation.AAAARP.Editor.Meshlets
             {
                 string path = AssetDatabase.GetAssetPath(mesh);
                 string folder = File.Exists(path) ? Path.GetDirectoryName(path) : path;
-                
+
                 string fileName = mesh.name + "_Meshlets." + Extension;
                 string assetPath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(folder ?? "Assets", fileName));
-                
+
                 File.WriteAllText(assetPath, string.Empty);
                 AssetDatabase.Refresh();
-                
+
                 var assetImporter = (AAAAMeshletCollectionImporter) GetAtPath(assetPath);
                 assetImporter.Mesh = mesh;
                 Save(assetPath, assetImporter);
@@ -152,16 +152,16 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 ProjectWindowUtil.CreateAssetWithContent("New Meshlet Collection." + Extension, string.Empty);
             }
         }
-        
+
         private static async void Save(string assetPath, AAAAMeshletCollectionImporter importer)
         {
             EditorUtility.SetDirty(importer);
             AssetDatabase.SaveAssetIfDirty(importer);
-            
+
             await Task.Yield();
-            
+
             importer.SaveAndReimport();
-            
+
             AAAAMeshletCollection meshletCollection = AssetDatabase.LoadAssetAtPath<AAAAMeshletCollection>(assetPath);
             Selection.activeObject = meshletCollection;
         }

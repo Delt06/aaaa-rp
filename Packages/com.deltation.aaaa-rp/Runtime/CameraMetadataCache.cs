@@ -7,14 +7,14 @@ namespace DELTation.AAAARP
     internal static class CameraMetadataCache
     {
         private static readonly Dictionary<Camera, CameraMetadata> Cache = new();
-        
+
         public static CameraMetadata Get(Camera camera)
         {
             if (Cache.TryGetValue(camera, out CameraMetadata metadata))
             {
                 return metadata;
             }
-            
+
             string cameraName = camera.name;
             metadata = new CameraMetadata
             {

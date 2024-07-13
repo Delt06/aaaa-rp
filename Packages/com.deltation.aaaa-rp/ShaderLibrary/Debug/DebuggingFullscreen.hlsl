@@ -1,4 +1,3 @@
-
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/DebuggingCommon.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Debug.hlsl"
 

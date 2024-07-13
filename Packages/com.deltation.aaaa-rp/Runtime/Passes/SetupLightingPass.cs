@@ -11,17 +11,17 @@ namespace DELTation.AAAARP.Passes
         public Vector4 MainLightColor;
         public Vector4 MainLightDirection;
     }
-    
+
     public class SetupLightingPass : AAAARenderPass<SetupLightingPassData>
     {
         public SetupLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
-        
+
         public override string Name => "SetupLighting";
-        
+
         protected override void Setup(RenderGraphBuilder builder, SetupLightingPassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
-            
+
             foreach (VisibleLight visibleLight in renderingData.CullingResults.visibleLights)
             {
                 if (visibleLight.lightType == LightType.Directional)
@@ -31,13 +31,13 @@ namespace DELTation.AAAARP.Passes
                 }
             }
         }
-        
+
         protected override void Render(SetupLightingPassData data, RenderGraphContext context)
         {
             context.cmd.SetGlobalVector(ShaderPropertyID._MainLight_Color, data.MainLightColor);
             context.cmd.SetGlobalVector(ShaderPropertyID._MainLight_Direction, data.MainLightDirection);
         }
-        
+
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static class ShaderPropertyID
         {

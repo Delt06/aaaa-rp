@@ -17,7 +17,7 @@ namespace DELTation.AAAARP
                 slices = input.volumeDepth,
                 name = name,
             };
-        
+
         internal static Vector4 GetFinalBlitScaleBias(RTHandle source, RTHandle destination, AAAACameraData cameraData)
         {
             Vector2 viewportScale = source.useScaling
@@ -26,10 +26,10 @@ namespace DELTation.AAAARP
             bool yFlip = cameraData.IsRenderTargetProjectionMatrixFlipped(destination);
             Vector4 scaleBias =
                 !yFlip ? new Vector4(viewportScale.x, -viewportScale.y, 0, viewportScale.y) : new Vector4(viewportScale.x, viewportScale.y, 0, 0);
-            
+
             return scaleBias;
         }
-        
+
         internal static RendererListDesc CreateRendererListDesc(
             CullingResults cull,
             Camera camera,
@@ -53,7 +53,7 @@ namespace DELTation.AAAARP
             };
             return result;
         }
-        
+
         internal static RendererListDesc CreateRendererListDesc(
             CullingResults cull,
             Camera camera,
