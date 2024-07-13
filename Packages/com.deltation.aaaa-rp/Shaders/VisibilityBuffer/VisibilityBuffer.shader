@@ -54,13 +54,12 @@ Shader "Hidden/AAAA/VisibilityBuffer"
                 Varyings OUT;
 
                 const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(GetIndirectInstanceID_Base(svInstanceID));
-                const uint rawIndexID = GetIndirectVertexID_Base(svIndexID);
+                const uint indexID = GetIndirectVertexID_Base(svIndexID);
 
                 const AAAAInstanceData perInstanceData = PullInstanceData(meshletRenderRequest.InstanceID);
                 const uint meshletID = perInstanceData.MeshletStartOffset + meshletRenderRequest.RelativeMeshletID;
 
                 const AAAAMeshlet meshlet = PullMeshletData(meshletID);
-                const uint indexID = rawIndexID % MAX_MESHLET_INDICES;
                 const uint index = PullIndexChecked(meshlet, indexID);
                 const AAAAMeshletVertex vertex = PullVertexChecked(meshlet, index);
 
