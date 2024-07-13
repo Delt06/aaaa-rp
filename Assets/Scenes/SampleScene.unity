@@ -336,18 +336,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a92882650f94e5896815848a0ae8b1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MeshletCollection: {fileID: 6161669500401564628, guid: b14813b1115f17148b001ec81c5c0a5f, type: 3}
-  Materials:
-  - {fileID: 11400000, guid: 780408289c2d66a4dbb85f7e2a28ac1b, type: 2}
-  - {fileID: 11400000, guid: fc23899ca3157d845b0876ad6e490c2e, type: 2}
-  - {fileID: 11400000, guid: a073a50ae7f93fe4394bcdb752144bf3, type: 2}
-  - {fileID: 11400000, guid: c26b4b56704044442881947481a951c2, type: 2}
-  - {fileID: 11400000, guid: 77a76ebcbd51555458111dc0cc35c2e6, type: 2}
-  Scale: {x: 100, y: 100, z: 100}
-  MaxDistance: 15
-  CommandCount: 2
-  InstanceCount: 50
-  Seed: 0
 --- !u!4 &827496354
 Transform:
   m_ObjectHideFlags: 0
@@ -363,6 +351,59 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1401752274
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1401752275}
+  - component: {fileID: 1401752276}
+  m_Layer: 0
+  m_Name: SpawnRandomAuthorings
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1401752275
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1401752274}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1401752276
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1401752274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9dd4be61144442887bce3d7f03e1e27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Seed: 0
+  Count: 100
+  MaxDistance: 15
+  ScaleRange: {x: 80, y: 120}
+  AuthoringPool:
+  - {fileID: 4015617845634997782, guid: dabb49e74c4c71c4185f452683e09358, type: 3}
+  - {fileID: 4015617845634997782, guid: c2a86f73d2291da409e18901d8ef03c6, type: 3}
+  - {fileID: 4015617845634997782, guid: 679b84f68c1dc3444a88c7ca065f3639, type: 3}
+  - {fileID: 4015617845634997782, guid: e30319aa850f1714389e4027da39fab5, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -370,3 +411,4 @@ SceneRoots:
   - {fileID: 330585546}
   - {fileID: 410087041}
   - {fileID: 827496354}
+  - {fileID: 1401752275}

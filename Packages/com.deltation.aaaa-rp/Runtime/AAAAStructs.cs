@@ -11,10 +11,11 @@ namespace DELTation.AAAARP
         public float4x4 ObjectToWorldMatrix;
         public float4x4 WorldToObjectMatrix;
 
+        public uint MeshletStartOffset;
+        public uint MeshletCount;
+
         public uint MaterialIndex;
         public uint Padding0;
-        public uint Padding1;
-        public uint Padding2;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
@@ -56,5 +57,13 @@ namespace DELTation.AAAARP
         public float4 Normal;
         public float4 Tangent;
         public float4 UV;
+    }
+
+    [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
+    [StructLayout(LayoutKind.Sequential)]
+    public struct AAAAMeshletRenderRequest
+    {
+        public uint InstanceID;
+        public uint RelativeMeshletID;
     }
 }

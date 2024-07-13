@@ -18,10 +18,10 @@ struct AAAAInstanceData
 {
     float4x4 ObjectToWorldMatrix;
     float4x4 WorldToObjectMatrix;
+    uint MeshletStartOffset;
+    uint MeshletCount;
     uint MaterialIndex;
     uint Padding0;
-    uint Padding1;
-    uint Padding2;
 };
 
 // Generated from DELTation.AAAARP.AAAAMaterialData
@@ -43,6 +43,14 @@ struct AAAAMeshlet
     uint VertexCount;
     uint TriangleCount;
     float4 BoundingSphere;
+};
+
+// Generated from DELTation.AAAARP.AAAAMeshletRenderRequest
+// PackingRules = Exact
+struct AAAAMeshletRenderRequest
+{
+    uint InstanceID;
+    uint RelativeMeshletID;
 };
 
 // Generated from DELTation.AAAARP.AAAAMeshletVertex

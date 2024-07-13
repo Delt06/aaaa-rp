@@ -12,20 +12,20 @@ SAMPLER(sampler_VisibilityBuffer);
 struct VisibilityBufferValue
 {
     uint instanceID;
-    uint meshletID;
+    uint relativeMeshletID;
     uint indexID;
 };
 
 uint2 PackVisibilityBufferValue(const VisibilityBufferValue value)
 {
-    return uint2(value.instanceID, value.meshletID << VISIBILITY_BUFFER_INDEX_ID_BITS | (value.indexID / 3) & VISIBILITY_BUFFER_INDEX_ID_MASK);
+    return uint2(value.instanceID, value.relativeMeshletID << VISIBILITY_BUFFER_INDEX_ID_BITS | (value.indexID / 3) & VISIBILITY_BUFFER_INDEX_ID_MASK);
 }
 
 VisibilityBufferValue UnpackVisibilityBufferValue(uint2 packedValue)
 {
     VisibilityBufferValue value;
     value.instanceID = packedValue.x;
-    value.meshletID = packedValue.y >> VISIBILITY_BUFFER_INDEX_ID_BITS;
+    value.relativeMeshletID = packedValue.y >> VISIBILITY_BUFFER_INDEX_ID_BITS;
     value.indexID = (packedValue.y & VISIBILITY_BUFFER_INDEX_ID_MASK) * 3;
     return value;
 }

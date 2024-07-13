@@ -75,7 +75,8 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 const VisibilityBufferValue value = SampleVisibilityBuffer(IN.texcoord); 
 
                 const AAAAInstanceData instanceData = PullInstanceData(value.instanceID);
-                const AAAAMeshlet meshlet = PullMeshletData(value.meshletID);
+                const uint meshletID = instanceData.MeshletStartOffset + value.relativeMeshletID;
+                const AAAAMeshlet meshlet = PullMeshletData(meshletID);
                 const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
 
                 const uint3 indices = uint3(

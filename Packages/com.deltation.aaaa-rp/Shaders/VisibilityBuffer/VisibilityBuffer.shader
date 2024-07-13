@@ -51,26 +51,27 @@ Shader "Hidden/AAAA/VisibilityBuffer"
             {
                 InitIndirectDrawArgs(0);
                 
-                Varyings OUT = (Varyings) 0;
+                Varyings OUT;
 
-                const uint instanceID = GetIndirectInstanceID_Base(svInstanceID);
+                const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(GetIndirectInstanceID_Base(svInstanceID));
                 const uint rawIndexID = GetIndirectVertexID_Base(svIndexID);
 
-                const uint meshletID = rawIndexID / MAX_MESHLET_INDICES;
+                const AAAAInstanceData perInstanceData = PullInstanceData(meshletRenderRequest.InstanceID);
+                const uint meshletID = perInstanceData.MeshletStartOffset + meshletRenderRequest.RelativeMeshletID;
 
                 const AAAAMeshlet meshlet = PullMeshletData(meshletID);
                 const uint indexID = rawIndexID % MAX_MESHLET_INDICES;
                 const uint index = PullIndexChecked(meshlet, indexID);
                 const AAAAMeshletVertex vertex = PullVertexChecked(meshlet, index);
 
-                const AAAAInstanceData perInstanceData = PullInstanceData(instanceID);
+                
                 const float3 positionWS = mul(perInstanceData.ObjectToWorldMatrix, float4(vertex.Position.xyz, 1.0f)).xyz;
 
                 OUT.positionCS = TransformWorldToHClip(positionWS);
 
                 VisibilityBufferValue visibilityBufferValue;
-                visibilityBufferValue.instanceID = instanceID;
-                visibilityBufferValue.meshletID = meshletID;
+                visibilityBufferValue.instanceID = meshletRenderRequest.InstanceID;
+                visibilityBufferValue.relativeMeshletID = meshletRenderRequest.RelativeMeshletID;
                 visibilityBufferValue.indexID = indexID;
                 OUT.visibilityValue = PackVisibilityBufferValue(visibilityBufferValue);
 
