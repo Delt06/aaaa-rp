@@ -36,6 +36,15 @@ namespace DELTation.AAAARP.Passes
         {
             context.cmd.SetGlobalVector(ShaderPropertyID._MainLight_Color, data.MainLightColor);
             context.cmd.SetGlobalVector(ShaderPropertyID._MainLight_Direction, data.MainLightDirection);
+
+            var shCoefficients = new SHCoefficients(RenderSettings.ambientProbe);
+            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHAr, shCoefficients.SHAr);
+            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHAg, shCoefficients.SHAg);
+            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHAb, shCoefficients.SHAb);
+            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBr, shCoefficients.SHBr);
+            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBg, shCoefficients.SHBg);
+            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBb, shCoefficients.SHBb);
+            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHC, shCoefficients.SHC);
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -43,6 +52,14 @@ namespace DELTation.AAAARP.Passes
         {
             public static readonly int _MainLight_Color = Shader.PropertyToID(nameof(_MainLight_Color));
             public static readonly int _MainLight_Direction = Shader.PropertyToID(nameof(_MainLight_Direction));
+
+            public static readonly int aaaa_SHAr = Shader.PropertyToID(nameof(aaaa_SHAr));
+            public static readonly int aaaa_SHAg = Shader.PropertyToID(nameof(aaaa_SHAg));
+            public static readonly int aaaa_SHAb = Shader.PropertyToID(nameof(aaaa_SHAb));
+            public static readonly int aaaa_SHBr = Shader.PropertyToID(nameof(aaaa_SHBr));
+            public static readonly int aaaa_SHBg = Shader.PropertyToID(nameof(aaaa_SHBg));
+            public static readonly int aaaa_SHBb = Shader.PropertyToID(nameof(aaaa_SHBb));
+            public static readonly int aaaa_SHC = Shader.PropertyToID(nameof(aaaa_SHC));
         }
     }
 }
