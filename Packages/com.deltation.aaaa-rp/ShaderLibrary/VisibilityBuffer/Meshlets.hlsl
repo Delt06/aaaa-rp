@@ -1,13 +1,17 @@
 #ifndef AAAA_VISIBILITY_BUFFER_MESHLETS_INCLUDED
 #define AAAA_VISIBILITY_BUFFER_MESHLETS_INCLUDED
 
-#include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletCollection.cs.hlsl"
+#include "Packages/com.deltation.aaaa-rp/Runtime/AAAAStructs.cs.hlsl"
 
-uint                                  _MeshletCount;
-StructuredBuffer<AAAAMeshlet>         _Meshlets;
-StructuredBuffer<AAAAMeshletVertex>   _SharedVertexBuffer;
-ByteAddressBuffer                     _SharedIndexBuffer;
-StructuredBuffer<AAAAPerInstanceData> _PerInstanceData;
+uint                                _MeshletCount;
+StructuredBuffer<AAAAMeshlet>       _Meshlets;
+StructuredBuffer<AAAAMeshletVertex> _SharedVertexBuffer;
+ByteAddressBuffer                   _SharedIndexBuffer;
+
+AAAAMeshlet PullMeshletData(const uint meshletID)
+{
+    return _Meshlets[meshletID];
+}
 
 uint PullIndex(const AAAAMeshlet meshlet, const uint indexID)
 {

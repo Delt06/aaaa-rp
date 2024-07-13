@@ -12,12 +12,11 @@ Shader "Hidden/AAAA/VisibilityBuffer"
             
             HLSLPROGRAM
 
-            #pragma enable_d3d11_debug_symbols
-
             #pragma vertex VS
             #pragma fragment PS
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Utils.hlsl"
 
@@ -59,12 +58,12 @@ Shader "Hidden/AAAA/VisibilityBuffer"
 
                 const uint meshletID = rawIndexID / MAX_MESHLET_INDICES;
 
-                const AAAAMeshlet meshlet = _Meshlets[meshletID];
+                const AAAAMeshlet meshlet = PullMeshletData(meshletID);
                 const uint indexID = rawIndexID % MAX_MESHLET_INDICES;
                 const uint index = PullIndexChecked(meshlet, indexID);
                 const AAAAMeshletVertex vertex = PullVertexChecked(meshlet, index);
 
-                const AAAAPerInstanceData perInstanceData = _PerInstanceData[instanceID];
+                const AAAAInstanceData perInstanceData = PullInstanceData(instanceID);
                 const float3 positionWS = mul(perInstanceData.ObjectToWorldMatrix, float4(vertex.Position.xyz, 1.0f)).xyz;
 
                 OUT.positionCS = TransformWorldToHClip(positionWS);

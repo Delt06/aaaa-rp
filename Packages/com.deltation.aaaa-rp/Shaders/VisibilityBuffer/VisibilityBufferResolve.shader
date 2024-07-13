@@ -32,12 +32,11 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Barycentric.hlsl"
+            #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+            #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Materials.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Utils.hlsl"
-
-            TEXTURE2D(_Albedo);
-            SAMPLER(sampler_Albedo);
-
+            
             Varyings OverrideVert(Attributes input)
             {
                 Varyings output = Vert(input);
@@ -71,36 +70,13 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 return ndc;
             }
 
-            struct UV
-            {
-                float2 uv;
-                float2 ddx;
-                float2 ddy;
-            };
-
-            UV InterpolateUV(const BarycentricDerivatives barycentric, const AAAAMeshletVertex v0, const AAAAMeshletVertex v1, const AAAAMeshletVertex v2)
-            {
-                const float3 u = InterpolateWithBarycentric(barycentric, v0.UV.x, v1.UV.x, v2.UV.x);
-                const float3 v = InterpolateWithBarycentric(barycentric, v0.UV.y, v1.UV.y, v2.UV.y);
-
-                UV uv;
-                uv.uv = float2(u.x, v.x);
-                uv.ddx = float2(u.y, v.y);
-                uv.ddy = float2(u.z, v.z);
-                return uv;
-            }
-
-            float4 SampleAlbedo(const UV uv)
-            {
-                return SAMPLE_TEXTURE2D_GRAD(_Albedo, sampler_Albedo, uv.uv, uv.ddx, uv.ddy);
-            }
-
             GBufferOutput Frag(const Varyings IN)
             {
                 const VisibilityBufferValue value = SampleVisibilityBuffer(IN.texcoord); 
 
-                const AAAAPerInstanceData perInstanceData = _PerInstanceData[value.instanceID];
-                const AAAAMeshlet meshlet = _Meshlets[value.meshletID];
+                const AAAAInstanceData instanceData = PullInstanceData(value.instanceID);
+                const AAAAMeshlet meshlet = PullMeshletData(value.meshletID);
+                const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
 
                 const uint3 indices = uint3(
                     PullIndex(meshlet, value.indexID + 0),
@@ -116,9 +92,9 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
 
                 const float3 positionWS[3] =
                 {
-                    TransformObjectToWorld(vertices[0].Position.xyz, perInstanceData.ObjectToWorldMatrix),
-                    TransformObjectToWorld(vertices[1].Position.xyz, perInstanceData.ObjectToWorldMatrix),
-                    TransformObjectToWorld(vertices[2].Position.xyz, perInstanceData.ObjectToWorldMatrix),
+                    TransformObjectToWorld(vertices[0].Position.xyz, instanceData.ObjectToWorldMatrix),
+                    TransformObjectToWorld(vertices[1].Position.xyz, instanceData.ObjectToWorldMatrix),
+                    TransformObjectToWorld(vertices[2].Position.xyz, instanceData.ObjectToWorldMatrix),
                 };
 
                 const float4 positionCS[3] =
@@ -131,14 +107,14 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 const float2                 pixelNDC = ScreenCoordsToNDC(IN.positionCS);
                 const BarycentricDerivatives barycentric = CalculateFullBarycentric(positionCS[0], positionCS[1], positionCS[2], pixelNDC, _ScreenSize.zw);
 
-                const UV uv = InterpolateUV(barycentric, vertices[0], vertices[1], vertices[2]);
-                const float3 albedo = SampleAlbedo(uv).rgb;
+                const InterpolatedUV uv = InterpolateUV(barycentric, vertices[0], vertices[1], vertices[2]);
+                const float3 albedo = SampleAlbedo(uv, materialData).rgb;
 
                 const float3 normalOS =
                     SafeNormalize(
                     InterpolateWithBarycentricNoDerivatives(barycentric, vertices[0].Normal.xyz, vertices[1].Normal.xyz, vertices[2].Normal.xyz)
                 );
-                const float3 normalWS = TransformObjectToWorldNormal(normalOS, perInstanceData.WorldToObjectMatrix);
+                const float3 normalWS = TransformObjectToWorldNormal(normalOS, instanceData.WorldToObjectMatrix);
 
                 return ConstructGBufferOutput(albedo, normalWS);
             }

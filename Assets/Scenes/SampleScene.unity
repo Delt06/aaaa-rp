@@ -337,6 +337,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MeshletCollection: {fileID: 6161669500401564628, guid: b14813b1115f17148b001ec81c5c0a5f, type: 3}
+  Materials:
+  - {fileID: 11400000, guid: 780408289c2d66a4dbb85f7e2a28ac1b, type: 2}
+  - {fileID: 11400000, guid: fc23899ca3157d845b0876ad6e490c2e, type: 2}
+  - {fileID: 11400000, guid: a073a50ae7f93fe4394bcdb752144bf3, type: 2}
+  - {fileID: 11400000, guid: c26b4b56704044442881947481a951c2, type: 2}
+  - {fileID: 11400000, guid: 77a76ebcbd51555458111dc0cc35c2e6, type: 2}
   Scale: {x: 100, y: 100, z: 100}
   MaxDistance: 15
   CommandCount: 2

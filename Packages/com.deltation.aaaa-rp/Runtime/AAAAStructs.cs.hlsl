@@ -1,0 +1,59 @@
+//
+// This file was automatically generated. Please don't edit by hand. Execute Editor command [ Edit > Rendering > Generate Shader Includes ] instead
+//
+
+#ifndef AAAASTRUCTS_CS_HLSL
+#define AAAASTRUCTS_CS_HLSL
+//
+// DELTation.AAAARP.AAAAMeshletConfiguration:  static fields
+//
+#define MAX_MESHLET_VERTICES (128)
+#define MAX_MESHLET_TRIANGLES (128)
+#define MAX_MESHLET_INDICES (384)
+#define MESHLET_CONE_WEIGHT (0.5)
+
+// Generated from DELTation.AAAARP.AAAAInstanceData
+// PackingRules = Exact
+struct AAAAInstanceData
+{
+    float4x4 ObjectToWorldMatrix;
+    float4x4 WorldToObjectMatrix;
+    uint MaterialIndex;
+    uint Padding0;
+    uint Padding1;
+    uint Padding2;
+};
+
+// Generated from DELTation.AAAARP.AAAAMaterialData
+// PackingRules = Exact
+struct AAAAMaterialData
+{
+    uint AlbedoIndex;
+    uint Padding0;
+    uint Padding1;
+    uint Padding2;
+};
+
+// Generated from DELTation.AAAARP.AAAAMeshlet
+// PackingRules = Exact
+struct AAAAMeshlet
+{
+    uint VertexOffset;
+    uint TriangleOffset;
+    uint VertexCount;
+    uint TriangleCount;
+    float4 BoundingSphere;
+};
+
+// Generated from DELTation.AAAARP.AAAAMeshletVertex
+// PackingRules = Exact
+struct AAAAMeshletVertex
+{
+    float4 Position;
+    float4 Normal;
+    float4 Tangent;
+    float4 UV;
+};
+
+
+#endif
