@@ -16,6 +16,7 @@ namespace DELTation.AAAARP
 
         private readonly AAAARenderPipelineAsset _pipelineAsset;
         private readonly AAAARendererBase _renderer;
+        private readonly AAAAVisibilityBufferContainer _visibilityBufferContainer;
         private RenderGraph _renderGraph;
 
         public AAAARenderPipeline(AAAARenderPipelineAsset pipelineAsset)
@@ -35,10 +36,14 @@ namespace DELTation.AAAARP
 
             RTHandles.Initialize(Screen.width, Screen.height);
             ShaderGlobalKeywords.InitializeShaderGlobalKeywords();
+
+            _visibilityBufferContainer = new AAAAVisibilityBufferContainer();
         }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
         {
+            _visibilityBufferContainer.PreRender(context);
+
             foreach (Camera camera in cameras)
             {
                 RenderSingleCamera(context, _renderer, camera);
@@ -99,6 +104,7 @@ namespace DELTation.AAAARP
             _debugDisplaySettingsUI.UnregisterDebug();
 #endif
 
+            _visibilityBufferContainer.Dispose();
             Blitter.Cleanup();
 
             base.Dispose(disposing);

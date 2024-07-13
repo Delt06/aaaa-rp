@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
@@ -7,32 +8,33 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
 
 namespace DELTation.AAAARP
 {
-    public class AAAAVisibilityBufferContainer : MonoBehaviour
+    public class AAAAVisibilityBufferContainer : IDisposable
     {
         private readonly List<Texture2D> _albedoTextures = new();
+
+        private readonly GraphicsBuffer _indirectArgsBuffer;
+        private readonly GraphicsBuffer _instanceDataBuffer;
+        private readonly Material _material;
+        private readonly GraphicsBuffer _materialDataBuffer;
         private readonly Dictionary<AAAAMaterialAsset, int> _materialToIndex = new();
         private readonly Dictionary<AAAAMeshletCollectionAsset, int> _meshletCollectionToStartIndex = new();
+        private readonly GraphicsBuffer _meshletRenderRequestsBuffer;
+        private readonly GraphicsBuffer _meshletsDataBuffer;
+        private readonly GraphicsBuffer _sharedIndexBuffer;
+        private readonly GraphicsBuffer _sharedVertexBuffer;
         private readonly Dictionary<Texture2D, int> _textureToAlbedoIndex = new();
-
-        private GraphicsBuffer _indirectArgsBuffer;
         private NativeList<AAAAInstanceData> _instanceData;
-        private GraphicsBuffer _instanceDataBuffer;
-        private Material _material;
         private NativeList<AAAAMaterialData> _materialData;
-        private GraphicsBuffer _materialDataBuffer;
         private NativeList<AAAAMeshlet> _meshletData;
         private NativeList<AAAAMeshletRenderRequest> _meshletRenderRequests;
-        private GraphicsBuffer _meshletRenderRequestsBuffer;
-        private GraphicsBuffer _meshletsDataBuffer;
-        private GraphicsBuffer _sharedIndexBuffer;
         private NativeList<byte> _sharedIndices;
-        private GraphicsBuffer _sharedVertexBuffer;
         private NativeList<AAAAMeshletVertex> _sharedVertices;
 
-        private void Start()
+        public AAAAVisibilityBufferContainer()
         {
             _meshletData = new NativeList<AAAAMeshlet>(Allocator.Persistent);
             _instanceData = new NativeList<AAAAInstanceData>(Allocator.Persistent);
@@ -41,9 +43,13 @@ namespace DELTation.AAAARP
             _sharedVertices = new NativeList<AAAAMeshletVertex>(Allocator.Persistent);
             _sharedIndices = new NativeList<byte>(Allocator.Persistent);
 
-            AAAARendererAuthoringBase[] authorings = FindObjectsByType<AAAARendererAuthoringBase>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            AAAARendererAuthoringBase[] authorings = Object.FindObjectsByType<AAAARendererAuthoringBase>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
             CreateInstances(authorings);
+            if (_instanceData.Length == 0)
+            {
+                return;
+            }
 
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
             _material = new Material(shaders.VisibilityBufferPS);
@@ -96,23 +102,7 @@ namespace DELTation.AAAARP
             Shader.SetGlobalTexture(ShaderIDs._SharedAlbedoTextureArray, albedoTextureArray);
         }
 
-        private void Update()
-        {
-            Shader.SetGlobalBuffer(ShaderIDs._Meshlets, _meshletsDataBuffer);
-            Shader.SetGlobalBuffer(ShaderIDs._SharedVertexBuffer, _sharedVertexBuffer);
-            Shader.SetGlobalBuffer(ShaderIDs._SharedIndexBuffer, _sharedIndexBuffer);
-            Shader.SetGlobalBuffer(ShaderIDs._InstanceData, _instanceDataBuffer);
-            Shader.SetGlobalBuffer(ShaderIDs._MaterialData, _materialDataBuffer);
-            Shader.SetGlobalBuffer(ShaderIDs._MeshletRenderRequests, _meshletRenderRequestsBuffer);
-
-            var renderParams = new RenderParams(_material)
-            {
-                worldBounds = new Bounds(Vector3.zero, Vector3.one * 100_000_000f),
-            };
-            Graphics.RenderPrimitivesIndirect(renderParams, MeshTopology.Triangles, _indirectArgsBuffer, 1);
-        }
-
-        private void OnDestroy()
+        public void Dispose()
         {
             if (_meshletData.IsCreated)
             {
@@ -151,6 +141,33 @@ namespace DELTation.AAAARP
             _instanceDataBuffer?.Dispose();
             _materialDataBuffer?.Dispose();
             _meshletRenderRequestsBuffer?.Dispose();
+        }
+
+        public void PreRender(ScriptableRenderContext context)
+        {
+            CommandBuffer cmd = CommandBufferPool.Get();
+
+            using (new ProfilingScope(cmd, Profiling.PreRender))
+            {
+                cmd.SetGlobalBuffer(ShaderIDs._Meshlets, _meshletsDataBuffer);
+                cmd.SetGlobalBuffer(ShaderIDs._SharedVertexBuffer, _sharedVertexBuffer);
+                cmd.SetGlobalBuffer(ShaderIDs._SharedIndexBuffer, _sharedIndexBuffer);
+                cmd.SetGlobalBuffer(ShaderIDs._InstanceData, _instanceDataBuffer);
+                cmd.SetGlobalBuffer(ShaderIDs._MaterialData, _materialDataBuffer);
+                cmd.SetGlobalBuffer(ShaderIDs._MeshletRenderRequests, _meshletRenderRequestsBuffer);
+            }
+
+            context.ExecuteCommandBuffer(cmd);
+            CommandBufferPool.Release(cmd);
+
+            if (_indirectArgsBuffer != null && _instanceData.Length > 0)
+            {
+                var renderParams = new RenderParams(_material)
+                {
+                    worldBounds = new Bounds(Vector3.zero, Vector3.one * 100_000_000f),
+                };
+                Graphics.RenderPrimitivesIndirect(renderParams, MeshTopology.Triangles, _indirectArgsBuffer, 1);
+            }
         }
 
         private void CreateInstances(AAAARendererAuthoringBase[] authorings)
@@ -279,6 +296,11 @@ namespace DELTation.AAAARP
             }
 
             return array;
+        }
+
+        private static class Profiling
+        {
+            public static readonly ProfilingSampler PreRender = new("Visibility Buffer Container: Pre Render");
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
