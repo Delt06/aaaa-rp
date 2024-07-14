@@ -41,7 +41,8 @@ namespace DELTation.AAAARP.Passes.Debugging
 
         protected override void Render(VisibilityBufferDebugPassPassData data, RasterGraphContext context)
         {
-            context.cmd.SetGlobalInt(ShaderID._VisibilityBufferDebugMode, (int) _debugDisplaySettings.RenderingSettings.VisibilityBufferDebugMode);
+            AAAAVisibilityBufferDebugMode visibilityBufferDebugMode = _debugDisplaySettings.RenderingSettings.GetOverridenVisibilityBufferDebugMode();
+            context.cmd.SetGlobalInt(ShaderID._VisibilityBufferDebugMode, (int) visibilityBufferDebugMode);
 
             var scaleBias = new Vector4(1, 1, 0, 0);
             const int pass = 0;

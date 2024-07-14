@@ -47,7 +47,7 @@ namespace DELTation.AAAARP.Debugging
 
         public void Setup(AAAARendererBase renderer, RenderGraph renderGraph, ScriptableRenderContext context)
         {
-            if (_debugDisplaySettings.RenderingSettings.VisibilityBufferDebugMode != AAAAVisibilityBufferDebugMode.None)
+            if (_debugDisplaySettings.RenderingSettings.GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None)
             {
                 renderer.EnqueuePass(_visibilityBufferDebugPass);
             }

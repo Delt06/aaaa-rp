@@ -1,4 +1,4 @@
-Shader "Hidden/AAAA/VisibilityBufferDEbug"
+Shader "Hidden/AAAA/VisibilityBufferDebug"
 {
     HLSLINCLUDE
         #pragma target 2.0
@@ -55,6 +55,25 @@ Shader "Hidden/AAAA/VisibilityBufferDEbug"
 
             uint _VisibilityBufferDebugMode;
 
+            float InverseLerpUnclamped(const float a, const float b, const float v)
+            {
+                #pragma warning (disable : 4008) // Suppress the division by zero warning
+                return (v - a) / (b - a);
+                #pragma warning (restore : 4008)
+            }
+
+            float InverseLerpClamped(const float a, const float b, const float v)
+            {
+                return saturate(InverseLerpUnclamped(a, b, v));
+            }
+            
+            // https://www.ronja-tutorials.com/post/046-fwidth/
+            float StepAntiAliased(const float edge, const float value, const float fwidthValue)
+            {
+                const float halfChange = fwidthValue * 0.5f;
+                return InverseLerpClamped(edge - halfChange, edge + halfChange, value);
+            }
+
             float4 Frag(const Varyings IN) : SV_Target
             {
                 const VisibilityBufferValue value = SampleVisibilityBuffer(IN.texcoord);
@@ -66,40 +85,47 @@ Shader "Hidden/AAAA/VisibilityBufferDEbug"
                 const AAAAInstanceData instanceData = PullInstanceData(value.instanceID);
                 const uint meshletID = instanceData.MeshletStartOffset + value.relativeMeshletID;
 
+                const AAAAMeshlet meshlet = PullMeshletData(meshletID);
+                const uint3 indices = uint3(
+                    PullIndex(meshlet, value.indexID + 0),
+                    PullIndex(meshlet, value.indexID + 1),
+                    PullIndex(meshlet, value.indexID + 2)
+                );
+                const AAAAMeshletVertex vertices[3] =
+                {
+                    PullVertex(meshlet, indices[0]),
+                    PullVertex(meshlet, indices[1]),
+                    PullVertex(meshlet, indices[2]),
+                };
+
+                const float3 positionWS[3] =
+                {
+                    TransformObjectToWorld(vertices[0].Position.xyz, instanceData.ObjectToWorldMatrix),
+                    TransformObjectToWorld(vertices[1].Position.xyz, instanceData.ObjectToWorldMatrix),
+                    TransformObjectToWorld(vertices[2].Position.xyz, instanceData.ObjectToWorldMatrix),
+                };
+
+                const float4 positionCS[3] =
+                {
+                    TransformWorldToHClip(positionWS[0]),
+                    TransformWorldToHClip(positionWS[1]),
+                    TransformWorldToHClip(positionWS[2]),
+                };
+
+                const float2                 pixelNDC = ScreenCoordsToNDC(IN.positionCS);
+                const BarycentricDerivatives barycentric = CalculateFullBarycentric(positionCS[0], positionCS[1], positionCS[2], pixelNDC, _ScreenSize.zw);
+
                 switch (_VisibilityBufferDebugMode)
                 {
+                case AAAAVISIBILITYBUFFERDEBUGMODE_WIREFRAME:
+                    {
+                        const float baryMinValue = min(barycentric.lambda.x, min(barycentric.lambda.y, barycentric.lambda.z));
+                        const float threshold = _ScreenSize.z * 10;
+                        const float minBary = smoothstep(threshold, threshold + 0.01, baryMinValue);
+                        return lerp(float4(0, 0, 0, 1), 0, minBary);
+                    }
                 case AAAAVISIBILITYBUFFERDEBUGMODE_BARYCENTRIC_COORDINATES:
                     {
-                        const AAAAMeshlet meshlet = PullMeshletData(meshletID);
-
-                        const uint3 indices = uint3(
-                            PullIndex(meshlet, value.indexID + 0),
-                            PullIndex(meshlet, value.indexID + 1),
-                            PullIndex(meshlet, value.indexID + 2)
-                        );
-                        const AAAAMeshletVertex vertices[3] =
-                        {
-                            PullVertex(meshlet, indices[0]),
-                            PullVertex(meshlet, indices[1]),
-                            PullVertex(meshlet, indices[2]),
-                        };
-
-                        const float3 positionWS[3] =
-                        {
-                            TransformObjectToWorld(vertices[0].Position.xyz, instanceData.ObjectToWorldMatrix),
-                            TransformObjectToWorld(vertices[1].Position.xyz, instanceData.ObjectToWorldMatrix),
-                            TransformObjectToWorld(vertices[2].Position.xyz, instanceData.ObjectToWorldMatrix),
-                        };
-
-                        const float4 positionCS[3] =
-                        {
-                            TransformWorldToHClip(positionWS[0]),
-                            TransformWorldToHClip(positionWS[1]),
-                            TransformWorldToHClip(positionWS[2]),
-                        };
-
-                        const float2                 pixelNDC = ScreenCoordsToNDC(IN.positionCS);
-                        const BarycentricDerivatives barycentric = CalculateFullBarycentric(positionCS[0], positionCS[1], positionCS[2], pixelNDC, _ScreenSize.zw);
                         return float4(barycentric.lambda, 1.0f);
                     }
                 case AAAAVISIBILITYBUFFERDEBUGMODE_INSTANCE_ID:

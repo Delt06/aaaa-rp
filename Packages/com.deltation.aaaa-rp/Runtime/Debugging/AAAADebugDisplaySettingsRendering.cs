@@ -1,4 +1,7 @@
 using UnityEngine.Rendering;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace DELTation.AAAARP.Debugging
 {
@@ -6,6 +9,7 @@ namespace DELTation.AAAARP.Debugging
     public enum AAAAVisibilityBufferDebugMode
     {
         None,
+        Wireframe,
         BarycentricCoordinates,
         InstanceID,
         MeshletID,
@@ -17,8 +21,20 @@ namespace DELTation.AAAARP.Debugging
         public AAAAVisibilityBufferDebugMode VisibilityBufferDebugMode { get; private set; }
         public bool ForceCullingFrustumOfMainCamera { get; private set; }
 
-        public bool AreAnySettingsActive => VisibilityBufferDebugMode != AAAAVisibilityBufferDebugMode.None || ForceCullingFrustumOfMainCamera;
+        public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None || ForceCullingFrustumOfMainCamera;
         public IDebugDisplaySettingsPanelDisposable CreatePanel() => new SettingsPanel(this);
+
+        public AAAAVisibilityBufferDebugMode GetOverridenVisibilityBufferDebugMode()
+        {
+#if UNITY_EDITOR
+            DrawCameraMode? cameraMode = SceneView.currentDrawingSceneView?.cameraMode.drawMode;
+            if (cameraMode == DrawCameraMode.TexturedWire)
+            {
+                return AAAAVisibilityBufferDebugMode.Wireframe;
+            }
+#endif
+            return VisibilityBufferDebugMode;
+        }
 
         [DisplayInfo(name = "Rendering", order = 1)]
         private class SettingsPanel : DebugDisplaySettingsPanel<AAAADebugDisplaySettingsRendering>
