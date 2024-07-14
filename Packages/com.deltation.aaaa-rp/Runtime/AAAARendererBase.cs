@@ -10,7 +10,7 @@ using static DELTation.AAAARP.AAAARenderPipelineCore;
 
 namespace DELTation.AAAARP
 {
-    public abstract class AAAARendererBase : IDisposable
+    public abstract partial class AAAARendererBase : IDisposable
     {
         private readonly List<AAAARenderPassBase> _activeRenderPassQueue = new(32);
 
@@ -328,6 +328,13 @@ namespace DELTation.AAAARP
 
         public void FinishRenderGraphRendering(CommandBuffer cmd) { }
 
+        public void PostRender(ScriptableRenderContext context, Camera camera)
+        {
+            RenderGizmos(context, camera);
+        }
+
+        partial void RenderGizmos(ScriptableRenderContext context, Camera camera);
+
         public void Clear(Camera camera) { }
 
         public void ImportBackbuffer(AAAACameraData cameraData)
@@ -384,9 +391,9 @@ namespace DELTation.AAAARP
             public AAAARendererBase Renderer;
         }
 
-        private static class Profiling
+        private static partial class Profiling
         {
-            private const string Name = nameof(AAAARendererBase);
+            private const string Name = "AAAA";
 
             public static readonly ProfilingSampler SetupRenderGraphCameraProperties =
                 new($"{Name}.{nameof(AAAARendererBase.SetupRenderGraphCameraProperties)}");

@@ -92,6 +92,8 @@ namespace DELTation.AAAARP
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
 
+            renderer.PostRender(context, cameraData.Camera);
+
             using (new ProfilingScope(AAAAProfiling.Pipeline.Context.Submit))
             {
                 context.Submit();
