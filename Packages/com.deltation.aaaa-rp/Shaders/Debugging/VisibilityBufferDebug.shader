@@ -122,7 +122,7 @@ Shader "Hidden/AAAA/VisibilityBufferDebug"
                         const float baryMinValue = min(barycentric.lambda.x, min(barycentric.lambda.y, barycentric.lambda.z));
                         const float threshold = _ScreenSize.z * 10;
                         const float minBary = smoothstep(threshold, threshold + 0.01, baryMinValue);
-                        return lerp(float4(0, 0, 0, 1), 0, minBary);
+                        return lerp(float4(GetColor(meshletID), 1), 0, minBary);
                     }
                 case AAAAVISIBILITYBUFFERDEBUGMODE_BARYCENTRIC_COORDINATES:
                     {
