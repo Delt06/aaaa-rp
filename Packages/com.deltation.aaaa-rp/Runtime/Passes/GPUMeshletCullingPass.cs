@@ -19,7 +19,6 @@ namespace DELTation.AAAARP.Passes
 
     public class GPUMeshletCullingPass : AAAARenderPass<GPUMeshletCullingPassData>
     {
-        private static readonly Plane[] TempFrustumPlanes = new Plane[6];
         private readonly ComputeShader _fixupMeshletIndirectDrawArgsCS;
         private readonly ComputeShader _gpuMeshletCullingCS;
         private readonly ComputeShader _rawBufferClearCS;
@@ -45,11 +44,12 @@ namespace DELTation.AAAARP.Passes
             Camera camera = CullingCameraOverride != null ? CullingCameraOverride : cameraData.Camera;
             Vector3 cameraPosition = camera.transform.position;
             passData.CameraPosition = new Vector4(cameraPosition.x, cameraPosition.y, cameraPosition.z, 1);
-            GeometryUtility.CalculateFrustumPlanes(camera, TempFrustumPlanes);
+            Plane[] frustumPlanes = TempCollections.Planes;
+            GeometryUtility.CalculateFrustumPlanes(camera, frustumPlanes);
 
-            for (int i = 0; i < TempFrustumPlanes.Length; i++)
+            for (int i = 0; i < frustumPlanes.Length; i++)
             {
-                Plane frustumPlane = TempFrustumPlanes[i];
+                Plane frustumPlane = frustumPlanes[i];
                 passData.FrustumPlanes[i] = new Vector4(frustumPlane.normal.x, frustumPlane.normal.y, frustumPlane.normal.z, frustumPlane.distance);
             }
 
