@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.Utils;
@@ -82,7 +81,7 @@ namespace DELTation.AAAARP.Passes
                 context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.Culling._CameraFrustumPlanes, data.FrustumPlanes);
                 context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.Culling._CameraPosition, data.CameraPosition);
                 context.cmd.DispatchCompute(_gpuMeshletCullingCS, AAAAGPUMeshletCulling.KernelIndex,
-                    AAAAMathUtils.AlignUp(instanceCount, AAAAGPUMeshletCulling.ThreadGroupSize) / AAAAGPUMeshletCulling.ThreadGroupSize, 1, 1
+                    1, instanceCount, 1
                 );
             }
 

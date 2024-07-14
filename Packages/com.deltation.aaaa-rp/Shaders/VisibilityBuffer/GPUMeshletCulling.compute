@@ -2,8 +2,6 @@
 
 #define MESHLET_RENDER_REQUESTS_RW
 
-#pragma enable_d3d11_debug_symbols
-
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAGPUMeshletCulling.cs.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
@@ -60,10 +58,19 @@ bool Culling(const AAAAInstanceData instanceData, const uint relativeMeshletInde
     return CullSphere(_CameraFrustumPlanes, boundingSphere.xyz, boundingSphere.w) && ConeCulling(instanceData, meshletData);
 }
 
+#define MESHLETS_PER_BATCH 1024
+#define ITEMS_IN_MESHLET_MASK 32
+#define MESHLET_MASKS_PER_BATCH (MESHLETS_PER_BATCH / ITEMS_IN_MESHLET_MASK)
+
+groupshared uint g_MeshletVisibilityMask[MESHLET_MASKS_PER_BATCH];
+groupshared uint g_VisibleMeshletsCount;
+groupshared uint g_WrittenMeshletsCount;
+groupshared uint g_MeshletWriteOffset;
+
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
-void CS(const uint3 threadID : SV_DispatchThreadID)
+void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_GroupID)
 {
-    const uint instanceID = threadID.x;
+    const uint instanceID = groupID.y;
     if (instanceID >= _InstanceCount)
     {
         return;
@@ -71,17 +78,83 @@ void CS(const uint3 threadID : SV_DispatchThreadID)
 
     const AAAAInstanceData instanceData = PullInstanceData(instanceID);
 
-    for (uint relativeMeshletIndex = 0; relativeMeshletIndex < instanceData.MeshletCount; ++relativeMeshletIndex)
+    for (uint beginMeshletIndex = 0; beginMeshletIndex < instanceData.MeshletCount; beginMeshletIndex += MESHLETS_PER_BATCH)
     {
-        if (Culling(instanceData, relativeMeshletIndex))
-        {
-            AAAAMeshletRenderRequest meshletRenderRequest;
-            meshletRenderRequest.InstanceID = instanceID;
-            meshletRenderRequest.RelativeMeshletID = relativeMeshletIndex;
+        const uint endMeshletIndex = min(beginMeshletIndex + MESHLETS_PER_BATCH, instanceData.MeshletCount);
 
-            uint requestWriteOffset = 0;
-            _RequestCounter.InterlockedAdd(0, 1, requestWriteOffset);
-            StoreMeshletRenderRequest(requestWriteOffset, meshletRenderRequest);
+        GroupMemoryBarrierWithGroupSync();
+
+        const uint localThreadIndex = groupThreadID.x;
+        for (uint maskIndex = localThreadIndex; maskIndex < MESHLET_MASKS_PER_BATCH; maskIndex += THREAD_GROUP_SIZE)
+        {
+            g_MeshletVisibilityMask[maskIndex] = 0;
         }
+
+        if (localThreadIndex == 0)
+        {
+            g_VisibleMeshletsCount = 0;
+            g_WrittenMeshletsCount = 0;
+        }
+
+        GroupMemoryBarrierWithGroupSync();
+
+        for (uint maskStartMeshletIndex = beginMeshletIndex + localThreadIndex * ITEMS_IN_MESHLET_MASK;
+             maskStartMeshletIndex < endMeshletIndex;
+             maskStartMeshletIndex += THREAD_GROUP_SIZE * ITEMS_IN_MESHLET_MASK
+        )
+        {
+            uint mask = 0;
+            uint count = 0;
+
+            for (uint i = 0; i < ITEMS_IN_MESHLET_MASK; ++i)
+            {
+                const uint relativeMeshletIndex = maskStartMeshletIndex + i;
+                if (relativeMeshletIndex < endMeshletIndex && Culling(instanceData, relativeMeshletIndex))
+                {
+                    mask |= 1u << i;
+                    ++count;
+                }
+            }
+
+            const uint meshletIndexInBatch = maskStartMeshletIndex - beginMeshletIndex;
+            const uint meshletMaskIndex = meshletIndexInBatch / ITEMS_IN_MESHLET_MASK;
+            g_MeshletVisibilityMask[meshletMaskIndex] = mask;
+
+            InterlockedAdd(g_VisibleMeshletsCount, count);
+        }
+
+        GroupMemoryBarrierWithGroupSync();
+
+        if (localThreadIndex == 0)
+        {
+            _RequestCounter.InterlockedAdd(0, g_VisibleMeshletsCount, g_MeshletWriteOffset);
+        }
+
+        GroupMemoryBarrierWithGroupSync();
+
+        if (g_VisibleMeshletsCount > 0)
+        {
+            for (uint relativeMeshletIndex = beginMeshletIndex + localThreadIndex; relativeMeshletIndex < endMeshletIndex; relativeMeshletIndex +=
+                 THREAD_GROUP_SIZE)
+            {
+                const uint meshletIndexInBatch = relativeMeshletIndex - beginMeshletIndex;
+                const uint meshletMaskIndex = meshletIndexInBatch / ITEMS_IN_MESHLET_MASK;
+                const uint meshletMask = 1u << (meshletIndexInBatch % ITEMS_IN_MESHLET_MASK);
+
+                if ((g_MeshletVisibilityMask[meshletMaskIndex] & meshletMask) != 0)
+                {
+                    uint requestWriteOffset = 0;
+                    InterlockedAdd(g_WrittenMeshletsCount, 1, requestWriteOffset);
+
+                    AAAAMeshletRenderRequest meshletRenderRequest;
+                    meshletRenderRequest.InstanceID = instanceID;
+                    meshletRenderRequest.RelativeMeshletID = relativeMeshletIndex;
+
+                    StoreMeshletRenderRequest(g_MeshletWriteOffset + requestWriteOffset, meshletRenderRequest);
+                }
+            }
+        }
+
+        GroupMemoryBarrierWithGroupSync();
     }
 }
