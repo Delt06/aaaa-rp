@@ -55,9 +55,13 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     indexDataU32 = data.GetIndexData<uint>();
                 }
 
+                NativeArray<uint> sourceIndices = indexDataU32;
+                indexDataU32 = AAAAMeshOptimizer.OptimizeVertexCache(Allocator.TempJob, sourceIndices, (uint) data.vertexCount);
+                sourceIndices.Dispose();
+
                 uint vertexPositionOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Position);
                 AAAAMeshOptimizer.MeshletGenerationParams meshletGenerationParams = AAAAMeshletCollectionAsset.MeshletGenerationParams;
-                const Allocator allocator = Allocator.TempJob;
+                const Allocator allocator = Allocator.Temp;
                 AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults = AAAAMeshOptimizer.BuildMeshlets(allocator,
                     vertexData, vertexPositionOffset, vertexBufferStride, indexDataU32,
                     meshletGenerationParams
@@ -117,20 +121,20 @@ namespace DELTation.AAAARP.Editor.Meshlets
                             UnsafeUtility.MemCpy(pIndexBuffer, meshletBuildResults.Indices.GetUnsafeReadOnlyPtr(), meshletBuildResults.Indices.Length);
                         }
 
-                        JobHandle.CombineDependencies(jobHandles.AsArray())
-                            .Complete();
+                        var jobHandle = JobHandle.CombineDependencies(jobHandles.AsArray());
 
                         if (uvVertexData.IsCreated)
                         {
-                            uvVertexData.Dispose();
+                            uvVertexData.Dispose(jobHandle);
                         }
+
+                        vertexData.Dispose(jobHandle);
+                        indexDataU32.Dispose(jobHandle);
+                        meshletBuildResults.Dispose(jobHandle);
+
+                        jobHandle.Complete();
                     }
                 }
-
-                vertexData.Dispose();
-                indexDataU32.Dispose();
-
-                meshletBuildResults.Dispose();
             }
 
             ctx.AddObjectToAsset(nameof(AAAAMeshletCollectionAsset), meshletCollection);

@@ -12,10 +12,10 @@
 //
 // DELTation.AAAARP.AAAAMeshletConfiguration:  static fields
 //
-#define MAX_MESHLET_VERTICES (128)
-#define MAX_MESHLET_TRIANGLES (128)
-#define MAX_MESHLET_INDICES (384)
-#define MESHLET_CONE_WEIGHT (0.5)
+#define MAX_MESHLET_VERTICES (255)
+#define MAX_MESHLET_TRIANGLES (256)
+#define MAX_MESHLET_INDICES (768)
+#define MESHLET_CONE_WEIGHT (0)
 
 // Generated from DELTation.AAAARP.AAAAInstanceData
 // PackingRules = Exact

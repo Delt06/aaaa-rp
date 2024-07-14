@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using DELTation.AAAARP.Core;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine.Assertions;
 using static DELTation.AAAARP.MeshOptimizer.Runtime.MeshOptimizerBindings;
@@ -11,6 +12,13 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
 {
     public static class AAAAMeshOptimizer
     {
+        public static unsafe NativeArray<uint> OptimizeVertexCache(Allocator allocator, NativeArray<uint> indices, uint vertexCount)
+        {
+            var result = new NativeArray<uint>(indices.Length, allocator);
+            meshopt_optimizeVertexCache((uint*) result.GetUnsafePtr(), (uint*) indices.GetUnsafeReadOnlyPtr(), (nuint) indices.Length, vertexCount);
+            return result;
+        }
+
         public static unsafe MeshletBuildResults BuildMeshlets(Allocator allocator, NativeArray<float> vertices, uint vertexPositionOffset,
             uint vertexPositionStride,
             NativeArray<uint> indices,
@@ -99,7 +107,7 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             int targetIndexCount = (int) (localIndices.Length / 3 * 0.5 * 3);
             int simplifiedIndexCount = (int) meshopt_simplify(localIndices.GetUnsafePtr(), localIndices.GetUnsafePtr(), (nuint) localIndices.Length,
                 (float*) localVertices.GetUnsafePtr(), (nuint) localVertices.Length, (nuint) UnsafeUtility.SizeOf<ClusterVertex>(), (nuint) targetIndexCount,
-                1e-2f, (uint) meshopt_SimplifyOptions.LockBorder
+                1e-2f, (uint) (meshopt_SimplifyOptions.LockBorder | meshopt_SimplifyOptions.Sparse)
             );
             localIndices.Length = simplifiedIndexCount;
 
@@ -128,11 +136,16 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             public NativeArray<uint> Vertices;
             public NativeArray<byte> Indices;
 
+            public void Dispose(JobHandle jobHandle)
+            {
+                Meshlets.Dispose(jobHandle);
+                Vertices.Dispose(jobHandle);
+                Indices.Dispose(jobHandle);
+            }
+
             public void Dispose()
             {
-                Meshlets.Dispose();
-                Vertices.Dispose();
-                Indices.Dispose();
+                Dispose(default);
             }
 
             public MeshletBuildResults MeshletSubArray(int startIndex, int count) =>

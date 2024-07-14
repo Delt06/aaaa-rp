@@ -36,7 +36,7 @@ namespace DELTation.AAAARP
         public const uint MaxMeshletVertices = 128;
         public const uint MaxMeshletTriangles = 128;
         public const uint MaxMeshletIndices = MaxMeshletTriangles * 3;
-        public const float MeshletConeWeight = 0.5f;
+        public const float MeshletConeWeight = 0.25f;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
