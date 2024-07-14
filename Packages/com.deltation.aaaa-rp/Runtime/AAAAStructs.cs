@@ -26,6 +26,8 @@ namespace DELTation.AAAARP
         public uint Padding0;
         public uint Padding1;
         public uint Padding2;
+
+        public const uint NoTextureIndex = uint.MaxValue;
     }
 
     [GenerateHLSL]

@@ -24,6 +24,8 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
+            #pragma editor_sync_compilation
+
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Barycentric.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"

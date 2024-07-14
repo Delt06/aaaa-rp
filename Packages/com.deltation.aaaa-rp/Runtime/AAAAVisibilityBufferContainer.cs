@@ -250,7 +250,7 @@ namespace DELTation.AAAARP
             var materialData = new AAAAMaterialData
             {
                 AlbedoColor = (Vector4) material.AlbedoColor,
-                AlbedoIndex = (uint) GetOrAllocateAlbedoTexture(material.Albedo),
+                AlbedoIndex = GetOrAllocateAlbedoTexture(material.Albedo),
             };
             _materialData.Add(materialData);
             index = _materialData.Length - 1;
@@ -258,17 +258,22 @@ namespace DELTation.AAAARP
             return index;
         }
 
-        private int GetOrAllocateAlbedoTexture(Texture2D texture)
+        private uint GetOrAllocateAlbedoTexture(Texture2D texture)
         {
+            if (texture == null)
+            {
+                return AAAAMaterialData.NoTextureIndex;
+            }
+
             if (_textureToAlbedoIndex.TryGetValue(texture, out int index))
             {
-                return index;
+                return (uint) index;
             }
 
             _albedoTextures.Add(texture);
             index = _albedoTextures.Count - 1;
             _textureToAlbedoIndex.Add(texture, index);
-            return index;
+            return (uint) index;
         }
 
         private static Texture2DArray BuildTextureArray(List<Texture2D> textures)

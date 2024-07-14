@@ -5,6 +5,11 @@
 #ifndef AAAASTRUCTS_CS_HLSL
 #define AAAASTRUCTS_CS_HLSL
 //
+// DELTation.AAAARP.AAAAMaterialData:  static fields
+//
+#define NO_TEXTURE_INDEX (4294967295)
+
+//
 // DELTation.AAAARP.AAAAMeshletConfiguration:  static fields
 //
 #define MAX_MESHLET_VERTICES (128)

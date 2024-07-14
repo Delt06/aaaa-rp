@@ -35,10 +35,18 @@ InterpolatedUV InterpolateUV(const BarycentricDerivatives barycentric, const AAA
     return uv;
 }
 
+float4 SampleTextureArray(TEXTURE2D_ARRAY_PARAM(textureArray, textureArraySampler), const InterpolatedUV uv, const uint textureIndex,
+                          const float4                                                                   defaultValue)
+{
+    return textureIndex != NO_TEXTURE_INDEX
+               ? SAMPLE_TEXTURE2D_ARRAY_GRAD(textureArray, textureArraySampler, uv.uv, textureIndex, uv.ddx, uv.ddy)
+               : defaultValue;
+}
+
 float4 SampleAlbedo(const InterpolatedUV uv, const AAAAMaterialData materialData)
 {
-    const float4 textureAlbedo = SAMPLE_TEXTURE2D_ARRAY_GRAD(_SharedAlbedoTextureArray, sampler_SharedAlbedoTextureArray, uv.uv,
-                                                             materialData.AlbedoIndex, uv.ddx, uv.ddy);
+    const float4 textureAlbedo = SampleTextureArray(
+        TEXTURE2D_ARRAY_ARGS(_SharedAlbedoTextureArray, sampler_SharedAlbedoTextureArray), uv, materialData.AlbedoIndex, float4(1, 1, 1, 1));
     return materialData.AlbedoColor * textureAlbedo;
 }
 
