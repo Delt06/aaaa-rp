@@ -19,6 +19,10 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
         [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern meshopt_Bounds meshopt_computeMeshletBounds(uint* meshletVertices, byte* meshletTriangles, nuint triangleCount,
             float* vertexPositions, nuint vertexCount, nuint vertexPositionsStride);
+
+        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        public static extern nuint meshopt_simplify(uint* destination, uint* indices, nuint indexCount, float* vertexPositions, nuint vertexCount,
+            nuint vertexPositionsStride, nuint targetIndexCount, float targetError, uint options, float* resultError = null);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -50,12 +54,15 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
         public sbyte ConeCutoffS8;
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack = sizeof(byte))]
     [SuppressMessage("ReSharper", "InconsistentNaming")]
-    public struct sbyte3
+    public enum meshopt_SimplifyOptions : uint
     {
-        public sbyte x;
-        public sbyte y;
-        public sbyte z;
+        None = 0,
+        /* Do not move vertices that are located on the topological border (vertices on triangle edges that don't have a paired triangle). Useful for simplifying portions of the larger mesh. */
+        LockBorder = 1 << 0,
+        /* Improve simplification performance assuming input indices are a sparse subset of the mesh. Note that error becomes relative to subset extents. */
+        Sparse = 1 << 1,
+        /* Treat error limit and resulting error as absolute instead of relative to mesh extents. */
+        ErrorAbsolute = 1 << 2,
     }
 }

@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using DELTation.AAAARP.Core;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Mathematics;
 using UnityEngine.Assertions;
 using static DELTation.AAAARP.MeshOptimizer.Runtime.MeshOptimizerBindings;
 
@@ -59,6 +61,67 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             );
         }
 
+        public static unsafe MeshletBuildResults SimplifyMeshletCluster(Allocator allocator,
+            MeshletBuildResults meshletCluster,
+            NativeArray<float> vertices, uint vertexPositionOffset, uint vertexPositionsStride,
+            in MeshletGenerationParams meshletGenerationParams
+        )
+        {
+            var localVertices = new NativeList<ClusterVertex>(Allocator.Temp);
+            var localIndices = new NativeList<uint>(Allocator.Temp);
+
+            byte* pVertexPositionsBytes = (byte*) vertices.GetUnsafeReadOnlyPtr() + vertexPositionOffset;
+
+            foreach (meshopt_Meshlet meshlet in meshletCluster.Meshlets)
+            {
+                int localOffset = localVertices.Length;
+
+                for (uint v = 0; v < meshlet.VertexCount; v++)
+                {
+                    uint globalIndex = meshletCluster.Vertices[(int) (meshlet.VertexOffset + v)];
+                    localVertices.Add(new ClusterVertex
+                        {
+                            Position = *(float3*) (pVertexPositionsBytes + globalIndex * vertexPositionsStride),
+                            Index = globalIndex,
+                        }
+                    );
+                }
+
+                for (uint t = 0; t < meshlet.TriangleCount; t++)
+                {
+                    localIndices.Add((uint) (localOffset + meshletCluster.Indices[(int) (meshlet.TriangleOffset + t * 3 + 0)]));
+                    localIndices.Add((uint) (localOffset + meshletCluster.Indices[(int) (meshlet.TriangleOffset + t * 3 + 1)]));
+                    localIndices.Add((uint) (localOffset + meshletCluster.Indices[(int) (meshlet.TriangleOffset + t * 3 + 2)]));
+                }
+            }
+
+            // ReSharper disable once PossibleLossOfFraction
+            int targetIndexCount = (int) (localIndices.Length / 3 * 0.5 * 3);
+            int simplifiedIndexCount = (int) meshopt_simplify(localIndices.GetUnsafePtr(), localIndices.GetUnsafePtr(), (nuint) localIndices.Length,
+                (float*) localVertices.GetUnsafePtr(), (nuint) localVertices.Length, (nuint) UnsafeUtility.SizeOf<ClusterVertex>(), (nuint) targetIndexCount,
+                1e-2f, (uint) meshopt_SimplifyOptions.LockBorder
+            );
+            localIndices.Length = simplifiedIndexCount;
+
+            var globalIndices = new NativeList<uint>(localIndices.Length, Allocator.Temp);
+
+            foreach (uint localIndex in localIndices)
+            {
+                globalIndices.Add(localVertices[(int) localIndex].Index);
+            }
+
+            return BuildMeshlets(allocator, vertices, vertexPositionOffset, vertexPositionsStride, globalIndices.AsArray(), meshletGenerationParams);
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ClusterVertex
+        {
+            public float3 Position;
+
+            // Index in the original vertex buffer
+            public uint Index;
+        }
+
         public struct MeshletBuildResults : IDisposable
         {
             public NativeArray<meshopt_Meshlet> Meshlets;
@@ -71,6 +134,14 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
                 Vertices.Dispose();
                 Indices.Dispose();
             }
+
+            public MeshletBuildResults MeshletSubArray(int startIndex, int count) =>
+                new()
+                {
+                    Meshlets = Meshlets.GetSubArray(startIndex, count),
+                    Vertices = Vertices,
+                    Indices = Indices,
+                };
         }
 
         public struct MeshletGenerationParams
