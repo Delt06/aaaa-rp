@@ -22,6 +22,8 @@ namespace DELTation.AAAARP.Editor.Meshlets
         private const string Extension = "aaaameshletcollection";
 
         public Mesh Mesh;
+        [Min(0)]
+        public int SimplificationSteps;
 
         public override unsafe void OnImportAsset(AssetImportContext ctx)
         {
@@ -38,7 +40,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
             using (Mesh.MeshDataArray dataArray = Mesh.AcquireReadOnlyMeshData(Mesh))
             {
                 Mesh.MeshData data = dataArray[0];
-                int vertexBufferStride = data.GetVertexBufferStride(0);
+                uint vertexBufferStride = (uint) data.GetVertexBufferStride(0);
                 NativeArray<float> vertexData = data.GetVertexData<float>();
 
                 NativeArray<uint> indexDataU32;
@@ -53,12 +55,23 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     indexDataU32 = data.GetIndexData<uint>();
                 }
 
-                int vertexPositionOffset = data.GetVertexAttributeOffset(VertexAttribute.Position);
-                AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults = AAAAMeshOptimizer.BuildMeshlets(Allocator.Temp, vertexData,
-                    (uint) vertexPositionOffset,
-                    (uint) vertexBufferStride, indexDataU32,
-                    AAAAMeshletCollectionAsset.MeshletGenerationParams
+                uint vertexPositionOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Position);
+                AAAAMeshOptimizer.MeshletGenerationParams meshletGenerationParams = AAAAMeshletCollectionAsset.MeshletGenerationParams;
+                const Allocator allocator = Allocator.TempJob;
+                AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults = AAAAMeshOptimizer.BuildMeshlets(allocator,
+                    vertexData, vertexPositionOffset, vertexBufferStride, indexDataU32,
+                    meshletGenerationParams
                 );
+
+                for (int i = 0; i < SimplificationSteps; i++)
+                {
+                    AAAAMeshOptimizer.MeshletBuildResults clusterMeshletBuildResults = AAAAMeshOptimizer.SimplifyMeshletCluster(allocator, meshletBuildResults,
+                        vertexData, vertexPositionOffset, vertexBufferStride,
+                        meshletGenerationParams
+                    );
+                    meshletBuildResults.Dispose();
+                    meshletBuildResults = clusterMeshletBuildResults;
+                }
 
                 meshletCollection.Meshlets = new AAAAMeshlet[meshletBuildResults.Meshlets.Length];
                 meshletCollection.VertexBuffer = new AAAAMeshletVertex[meshletBuildResults.Vertices.Length];
@@ -78,18 +91,18 @@ namespace DELTation.AAAARP.Editor.Meshlets
                             new WriteMeshletsJob
                             {
                                 DestinationPtr = pDestinationMeshlets,
-                                VertexBufferStride = (uint) vertexBufferStride,
-                                VertexPositionOffset = (uint) vertexPositionOffset,
+                                VertexBufferStride = vertexBufferStride,
+                                VertexPositionOffset = vertexPositionOffset,
                                 MeshletBuildResults = meshletBuildResults,
                                 VertexData = vertexData,
                             }.Schedule(meshletCollection.Meshlets.Length, WriteMeshletsJob.BatchSize),
                             new WriteVerticesJob
                             {
                                 VerticesPtr = (byte*) vertexData.GetUnsafeReadOnlyPtr(),
-                                VertexBufferStride = (uint) vertexBufferStride,
+                                VertexBufferStride = vertexBufferStride,
                                 MeshletBuildResults = meshletBuildResults,
                                 VertexNormalOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Normal),
-                                VertexPositionOffset = (uint) vertexPositionOffset,
+                                VertexPositionOffset = vertexPositionOffset,
                                 VertexTangentOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Tangent),
                                 UVStreamStride = (uint) uvStreamStride,
                                 VertexUVOffset = (uint) vertexUVOffset,
