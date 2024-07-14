@@ -43,11 +43,11 @@ Shader "Hidden/AAAA/DeferredLighting"
 
             float4 Frag(const Varyings IN) : SV_Target
             {
-                const GBufferOutput gbuffer = SampleGBuffer(IN.texcoord);
+                const GBufferValue gbuffer = SampleGBuffer(IN.texcoord);
 
                 SurfaceData surfaceData;
                 surfaceData.albedo = gbuffer.albedo;
-                surfaceData.normalWS = gbuffer.normalsWS;
+                surfaceData.normalWS = gbuffer.normalWS;
 
                 const float3 lighting = ComputeLightingPBR(surfaceData);
                 return float4(lighting, 1);

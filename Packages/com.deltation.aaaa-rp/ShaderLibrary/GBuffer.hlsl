@@ -12,35 +12,39 @@ SAMPLER(sampler_GBuffer_Normals);
 struct GBufferOutput
 {
     float4 albedo : SV_Target0;
-    float4 normalsWS : SV_Target1;
+    float2 packedNormalWS : SV_Target1;
 };
 
-float3 PackGBufferNormal(const float3 normal)
+struct GBufferValue
 {
-    return normal * 0.5 + 0.5;
+    float3 albedo;
+    float3 normalWS;
+};
+
+float2 PackGBufferNormal(const float3 normal)
+{
+    return PackNormalOctQuadEncode(normal);
 }
 
-float3 UnpackGBufferNormal(const float3 packedNormal)
+float3 UnpackGBufferNormal(const float2 packedNormal)
 {
-    return packedNormal * 2 - 1;
+    return UnpackNormalOctQuadEncode(packedNormal);
 }
 
-GBufferOutput ConstructGBufferOutput(const float3 albedo, const float3 normalsWS)
+GBufferOutput PackGBufferOutput(const GBufferValue value)
 {
     GBufferOutput output;
-    output.albedo = float4(albedo, 1.0f);
-    output.normalsWS = float4(PackGBufferNormal(normalsWS), 0.0f);
+    output.albedo = float4(value.albedo, 1.0f);
+    output.packedNormalWS = PackGBufferNormal(value.normalWS);
     return output;
 }
 
-GBufferOutput SampleGBuffer(const float2 screenUV)
+GBufferValue SampleGBuffer(const float2 screenUV)
 {
-    GBufferOutput output;
+    GBufferValue output;
 
     output.albedo = SAMPLE_TEXTURE2D_LOD(_GBuffer_Albedo, sampler_GBuffer_Albedo, screenUV, 0);
-
-    output.normalsWS = SAMPLE_TEXTURE2D_LOD(_GBuffer_Normals, sampler_GBuffer_Normals, screenUV, 0);
-    output.normalsWS.xyz = UnpackGBufferNormal(output.normalsWS.xyz);
+    output.normalWS = UnpackGBufferNormal(SAMPLE_TEXTURE2D_LOD(_GBuffer_Normals, sampler_GBuffer_Normals, screenUV, 0).xy);
 
     return output;
 }

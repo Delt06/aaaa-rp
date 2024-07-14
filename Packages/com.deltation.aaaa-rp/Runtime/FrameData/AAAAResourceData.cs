@@ -122,7 +122,7 @@ namespace DELTation.AAAARP.FrameData
             {
                 TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("GBuffer_Normals", cameraData.CameraTargetDescriptor);
                 desc.depthBufferBits = DepthBits.None;
-                desc.colorFormat = GraphicsFormat.R8G8B8A8_UNorm;
+                desc.colorFormat = GraphicsFormat.R8G8_SNorm;
                 desc.filterMode = FilterMode.Bilinear;
                 desc.wrapMode = TextureWrapMode.Clamp;
                 desc.clearBuffer = true;

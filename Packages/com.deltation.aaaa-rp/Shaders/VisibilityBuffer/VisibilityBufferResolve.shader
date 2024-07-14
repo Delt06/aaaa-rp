@@ -89,7 +89,10 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 );
                 const float3 normalWS = TransformObjectToWorldNormal(normalOS, instanceData.WorldToObjectMatrix);
 
-                return ConstructGBufferOutput(albedo, normalWS);
+                GBufferValue gbufferValue;
+                gbufferValue.albedo = albedo;
+                gbufferValue.normalWS = normalWS;
+                return PackGBufferOutput(gbufferValue);
             }
             ENDHLSL
         }
