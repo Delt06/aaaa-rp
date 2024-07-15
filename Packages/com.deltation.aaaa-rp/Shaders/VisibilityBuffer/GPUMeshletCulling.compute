@@ -2,8 +2,6 @@
 
 #define MESHLET_RENDER_REQUESTS_RW
 
-#pragma enable_d3d11_debug_symbols
-
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAGPUMeshletCulling.cs.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
