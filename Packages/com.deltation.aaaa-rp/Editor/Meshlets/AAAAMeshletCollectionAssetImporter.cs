@@ -136,17 +136,24 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     mainMeshletBuildResults = clusterMeshletBuildResults;
                 }
 
-                const int lodCount = (int) AAAAMeshletConfiguration.LodCount;
-                var lodMeshlets = new NativeList<AAAAMeshOptimizer.MeshletBuildResults>(lodCount, Allocator.TempJob);
+                var lodMeshlets = new NativeList<AAAAMeshOptimizer.MeshletBuildResults>((int) AAAAMeshletConfiguration.LodCount, Allocator.TempJob);
                 lodMeshlets.Add(mainMeshletBuildResults);
 
-                for (int i = 1; i < lodCount; i++)
+                for (int i = 1; i < (int) AAAAMeshletConfiguration.LodCount; i++)
                 {
                     AAAAMeshOptimizer.MeshletBuildResults previousLodMeshlets = lodMeshlets[^1];
                     AAAAMeshOptimizer.MeshletBuildResults thisLodMeshlets = AAAAMeshOptimizer.SimplifyMeshletCluster(allocator, previousLodMeshlets,
                         vertexData, vertexPositionOffset, vertexBufferStride,
                         meshletGenerationParams
                     );
+
+                    const int meshletCountDifferenceThreshold = 2;
+                    if (thisLodMeshlets.Meshlets.Length >= previousLodMeshlets.Meshlets.Length - meshletCountDifferenceThreshold)
+                    {
+                        thisLodMeshlets.Dispose();
+                        break;
+                    }
+
                     lodMeshlets.Add(thisLodMeshlets);
                 }
 
@@ -154,7 +161,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 int totalVertices = 0;
                 int totalIndices = 0;
 
-                meshletCollection.Lods = new AAAAMeshLOD[lodCount];
+                meshletCollection.Lods = new AAAAMeshLOD[lodMeshlets.Length];
 
                 foreach (AAAAMeshOptimizer.MeshletBuildResults buildResults in lodMeshlets)
                 {

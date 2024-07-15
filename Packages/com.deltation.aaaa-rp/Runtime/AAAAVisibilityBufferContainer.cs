@@ -8,6 +8,7 @@ using DELTation.AAAARP.Meshlets;
 using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
@@ -228,9 +229,10 @@ namespace DELTation.AAAARP
             uint meshletOffset = (uint) _meshletData.Length;
             meshLodIndex = _meshLODs.Length;
 
-            foreach (AAAAMeshLOD sourceLOD in meshletCollection.Lods)
+            for (int i = 0; i < AAAAMeshletConfiguration.LodCount; i++)
             {
-                AAAAMeshLOD lod = sourceLOD;
+                int lodIndex = math.min(i, meshletCollection.Lods.Length - 1);
+                AAAAMeshLOD lod = meshletCollection.Lods[lodIndex];
                 lod.MeshletStartOffset += meshletOffset;
                 _meshLODs.Add(lod);
             }
