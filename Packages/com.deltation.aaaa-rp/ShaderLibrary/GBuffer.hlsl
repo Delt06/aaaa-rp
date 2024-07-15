@@ -43,7 +43,7 @@ GBufferValue SampleGBuffer(const float2 screenUV)
 {
     GBufferValue output;
 
-    output.albedo = SAMPLE_TEXTURE2D_LOD(_GBuffer_Albedo, sampler_GBuffer_Albedo, screenUV, 0);
+    output.albedo = SAMPLE_TEXTURE2D_LOD(_GBuffer_Albedo, sampler_GBuffer_Albedo, screenUV, 0).rgb;
     output.normalWS = UnpackGBufferNormal(SAMPLE_TEXTURE2D_LOD(_GBuffer_Normals, sampler_GBuffer_Normals, screenUV, 0).xy);
 
     return output;

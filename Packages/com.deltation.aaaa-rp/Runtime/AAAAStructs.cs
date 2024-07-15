@@ -11,11 +11,10 @@ namespace DELTation.AAAARP
         public float4x4 ObjectToWorldMatrix;
         public float4x4 WorldToObjectMatrix;
 
-        public uint MeshletStartOffset;
-        public uint MeshletCount;
-
+        public uint MeshLODStartIndex;
         public uint MaterialIndex;
         public uint Padding0;
+        public uint Padding1;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
@@ -37,6 +36,17 @@ namespace DELTation.AAAARP
         public const uint MaxMeshletTriangles = 128;
         public const uint MaxMeshletIndices = MaxMeshletTriangles * 3;
         public const float MeshletConeWeight = 0.25f;
+        public const uint LodCount = 8;
+    }
+
+    [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
+    [Serializable]
+    public struct AAAAMeshLOD
+    {
+        public uint MeshletStartOffset;
+        public uint MeshletCount;
+        public uint Padding0;
+        public uint Padding1;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
@@ -69,6 +79,6 @@ namespace DELTation.AAAARP
     public struct AAAAMeshletRenderRequest
     {
         public uint InstanceID;
-        public uint RelativeMeshletID;
+        public uint MeshletID;
     }
 }

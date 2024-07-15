@@ -12,10 +12,11 @@
 //
 // DELTation.AAAARP.AAAAMeshletConfiguration:  static fields
 //
-#define MAX_MESHLET_VERTICES (255)
-#define MAX_MESHLET_TRIANGLES (256)
-#define MAX_MESHLET_INDICES (768)
-#define MESHLET_CONE_WEIGHT (0)
+#define MAX_MESHLET_VERTICES (128)
+#define MAX_MESHLET_TRIANGLES (128)
+#define MAX_MESHLET_INDICES (384)
+#define MESHLET_CONE_WEIGHT (0.25)
+#define LOD_COUNT (8)
 
 // Generated from DELTation.AAAARP.AAAAInstanceData
 // PackingRules = Exact
@@ -23,10 +24,10 @@ struct AAAAInstanceData
 {
     float4x4 ObjectToWorldMatrix;
     float4x4 WorldToObjectMatrix;
-    uint MeshletStartOffset;
-    uint MeshletCount;
+    uint MeshLODStartIndex;
     uint MaterialIndex;
     uint Padding0;
+    uint Padding1;
 };
 
 // Generated from DELTation.AAAARP.AAAAMaterialData
@@ -58,7 +59,7 @@ struct AAAAMeshlet
 struct AAAAMeshletRenderRequest
 {
     uint InstanceID;
-    uint RelativeMeshletID;
+    uint MeshletID;
 };
 
 // Generated from DELTation.AAAARP.AAAAMeshletVertex
@@ -69,6 +70,16 @@ struct AAAAMeshletVertex
     float4 Normal;
     float4 Tangent;
     float4 UV;
+};
+
+// Generated from DELTation.AAAARP.AAAAMeshLOD
+// PackingRules = Exact
+struct AAAAMeshLOD
+{
+    uint MeshletStartOffset;
+    uint MeshletCount;
+    uint Padding0;
+    uint Padding1;
 };
 
 

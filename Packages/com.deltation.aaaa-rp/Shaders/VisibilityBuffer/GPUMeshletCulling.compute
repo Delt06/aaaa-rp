@@ -2,11 +2,14 @@
 
 #define MESHLET_RENDER_REQUESTS_RW
 
+#pragma enable_d3d11_debug_symbols
+
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAGPUMeshletCulling.cs.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLOD.hlsl"
 
 #define PLANES_IN_FRUSTUM 6
 
@@ -51,9 +54,9 @@ bool ConeCulling(const AAAAInstanceData instanceData, const AAAAMeshlet meshlet)
     return !(dotResult >= meshlet.ConeApexCutoff.w);
 }
 
-bool Culling(const AAAAInstanceData instanceData, const uint relativeMeshletIndex)
+bool Culling(const AAAAInstanceData instanceData, const AAAAMeshLOD meshLOD, const uint relativeMeshletIndex)
 {
-    const AAAAMeshlet meshletData = PullMeshletData(instanceData.MeshletStartOffset + relativeMeshletIndex);
+    const AAAAMeshlet meshletData = PullMeshletData(meshLOD.MeshletStartOffset + relativeMeshletIndex);
     const float4      boundingSphere = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
     return CullSphere(_CameraFrustumPlanes, boundingSphere.xyz, boundingSphere.w) && ConeCulling(instanceData, meshletData);
 }
@@ -77,10 +80,11 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     }
 
     const AAAAInstanceData instanceData = PullInstanceData(instanceID);
+    const AAAAMeshLOD      meshLOD = PullMeshLOD(instanceData.MeshLODStartIndex, 0);
 
-    for (uint beginMeshletIndex = 0; beginMeshletIndex < instanceData.MeshletCount; beginMeshletIndex += MESHLETS_PER_BATCH)
+    for (uint beginMeshletIndex = 0; beginMeshletIndex < meshLOD.MeshletCount; beginMeshletIndex += MESHLETS_PER_BATCH)
     {
-        const uint endMeshletIndex = min(beginMeshletIndex + MESHLETS_PER_BATCH, instanceData.MeshletCount);
+        const uint endMeshletIndex = min(beginMeshletIndex + MESHLETS_PER_BATCH, meshLOD.MeshletCount);
 
         GroupMemoryBarrierWithGroupSync();
 
@@ -109,7 +113,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
             for (uint i = 0; i < ITEMS_IN_MESHLET_MASK; ++i)
             {
                 const uint relativeMeshletIndex = maskStartMeshletIndex + i;
-                if (relativeMeshletIndex < endMeshletIndex && Culling(instanceData, relativeMeshletIndex))
+                if (relativeMeshletIndex < endMeshletIndex && Culling(instanceData, meshLOD, relativeMeshletIndex))
                 {
                     mask |= 1u << i;
                     ++count;
@@ -148,7 +152,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
 
                     AAAAMeshletRenderRequest meshletRenderRequest;
                     meshletRenderRequest.InstanceID = instanceID;
-                    meshletRenderRequest.RelativeMeshletID = relativeMeshletIndex;
+                    meshletRenderRequest.MeshletID = meshLOD.MeshletStartOffset + relativeMeshletIndex;
 
                     StoreMeshletRenderRequest(g_MeshletWriteOffset + requestWriteOffset, meshletRenderRequest);
                 }

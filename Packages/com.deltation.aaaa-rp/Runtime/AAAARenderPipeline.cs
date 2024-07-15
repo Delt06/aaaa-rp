@@ -30,14 +30,17 @@ namespace DELTation.AAAARP
 
             DebugManager.instance.RefreshEditor();
 
+            AAAARenderPipelineDebugDisplaySettings pipelineDebugDisplaySettings = null;
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-            _debugDisplaySettingsUI.RegisterDebug(AAAARenderPipelineDebugDisplaySettings.Instance);
+            pipelineDebugDisplaySettings = AAAARenderPipelineDebugDisplaySettings.Instance;
+            _debugDisplaySettingsUI.RegisterDebug(pipelineDebugDisplaySettings);
+#else
 #endif
 
             RTHandles.Initialize(Screen.width, Screen.height);
             ShaderGlobalKeywords.InitializeShaderGlobalKeywords();
 
-            _visibilityBufferContainer = new AAAAVisibilityBufferContainer();
+            _visibilityBufferContainer = new AAAAVisibilityBufferContainer(pipelineDebugDisplaySettings);
         }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)

@@ -57,10 +57,9 @@ Shader "Hidden/AAAA/VisibilityBuffer"
                 const uint indexID = GetIndirectVertexID_Base(svIndexID);
 
                 const AAAAInstanceData perInstanceData = PullInstanceData(meshletRenderRequest.InstanceID);
-                const uint meshletID = perInstanceData.MeshletStartOffset + meshletRenderRequest.RelativeMeshletID;
 
-                const AAAAMeshlet meshlet = PullMeshletData(meshletID);
-                const uint index = PullIndexChecked(meshlet, indexID);
+                const AAAAMeshlet       meshlet = PullMeshletData(meshletRenderRequest.MeshletID);
+                const uint              index = PullIndexChecked(meshlet, indexID);
                 const AAAAMeshletVertex vertex = PullVertexChecked(meshlet, index);
 
                 
@@ -70,7 +69,7 @@ Shader "Hidden/AAAA/VisibilityBuffer"
 
                 VisibilityBufferValue visibilityBufferValue;
                 visibilityBufferValue.instanceID = meshletRenderRequest.InstanceID;
-                visibilityBufferValue.relativeMeshletID = meshletRenderRequest.RelativeMeshletID;
+                visibilityBufferValue.meshletID = meshletRenderRequest.MeshletID;
                 visibilityBufferValue.indexID = indexID;
                 OUT.visibilityValue = PackVisibilityBufferValue(visibilityBufferValue);
 

@@ -27,7 +27,7 @@ AAAAMeshletRenderRequest PullMeshletRenderRequest(const uint index)
 
     AAAAMeshletRenderRequest renderRequest;
     renderRequest.InstanceID = value.x;
-    renderRequest.RelativeMeshletID = value.y;
+    renderRequest.MeshletID = value.y;
     return renderRequest;
 }
 
@@ -35,7 +35,7 @@ AAAAMeshletRenderRequest PullMeshletRenderRequest(const uint index)
 void StoreMeshletRenderRequest(const uint index, AAAAMeshletRenderRequest renderRequest)
 {
     const uint  address = MeshletRenderRequestIndexToAddress(index);
-    const uint2 value = uint2(renderRequest.InstanceID, renderRequest.RelativeMeshletID);
+    const uint2 value = uint2(renderRequest.InstanceID, renderRequest.MeshletID);
     _MeshletRenderRequests.Store2(address, value);
 }
 #endif

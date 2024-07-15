@@ -21,7 +21,12 @@ namespace DELTation.AAAARP.Debugging
         public AAAAVisibilityBufferDebugMode VisibilityBufferDebugMode { get; private set; }
         public bool ForceCullingFrustumOfMainCamera { get; private set; }
 
-        public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None || ForceCullingFrustumOfMainCamera;
+        public int MeshLODBias { get; private set; }
+
+        public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
+                                            ForceCullingFrustumOfMainCamera ||
+                                            MeshLODBias != 0;
+
         public IDebugDisplaySettingsPanelDisposable CreatePanel() => new SettingsPanel(this);
 
         public AAAAVisibilityBufferDebugMode GetOverridenVisibilityBufferDebugMode()
@@ -47,10 +52,12 @@ namespace DELTation.AAAARP.Debugging
                         displayName = "Rendering Debug",
                         flags = DebugUI.Flags.FrequentlyUsed,
                         isHeader = true,
+                        opened = true,
                         children =
                         {
                             WidgetFactory.CreateVisibilityBufferDebugMode(this),
                             WidgetFactory.CreateForceCullingFrustumOfMainCamera(this),
+                            WidgetFactory.CreateMeshLODBias(this),
                         },
                     }
                 );
@@ -62,6 +69,8 @@ namespace DELTation.AAAARP.Debugging
                     { name = "Visibility Buffer Debug Mode", tooltip = "The mode of visibility buffer debug display." };
                 public static readonly DebugUI.Widget.NameAndTooltip ForceCullingFrustumOfMainCamera = new()
                     { name = "Force Culling Frustum Of Main Camera", tooltip = "Pass the main camera's frustum for GPU culling." };
+                public static readonly DebugUI.Widget.NameAndTooltip MeshLODBias = new()
+                    { name = "Mesh LOD Bias", tooltip = "Extra bias for mesh LOD selection." };
             }
 
             private static class WidgetFactory
@@ -81,6 +90,15 @@ namespace DELTation.AAAARP.Debugging
                     nameAndTooltip = Strings.ForceCullingFrustumOfMainCamera,
                     getter = () => panel.data.ForceCullingFrustumOfMainCamera,
                     setter = value => panel.data.ForceCullingFrustumOfMainCamera = value,
+                };
+
+                internal static DebugUI.Widget CreateMeshLODBias(SettingsPanel panel) => new DebugUI.IntField
+                {
+                    nameAndTooltip = Strings.MeshLODBias,
+                    getter = () => panel.data.MeshLODBias,
+                    setter = value => panel.data.MeshLODBias = value,
+                    min = () => -((int) AAAAMeshletConfiguration.LodCount - 1),
+                    max = () => (int) AAAAMeshletConfiguration.LodCount - 1,
                 };
             }
         }

@@ -83,7 +83,7 @@ Shader "Hidden/AAAA/VisibilityBufferDebug"
                 }
 
                 const AAAAInstanceData instanceData = PullInstanceData(value.instanceID);
-                const uint meshletID = instanceData.MeshletStartOffset + value.relativeMeshletID;
+                const uint meshletID = value.meshletID;
 
                 const AAAAMeshlet meshlet = PullMeshletData(meshletID);
                 const uint3 indices = uint3(
