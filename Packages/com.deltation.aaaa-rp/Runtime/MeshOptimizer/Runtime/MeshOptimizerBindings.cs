@@ -24,9 +24,19 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
         [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern nuint meshopt_simplify(uint* destination, uint* indices, nuint indexCount, float* vertexPositions, nuint vertexCount,
             nuint vertexPositionsStride, nuint targetIndexCount, float targetError, uint options, float* resultError = null);
-        
+
         [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern void meshopt_optimizeVertexCache(uint* destination, uint* indices, nuint indexCount, nuint vertexCount);
+
+        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        public static extern nuint meshopt_generateVertexRemapMulti(uint* destination, uint* indices, nuint indexCount, nuint vertexCount,
+            meshopt_Stream* streams, nuint streamCount);
+
+        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        public static extern void meshopt_remapVertexBuffer(void* destination, void* vertices, nuint vertexCount, nuint vertexSize, uint* remap);
+
+        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        public static extern void meshopt_remapIndexBuffer(uint* destination, uint* indices, nuint indexCount, uint* remap);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -69,5 +79,13 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
         Sparse = 1 << 1,
         /* Treat error limit and resulting error as absolute instead of relative to mesh extents. */
         ErrorAbsolute = 1 << 2,
+    }
+
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public unsafe struct meshopt_Stream
+    {
+        public void* data;
+        public nuint size;
+        public nuint stride;
     }
 }

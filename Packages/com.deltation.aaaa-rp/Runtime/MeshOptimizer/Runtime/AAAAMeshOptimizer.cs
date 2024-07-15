@@ -19,6 +19,29 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             return result;
         }
 
+        public static unsafe int OptimizeIndexingInPlace(int vertexCount, NativeArray<uint> indices, NativeArray<meshopt_Stream> streams)
+        {
+            var remap = new NativeArray<uint>(vertexCount, Allocator.Temp);
+            nuint uniqueVertices = meshopt_generateVertexRemapMulti
+            ((uint*) remap.GetUnsafePtr(),
+                (uint*) indices.GetUnsafeReadOnlyPtr(), (nuint) indices.Length, (nuint) vertexCount,
+                (meshopt_Stream*) streams.GetUnsafeReadOnlyPtr(), (nuint) streams.Length
+            );
+
+            Assert.IsTrue(uniqueVertices <= (nuint) vertexCount);
+
+            meshopt_remapIndexBuffer((uint*) indices.GetUnsafePtr(), (uint*) indices.GetUnsafePtr(), (nuint) indices.Length, (uint*) remap.GetUnsafePtr());
+
+            for (int index = 0; index < streams.Length; index++)
+            {
+                ref meshopt_Stream stream = ref streams.ElementAtRef(index);
+
+                meshopt_remapVertexBuffer(stream.data, stream.data, (nuint) vertexCount, stream.stride, (uint*) remap.GetUnsafePtr());
+            }
+
+            return (int) uniqueVertices;
+        }
+
         public static unsafe MeshletBuildResults BuildMeshlets(Allocator allocator, NativeArray<float> vertices, uint vertexPositionOffset,
             uint vertexPositionStride,
             NativeArray<uint> indices,

@@ -22,6 +22,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
         private const string Extension = "aaaameshletcollection";
 
         public Mesh Mesh;
+        public bool OptimizeIndexing;
         [Min(0)]
         public int SimplificationSteps;
 
@@ -41,6 +42,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
             {
                 Mesh.MeshData data = dataArray[0];
                 uint vertexBufferStride = (uint) data.GetVertexBufferStride(0);
+                uint vertexPositionOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Position);
                 NativeArray<float> vertexData = data.GetVertexData<float>();
 
                 NativeArray<uint> indexDataU32;
@@ -55,11 +57,67 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     indexDataU32 = data.GetIndexData<uint>();
                 }
 
+                int uvStream = data.GetVertexAttributeStream(VertexAttribute.TexCoord0);
+                uint uvStreamStride = (uint) (uvStream >= 0 ? data.GetVertexBufferStride(uvStream) : 0);
+                NativeArray<float> uvVertexData = uvStream >= 0 ? data.GetVertexData<float>(uvStream) : default;
+                byte* pVerticesUV = uvVertexData.IsCreated ? (byte*) uvVertexData.GetUnsafeReadOnlyPtr() : null;
+                int vertexUVOffset = data.GetVertexAttributeOffset(VertexAttribute.TexCoord0);
+
+                int vertexCount = data.vertexCount;
+
+                if (OptimizeIndexing)
+                {
+                    var streams = new NativeList<meshopt_Stream>(Allocator.Temp);
+
+                    var copiedVertices = new NativeArray<float>(vertexData.Length, Allocator.TempJob);
+                    copiedVertices.CopyFrom(vertexData);
+                    vertexData.Dispose();
+                    vertexData = copiedVertices;
+
+                    streams.Add(new meshopt_Stream
+                        {
+                            data = (byte*) vertexData.GetUnsafePtr() + vertexPositionOffset,
+                            size = vertexBufferStride,
+                            stride = vertexBufferStride,
+                        }
+                    );
+
+                    if (uvStream > 0)
+                    {
+                        var copiedUVs = new NativeArray<float>(uvVertexData.Length, Allocator.TempJob);
+                        copiedUVs.CopyFrom(uvVertexData);
+                        uvVertexData.Dispose();
+                        uvVertexData = copiedUVs;
+
+                        streams.Add(new meshopt_Stream
+                            {
+                                data = (byte*) uvVertexData.GetUnsafePtr() + vertexUVOffset,
+                                size = uvStreamStride,
+                                stride = uvStreamStride,
+                            }
+                        );
+                    }
+
+                    var copiedIndices = new NativeArray<uint>(indexDataU32.Length, Allocator.TempJob);
+                    copiedIndices.CopyFrom(indexDataU32);
+                    indexDataU32.Dispose();
+                    indexDataU32 = copiedIndices;
+
+                    int newVertexCount = AAAAMeshOptimizer.OptimizeIndexingInPlace(vertexCount, indexDataU32, streams.AsArray());
+                    vertexCount = newVertexCount;
+
+                    vertexData = vertexData.GetSubArray(0, (int) (newVertexCount * (vertexBufferStride / sizeof(float))));
+
+                    if (uvVertexData.IsCreated)
+                    {
+                        uvVertexData = uvVertexData.GetSubArray(0, (int) (newVertexCount * (uvStreamStride / sizeof(float))));
+                    }
+                }
+
                 NativeArray<uint> sourceIndices = indexDataU32;
-                indexDataU32 = AAAAMeshOptimizer.OptimizeVertexCache(Allocator.TempJob, sourceIndices, (uint) data.vertexCount);
+                indexDataU32 = AAAAMeshOptimizer.OptimizeVertexCache(Allocator.TempJob, sourceIndices, (uint) vertexCount);
                 sourceIndices.Dispose();
 
-                uint vertexPositionOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Position);
                 AAAAMeshOptimizer.MeshletGenerationParams meshletGenerationParams = AAAAMeshletCollectionAsset.MeshletGenerationParams;
                 const Allocator allocator = Allocator.Temp;
                 AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults = AAAAMeshOptimizer.BuildMeshlets(allocator,
@@ -84,12 +142,6 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 {
                     fixed (AAAAMeshletVertex* pDestinationVertices = meshletCollection.VertexBuffer)
                     {
-                        int uvStream = data.GetVertexAttributeStream(VertexAttribute.TexCoord0);
-                        int uvStreamStride = uvStream >= 0 ? data.GetVertexBufferStride(uvStream) : 0;
-                        NativeArray<float> uvVertexData = uvStream >= 0 ? data.GetVertexData<float>(uvStream) : default;
-                        byte* pVerticesUV = uvVertexData.IsCreated ? (byte*) uvVertexData.GetUnsafeReadOnlyPtr() : null;
-                        int vertexUVOffset = data.GetVertexAttributeOffset(VertexAttribute.TexCoord0);
-
                         var jobHandles = new NativeList<JobHandle>(Allocator.Temp)
                         {
                             new WriteMeshletsJob
@@ -108,7 +160,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                                 VertexNormalOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Normal),
                                 VertexPositionOffset = vertexPositionOffset,
                                 VertexTangentOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Tangent),
-                                UVStreamStride = (uint) uvStreamStride,
+                                UVStreamStride = uvStreamStride,
                                 VertexUVOffset = (uint) vertexUVOffset,
                                 VerticesUVPtr = pVerticesUV,
                                 DestinationPtr = pDestinationVertices,
