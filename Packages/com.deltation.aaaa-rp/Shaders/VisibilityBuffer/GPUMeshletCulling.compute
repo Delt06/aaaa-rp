@@ -36,9 +36,8 @@ bool CullSphere(const float4 planes[PLANES_IN_FRUSTUM], const float3 center, con
 float4 TransformBoundingSphere(const float4 boundingSphereOS, const float4x4 objectToWorldMatrix)
 {
     const float3 centerWS = mul(objectToWorldMatrix, float4(boundingSphereOS.xyz, 1)).xyz;
-    const float3 topOS = boundingSphereOS.xyz + float3(0, boundingSphereOS.w, 0);
-    const float3 topWS = mul(objectToWorldMatrix, float4(topOS, 1)).xyz;
-    const float  radiusWS = distance(centerWS, topWS);
+    const float3 offsetWS = mul(objectToWorldMatrix, float4(boundingSphereOS.w, 0, 0, 0)).xyz;
+    const float  radiusWS = length(offsetWS);
     return float4(centerWS, radiusWS);
 }
 
