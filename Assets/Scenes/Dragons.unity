@@ -152,13 +152,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.18944171, y: -0.5255853, z: 0.121155985, w: 0.8204835}
-  m_LocalPosition: {x: 23.039078, y: 14.055505, z: -11.823529}
+  m_LocalRotation: {x: 0.22487447, y: 0.000041224255, z: -0.00017862591, w: 0.9743877}
+  m_LocalPosition: {x: 0, y: 14.055505, z: -11.823529}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 25.991, y: 0, z: -0.021}
 --- !u!20 &330585547
 Camera:
   m_ObjectHideFlags: 0
@@ -333,7 +333,7 @@ Transform:
   m_GameObject: {fileID: 1401752274}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -7, z: 47.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -352,7 +352,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Seed: 0
-  Count: 200
+  Count: 1000
   MaxDistance: 50
   ScaleRange: {x: 10, y: 15}
   AuthoringPool:

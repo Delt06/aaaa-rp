@@ -46,5 +46,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _mesh: {fileID: -6794912392173530250, guid: a7096dc6831b94e469f1bf24a1f12f47, type: 3}
   _materialPool:
-  - {fileID: 11400000, guid: f88d5265860012c4c87f400be69250e4, type: 2}
   - {fileID: 11400000, guid: a36d60da67b96db44a47adf80591e401, type: 2}
+  - {fileID: 11400000, guid: 052df41c1a608b14bb5e3bd338e6f664, type: 2}
+  - {fileID: 11400000, guid: f88d5265860012c4c87f400be69250e4, type: 2}
