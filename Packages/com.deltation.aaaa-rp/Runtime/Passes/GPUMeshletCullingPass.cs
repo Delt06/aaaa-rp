@@ -13,6 +13,7 @@ namespace DELTation.AAAARP.Passes
     {
         public readonly Vector4[] FrustumPlanes = new Vector4[6];
         public Vector4 CameraPosition;
+        public Matrix4x4 CameraViewProjectionMatrix;
         public BufferHandle RequestCounterBuffer;
         public AAAAVisibilityBufferContainer VisibilityBufferContainer;
     }
@@ -53,6 +54,8 @@ namespace DELTation.AAAARP.Passes
                 passData.FrustumPlanes[i] = new Vector4(frustumPlane.normal.x, frustumPlane.normal.y, frustumPlane.normal.z, frustumPlane.distance);
             }
 
+            passData.CameraViewProjectionMatrix = GL.GetGPUProjectionMatrix(camera.projectionMatrix * camera.worldToCameraMatrix, true);
+
             passData.RequestCounterBuffer = builder.CreateTransientBuffer(new BufferDesc(1, sizeof(uint), GraphicsBuffer.Target.Raw)
                 {
                     name = "MeshletRenderRequestCounter",
@@ -80,6 +83,7 @@ namespace DELTation.AAAARP.Passes
                 );
                 context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.Culling._CameraFrustumPlanes, data.FrustumPlanes);
                 context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.Culling._CameraPosition, data.CameraPosition);
+                context.cmd.SetComputeMatrixParam(_gpuMeshletCullingCS, ShaderID.Culling._CameraViewProjection, data.CameraViewProjectionMatrix);
                 context.cmd.DispatchCompute(_gpuMeshletCullingCS, AAAAGPUMeshletCulling.KernelIndex,
                     1, instanceCount, 1
                 );
@@ -112,6 +116,7 @@ namespace DELTation.AAAARP.Passes
                 public static int _RequestCounter = Shader.PropertyToID(nameof(_RequestCounter));
                 public static int _CameraFrustumPlanes = Shader.PropertyToID(nameof(_CameraFrustumPlanes));
                 public static int _CameraPosition = Shader.PropertyToID(nameof(_CameraPosition));
+                public static int _CameraViewProjection = Shader.PropertyToID(nameof(_CameraViewProjection));
             }
 
             public static class FixupIndirectArgs

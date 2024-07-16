@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
+using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.Materials;
 using DELTation.AAAARP.Meshlets;
@@ -30,6 +31,7 @@ namespace DELTation.AAAARP
         private readonly GraphicsBuffer _meshletRenderRequestsBuffer;
         private readonly GraphicsBuffer _meshletsDataBuffer;
         private readonly GraphicsBuffer _meshLODBuffer;
+        private readonly AAAAMeshLODSettings _meshLODSettings;
         private readonly GraphicsBuffer _sharedIndexBuffer;
         private readonly GraphicsBuffer _sharedVertexBuffer;
         private readonly Dictionary<Texture2D, int> _textureToAlbedoIndex = new();
@@ -41,8 +43,9 @@ namespace DELTation.AAAARP
         private NativeList<byte> _sharedIndices;
         private NativeList<AAAAMeshletVertex> _sharedVertices;
 
-        internal AAAAVisibilityBufferContainer([CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings)
+        internal AAAAVisibilityBufferContainer(AAAAMeshLODSettings meshLODSettings, [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings)
         {
+            _meshLODSettings = meshLODSettings;
             _debugDisplaySettings = debugDisplaySettings;
             _meshletData = new NativeList<AAAAMeshlet>(Allocator.Persistent);
             _instanceData = new NativeList<AAAAInstanceData>(Allocator.Persistent);
@@ -164,7 +167,10 @@ namespace DELTation.AAAARP
             {
                 cmd.SetGlobalBuffer(ShaderIDs._Meshlets, _meshletsDataBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._MeshLODs, _meshLODBuffer);
-                cmd.SetGlobalInt(ShaderIDs._MeshLODBias, _debugDisplaySettings?.RenderingSettings.MeshLODBias ?? 0);
+                cmd.SetGlobalFloat(ShaderIDs._MeshLODBias, _debugDisplaySettings?.RenderingSettings.MeshLODBias ?? 0);
+                cmd.SetGlobalFloat(ShaderIDs._FullScreenMeshletBudget,
+                    (float) _meshLODSettings.FullScreenTriangleBudget / AAAAMeshletConfiguration.MaxMeshletTriangles
+                );
                 cmd.SetGlobalBuffer(ShaderIDs._SharedVertexBuffer, _sharedVertexBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._SharedIndexBuffer, _sharedIndexBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._InstanceData, _instanceDataBuffer);
@@ -205,6 +211,8 @@ namespace DELTation.AAAARP
                     {
                         ObjectToWorldMatrix = objectToWorldMatrix,
                         WorldToObjectMatrix = worldToObjectMatrix,
+                        AABBMin = math.float4(mesh.Bounds.min, 0.0f),
+                        AABBMax = math.float4(mesh.Bounds.max, 0.0f),
                         MeshLODStartIndex = (uint) GetOrAllocateMeshLodIndex(mesh),
                         MaterialIndex = (uint) GetOrAllocateMaterial(material),
                     }
@@ -338,6 +346,7 @@ namespace DELTation.AAAARP
             public static readonly int _Meshlets = Shader.PropertyToID(nameof(_Meshlets));
             public static readonly int _MeshLODs = Shader.PropertyToID(nameof(_MeshLODs));
             public static readonly int _MeshLODBias = Shader.PropertyToID(nameof(_MeshLODBias));
+            public static readonly int _FullScreenMeshletBudget = Shader.PropertyToID(nameof(_FullScreenMeshletBudget));
             public static readonly int _SharedVertexBuffer = Shader.PropertyToID(nameof(_SharedVertexBuffer));
             public static readonly int _SharedIndexBuffer = Shader.PropertyToID(nameof(_SharedIndexBuffer));
             public static readonly int _InstanceData = Shader.PropertyToID(nameof(_InstanceData));

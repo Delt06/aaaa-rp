@@ -31,7 +31,7 @@ namespace DELTation.AAAARP.Debugging
 
         [CanBeNull] public Camera GetGPUCullingCameraOverride()
         {
-            if (!_debugDisplaySettings.RenderingSettings.ForceCullingFrustumOfMainCamera)
+            if (!_debugDisplaySettings.RenderingSettings.ForceCullingFromMainCamera)
             {
                 return null;
             }

@@ -19,12 +19,12 @@ namespace DELTation.AAAARP.Debugging
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData
     {
         public AAAAVisibilityBufferDebugMode VisibilityBufferDebugMode { get; private set; }
-        public bool ForceCullingFrustumOfMainCamera { get; private set; }
+        public bool ForceCullingFromMainCamera { get; private set; }
 
-        public int MeshLODBias { get; private set; }
+        public float MeshLODBias { get; private set; }
 
         public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
-                                            ForceCullingFrustumOfMainCamera ||
+                                            ForceCullingFromMainCamera ||
                                             MeshLODBias != 0;
 
         public IDebugDisplaySettingsPanelDisposable CreatePanel() => new SettingsPanel(this);
@@ -67,8 +67,8 @@ namespace DELTation.AAAARP.Debugging
             {
                 public static readonly DebugUI.Widget.NameAndTooltip VisibilityBufferDebugMode = new()
                     { name = "Visibility Buffer Debug Mode", tooltip = "The mode of visibility buffer debug display." };
-                public static readonly DebugUI.Widget.NameAndTooltip ForceCullingFrustumOfMainCamera = new()
-                    { name = "Force Culling Frustum Of Main Camera", tooltip = "Pass the main camera's frustum for GPU culling." };
+                public static readonly DebugUI.Widget.NameAndTooltip ForceCullingFromMainCamera = new()
+                    { name = "Force Culling From Main Camera", tooltip = "Pass the main camera's data for GPU culling." };
                 public static readonly DebugUI.Widget.NameAndTooltip MeshLODBias = new()
                     { name = "Mesh LOD Bias", tooltip = "Extra bias for mesh LOD selection." };
             }
@@ -87,18 +87,18 @@ namespace DELTation.AAAARP.Debugging
 
                 internal static DebugUI.Widget CreateForceCullingFrustumOfMainCamera(SettingsPanel panel) => new DebugUI.BoolField
                 {
-                    nameAndTooltip = Strings.ForceCullingFrustumOfMainCamera,
-                    getter = () => panel.data.ForceCullingFrustumOfMainCamera,
-                    setter = value => panel.data.ForceCullingFrustumOfMainCamera = value,
+                    nameAndTooltip = Strings.ForceCullingFromMainCamera,
+                    getter = () => panel.data.ForceCullingFromMainCamera,
+                    setter = value => panel.data.ForceCullingFromMainCamera = value,
                 };
 
-                internal static DebugUI.Widget CreateMeshLODBias(SettingsPanel panel) => new DebugUI.IntField
+                internal static DebugUI.Widget CreateMeshLODBias(SettingsPanel panel) => new DebugUI.FloatField
                 {
                     nameAndTooltip = Strings.MeshLODBias,
                     getter = () => panel.data.MeshLODBias,
                     setter = value => panel.data.MeshLODBias = value,
-                    min = () => -((int) AAAAMeshletConfiguration.LodCount - 1),
-                    max = () => (int) AAAAMeshletConfiguration.LodCount - 1,
+                    min = () => -(float) AAAAMeshletConfiguration.LodCount,
+                    max = () => (float) AAAAMeshletConfiguration.LodCount - 1,
                 };
             }
         }

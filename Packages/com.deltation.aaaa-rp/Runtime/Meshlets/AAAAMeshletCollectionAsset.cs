@@ -15,6 +15,7 @@ namespace DELTation.AAAARP.Meshlets
             ConeWeight = AAAAMeshletConfiguration.MeshletConeWeight,
         };
 
+        public Bounds Bounds;
         public AAAAMeshLOD[] Lods = Array.Empty<AAAAMeshLOD>();
         [HideInInspector]
         public AAAAMeshlet[] Meshlets = Array.Empty<AAAAMeshlet>();

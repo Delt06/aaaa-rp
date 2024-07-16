@@ -24,6 +24,8 @@ struct AAAAInstanceData
 {
     float4x4 ObjectToWorldMatrix;
     float4x4 WorldToObjectMatrix;
+    float4 AABBMin;
+    float4 AABBMax;
     uint MeshLODStartIndex;
     uint MaterialIndex;
     uint Padding0;

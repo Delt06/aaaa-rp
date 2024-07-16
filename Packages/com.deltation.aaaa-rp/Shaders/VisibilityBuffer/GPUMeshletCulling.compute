@@ -5,6 +5,7 @@
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAGPUMeshletCulling.cs.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLOD.hlsl"
@@ -14,6 +15,7 @@
 RWByteAddressBuffer _RequestCounter;
 float4              _CameraPosition;
 float4              _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
+float4x4            _CameraViewProjection;
 
 // https://gist.github.com/XProger/6d1fd465c823bba7138b638691831288
 // Computes signed distance between a point and a plane
@@ -24,21 +26,16 @@ float DistanceToPlane(const float4 plane, const float3 position)
     return dot(float4(position, 1.0), plane);
 }
 
-bool CullSphere(const float4 planes[PLANES_IN_FRUSTUM], const float3 center, const float radius)
+bool FrustumVsSphereCulling(const float4 planes[PLANES_IN_FRUSTUM], const float4 boundingSphere)
 {
+    const float3 center = boundingSphere.xyz;
+    const float  radius = boundingSphere.w;
+
     const float dist01 = min(DistanceToPlane(planes[0], center), DistanceToPlane(planes[1], center));
     const float dist23 = min(DistanceToPlane(planes[2], center), DistanceToPlane(planes[3], center));
     const float dist45 = min(DistanceToPlane(planes[4], center), DistanceToPlane(planes[5], center));
 
     return min(min(dist01, dist23), dist45) + radius > 0;
-}
-
-float4 TransformBoundingSphere(const float4 boundingSphereOS, const float4x4 objectToWorldMatrix)
-{
-    const float3 centerWS = mul(objectToWorldMatrix, float4(boundingSphereOS.xyz, 1)).xyz;
-    const float3 offsetWS = mul(objectToWorldMatrix, float4(boundingSphereOS.w, 0, 0, 0)).xyz;
-    const float  radiusWS = length(offsetWS);
-    return float4(centerWS, radiusWS);
 }
 
 bool ConeCulling(const AAAAInstanceData instanceData, const AAAAMeshlet meshlet)
@@ -55,7 +52,7 @@ bool Culling(const AAAAInstanceData instanceData, const AAAAMeshLOD meshLOD, con
 {
     const AAAAMeshlet meshletData = PullMeshletData(meshLOD.MeshletStartOffset + relativeMeshletIndex);
     const float4      boundingSphere = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
-    return CullSphere(_CameraFrustumPlanes, boundingSphere.xyz, boundingSphere.w) && ConeCulling(instanceData, meshletData);
+    return FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphere) && ConeCulling(instanceData, meshletData);
 }
 
 #define MESHLETS_PER_BATCH 1024
@@ -77,7 +74,19 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     }
 
     const AAAAInstanceData instanceData = PullInstanceData(instanceID);
-    const AAAAMeshLOD      meshLOD = PullMeshLOD(instanceData.MeshLODStartIndex, 0);
+
+    const AABB   aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);
+    const AABB   aabbWS = TransformAABB(aabbOS, instanceData.ObjectToWorldMatrix);
+    const float4 instanceBoundingSphere = AABBToBoundingSphere(aabbWS);
+    if (!FrustumVsSphereCulling(_CameraFrustumPlanes, instanceBoundingSphere))
+    {
+        return;
+    }
+
+    const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
+
+    const float       lod = SelectMeshLOD(instanceData.MeshLODStartIndex, instanceSizeSS);
+    const AAAAMeshLOD meshLOD = PullMeshLOD(instanceData.MeshLODStartIndex, lod);
 
     for (uint beginMeshletIndex = 0; beginMeshletIndex < meshLOD.MeshletCount; beginMeshletIndex += MESHLETS_PER_BATCH)
     {

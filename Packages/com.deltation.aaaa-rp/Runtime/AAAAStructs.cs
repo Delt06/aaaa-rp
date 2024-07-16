@@ -6,10 +6,13 @@ using UnityEngine.Rendering;
 namespace DELTation.AAAARP
 {
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct AAAAInstanceData
     {
         public float4x4 ObjectToWorldMatrix;
         public float4x4 WorldToObjectMatrix;
+        public float4 AABBMin;
+        public float4 AABBMax;
 
         public uint MeshLODStartIndex;
         public uint MaterialIndex;
@@ -18,6 +21,7 @@ namespace DELTation.AAAARP
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct AAAAMaterialData
     {
         public float4 AlbedoColor;
@@ -39,6 +43,7 @@ namespace DELTation.AAAARP
         public const uint LodCount = 8;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     [Serializable]
     public struct AAAAMeshLOD
@@ -50,6 +55,7 @@ namespace DELTation.AAAARP
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
+    [StructLayout(LayoutKind.Sequential)]
     [Serializable]
     public struct AAAAMeshlet
     {

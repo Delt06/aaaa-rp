@@ -40,7 +40,7 @@ namespace DELTation.AAAARP
             RTHandles.Initialize(Screen.width, Screen.height);
             ShaderGlobalKeywords.InitializeShaderGlobalKeywords();
 
-            _visibilityBufferContainer = new AAAAVisibilityBufferContainer(pipelineDebugDisplaySettings);
+            _visibilityBufferContainer = new AAAAVisibilityBufferContainer(pipelineAsset.MeshLODSettings, pipelineDebugDisplaySettings);
         }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)

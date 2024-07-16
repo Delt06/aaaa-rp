@@ -36,6 +36,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
             ctx.DependsOnArtifact(AssetDatabase.GetAssetPath(Mesh));
 
             AAAAMeshletCollectionAsset meshletCollection = ScriptableObject.CreateInstance<AAAAMeshletCollectionAsset>();
+            meshletCollection.Bounds = Mesh.bounds;
             meshletCollection.name = name;
 
             using (Mesh.MeshDataArray dataArray = Mesh.AcquireReadOnlyMeshData(Mesh))
