@@ -28,7 +28,6 @@ namespace DELTation.AAAARP
         private readonly GraphicsBuffer _materialDataBuffer;
         private readonly Dictionary<AAAAMaterialAsset, int> _materialToIndex = new();
         private readonly Dictionary<AAAAMeshletCollectionAsset, int> _meshletCollectionToMeshLODIndex = new();
-        private readonly GraphicsBuffer _meshletRenderRequestsBuffer;
         private readonly GraphicsBuffer _meshletsDataBuffer;
         private readonly GraphicsBuffer _meshLODBuffer;
         private readonly AAAAMeshLODSettings _meshLODSettings;
@@ -96,11 +95,10 @@ namespace DELTation.AAAARP
             );
             _meshLODBuffer.SetData(_meshLODs.AsArray());
 
-            _meshletRenderRequestsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
+            MeshletRenderRequestsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
                 AAAAMathUtils.AlignUp(_meshletRenderRequests.Length * UnsafeUtility.SizeOf<AAAAMeshletRenderRequest>(), sizeof(uint)) / sizeof(uint),
                 sizeof(uint)
             );
-            _meshletRenderRequestsBuffer.SetData(_meshletRenderRequests.AsArray());
 
             IndirectArgsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments,
                 1, GraphicsBuffer.IndirectDrawArgs.size
@@ -112,6 +110,7 @@ namespace DELTation.AAAARP
 
         public int InstanceCount => _instanceData.IsCreated ? _instanceData.Length : 0;
         public GraphicsBuffer IndirectArgsBuffer { get; }
+        public GraphicsBuffer MeshletRenderRequestsBuffer { get; }
 
         public void Dispose()
         {
@@ -156,7 +155,7 @@ namespace DELTation.AAAARP
             _sharedIndexBuffer?.Dispose();
             _instanceDataBuffer?.Dispose();
             _materialDataBuffer?.Dispose();
-            _meshletRenderRequestsBuffer?.Dispose();
+            MeshletRenderRequestsBuffer?.Dispose();
         }
 
         public void PreRender(ScriptableRenderContext context)
@@ -176,7 +175,7 @@ namespace DELTation.AAAARP
                 cmd.SetGlobalBuffer(ShaderIDs._InstanceData, _instanceDataBuffer);
                 cmd.SetGlobalInt(ShaderIDs._InstanceCount, _instanceData.Length);
                 cmd.SetGlobalBuffer(ShaderIDs._MaterialData, _materialDataBuffer);
-                cmd.SetGlobalBuffer(ShaderIDs._MeshletRenderRequests, _meshletRenderRequestsBuffer);
+                cmd.SetGlobalBuffer(ShaderIDs._MeshletRenderRequests, MeshletRenderRequestsBuffer);
             }
 
             context.ExecuteCommandBuffer(cmd);

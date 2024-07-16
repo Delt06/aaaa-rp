@@ -8,22 +8,16 @@ StructuredBuffer<AAAAMeshlet>       _Meshlets;
 StructuredBuffer<AAAAMeshletVertex> _SharedVertexBuffer;
 ByteAddressBuffer                   _SharedIndexBuffer;
 
-#ifdef MESHLET_RENDER_REQUESTS_RW
-RWByteAddressBuffer _MeshletRenderRequests;
-#else
-ByteAddressBuffer _MeshletRenderRequests;
-#endif
-
 uint MeshletRenderRequestIndexToAddress(const uint index)
 {
     const uint uintSize = 4;
     return index * uintSize * 2;
 }
 
-AAAAMeshletRenderRequest PullMeshletRenderRequest(const uint index)
+AAAAMeshletRenderRequest PullMeshletRenderRequest(ByteAddressBuffer renderRequests, const uint index)
 {
     const uint  address = MeshletRenderRequestIndexToAddress(index);
-    const uint2 value = _MeshletRenderRequests.Load2(address);
+    const uint2 value = renderRequests.Load2(address);
 
     AAAAMeshletRenderRequest renderRequest;
     renderRequest.InstanceID = value.x;
@@ -31,14 +25,12 @@ AAAAMeshletRenderRequest PullMeshletRenderRequest(const uint index)
     return renderRequest;
 }
 
-#ifdef MESHLET_RENDER_REQUESTS_RW
-void StoreMeshletRenderRequest(const uint index, AAAAMeshletRenderRequest renderRequest)
+void StoreMeshletRenderRequest(RWByteAddressBuffer renderRequests, const uint index, AAAAMeshletRenderRequest renderRequest)
 {
     const uint  address = MeshletRenderRequestIndexToAddress(index);
     const uint2 value = uint2(renderRequest.InstanceID, renderRequest.MeshletID);
-    _MeshletRenderRequests.Store2(address, value);
+    renderRequests.Store2(address, value);
 }
-#endif
 
 AAAAMeshlet PullMeshletData(const uint meshletID)
 {

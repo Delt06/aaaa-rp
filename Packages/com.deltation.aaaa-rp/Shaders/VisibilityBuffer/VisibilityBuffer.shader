@@ -23,6 +23,8 @@ Shader "Hidden/AAAA/VisibilityBuffer"
             #define UNITY_INDIRECT_DRAW_ARGS IndirectDrawArgs
             #include "UnityIndirect.cginc"
 
+            ByteAddressBuffer _MeshletRenderRequests;
+
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
@@ -53,7 +55,7 @@ Shader "Hidden/AAAA/VisibilityBuffer"
                 
                 Varyings OUT;
 
-                const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(GetIndirectInstanceID_Base(svInstanceID));
+                const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(_MeshletRenderRequests, GetIndirectInstanceID_Base(svInstanceID));
                 const uint indexID = GetIndirectVertexID_Base(svIndexID);
 
                 const AAAAInstanceData perInstanceData = PullInstanceData(meshletRenderRequest.InstanceID);

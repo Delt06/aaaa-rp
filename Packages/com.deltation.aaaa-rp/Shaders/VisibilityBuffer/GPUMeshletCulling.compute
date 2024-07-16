@@ -12,10 +12,12 @@
 
 #define PLANES_IN_FRUSTUM 6
 
-RWByteAddressBuffer _RequestCounter;
-float4              _CameraPosition;
-float4              _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
-float4x4            _CameraViewProjection;
+float4   _CameraPosition;
+float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
+float4x4 _CameraViewProjection;
+
+RWByteAddressBuffer _DestinationMeshletsCounter;
+RWByteAddressBuffer _DestinationMeshlets;
 
 // https://gist.github.com/XProger/6d1fd465c823bba7138b638691831288
 // Computes signed distance between a point and a plane
@@ -137,7 +139,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
 
         if (localThreadIndex == 0)
         {
-            _RequestCounter.InterlockedAdd(0, g_VisibleMeshletsCount, g_MeshletWriteOffset);
+            _DestinationMeshletsCounter.InterlockedAdd(0, g_VisibleMeshletsCount, g_MeshletWriteOffset);
         }
 
         GroupMemoryBarrierWithGroupSync();
@@ -160,7 +162,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
                     meshletRenderRequest.InstanceID = instanceID;
                     meshletRenderRequest.MeshletID = meshLOD.MeshletStartOffset + relativeMeshletIndex;
 
-                    StoreMeshletRenderRequest(g_MeshletWriteOffset + requestWriteOffset, meshletRenderRequest);
+                    StoreMeshletRenderRequest(_DestinationMeshlets, g_MeshletWriteOffset + requestWriteOffset, meshletRenderRequest);
                 }
             }
         }
