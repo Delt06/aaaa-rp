@@ -76,12 +76,13 @@ Shader "Hidden/AAAA/VisibilityBufferDebug"
 
             float4 Frag(const Varyings IN) : SV_Target
             {
-                const VisibilityBufferValue value = SampleVisibilityBuffer(IN.texcoord);
-                if (value.instanceID == -1)
+                const uint2 visibilityBufferPacked = SampleVisibilityBuffer(IN.texcoord);
+                if (visibilityBufferPacked.x == -1)
                 {
                     return 0;
                 }
-
+                
+                const VisibilityBufferValue value = UnpackVisibilityBufferValue(visibilityBufferPacked);
                 const AAAAInstanceData instanceData = PullInstanceData(value.instanceID);
                 const uint meshletID = value.meshletID;
 
@@ -139,6 +140,10 @@ Shader "Hidden/AAAA/VisibilityBufferDebug"
                 case AAAAVISIBILITYBUFFERDEBUGMODE_INDEX_ID:
                     {
                         return float4(GetColor(value.indexID / 3), 1);
+                    }
+                case AAAAVISIBILITYBUFFERDEBUGMODE_MESH_LOD:
+                    {
+                        return float4(GetColor(value.meshLOD), 1);
                     }
                 default:
                     {

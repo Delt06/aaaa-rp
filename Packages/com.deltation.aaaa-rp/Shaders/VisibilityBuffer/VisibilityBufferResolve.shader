@@ -44,16 +44,17 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
 
             GBufferOutput Frag(const Varyings IN)
             {
-                const VisibilityBufferValue value = SampleVisibilityBuffer(IN.texcoord); 
+                const uint2 visibilityBufferPacked = SampleVisibilityBuffer(IN.texcoord); 
+                const VisibilityBufferValue visibilityBufferValue = UnpackVisibilityBufferValue(visibilityBufferPacked); 
 
-                const AAAAInstanceData instanceData = PullInstanceData(value.instanceID);
-                const AAAAMeshlet meshlet = PullMeshletData(value.meshletID);
+                const AAAAInstanceData instanceData = PullInstanceData(visibilityBufferValue.instanceID);
+                const AAAAMeshlet meshlet = PullMeshletData(visibilityBufferValue.meshletID);
                 const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
 
                 const uint3 indices = uint3(
-                    PullIndex(meshlet, value.indexID + 0),
-                    PullIndex(meshlet, value.indexID + 1),
-                    PullIndex(meshlet, value.indexID + 2)
+                    PullIndex(meshlet, visibilityBufferValue.indexID + 0),
+                    PullIndex(meshlet, visibilityBufferValue.indexID + 1),
+                    PullIndex(meshlet, visibilityBufferValue.indexID + 2)
                 );
                 const AAAAMeshletVertex vertices[3] =
                 {

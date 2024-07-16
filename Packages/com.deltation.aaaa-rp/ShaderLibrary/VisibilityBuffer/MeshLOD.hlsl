@@ -8,6 +8,19 @@ StructuredBuffer<AAAAMeshLOD> _MeshLODs;
 float                         _MeshLODBias;
 float                         _FullScreenMeshletBudget;
 
+#define LOD_MASK (LOD_COUNT - 1u)
+
+uint PackInstanceID_MeshLOD(const uint instanceID, const uint lod)
+{
+    return instanceID << LOD_BITS | lod;
+}
+
+void UnpackInstanceID_MeshLOD(const uint packedValue, out uint instanceID, out uint lod)
+{
+    instanceID = packedValue >> LOD_BITS;
+    lod = packedValue & LOD_MASK;
+}
+
 AAAAMeshLOD PullMeshLODRaw(const uint meshLodStartIndex, const uint lodIndex)
 {
     return _MeshLODs[meshLodStartIndex + lodIndex];
@@ -30,9 +43,9 @@ float SelectMeshLOD(const uint meshLodStartIndex, const float2 sizeSS)
     return LOD_COUNT - 1;
 }
 
-AAAAMeshLOD PullMeshLOD(const uint meshLodStartIndex, const float lod)
+AAAAMeshLOD PullMeshLOD(const uint meshLodStartIndex, const float lod, out uint effectiveLod)
 {
-    const uint effectiveLod = (uint)clamp(lod + _MeshLODBias, 0, LOD_COUNT - 1);
+    effectiveLod = (uint)clamp(lod + _MeshLODBias, 0, LOD_COUNT - 1);
     return PullMeshLODRaw(meshLodStartIndex, effectiveLod);
 }
 

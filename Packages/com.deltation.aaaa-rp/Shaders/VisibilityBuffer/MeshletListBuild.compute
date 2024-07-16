@@ -45,7 +45,8 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
 
     const float       lod = SelectMeshLOD(instanceData.MeshLODStartIndex, instanceSizeSS);
-    const AAAAMeshLOD meshLOD = PullMeshLOD(instanceData.MeshLODStartIndex, lod);
+    uint              effectiveLod = 0;
+    const AAAAMeshLOD meshLOD = PullMeshLOD(instanceData.MeshLODStartIndex, lod, effectiveLod);
 
     const uint localThreadIndex = groupThreadID.x;
 
@@ -65,6 +66,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
 
         AAAAMeshletRenderRequest meshletRenderRequest;
         meshletRenderRequest.InstanceID = instanceID;
+        meshletRenderRequest.LOD = effectiveLod;
         meshletRenderRequest.MeshletID = meshLOD.MeshletStartOffset + relativeMeshletIndex;
 
         StoreMeshletRenderRequest(_DestinationMeshlets, g_MeshletWriteOffset + requestWriteOffset, meshletRenderRequest);

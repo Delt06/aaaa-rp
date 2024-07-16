@@ -37,7 +37,7 @@ namespace DELTation.AAAARP
         private NativeList<AAAAInstanceData> _instanceData;
         private NativeList<AAAAMaterialData> _materialData;
         private NativeList<AAAAMeshlet> _meshletData;
-        private NativeList<AAAAMeshletRenderRequest> _meshletRenderRequests;
+        private NativeList<AAAAMeshletRenderRequestPacked> _meshletRenderRequests;
         private NativeList<AAAAMeshLOD> _meshLODs;
         private NativeList<byte> _sharedIndices;
         private NativeList<AAAAMeshletVertex> _sharedVertices;
@@ -49,7 +49,7 @@ namespace DELTation.AAAARP
             _meshletData = new NativeList<AAAAMeshlet>(Allocator.Persistent);
             _instanceData = new NativeList<AAAAInstanceData>(Allocator.Persistent);
             _materialData = new NativeList<AAAAMaterialData>(Allocator.Persistent);
-            _meshletRenderRequests = new NativeList<AAAAMeshletRenderRequest>(Allocator.Persistent);
+            _meshletRenderRequests = new NativeList<AAAAMeshletRenderRequestPacked>(Allocator.Persistent);
             _sharedVertices = new NativeList<AAAAMeshletVertex>(Allocator.Persistent);
             _sharedIndices = new NativeList<byte>(Allocator.Persistent);
             _meshLODs = new NativeList<AAAAMeshLOD>(Allocator.Persistent);
@@ -96,7 +96,7 @@ namespace DELTation.AAAARP
             _meshLODBuffer.SetData(_meshLODs.AsArray());
 
             MeshletRenderRequestsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
-                AAAAMathUtils.AlignUp(_meshletRenderRequests.Length * UnsafeUtility.SizeOf<AAAAMeshletRenderRequest>(), sizeof(uint)) / sizeof(uint),
+                AAAAMathUtils.AlignUp(_meshletRenderRequests.Length * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(), sizeof(uint)) / sizeof(uint),
                 sizeof(uint)
             )
             {

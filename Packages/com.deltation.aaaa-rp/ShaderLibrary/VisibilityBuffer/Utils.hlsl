@@ -2,6 +2,7 @@
 #define AAAA_VISIBILITY_BUFFER_UTILS_INCLUDED
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLOD.hlsl"
 
 TEXTURE2D(_VisibilityBuffer);
 SAMPLER(sampler_VisibilityBuffer);
@@ -12,29 +13,30 @@ SAMPLER(sampler_VisibilityBuffer);
 struct VisibilityBufferValue
 {
     uint instanceID;
+    uint meshLOD;
     uint meshletID;
     uint indexID;
 };
 
 uint2 PackVisibilityBufferValue(const VisibilityBufferValue value)
 {
-    return uint2(value.instanceID, value.meshletID << VISIBILITY_BUFFER_INDEX_ID_BITS | (value.indexID / 3) & VISIBILITY_BUFFER_INDEX_ID_MASK);
+    return uint2(PackInstanceID_MeshLOD(value.instanceID, value.meshLOD),
+                 value.meshletID << VISIBILITY_BUFFER_INDEX_ID_BITS | (value.indexID / 3) & VISIBILITY_BUFFER_INDEX_ID_MASK);
 }
 
 VisibilityBufferValue UnpackVisibilityBufferValue(uint2 packedValue)
 {
     VisibilityBufferValue value;
-    value.instanceID = packedValue.x;
+    UnpackInstanceID_MeshLOD(packedValue.x, value.instanceID, value.meshLOD);
     value.meshletID = packedValue.y >> VISIBILITY_BUFFER_INDEX_ID_BITS;
     value.indexID = (packedValue.y & VISIBILITY_BUFFER_INDEX_ID_MASK) * 3;
     return value;
 }
 
 
-VisibilityBufferValue SampleVisibilityBuffer(const float2 screenUV)
+uint2 SampleVisibilityBuffer(const float2 screenUV)
 {
-    const uint2 visibilityValue = asuint(SAMPLE_TEXTURE2D_LOD(_VisibilityBuffer, sampler_VisibilityBuffer, screenUV, 0).xy);
-    return UnpackVisibilityBufferValue(visibilityValue);
+    return asuint(SAMPLE_TEXTURE2D_LOD(_VisibilityBuffer, sampler_VisibilityBuffer, screenUV, 0).xy);
 }
 
 #endif // AAAA_VISIBILITY_BUFFER_UTILS_INCLUDED

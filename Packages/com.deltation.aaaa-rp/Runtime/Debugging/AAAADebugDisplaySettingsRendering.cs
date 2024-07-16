@@ -14,6 +14,7 @@ namespace DELTation.AAAARP.Debugging
         InstanceID,
         MeshletID,
         IndexID,
+        MeshLOD,
     }
 
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData

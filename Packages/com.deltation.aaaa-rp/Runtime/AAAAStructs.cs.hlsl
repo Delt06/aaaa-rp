@@ -16,6 +16,7 @@
 #define MAX_MESHLET_TRIANGLES (128)
 #define MAX_MESHLET_INDICES (384)
 #define MESHLET_CONE_WEIGHT (0.25)
+#define LOD_BITS (3)
 #define LOD_COUNT (8)
 
 // Generated from DELTation.AAAARP.AAAAInstanceData
@@ -56,11 +57,11 @@ struct AAAAMeshlet
     float4 ConeAxis;
 };
 
-// Generated from DELTation.AAAARP.AAAAMeshletRenderRequest
+// Generated from DELTation.AAAARP.AAAAMeshletRenderRequestPacked
 // PackingRules = Exact
-struct AAAAMeshletRenderRequest
+struct AAAAMeshletRenderRequestPacked
 {
-    uint InstanceID;
+    uint InstanceID_LOD;
     uint MeshletID;
 };
 

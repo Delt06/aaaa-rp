@@ -40,7 +40,8 @@ namespace DELTation.AAAARP
         public const uint MaxMeshletTriangles = 128;
         public const uint MaxMeshletIndices = MaxMeshletTriangles * 3;
         public const float MeshletConeWeight = 0.25f;
-        public const uint LodCount = 8;
+        public const uint LodBits = 3;
+        public const uint LodCount = 1u << (int) LodBits;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -82,9 +83,9 @@ namespace DELTation.AAAARP
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     [StructLayout(LayoutKind.Sequential)]
-    public struct AAAAMeshletRenderRequest
+    public struct AAAAMeshletRenderRequestPacked
     {
-        public uint InstanceID;
+        public uint InstanceID_LOD;
         public uint MeshletID;
     }
 
