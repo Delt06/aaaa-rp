@@ -1,3 +1,4 @@
+using DELTation.AAAARP.Data;
 using UnityEngine.Rendering;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -23,10 +24,13 @@ namespace DELTation.AAAARP.Debugging
         public bool ForceCullingFromMainCamera { get; private set; }
 
         public float MeshLODBias { get; private set; }
+        public bool OverrideFullScreenTriangleBudget { get; private set; }
+        public int FullScreenTriangleBudget { get; private set; } = AAAAMeshLODSettings.DefaultFullScreenTriangleBudget;
 
         public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
                                             ForceCullingFromMainCamera ||
-                                            MeshLODBias != 0;
+                                            MeshLODBias != 0 ||
+                                            OverrideFullScreenTriangleBudget;
 
         public IDebugDisplaySettingsPanelDisposable CreatePanel() => new SettingsPanel(this);
 
@@ -59,6 +63,8 @@ namespace DELTation.AAAARP.Debugging
                             WidgetFactory.CreateVisibilityBufferDebugMode(this),
                             WidgetFactory.CreateForceCullingFrustumOfMainCamera(this),
                             WidgetFactory.CreateMeshLODBias(this),
+                            WidgetFactory.CreateOverrideFullScreenTriangleBudget(this),
+                            WidgetFactory.CreateFullScreenTriangleBudget(this),
                         },
                     }
                 );
@@ -72,6 +78,10 @@ namespace DELTation.AAAARP.Debugging
                     { name = "Force Culling From Main Camera", tooltip = "Pass the main camera's data for GPU culling." };
                 public static readonly DebugUI.Widget.NameAndTooltip MeshLODBias = new()
                     { name = "Mesh LOD Bias", tooltip = "Extra bias for mesh LOD selection." };
+                public static readonly DebugUI.Widget.NameAndTooltip OverrideFullScreenTriangleBudget = new()
+                    { name = "Override Full Screen Triangle Budget" };
+                public static readonly DebugUI.Widget.NameAndTooltip FullScreenTriangleBudget = new()
+                    { name = "Budget" };
             }
 
             private static class WidgetFactory
@@ -100,6 +110,22 @@ namespace DELTation.AAAARP.Debugging
                     setter = value => panel.data.MeshLODBias = value,
                     min = () => -(float) AAAAMeshletConfiguration.LodCount,
                     max = () => (float) AAAAMeshletConfiguration.LodCount - 1,
+                };
+
+                internal static DebugUI.Widget CreateOverrideFullScreenTriangleBudget(SettingsPanel panel) => new DebugUI.BoolField
+                {
+                    nameAndTooltip = Strings.OverrideFullScreenTriangleBudget,
+                    getter = () => panel.data.OverrideFullScreenTriangleBudget,
+                    setter = value => panel.data.OverrideFullScreenTriangleBudget = value,
+                };
+
+                internal static DebugUI.Widget CreateFullScreenTriangleBudget(SettingsPanel panel) => new DebugUI.IntField
+                {
+                    nameAndTooltip = Strings.FullScreenTriangleBudget,
+                    getter = () => panel.data.FullScreenTriangleBudget,
+                    setter = value => panel.data.FullScreenTriangleBudget = value,
+                    min = () => 0,
+                    isHiddenCallback = () => !panel.data.OverrideFullScreenTriangleBudget,
                 };
             }
         }

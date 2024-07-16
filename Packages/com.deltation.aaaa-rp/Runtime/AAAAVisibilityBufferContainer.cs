@@ -171,9 +171,7 @@ namespace DELTation.AAAARP
                 cmd.SetGlobalBuffer(ShaderIDs._Meshlets, _meshletsDataBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._MeshLODs, _meshLODBuffer);
                 cmd.SetGlobalFloat(ShaderIDs._MeshLODBias, _debugDisplaySettings?.RenderingSettings.MeshLODBias ?? 0);
-                cmd.SetGlobalFloat(ShaderIDs._FullScreenMeshletBudget,
-                    (float) _meshLODSettings.FullScreenTriangleBudget / AAAAMeshletConfiguration.MaxMeshletTriangles
-                );
+                cmd.SetGlobalFloat(ShaderIDs._FullScreenMeshletBudget, GetFullScreenMeshletBudget());
                 cmd.SetGlobalBuffer(ShaderIDs._SharedVertexBuffer, _sharedVertexBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._SharedIndexBuffer, _sharedIndexBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._InstanceData, _instanceDataBuffer);
@@ -193,6 +191,15 @@ namespace DELTation.AAAARP
                 };
                 Graphics.RenderPrimitivesIndirect(renderParams, MeshTopology.Triangles, IndirectDrawArgsBuffer, 1);
             }
+        }
+
+        private float GetFullScreenMeshletBudget()
+        {
+            int? debugOverrideTriangleBudget = _debugDisplaySettings?.RenderingSettings.OverrideFullScreenTriangleBudget ?? false
+                ? _debugDisplaySettings?.RenderingSettings.FullScreenTriangleBudget
+                : null;
+            int triangleBudget = debugOverrideTriangleBudget ?? _meshLODSettings.FullScreenTriangleBudget;
+            return (float) triangleBudget / AAAAMeshletConfiguration.MaxMeshletTriangles;
         }
 
         private void CreateInstances(AAAARendererAuthoringBase[] authorings)
