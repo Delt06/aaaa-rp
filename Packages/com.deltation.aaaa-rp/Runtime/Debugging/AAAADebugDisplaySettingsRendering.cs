@@ -119,13 +119,19 @@ namespace DELTation.AAAARP.Debugging
                     setter = value => panel.data.OverrideFullScreenTriangleBudget = value,
                 };
 
-                internal static DebugUI.Widget CreateFullScreenTriangleBudget(SettingsPanel panel) => new DebugUI.IntField
+                internal static DebugUI.Widget CreateFullScreenTriangleBudget(SettingsPanel panel) => new DebugUI.Container
                 {
-                    nameAndTooltip = Strings.FullScreenTriangleBudget,
-                    getter = () => panel.data.FullScreenTriangleBudget,
-                    setter = value => panel.data.FullScreenTriangleBudget = value,
-                    min = () => 0,
-                    isHiddenCallback = () => !panel.data.OverrideFullScreenTriangleBudget,
+                    children =
+                    {
+                        new DebugUI.IntField
+                        {
+                            nameAndTooltip = Strings.FullScreenTriangleBudget,
+                            getter = () => panel.data.FullScreenTriangleBudget,
+                            setter = value => panel.data.FullScreenTriangleBudget = value,
+                            min = () => 0,
+                            isHiddenCallback = () => !panel.data.OverrideFullScreenTriangleBudget,
+                        },
+                    },
                 };
             }
         }
