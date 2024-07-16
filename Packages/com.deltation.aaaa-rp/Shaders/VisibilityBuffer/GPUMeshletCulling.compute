@@ -1,44 +1,21 @@
 #pragma kernel CS
 
-#define MESHLET_RENDER_REQUESTS_RW
-
-#include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAGPUMeshletCulling.cs.hlsl"
+#include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
+#define THREAD_GROUP_SIZE GPUMESHLET_CULLING_THREAD_GROUP_SIZE
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
-#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLOD.hlsl"
 
-#define PLANES_IN_FRUSTUM 6
+float4 _CameraPosition;
+float4 _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 
-float4   _CameraPosition;
-float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
-float4x4 _CameraViewProjection;
+ByteAddressBuffer _SourceMeshletsCounter;
+ByteAddressBuffer _SourceMeshlets;
 
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
-
-// https://gist.github.com/XProger/6d1fd465c823bba7138b638691831288
-// Computes signed distance between a point and a plane
-// vPlane: Contains plane coefficients (a,b,c,d) where: ax + by + cz = d
-// vPoint: Point to be tested against the plane.
-float DistanceToPlane(const float4 plane, const float3 position)
-{
-    return dot(float4(position, 1.0), plane);
-}
-
-bool FrustumVsSphereCulling(const float4 planes[PLANES_IN_FRUSTUM], const float4 boundingSphere)
-{
-    const float3 center = boundingSphere.xyz;
-    const float  radius = boundingSphere.w;
-
-    const float dist01 = min(DistanceToPlane(planes[0], center), DistanceToPlane(planes[1], center));
-    const float dist23 = min(DistanceToPlane(planes[2], center), DistanceToPlane(planes[3], center));
-    const float dist45 = min(DistanceToPlane(planes[4], center), DistanceToPlane(planes[5], center));
-
-    return min(min(dist01, dist23), dist45) + radius > 0;
-}
 
 bool ConeCulling(const AAAAInstanceData instanceData, const AAAAMeshlet meshlet)
 {
@@ -50,123 +27,35 @@ bool ConeCulling(const AAAAInstanceData instanceData, const AAAAMeshlet meshlet)
     return !(dotResult >= meshlet.ConeApexCutoff.w);
 }
 
-bool Culling(const AAAAInstanceData instanceData, const AAAAMeshLOD meshLOD, const uint relativeMeshletIndex)
+bool Culling(const AAAAInstanceData instanceData, const AAAAMeshlet meshletData)
 {
-    const AAAAMeshlet meshletData = PullMeshletData(meshLOD.MeshletStartOffset + relativeMeshletIndex);
-    const float4      boundingSphere = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
+    const float4 boundingSphere = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
     return FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphere) && ConeCulling(instanceData, meshletData);
 }
 
-#define MESHLETS_PER_BATCH 1024
-#define ITEMS_IN_MESHLET_MASK 32
-#define MESHLET_MASKS_PER_BATCH (MESHLETS_PER_BATCH / ITEMS_IN_MESHLET_MASK)
-
-groupshared uint g_MeshletVisibilityMask[MESHLET_MASKS_PER_BATCH];
-groupshared uint g_VisibleMeshletsCount;
-groupshared uint g_WrittenMeshletsCount;
-groupshared uint g_MeshletWriteOffset;
-
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
-void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_GroupID)
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint instanceID = groupID.y;
-    if (instanceID >= _InstanceCount)
+    const uint meshletsCount = _SourceMeshletsCounter.Load(0);
+    const uint sourceMeshletID = dispatchThreadID.x;
+
+    UNITY_BRANCH
+    if (sourceMeshletID >= meshletsCount)
     {
         return;
     }
 
-    const AAAAInstanceData instanceData = PullInstanceData(instanceID);
+    const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(_SourceMeshlets, sourceMeshletID);
+    const AAAAInstanceData         instanceData = PullInstanceData(meshletRenderRequest.InstanceID);
+    const AAAAMeshlet              meshlet = PullMeshletData(meshletRenderRequest.MeshletID);
 
-    const AABB   aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);
-    const AABB   aabbWS = TransformAABB(aabbOS, instanceData.ObjectToWorldMatrix);
-    const float4 instanceBoundingSphere = AABBToBoundingSphere(aabbWS);
-    if (!FrustumVsSphereCulling(_CameraFrustumPlanes, instanceBoundingSphere))
+    if (!Culling(instanceData, meshlet))
     {
         return;
     }
 
-    const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
+    uint renderRequestWriteOffset = 0;
+    _DestinationMeshletsCounter.InterlockedAdd(0, 1, renderRequestWriteOffset);
 
-    const float       lod = SelectMeshLOD(instanceData.MeshLODStartIndex, instanceSizeSS);
-    const AAAAMeshLOD meshLOD = PullMeshLOD(instanceData.MeshLODStartIndex, lod);
-
-    for (uint beginMeshletIndex = 0; beginMeshletIndex < meshLOD.MeshletCount; beginMeshletIndex += MESHLETS_PER_BATCH)
-    {
-        const uint endMeshletIndex = min(beginMeshletIndex + MESHLETS_PER_BATCH, meshLOD.MeshletCount);
-
-        GroupMemoryBarrierWithGroupSync();
-
-        const uint localThreadIndex = groupThreadID.x;
-        for (uint maskIndex = localThreadIndex; maskIndex < MESHLET_MASKS_PER_BATCH; maskIndex += THREAD_GROUP_SIZE)
-        {
-            g_MeshletVisibilityMask[maskIndex] = 0;
-        }
-
-        if (localThreadIndex == 0)
-        {
-            g_VisibleMeshletsCount = 0;
-            g_WrittenMeshletsCount = 0;
-        }
-
-        GroupMemoryBarrierWithGroupSync();
-
-        for (uint maskStartMeshletIndex = beginMeshletIndex + localThreadIndex * ITEMS_IN_MESHLET_MASK;
-             maskStartMeshletIndex < endMeshletIndex;
-             maskStartMeshletIndex += THREAD_GROUP_SIZE * ITEMS_IN_MESHLET_MASK
-        )
-        {
-            uint mask = 0;
-            uint count = 0;
-
-            for (uint i = 0; i < ITEMS_IN_MESHLET_MASK; ++i)
-            {
-                const uint relativeMeshletIndex = maskStartMeshletIndex + i;
-                if (relativeMeshletIndex < endMeshletIndex && Culling(instanceData, meshLOD, relativeMeshletIndex))
-                {
-                    mask |= 1u << i;
-                    ++count;
-                }
-            }
-
-            const uint meshletIndexInBatch = maskStartMeshletIndex - beginMeshletIndex;
-            const uint meshletMaskIndex = meshletIndexInBatch / ITEMS_IN_MESHLET_MASK;
-            g_MeshletVisibilityMask[meshletMaskIndex] = mask;
-
-            InterlockedAdd(g_VisibleMeshletsCount, count);
-        }
-
-        GroupMemoryBarrierWithGroupSync();
-
-        if (localThreadIndex == 0)
-        {
-            _DestinationMeshletsCounter.InterlockedAdd(0, g_VisibleMeshletsCount, g_MeshletWriteOffset);
-        }
-
-        GroupMemoryBarrierWithGroupSync();
-
-        if (g_VisibleMeshletsCount > 0)
-        {
-            for (uint relativeMeshletIndex = beginMeshletIndex + localThreadIndex; relativeMeshletIndex < endMeshletIndex; relativeMeshletIndex +=
-                 THREAD_GROUP_SIZE)
-            {
-                const uint meshletIndexInBatch = relativeMeshletIndex - beginMeshletIndex;
-                const uint meshletMaskIndex = meshletIndexInBatch / ITEMS_IN_MESHLET_MASK;
-                const uint meshletMask = 1u << (meshletIndexInBatch % ITEMS_IN_MESHLET_MASK);
-
-                if ((g_MeshletVisibilityMask[meshletMaskIndex] & meshletMask) != 0)
-                {
-                    uint requestWriteOffset = 0;
-                    InterlockedAdd(g_WrittenMeshletsCount, 1, requestWriteOffset);
-
-                    AAAAMeshletRenderRequest meshletRenderRequest;
-                    meshletRenderRequest.InstanceID = instanceID;
-                    meshletRenderRequest.MeshletID = meshLOD.MeshletStartOffset + relativeMeshletIndex;
-
-                    StoreMeshletRenderRequest(_DestinationMeshlets, g_MeshletWriteOffset + requestWriteOffset, meshletRenderRequest);
-                }
-            }
-        }
-
-        GroupMemoryBarrierWithGroupSync();
-    }
+    StoreMeshletRenderRequest(_DestinationMeshlets, renderRequestWriteOffset, meshletRenderRequest);
 }

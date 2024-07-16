@@ -1,0 +1,72 @@
+#pragma kernel CS
+
+#include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
+#define THREAD_GROUP_SIZE MESHLET_LIST_BUILD_THREAD_GROUP_SIZE
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLOD.hlsl"
+
+float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
+float4x4 _CameraViewProjection;
+
+RWByteAddressBuffer _DestinationMeshletsCounter;
+RWByteAddressBuffer _DestinationMeshlets;
+
+#define MESHLETS_PER_BATCH 1024
+#define ITEMS_IN_MESHLET_MASK 32
+#define MESHLET_MASKS_PER_BATCH (MESHLETS_PER_BATCH / ITEMS_IN_MESHLET_MASK)
+
+groupshared uint g_WrittenMeshletsCount;
+groupshared uint g_MeshletWriteOffset;
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_GroupID)
+{
+    const uint instanceID = groupID.x;
+    if (instanceID >= _InstanceCount)
+    {
+        return;
+    }
+
+    const AAAAInstanceData instanceData = PullInstanceData(instanceID);
+
+    const AABB   aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);
+    const AABB   aabbWS = TransformAABB(aabbOS, instanceData.ObjectToWorldMatrix);
+    const float4 instanceBoundingSphere = AABBToBoundingSphere(aabbWS);
+
+    if (!FrustumVsSphereCulling(_CameraFrustumPlanes, instanceBoundingSphere))
+    {
+        return;
+    }
+
+    const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
+
+    const float       lod = SelectMeshLOD(instanceData.MeshLODStartIndex, instanceSizeSS);
+    const AAAAMeshLOD meshLOD = PullMeshLOD(instanceData.MeshLODStartIndex, lod);
+
+    const uint localThreadIndex = groupThreadID.x;
+
+    if (localThreadIndex == 0)
+    {
+        g_MeshletWriteOffset = 0;
+        _DestinationMeshletsCounter.InterlockedAdd(0, meshLOD.MeshletCount, g_MeshletWriteOffset);
+        g_WrittenMeshletsCount = 0;
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    for (uint relativeMeshletIndex = localThreadIndex; relativeMeshletIndex < meshLOD.MeshletCount; relativeMeshletIndex += THREAD_GROUP_SIZE)
+    {
+        uint requestWriteOffset = 0;
+        InterlockedAdd(g_WrittenMeshletsCount, 1, requestWriteOffset);
+
+        AAAAMeshletRenderRequest meshletRenderRequest;
+        meshletRenderRequest.InstanceID = instanceID;
+        meshletRenderRequest.MeshletID = meshLOD.MeshletStartOffset + relativeMeshletIndex;
+
+        StoreMeshletRenderRequest(_DestinationMeshlets, g_MeshletWriteOffset + requestWriteOffset, meshletRenderRequest);
+    }
+}

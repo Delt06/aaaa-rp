@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.FrameData;
-using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.Utils;
 using JetBrains.Annotations;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -11,23 +11,34 @@ namespace DELTation.AAAARP.Passes
 {
     public class GPUMeshletCullingPassData : PassDataBase
     {
+
         public readonly Vector4[] FrustumPlanes = new Vector4[6];
         public Vector4 CameraPosition;
         public Matrix4x4 CameraViewProjectionMatrix;
+        public BufferHandle CullingIndirectDispatchArgsBuffer;
+
         public BufferHandle DestinationMeshletsBuffer;
         public BufferHandle DestinationMeshletsCounterBuffer;
-        public AAAAVisibilityBufferContainer VisibilityBufferContainer;
+        public BufferHandle IndirectDrawArgsBuffer;
+
+        public BufferHandle InitialMeshletListBuffer;
+        public BufferHandle InitialMeshletListCounterBuffer;
+        public int InstanceCount;
     }
 
     public class GPUMeshletCullingPass : AAAARenderPass<GPUMeshletCullingPassData>
     {
+        private readonly ComputeShader _fixupGPUMeshletCullingIndirectDispatchArgsCS;
         private readonly ComputeShader _fixupMeshletIndirectDrawArgsCS;
         private readonly ComputeShader _gpuMeshletCullingCS;
+        private readonly ComputeShader _meshletListBuildCS;
         private readonly ComputeShader _rawBufferClearCS;
 
         public GPUMeshletCullingPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent)
         {
             _rawBufferClearCS = runtimeShaders.RawBufferClearCS;
+            _meshletListBuildCS = runtimeShaders.MeshletListBuildCS;
+            _fixupGPUMeshletCullingIndirectDispatchArgsCS = runtimeShaders.FixupGPUMeshletCullingIndirectDispatchArgsCS;
             _gpuMeshletCullingCS = runtimeShaders.GPUMeshletCullingCS;
             _fixupMeshletIndirectDrawArgsCS = runtimeShaders.FixupMeshletIndirectDrawArgsCS;
         }
@@ -41,7 +52,11 @@ namespace DELTation.AAAARP.Passes
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAAVisibilityBufferContainer visibilityBufferContainer = renderingData.VisibilityBufferContainer;
-            passData.VisibilityBufferContainer = visibilityBufferContainer;
+            passData.InstanceCount = visibilityBufferContainer.InstanceCount;
+            if (passData.InstanceCount == 0)
+            {
+                return;
+            }
 
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             Camera camera = CullingCameraOverride != null ? CullingCameraOverride : cameraData.Camera;
@@ -58,21 +73,78 @@ namespace DELTation.AAAARP.Passes
 
             passData.CameraViewProjectionMatrix = GL.GetGPUProjectionMatrix(camera.projectionMatrix * camera.worldToCameraMatrix, true);
 
-            passData.DestinationMeshletsCounterBuffer = builder.CreateTransientBuffer(new BufferDesc(1, sizeof(uint), GraphicsBuffer.Target.Raw)
+            GraphicsBuffer meshletRenderRequestsBuffer = visibilityBufferContainer.MeshletRenderRequestsBuffer;
+
+            passData.InitialMeshletListCounterBuffer = builder.CreateTransientBuffer(CreateCounterBufferDesc("InitialMeshletListCounter"));
+            passData.InitialMeshletListBuffer = builder.CreateTransientBuffer(
+                new BufferDesc(meshletRenderRequestsBuffer.count, meshletRenderRequestsBuffer.stride, meshletRenderRequestsBuffer.target)
                 {
-                    name = "MeshletRenderRequestCounter",
+                    name = "InitialMeshletList",
                 }
             );
-            passData.DestinationMeshletsBuffer = renderingData.RenderGraph.ImportBuffer(visibilityBufferContainer.MeshletRenderRequestsBuffer);
+            passData.CullingIndirectDispatchArgsBuffer = builder.CreateTransientBuffer(
+                new BufferDesc(1, UnsafeUtility.SizeOf<IndirectDispatchArgs>(), GraphicsBuffer.Target.IndirectArguments)
+                {
+                    name = "GPUMeshletCullingIndirectDispatchArgs",
+                }
+            );
+
+            passData.DestinationMeshletsCounterBuffer = builder.CreateTransientBuffer(CreateCounterBufferDesc("MeshletRenderRequestCounter"));
+            passData.DestinationMeshletsBuffer = renderingData.RenderGraph.ImportBuffer(meshletRenderRequestsBuffer);
             builder.WriteBuffer(passData.DestinationMeshletsBuffer);
+
+            passData.IndirectDrawArgsBuffer = renderingData.RenderGraph.ImportBuffer(visibilityBufferContainer.IndirectDrawArgsBuffer);
+            builder.WriteBuffer(passData.IndirectDrawArgsBuffer);
         }
+
+        private BufferDesc CreateCounterBufferDesc(string name) =>
+            new(1, sizeof(uint), GraphicsBuffer.Target.Raw)
+            {
+                name = name,
+            };
 
         protected override void Render(GPUMeshletCullingPassData data, RenderGraphContext context)
         {
-            int instanceCount = data.VisibilityBufferContainer.InstanceCount;
-            if (instanceCount == 0)
+            if (data.InstanceCount == 0)
             {
                 return;
+            }
+
+            using (new ProfilingScope(context.cmd, Profiling.ClearRenderRequestsCount))
+            {
+                AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.InitialMeshletListCounterBuffer, 1, 0, 0);
+            }
+
+            using (new ProfilingScope(context.cmd, Profiling.MeshletListBuild))
+            {
+                const int kernelIndex = 0;
+
+                context.cmd.SetComputeVectorArrayParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraFrustumPlanes, data.FrustumPlanes);
+                context.cmd.SetComputeMatrixParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraViewProjection, data.CameraViewProjectionMatrix);
+
+                context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex,
+                    ShaderID.MeshletListBuild._DestinationMeshletsCounter, data.InitialMeshletListCounterBuffer
+                );
+                context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex,
+                    ShaderID.MeshletListBuild._DestinationMeshlets, data.InitialMeshletListBuffer
+                );
+
+                context.cmd.DispatchCompute(_meshletListBuildCS, kernelIndex,
+                    data.InstanceCount, 1, 1
+                );
+            }
+
+            using (new ProfilingScope(context.cmd, Profiling.FixupMeshletCullingIndirectDispatchArgs))
+            {
+                const int kernelIndex = 0;
+
+                context.cmd.SetComputeBufferParam(_fixupGPUMeshletCullingIndirectDispatchArgsCS, kernelIndex,
+                    ShaderID.FixupMeshletCullingIndirectDispatchArgs._RequestCounter, data.InitialMeshletListCounterBuffer
+                );
+                context.cmd.SetComputeBufferParam(_fixupGPUMeshletCullingIndirectDispatchArgsCS, kernelIndex,
+                    ShaderID.FixupMeshletCullingIndirectDispatchArgs._IndirectArgs, data.CullingIndirectDispatchArgsBuffer
+                );
+                context.cmd.DispatchCompute(_fixupGPUMeshletCullingIndirectDispatchArgsCS, kernelIndex, 1, 1, 1);
             }
 
             using (new ProfilingScope(context.cmd, Profiling.ClearRenderRequestsCount))
@@ -80,57 +152,84 @@ namespace DELTation.AAAARP.Passes
                 AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.DestinationMeshletsCounterBuffer, 1, 0, 0);
             }
 
-            using (new ProfilingScope(context.cmd, Profiling.Culling))
+            using (new ProfilingScope(context.cmd, Profiling.MeshletCulling))
             {
-                context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.Culling._CameraFrustumPlanes, data.FrustumPlanes);
-                context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.Culling._CameraPosition, data.CameraPosition);
-                context.cmd.SetComputeMatrixParam(_gpuMeshletCullingCS, ShaderID.Culling._CameraViewProjection, data.CameraViewProjectionMatrix);
+                const int kernelIndex = 0;
 
-                context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, AAAAGPUMeshletCulling.KernelIndex,
-                    ShaderID.Culling._DestinationMeshletsCounter, data.DestinationMeshletsCounterBuffer
+                context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraFrustumPlanes, data.FrustumPlanes);
+                context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraPosition, data.CameraPosition);
+
+                context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, kernelIndex,
+                    ShaderID.MeshletCulling._SourceMeshletsCounter, data.InitialMeshletListCounterBuffer
                 );
-                context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, AAAAGPUMeshletCulling.KernelIndex,
-                    ShaderID.Culling._DestinationMeshlets, data.DestinationMeshletsBuffer
+                context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, kernelIndex,
+                    ShaderID.MeshletCulling._SourceMeshlets, data.InitialMeshletListBuffer
                 );
 
-                context.cmd.DispatchCompute(_gpuMeshletCullingCS, AAAAGPUMeshletCulling.KernelIndex,
-                    1, instanceCount, 1
+                context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, kernelIndex,
+                    ShaderID.MeshletCulling._DestinationMeshletsCounter, data.DestinationMeshletsCounterBuffer
                 );
+                context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, kernelIndex,
+                    ShaderID.MeshletCulling._DestinationMeshlets, data.DestinationMeshletsBuffer
+                );
+
+                context.cmd.DispatchCompute(_gpuMeshletCullingCS, kernelIndex, data.CullingIndirectDispatchArgsBuffer, 0);
             }
 
-            using (new ProfilingScope(context.cmd, Profiling.FixupIndirectArgs))
+            using (new ProfilingScope(context.cmd, Profiling.FixupIndirectDrawArgs))
             {
-                context.cmd.SetComputeBufferParam(_fixupMeshletIndirectDrawArgsCS, AAAAFixupMeshletIndirectDrawArgs.KernelIndex,
-                    ShaderID.FixupIndirectArgs._RequestCounter, data.DestinationMeshletsCounterBuffer
+                const int kernelIndex = 0;
+
+                context.cmd.SetComputeBufferParam(_fixupMeshletIndirectDrawArgsCS, kernelIndex,
+                    ShaderID.FixupIndirectDrawArgs._RequestCounter, data.DestinationMeshletsCounterBuffer
                 );
-                context.cmd.SetComputeBufferParam(_fixupMeshletIndirectDrawArgsCS, AAAAFixupMeshletIndirectDrawArgs.KernelIndex,
-                    ShaderID.FixupIndirectArgs._IndirectArgs, data.VisibilityBufferContainer.IndirectArgsBuffer
+                context.cmd.SetComputeBufferParam(_fixupMeshletIndirectDrawArgsCS, kernelIndex,
+                    ShaderID.FixupIndirectDrawArgs._IndirectArgs, data.IndirectDrawArgsBuffer
                 );
-                context.cmd.DispatchCompute(_fixupMeshletIndirectDrawArgsCS, AAAAFixupMeshletIndirectDrawArgs.KernelIndex, 1, 1, 1);
+                context.cmd.DispatchCompute(_fixupMeshletIndirectDrawArgsCS, kernelIndex, 1, 1, 1);
             }
         }
 
         private static class Profiling
         {
             public static readonly ProfilingSampler ClearRenderRequestsCount = new(nameof(ClearRenderRequestsCount));
-            public static readonly ProfilingSampler Culling = new(nameof(Culling));
-            public static readonly ProfilingSampler FixupIndirectArgs = new(nameof(FixupIndirectArgs));
+            public static readonly ProfilingSampler MeshletListBuild = new(nameof(MeshletListBuild));
+            public static readonly ProfilingSampler FixupMeshletCullingIndirectDispatchArgs = new(nameof(FixupMeshletCullingIndirectDispatchArgs));
+            public static readonly ProfilingSampler MeshletCulling = new(nameof(MeshletCulling));
+            public static readonly ProfilingSampler FixupIndirectDrawArgs = new(nameof(FixupIndirectDrawArgs));
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static class ShaderID
         {
-            public static class Culling
+            public static class MeshletListBuild
             {
                 public static int _CameraFrustumPlanes = Shader.PropertyToID(nameof(_CameraFrustumPlanes));
-                public static int _CameraPosition = Shader.PropertyToID(nameof(_CameraPosition));
                 public static int _CameraViewProjection = Shader.PropertyToID(nameof(_CameraViewProjection));
 
                 public static int _DestinationMeshletsCounter = Shader.PropertyToID(nameof(_DestinationMeshletsCounter));
                 public static int _DestinationMeshlets = Shader.PropertyToID(nameof(_DestinationMeshlets));
             }
 
-            public static class FixupIndirectArgs
+            public static class FixupMeshletCullingIndirectDispatchArgs
+            {
+                public static int _RequestCounter = Shader.PropertyToID(nameof(_RequestCounter));
+                public static int _IndirectArgs = Shader.PropertyToID(nameof(_IndirectArgs));
+            }
+
+            public static class MeshletCulling
+            {
+                public static int _CameraFrustumPlanes = Shader.PropertyToID(nameof(_CameraFrustumPlanes));
+                public static int _CameraPosition = Shader.PropertyToID(nameof(_CameraPosition));
+
+                public static int _SourceMeshletsCounter = Shader.PropertyToID(nameof(_SourceMeshletsCounter));
+                public static int _SourceMeshlets = Shader.PropertyToID(nameof(_SourceMeshlets));
+
+                public static int _DestinationMeshletsCounter = Shader.PropertyToID(nameof(_DestinationMeshletsCounter));
+                public static int _DestinationMeshlets = Shader.PropertyToID(nameof(_DestinationMeshlets));
+            }
+
+            public static class FixupIndirectDrawArgs
             {
                 public static int _RequestCounter = Shader.PropertyToID(nameof(_RequestCounter));
                 public static int _IndirectArgs = Shader.PropertyToID(nameof(_IndirectArgs));

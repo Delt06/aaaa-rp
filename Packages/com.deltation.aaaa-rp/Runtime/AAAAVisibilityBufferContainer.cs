@@ -98,18 +98,22 @@ namespace DELTation.AAAARP
             MeshletRenderRequestsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
                 AAAAMathUtils.AlignUp(_meshletRenderRequests.Length * UnsafeUtility.SizeOf<AAAAMeshletRenderRequest>(), sizeof(uint)) / sizeof(uint),
                 sizeof(uint)
-            );
+            )
+            {
+                name = "VisibilityBuffer_MeshletRenderRequests",
+            };
 
-            IndirectArgsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments,
-                1, GraphicsBuffer.IndirectDrawArgs.size
-            );
+            IndirectDrawArgsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, GraphicsBuffer.IndirectDrawArgs.size)
+            {
+                name = "VisibilityBuffer_IndirectDrawArgs",
+            };
 
             Texture2DArray albedoTextureArray = BuildTextureArray(_albedoTextures);
             Shader.SetGlobalTexture(ShaderIDs._SharedAlbedoTextureArray, albedoTextureArray);
         }
 
         public int InstanceCount => _instanceData.IsCreated ? _instanceData.Length : 0;
-        public GraphicsBuffer IndirectArgsBuffer { get; }
+        public GraphicsBuffer IndirectDrawArgsBuffer { get; }
         public GraphicsBuffer MeshletRenderRequestsBuffer { get; }
 
         public void Dispose()
@@ -149,7 +153,7 @@ namespace DELTation.AAAARP
                 _meshLODs.Dispose();
             }
 
-            IndirectArgsBuffer?.Dispose();
+            IndirectDrawArgsBuffer?.Dispose();
             _meshletsDataBuffer?.Dispose();
             _sharedVertexBuffer?.Dispose();
             _sharedIndexBuffer?.Dispose();
@@ -181,13 +185,13 @@ namespace DELTation.AAAARP
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
 
-            if (IndirectArgsBuffer != null && _instanceData.Length > 0)
+            if (IndirectDrawArgsBuffer != null && _instanceData.Length > 0)
             {
                 var renderParams = new RenderParams(_material)
                 {
                     worldBounds = new Bounds(Vector3.zero, Vector3.one * 100_000_000f),
                 };
-                Graphics.RenderPrimitivesIndirect(renderParams, MeshTopology.Triangles, IndirectArgsBuffer, 1);
+                Graphics.RenderPrimitivesIndirect(renderParams, MeshTopology.Triangles, IndirectDrawArgsBuffer, 1);
             }
         }
 

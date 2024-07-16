@@ -87,4 +87,14 @@ namespace DELTation.AAAARP
         public uint InstanceID;
         public uint MeshletID;
     }
+
+    [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
+    [StructLayout(LayoutKind.Sequential)]
+    public struct IndirectDispatchArgs
+    {
+        public uint ThreadGroupsX;
+        public uint ThreadGroupsY;
+        public uint ThreadGroupsZ;
+        public uint Padding0;
+    }
 }

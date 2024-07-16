@@ -20,6 +20,17 @@ DEFINE_AGGREGATE_FUNC_8(Max8, float, max)
 DEFINE_AGGREGATE_FUNC_8(Min8, float2, min)
 DEFINE_AGGREGATE_FUNC_8(Max8, float2, max)
 
+#define PLANES_IN_FRUSTUM 6
+
+static int AlignUp(const int value, const int alignment)
+{
+    if (alignment == 0)
+    {
+        return value;
+    }
+    return value + alignment - 1 & -alignment;
+}
+
 struct AABB
 {
     float3 boundsMin;
@@ -106,6 +117,27 @@ float4 AABBToBoundingSphere(const AABB aabb)
     const float3 center = (aabb.boundsMax + aabb.boundsMin) * 0.5f;
     const float3 extents = (aabb.boundsMax - aabb.boundsMin) * 0.5f;
     return float4(center, length(extents));
+}
+
+// https://gist.github.com/XProger/6d1fd465c823bba7138b638691831288
+// Computes signed distance between a point and a plane
+// vPlane: Contains plane coefficients (a,b,c,d) where: ax + by + cz = d
+// vPoint: Point to be tested against the plane.
+float DistanceToPlane(const float4 plane, const float3 position)
+{
+    return dot(float4(position, 1.0), plane);
+}
+
+bool FrustumVsSphereCulling(const float4 planes[PLANES_IN_FRUSTUM], const float4 boundingSphere)
+{
+    const float3 center = boundingSphere.xyz;
+    const float  radius = boundingSphere.w;
+
+    const float dist01 = min(DistanceToPlane(planes[0], center), DistanceToPlane(planes[1], center));
+    const float dist23 = min(DistanceToPlane(planes[2], center), DistanceToPlane(planes[3], center));
+    const float dist45 = min(DistanceToPlane(planes[4], center), DistanceToPlane(planes[5], center));
+
+    return min(min(dist01, dist23), dist45) + radius > 0;
 }
 
 #endif // AAAA_MATH_INCLUDED

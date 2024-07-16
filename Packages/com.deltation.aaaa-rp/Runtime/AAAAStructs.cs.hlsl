@@ -84,5 +84,15 @@ struct AAAAMeshLOD
     uint Padding1;
 };
 
+// Generated from DELTation.AAAARP.IndirectDispatchArgs
+// PackingRules = Exact
+struct IndirectDispatchArgs
+{
+    uint ThreadGroupsX;
+    uint ThreadGroupsY;
+    uint ThreadGroupsZ;
+    uint Padding0;
+};
+
 
 #endif
