@@ -17,11 +17,8 @@ namespace DELTation.AAAARP.Meshlets
 
         public Bounds Bounds;
         public AAAAMeshLOD[] Lods = Array.Empty<AAAAMeshLOD>();
-        [HideInInspector]
         public AAAAMeshlet[] Meshlets = Array.Empty<AAAAMeshlet>();
-        [HideInInspector]
         public AAAAMeshletVertex[] VertexBuffer = Array.Empty<AAAAMeshletVertex>();
-        [HideInInspector]
         public byte[] IndexBuffer = Array.Empty<byte>();
     }
 }
