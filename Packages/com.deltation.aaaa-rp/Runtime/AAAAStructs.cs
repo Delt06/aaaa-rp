@@ -36,8 +36,8 @@ namespace DELTation.AAAARP
     [GenerateHLSL]
     public static class AAAAMeshletConfiguration
     {
-        public const uint MaxMeshletVertices = 128;
-        public const uint MaxMeshletTriangles = 128;
+        public const uint MaxMeshletVertices = 32;
+        public const uint MaxMeshletTriangles = 64;
         public const uint MaxMeshletIndices = MaxMeshletTriangles * 3;
         public const float MeshletConeWeight = 0.25f;
         public const uint LodBits = 3;

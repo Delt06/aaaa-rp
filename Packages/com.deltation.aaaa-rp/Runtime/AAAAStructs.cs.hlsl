@@ -12,9 +12,9 @@
 //
 // DELTation.AAAARP.AAAAMeshletConfiguration:  static fields
 //
-#define MAX_MESHLET_VERTICES (128)
-#define MAX_MESHLET_TRIANGLES (128)
-#define MAX_MESHLET_INDICES (384)
+#define MAX_MESHLET_VERTICES (16)
+#define MAX_MESHLET_TRIANGLES (64)
+#define MAX_MESHLET_INDICES (192)
 #define MESHLET_CONE_WEIGHT (0.25)
 #define LOD_BITS (3)
 #define LOD_COUNT (8)
