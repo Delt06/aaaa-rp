@@ -124,7 +124,7 @@ Shader "Hidden/AAAA/VisibilityBufferDebug"
                     }
                 case AAAAVISIBILITYBUFFERDEBUGMODE_MESH_LOD:
                     {
-                        return float4(GetColor(value.meshLOD), 1);
+                        return float4(GetColor(value.localNodeIndex), 1);
                     }
                 default:
                     {

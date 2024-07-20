@@ -16,8 +16,6 @@
 #define MAX_MESHLET_TRIANGLES (128)
 #define MAX_MESHLET_INDICES (384)
 #define MESHLET_CONE_WEIGHT (0.25)
-#define LOD_BITS (3)
-#define LOD_COUNT (8)
 
 // Generated from DELTation.AAAARP.AAAAInstanceData
 // PackingRules = Exact
@@ -27,7 +25,7 @@ struct AAAAInstanceData
     float4x4 WorldToObjectMatrix;
     float4 AABBMin;
     float4 AABBMax;
-    uint MeshLODStartIndex;
+    uint MeshLODNodeStartIndex;
     uint MaterialIndex;
     uint Padding0;
     uint Padding1;
@@ -75,14 +73,15 @@ struct AAAAMeshletVertex
     float4 UV;
 };
 
-// Generated from DELTation.AAAARP.AAAAMeshLOD
+// Generated from DELTation.AAAARP.AAAAMeshLODNode
 // PackingRules = Exact
-struct AAAAMeshLOD
+struct AAAAMeshLODNode
 {
+    float4 BoundingSphere;
     uint MeshletStartOffset;
     uint MeshletCount;
-    uint Padding0;
-    uint Padding1;
+    uint ChildrenStartOffset;
+    uint ChildrenStartCount;
 };
 
 // Generated from DELTation.AAAARP.IndirectDispatchArgs

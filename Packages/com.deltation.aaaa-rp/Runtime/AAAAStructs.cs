@@ -15,7 +15,7 @@ namespace DELTation.AAAARP
         public float4 AABBMin;
         public float4 AABBMax;
 
-        public uint MeshLODStartIndex;
+        public uint MeshLODNodeStartIndex;
         public uint MaterialIndex;
         public uint Padding0;
         public uint Padding1;
@@ -45,21 +45,19 @@ namespace DELTation.AAAARP
         public const uint MaxMeshletIndices = MaxMeshletTriangles * 3;
         [UsedImplicitly]
         public const float MeshletConeWeight = 0.25f;
-        [UsedImplicitly]
-        public const uint LodBits = 3;
-        [UsedImplicitly]
-        public const uint LodCount = 1u << (int) LodBits;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     [Serializable]
-    public struct AAAAMeshLOD
+    public struct AAAAMeshLODNode
     {
+        public float4 BoundingSphere;
+
         public uint MeshletStartOffset;
         public uint MeshletCount;
-        public uint Padding0;
-        public uint Padding1;
+        public uint ChildrenStartOffset;
+        public uint ChildrenStartCount;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]

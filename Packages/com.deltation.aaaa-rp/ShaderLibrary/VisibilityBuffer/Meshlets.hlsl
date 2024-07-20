@@ -18,7 +18,7 @@ uint MeshletRenderRequestIndexToAddress(const uint index)
 struct AAAAMeshletRenderRequest
 {
     uint InstanceID;
-    uint LOD;
+    uint LocalNodeIndex;
     uint MeshletID;
 };
 
@@ -28,7 +28,7 @@ AAAAMeshletRenderRequest PullMeshletRenderRequest(ByteAddressBuffer renderReques
     const uint2 value = renderRequests.Load2(address);
 
     AAAAMeshletRenderRequest renderRequest;
-    UnpackInstanceID_MeshLOD(value.x, renderRequest.InstanceID, renderRequest.LOD);
+    UnpackInstanceID_LocalNodeIndex(value.x, renderRequest.InstanceID, renderRequest.LocalNodeIndex);
     renderRequest.MeshletID = value.y;
     return renderRequest;
 }
@@ -36,7 +36,7 @@ AAAAMeshletRenderRequest PullMeshletRenderRequest(ByteAddressBuffer renderReques
 void StoreMeshletRenderRequest(RWByteAddressBuffer renderRequests, const uint index, AAAAMeshletRenderRequest renderRequest)
 {
     const uint  address = MeshletRenderRequestIndexToAddress(index);
-    const uint2 value = uint2(PackInstanceID_MeshLOD(renderRequest.InstanceID, renderRequest.LOD), renderRequest.MeshletID);
+    const uint2 value = uint2(PackInstanceID_LocalNodeIndex(renderRequest.InstanceID, renderRequest.LocalNodeIndex), renderRequest.MeshletID);
     renderRequests.Store2(address, value);
 }
 

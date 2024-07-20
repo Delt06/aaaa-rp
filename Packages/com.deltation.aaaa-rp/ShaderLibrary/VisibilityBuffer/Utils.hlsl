@@ -13,21 +13,21 @@ SAMPLER(sampler_VisibilityBuffer);
 struct VisibilityBufferValue
 {
     uint instanceID;
-    uint meshLOD;
+    uint localNodeIndex;
     uint meshletID;
     uint indexID;
 };
 
 uint2 PackVisibilityBufferValue(const VisibilityBufferValue value)
 {
-    return uint2(PackInstanceID_MeshLOD(value.instanceID, value.meshLOD),
+    return uint2(PackInstanceID_LocalNodeIndex(value.instanceID, value.localNodeIndex),
                  value.meshletID << VISIBILITY_BUFFER_INDEX_ID_BITS | (value.indexID / 3) & VISIBILITY_BUFFER_INDEX_ID_MASK);
 }
 
 VisibilityBufferValue UnpackVisibilityBufferValue(uint2 packedValue)
 {
     VisibilityBufferValue value;
-    UnpackInstanceID_MeshLOD(packedValue.x, value.instanceID, value.meshLOD);
+    UnpackInstanceID_LocalNodeIndex(packedValue.x, value.instanceID, value.localNodeIndex);
     value.meshletID = packedValue.y >> VISIBILITY_BUFFER_INDEX_ID_BITS;
     value.indexID = (packedValue.y & VISIBILITY_BUFFER_INDEX_ID_MASK) * 3;
     return value;

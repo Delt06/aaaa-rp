@@ -71,7 +71,7 @@ Shader "Hidden/AAAA/VisibilityBuffer"
 
                 VisibilityBufferValue visibilityBufferValue;
                 visibilityBufferValue.instanceID = meshletRenderRequest.InstanceID;
-                visibilityBufferValue.meshLOD = meshletRenderRequest.LOD;
+                visibilityBufferValue.localNodeIndex = meshletRenderRequest.LocalNodeIndex;
                 visibilityBufferValue.meshletID = meshletRenderRequest.MeshletID;
                 visibilityBufferValue.indexID = indexID;
                 OUT.visibilityValue = PackVisibilityBufferValue(visibilityBufferValue);

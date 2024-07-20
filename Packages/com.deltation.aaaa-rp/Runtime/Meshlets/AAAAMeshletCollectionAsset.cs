@@ -16,7 +16,7 @@ namespace DELTation.AAAARP.Meshlets
         };
 
         public Bounds Bounds;
-        public AAAAMeshLOD[] Lods = Array.Empty<AAAAMeshLOD>();
+        public AAAAMeshLODNode[] LODNodes = Array.Empty<AAAAMeshLODNode>();
         public AAAAMeshlet[] Meshlets = Array.Empty<AAAAMeshlet>();
         public AAAAMeshletVertex[] VertexBuffer = Array.Empty<AAAAMeshletVertex>();
         public byte[] IndexBuffer = Array.Empty<byte>();

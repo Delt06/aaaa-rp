@@ -42,32 +42,30 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
         return;
     }
 
-    const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
-
-    const float       lod = SelectMeshLOD(instanceData.MeshLODStartIndex, instanceSizeSS);
-    uint              effectiveLod = 0;
-    const AAAAMeshLOD meshLOD = PullMeshLOD(instanceData.MeshLODStartIndex, lod, effectiveLod);
+    const float2          instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
+    const uint            localNodeIndex = 0;
+    const AAAAMeshLODNode meshLodNode = PullMeshLODNodeRaw(instanceData.MeshLODNodeStartIndex + localNodeIndex);
 
     const uint localThreadIndex = groupThreadID.x;
 
     if (localThreadIndex == 0)
     {
         g_MeshletWriteOffset = 0;
-        _DestinationMeshletsCounter.InterlockedAdd(0, meshLOD.MeshletCount, g_MeshletWriteOffset);
+        _DestinationMeshletsCounter.InterlockedAdd(0, meshLodNode.MeshletCount, g_MeshletWriteOffset);
         g_WrittenMeshletsCount = 0;
     }
 
     GroupMemoryBarrierWithGroupSync();
 
-    for (uint relativeMeshletIndex = localThreadIndex; relativeMeshletIndex < meshLOD.MeshletCount; relativeMeshletIndex += THREAD_GROUP_SIZE)
+    for (uint relativeMeshletIndex = localThreadIndex; relativeMeshletIndex < meshLodNode.MeshletCount; relativeMeshletIndex += THREAD_GROUP_SIZE)
     {
         uint requestWriteOffset = 0;
         InterlockedAdd(g_WrittenMeshletsCount, 1, requestWriteOffset);
 
         AAAAMeshletRenderRequest meshletRenderRequest;
         meshletRenderRequest.InstanceID = instanceID;
-        meshletRenderRequest.LOD = effectiveLod;
-        meshletRenderRequest.MeshletID = meshLOD.MeshletStartOffset + relativeMeshletIndex;
+        meshletRenderRequest.LocalNodeIndex = localNodeIndex;
+        meshletRenderRequest.MeshletID = meshLodNode.MeshletStartOffset + relativeMeshletIndex;
 
         StoreMeshletRenderRequest(_DestinationMeshlets, g_MeshletWriteOffset + requestWriteOffset, meshletRenderRequest);
     }

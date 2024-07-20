@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DELTation.AAAARP.Core;
@@ -155,19 +156,29 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     mainMeshletBuildResults = clusterMeshletBuildResults;
                 }
 
-                var lodMeshlets = new NativeList<AAAAMeshOptimizer.MeshletBuildResults>((int) AAAAMeshletConfiguration.LodCount, Allocator.TempJob);
-                lodMeshlets.Add(mainMeshletBuildResults);
+                var meshLODNodes = new NativeList<MeshLODNode>(Allocator.TempJob);
+                meshLODNodes.Add(new MeshLODNode
+                    {
+                        MeshletBuildResults = mainMeshletBuildResults,
+                    }
+                );
 
-                for (int i = 1; i < (int) AAAAMeshletConfiguration.LodCount; i++)
+                while (true)
                 {
-                    AAAAMeshOptimizer.MeshletBuildResults previousLodMeshlets = lodMeshlets[^1];
-                    AAAAMeshOptimizer.MeshletBuildResults thisLodMeshlets = AAAAMeshOptimizer.SimplifyMeshletCluster(allocator, previousLodMeshlets,
+                    ref MeshLODNode previousLodNode = ref meshLODNodes.ElementAtRef(meshLODNodes.Length - 1);
+                    if (previousLodNode.MeshletBuildResults.Meshlets.Length <= 1)
+                    {
+                        break;
+                    }
+
+                    AAAAMeshOptimizer.MeshletBuildResults thisLodMeshlets = AAAAMeshOptimizer.SimplifyMeshletCluster(allocator,
+                        previousLodNode.MeshletBuildResults,
                         vertexData, vertexPositionOffset, vertexBufferStride,
                         meshletGenerationParams
                     );
 
                     const int meshletCountDifferenceThreshold = 2;
-                    if (thisLodMeshlets.Meshlets.Length >= previousLodMeshlets.Meshlets.Length - meshletCountDifferenceThreshold)
+                    if (thisLodMeshlets.Meshlets.Length >= previousLodNode.MeshletBuildResults.Meshlets.Length - meshletCountDifferenceThreshold)
                     {
                         thisLodMeshlets.Dispose();
                         break;
@@ -178,17 +189,24 @@ namespace DELTation.AAAARP.Editor.Meshlets
                         SpatialMeshletSort(ref thisLodMeshlets, vertexData, vertexPositionOffset, vertexBufferStride);
                     }
 
-                    lodMeshlets.Add(thisLodMeshlets);
+                    previousLodNode.ChildrenStartOffset = meshLODNodes.Length;
+                    previousLodNode.ChildrenCount = 1;
+                    meshLODNodes.Add(new MeshLODNode
+                        {
+                            MeshletBuildResults = thisLodMeshlets,
+                        }
+                    );
                 }
 
                 int totalMeshlets = 0;
                 int totalVertices = 0;
                 int totalIndices = 0;
 
-                meshletCollection.Lods = new AAAAMeshLOD[lodMeshlets.Length];
+                meshletCollection.LODNodes = new AAAAMeshLODNode[meshLODNodes.Length];
 
-                foreach (AAAAMeshOptimizer.MeshletBuildResults buildResults in lodMeshlets)
+                foreach (MeshLODNode meshLODNode in meshLODNodes)
                 {
+                    AAAAMeshOptimizer.MeshletBuildResults buildResults = meshLODNode.MeshletBuildResults;
                     totalMeshlets += buildResults.Meshlets.Length;
                     totalVertices += buildResults.Vertices.Length;
                     totalIndices += buildResults.Indices.Length;
@@ -204,56 +222,74 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                 var jobHandles = new NativeList<JobHandle>(Allocator.Temp);
 
-                fixed (AAAAMeshlet* pDestinationMeshlets = meshletCollection.Meshlets)
+                fixed (AAAAMeshLODNode* pMeshLODNodes = meshletCollection.LODNodes)
                 {
-                    fixed (AAAAMeshletVertex* pDestinationVertices = meshletCollection.VertexBuffer)
+                    fixed (AAAAMeshlet* pDestinationMeshlets = meshletCollection.Meshlets)
                     {
-                        fixed (byte* pIndexBuffer = meshletCollection.IndexBuffer)
+                        fixed (AAAAMeshletVertex* pDestinationVertices = meshletCollection.VertexBuffer)
                         {
-                            for (int index = 0; index < lodMeshlets.Length; index++)
+                            fixed (byte* pIndexBuffer = meshletCollection.IndexBuffer)
                             {
-                                AAAAMeshOptimizer.MeshletBuildResults lodBuildResults = lodMeshlets[index];
-
-                                meshletCollection.Lods[index] = new AAAAMeshLOD
+                                for (int index = 0; index < meshLODNodes.Length; index++)
                                 {
-                                    MeshletStartOffset = (uint) meshletsWriteOffset,
-                                    MeshletCount = (uint) lodBuildResults.Meshlets.Length,
-                                };
+                                    MeshLODNode meshLodNode = meshLODNodes[index];
 
-                                jobHandles.Add(new WriteMeshletsJob
+                                    int meshletCount = meshLodNode.MeshletBuildResults.Meshlets.Length;
+                                    pMeshLODNodes[index] = new AAAAMeshLODNode
                                     {
-                                        DestinationPtr = pDestinationMeshlets + meshletsWriteOffset,
+                                        BoundingSphere = default,
+                                        ChildrenStartOffset = (uint) meshLodNode.ChildrenStartOffset,
+                                        ChildrenStartCount = (uint) meshLodNode.ChildrenCount,
+                                        MeshletStartOffset = (uint) meshletsWriteOffset,
+                                        MeshletCount = (uint) meshletCount,
+                                    };
+
+                                    AAAAMeshlet* pThisDestinationMeshlets = pDestinationMeshlets + meshletsWriteOffset;
+                                    JobHandle writeMeshletsJob = new WriteMeshletsJob
+                                    {
+                                        DestinationPtr = pThisDestinationMeshlets,
                                         VertexBufferStride = vertexBufferStride,
                                         VertexPositionOffset = vertexPositionOffset,
-                                        MeshletBuildResults = lodBuildResults,
+                                        MeshletBuildResults = meshLodNode.MeshletBuildResults,
                                         VertexData = vertexData,
                                         VertexOffset = (uint) verticesWriteOffset,
                                         TriangleOffset = (uint) indicesWriteOffset,
-                                    }.Schedule(lodBuildResults.Meshlets.Length, WriteMeshletsJob.BatchSize)
-                                );
-                                jobHandles.Add(new WriteVerticesJob
-                                    {
-                                        VerticesPtr = (byte*) vertexData.GetUnsafeReadOnlyPtr(),
-                                        VertexBufferStride = vertexBufferStride,
-                                        MeshletBuildResults = lodBuildResults,
-                                        VertexNormalOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Normal),
-                                        VertexPositionOffset = vertexPositionOffset,
-                                        VertexTangentOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Tangent),
-                                        UVStreamStride = uvStreamStride,
-                                        VertexUVOffset = (uint) vertexUVOffset,
-                                        VerticesUVPtr = pVerticesUV,
-                                        DestinationPtr = pDestinationVertices + verticesWriteOffset,
-                                    }.Schedule(lodBuildResults.Vertices.Length, WriteVerticesJob.BatchSize)
-                                );
+                                    }.Schedule(meshletCount, WriteMeshletsJob.BatchSize);
+                                    jobHandles.Add(writeMeshletsJob);
+
+                                    jobHandles.Add(new WriteLODNodeBoundsJob
+                                        {
+                                            DestinationPtr = &pMeshLODNodes[index].BoundingSphere,
+                                            MeshletCount = meshletCount,
+                                            MeshletsPtr = pThisDestinationMeshlets,
+                                        }.Schedule(writeMeshletsJob)
+                                    );
 
 
-                                UnsafeUtility.MemCpy(pIndexBuffer + indicesWriteOffset, lodBuildResults.Indices.GetUnsafeReadOnlyPtr(),
-                                    lodBuildResults.Indices.Length * sizeof(byte)
-                                );
+                                    jobHandles.Add(new WriteVerticesJob
+                                        {
+                                            VerticesPtr = (byte*) vertexData.GetUnsafeReadOnlyPtr(),
+                                            VertexBufferStride = vertexBufferStride,
+                                            MeshletBuildResults = meshLodNode.MeshletBuildResults,
+                                            VertexNormalOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Normal),
+                                            VertexPositionOffset = vertexPositionOffset,
+                                            VertexTangentOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Tangent),
+                                            UVStreamStride = uvStreamStride,
+                                            VertexUVOffset = (uint) vertexUVOffset,
+                                            VerticesUVPtr = pVerticesUV,
+                                            DestinationPtr = pDestinationVertices + verticesWriteOffset,
+                                        }.Schedule(meshLodNode.MeshletBuildResults.Vertices.Length, WriteVerticesJob.BatchSize)
+                                    );
 
-                                meshletsWriteOffset += lodBuildResults.Meshlets.Length;
-                                verticesWriteOffset += lodBuildResults.Vertices.Length;
-                                indicesWriteOffset += lodBuildResults.Indices.Length;
+
+                                    UnsafeUtility.MemCpy(pIndexBuffer + indicesWriteOffset, meshLodNode.MeshletBuildResults.Indices.GetUnsafeReadOnlyPtr(),
+                                        meshLodNode.MeshletBuildResults.Indices.Length * sizeof(byte)
+                                    );
+
+                                    meshletsWriteOffset += meshletCount;
+                                    verticesWriteOffset += meshLodNode.MeshletBuildResults.Vertices.Length;
+                                    indicesWriteOffset += meshLodNode.MeshletBuildResults.Indices.Length;
+                                }
                             }
                         }
                     }
@@ -269,9 +305,9 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 vertexData.Dispose(jobHandle);
                 indexDataU32.Dispose(jobHandle);
 
-                foreach (AAAAMeshOptimizer.MeshletBuildResults meshlets in lodMeshlets)
+                foreach (MeshLODNode meshLODNode in meshLODNodes)
                 {
-                    meshlets.Dispose(jobHandle);
+                    meshLODNode.Dispose(jobHandle);
                 }
 
                 jobHandle.Complete();
@@ -281,7 +317,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
             ctx.SetMainObject(meshletCollection);
         }
 
-        private unsafe void SpatialMeshletSort(ref AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults, NativeArray<float> vertexData,
+        private static unsafe void SpatialMeshletSort(ref AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults, NativeArray<float> vertexData,
             uint vertexPositionOffset, uint vertexPositionStride)
         {
             int meshletCount = meshletBuildResults.Meshlets.Length;
@@ -346,6 +382,18 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
             AAAAMeshletCollectionAsset meshletCollection = AssetDatabase.LoadAssetAtPath<AAAAMeshletCollectionAsset>(assetPath);
             Selection.activeObject = meshletCollection;
+        }
+
+        private struct MeshLODNode
+        {
+            public AAAAMeshOptimizer.MeshletBuildResults MeshletBuildResults;
+            public int ChildrenStartOffset;
+            public int ChildrenCount;
+
+            public void Dispose(JobHandle jobHandle)
+            {
+                MeshletBuildResults.Dispose(jobHandle);
+            }
         }
 
         private unsafe struct WriteMeshletsJob : IJobParallelFor
@@ -428,6 +476,67 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                 DestinationPtr[index] = meshletVertex;
             }
+        }
+
+        [BurstCompile]
+        private unsafe struct WriteLODNodeBoundsJob : IJob
+        {
+            [NativeDisableUnsafePtrRestriction]
+            public float4* DestinationPtr;
+
+            [NativeDisableUnsafePtrRestriction]
+            public AAAAMeshlet* MeshletsPtr;
+            public int MeshletCount;
+
+            private static readonly float3 MinStart = float.PositiveInfinity;
+            private static readonly float3 MaxStart = float.NegativeInfinity;
+
+            public void Execute()
+            {
+                float3 min = MinStart;
+                float3 max = MaxStart;
+
+                for (int i = 0; i < MeshletCount; i++)
+                {
+                    ref readonly AAAAMeshlet meshlet = ref MeshletsPtr[i];
+
+                    BoundingSphereToAABB(meshlet.BoundingSphere, out float3 aabbMin, out float3 aabbMax);
+                    min = math.min(min, aabbMin);
+                    max = math.max(max, aabbMax);
+                }
+
+                float3 center = (min + max) * 0.5f;
+                float3 extents = (max - min) * 0.5f;
+                float radius = math.length(extents);
+
+                *DestinationPtr = math.float4(center, radius);
+            }
+
+            private static void BoundingSphereToAABB(float4 boundingSphere, out float3 aabbMin, out float3 aabbMax)
+            {
+                float3 center = boundingSphere.xyz;
+                float radius = boundingSphere.w;
+
+                Span<float3> corners = stackalloc float3[8];
+                corners[0] = center + math.float3(-radius, -radius, -radius);
+                corners[1] = center + math.float3(-radius, -radius, +radius);
+                corners[2] = center + math.float3(-radius, +radius, -radius);
+                corners[3] = center + math.float3(-radius, +radius, +radius);
+                corners[4] = center + math.float3(+radius, -radius, -radius);
+                corners[5] = center + math.float3(+radius, -radius, +radius);
+                corners[6] = center + math.float3(+radius, +radius, -radius);
+                corners[7] = center + math.float3(+radius, +radius, +radius);
+
+                (aabbMin, aabbMax) = MinMax(
+                    MinMax(MinMax(corners[0], corners[1]), MinMax(corners[2], corners[3])),
+                    MinMax(MinMax(corners[4], corners[5]), MinMax(corners[6], corners[7]))
+                );
+            }
+
+            private static (float3 min, float3 max) MinMax(float3 v1, float3 v2) => (math.min(v1, v2), math.max(v1, v2));
+
+            private static (float3 min, float3 max) MinMax((float3 min, float3 max) values1, (float3 min, float3 max) values2) =>
+                (math.min(values1.min, values2.min), math.max(values1.max, values2.max));
         }
     }
 }
