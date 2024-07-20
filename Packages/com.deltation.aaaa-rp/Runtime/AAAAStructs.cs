@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using Unity.Mathematics;
 using UnityEngine.Rendering;
 
@@ -36,11 +37,17 @@ namespace DELTation.AAAARP
     [GenerateHLSL]
     public static class AAAAMeshletConfiguration
     {
+        [UsedImplicitly]
         public const uint MaxMeshletVertices = 32;
-        public const uint MaxMeshletTriangles = 64;
+        [UsedImplicitly]
+        public const uint MaxMeshletTriangles = 128;
+        [UsedImplicitly]
         public const uint MaxMeshletIndices = MaxMeshletTriangles * 3;
+        [UsedImplicitly]
         public const float MeshletConeWeight = 0.25f;
+        [UsedImplicitly]
         public const uint LodBits = 3;
+        [UsedImplicitly]
         public const uint LodCount = 1u << (int) LodBits;
     }
 
