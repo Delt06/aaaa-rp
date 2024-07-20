@@ -1,4 +1,6 @@
 using DELTation.AAAARP.Data;
+using Unity.Mathematics;
+using UnityEngine;
 using UnityEngine.Rendering;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -18,6 +20,15 @@ namespace DELTation.AAAARP.Debugging
         MeshLOD,
     }
 
+    [GenerateHLSL]
+    public enum AAAAGBufferDebugMode
+    {
+        None,
+        Depth,
+        Albedo,
+        Normals,
+    }
+
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData
     {
         public AAAAVisibilityBufferDebugMode VisibilityBufferDebugMode { get; private set; }
@@ -27,10 +38,14 @@ namespace DELTation.AAAARP.Debugging
         public bool OverrideFullScreenTriangleBudget { get; private set; }
         public int FullScreenTriangleBudget { get; private set; } = AAAAMeshLODSettings.DefaultFullScreenTriangleBudget;
 
+        public AAAAGBufferDebugMode GBufferDebugMode { get; private set; }
+        public Vector2 GBufferDebugDepthRemap { get; private set; } = new(0.1f, 50f);
+
         public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
                                             ForceCullingFromMainCamera ||
                                             MeshLODBias != 0 ||
-                                            OverrideFullScreenTriangleBudget;
+                                            OverrideFullScreenTriangleBudget ||
+                                            GBufferDebugMode != AAAAGBufferDebugMode.None;
 
         public IDebugDisplaySettingsPanelDisposable CreatePanel() => new SettingsPanel(this);
 
@@ -52,87 +67,147 @@ namespace DELTation.AAAARP.Debugging
             public SettingsPanel(AAAADebugDisplaySettingsRendering data)
                 : base(data)
             {
-                AddWidget(new DebugUI.Foldout
+                AddWidget(VisibilityBuffer.WidgetFactory.CreateFoldout(this));
+                AddWidget(GBuffer.WidgetFactory.CreateFoldout(this));
+            }
+
+            private static class VisibilityBuffer
+            {
+                private static class Strings
+                {
+                    public static readonly DebugUI.Widget.NameAndTooltip DebugMode = new()
+                        { name = "Debug Mode", tooltip = "The mode of visibility buffer debug display." };
+                    public static readonly DebugUI.Widget.NameAndTooltip ForceCullingFromMainCamera = new()
+                        { name = "Force Culling From Main Camera", tooltip = "Pass the main camera's data for GPU culling." };
+                    public static readonly DebugUI.Widget.NameAndTooltip MeshLODBias = new()
+                        { name = "Mesh LOD Bias", tooltip = "Extra bias for mesh LOD selection." };
+                    public static readonly DebugUI.Widget.NameAndTooltip OverrideFullScreenTriangleBudget = new()
+                        { name = "Override Full Screen Triangle Budget" };
+                    public static readonly DebugUI.Widget.NameAndTooltip FullScreenTriangleBudget = new()
+                        { name = "Budget" };
+                }
+
+                public static class WidgetFactory
+                {
+                    public static DebugUI.Widget CreateFoldout(SettingsPanel panel) =>
+                        new DebugUI.Foldout
+                        {
+                            displayName = "Visibility Buffer",
+                            flags = DebugUI.Flags.FrequentlyUsed,
+                            isHeader = true,
+                            opened = true,
+                            children =
+                            {
+                                CreateVisibilityBufferDebugMode(panel),
+                                CreateForceCullingFrustumOfMainCamera(panel),
+                                CreateMeshLODBias(panel),
+                                CreateOverrideFullScreenTriangleBudget(panel),
+                                CreateFullScreenTriangleBudget(panel),
+                            },
+                        };
+
+                    private static DebugUI.Widget CreateVisibilityBufferDebugMode(SettingsPanel panel) => new DebugUI.EnumField
                     {
-                        displayName = "Rendering Debug",
-                        flags = DebugUI.Flags.FrequentlyUsed,
-                        isHeader = true,
-                        opened = true,
+                        nameAndTooltip = Strings.DebugMode,
+                        autoEnum = typeof(AAAAVisibilityBufferDebugMode),
+                        getter = () => (int) panel.data.VisibilityBufferDebugMode,
+                        setter = value => panel.data.VisibilityBufferDebugMode = (AAAAVisibilityBufferDebugMode) value,
+                        getIndex = () => (int) panel.data.VisibilityBufferDebugMode,
+                        setIndex = value => panel.data.VisibilityBufferDebugMode = (AAAAVisibilityBufferDebugMode) value,
+                    };
+
+                    private static DebugUI.Widget CreateForceCullingFrustumOfMainCamera(SettingsPanel panel) => new DebugUI.BoolField
+                    {
+                        nameAndTooltip = Strings.ForceCullingFromMainCamera,
+                        getter = () => panel.data.ForceCullingFromMainCamera,
+                        setter = value => panel.data.ForceCullingFromMainCamera = value,
+                    };
+
+                    private static DebugUI.Widget CreateMeshLODBias(SettingsPanel panel) => new DebugUI.FloatField
+                    {
+                        nameAndTooltip = Strings.MeshLODBias,
+                        getter = () => panel.data.MeshLODBias,
+                        setter = value => panel.data.MeshLODBias = value,
+                        min = () => -(float) AAAAMeshletConfiguration.LodCount,
+                        max = () => (float) AAAAMeshletConfiguration.LodCount - 1,
+                    };
+
+                    private static DebugUI.Widget CreateOverrideFullScreenTriangleBudget(SettingsPanel panel) => new DebugUI.BoolField
+                    {
+                        nameAndTooltip = Strings.OverrideFullScreenTriangleBudget,
+                        getter = () => panel.data.OverrideFullScreenTriangleBudget,
+                        setter = value => panel.data.OverrideFullScreenTriangleBudget = value,
+                    };
+
+                    private static DebugUI.Widget CreateFullScreenTriangleBudget(SettingsPanel panel) => new DebugUI.Container
+                    {
                         children =
                         {
-                            WidgetFactory.CreateVisibilityBufferDebugMode(this),
-                            WidgetFactory.CreateForceCullingFrustumOfMainCamera(this),
-                            WidgetFactory.CreateMeshLODBias(this),
-                            WidgetFactory.CreateOverrideFullScreenTriangleBudget(this),
-                            WidgetFactory.CreateFullScreenTriangleBudget(this),
+                            new DebugUI.IntField
+                            {
+                                nameAndTooltip = Strings.FullScreenTriangleBudget,
+                                getter = () => panel.data.FullScreenTriangleBudget,
+                                setter = value => panel.data.FullScreenTriangleBudget = value,
+                                min = () => 0,
+                                isHiddenCallback = () => !panel.data.OverrideFullScreenTriangleBudget,
+                            },
                         },
-                    }
-                );
+                    };
+                }
             }
 
-            private static class Strings
+            private static class GBuffer
             {
-                public static readonly DebugUI.Widget.NameAndTooltip VisibilityBufferDebugMode = new()
-                    { name = "Visibility Buffer Debug Mode", tooltip = "The mode of visibility buffer debug display." };
-                public static readonly DebugUI.Widget.NameAndTooltip ForceCullingFromMainCamera = new()
-                    { name = "Force Culling From Main Camera", tooltip = "Pass the main camera's data for GPU culling." };
-                public static readonly DebugUI.Widget.NameAndTooltip MeshLODBias = new()
-                    { name = "Mesh LOD Bias", tooltip = "Extra bias for mesh LOD selection." };
-                public static readonly DebugUI.Widget.NameAndTooltip OverrideFullScreenTriangleBudget = new()
-                    { name = "Override Full Screen Triangle Budget" };
-                public static readonly DebugUI.Widget.NameAndTooltip FullScreenTriangleBudget = new()
-                    { name = "Budget" };
-            }
-
-            private static class WidgetFactory
-            {
-                internal static DebugUI.Widget CreateVisibilityBufferDebugMode(SettingsPanel panel) => new DebugUI.EnumField
+                private static class Strings
                 {
-                    nameAndTooltip = Strings.VisibilityBufferDebugMode,
-                    autoEnum = typeof(AAAAVisibilityBufferDebugMode),
-                    getter = () => (int) panel.data.VisibilityBufferDebugMode,
-                    setter = value => panel.data.VisibilityBufferDebugMode = (AAAAVisibilityBufferDebugMode) value,
-                    getIndex = () => (int) panel.data.VisibilityBufferDebugMode,
-                    setIndex = value => panel.data.VisibilityBufferDebugMode = (AAAAVisibilityBufferDebugMode) value,
-                };
+                    public static readonly DebugUI.Widget.NameAndTooltip DebugMode = new()
+                        { name = "Debug Mode", tooltip = "The mode of GBuffer debug display." };
+                    public static readonly DebugUI.Widget.NameAndTooltip DepthRemap = new()
+                        { name = "Depth Remap", tooltip = "Range of displayed depth buffer values." };
+                }
 
-                internal static DebugUI.Widget CreateForceCullingFrustumOfMainCamera(SettingsPanel panel) => new DebugUI.BoolField
+                public static class WidgetFactory
                 {
-                    nameAndTooltip = Strings.ForceCullingFromMainCamera,
-                    getter = () => panel.data.ForceCullingFromMainCamera,
-                    setter = value => panel.data.ForceCullingFromMainCamera = value,
-                };
-
-                internal static DebugUI.Widget CreateMeshLODBias(SettingsPanel panel) => new DebugUI.FloatField
-                {
-                    nameAndTooltip = Strings.MeshLODBias,
-                    getter = () => panel.data.MeshLODBias,
-                    setter = value => panel.data.MeshLODBias = value,
-                    min = () => -(float) AAAAMeshletConfiguration.LodCount,
-                    max = () => (float) AAAAMeshletConfiguration.LodCount - 1,
-                };
-
-                internal static DebugUI.Widget CreateOverrideFullScreenTriangleBudget(SettingsPanel panel) => new DebugUI.BoolField
-                {
-                    nameAndTooltip = Strings.OverrideFullScreenTriangleBudget,
-                    getter = () => panel.data.OverrideFullScreenTriangleBudget,
-                    setter = value => panel.data.OverrideFullScreenTriangleBudget = value,
-                };
-
-                internal static DebugUI.Widget CreateFullScreenTriangleBudget(SettingsPanel panel) => new DebugUI.Container
-                {
-                    children =
-                    {
-                        new DebugUI.IntField
+                    public static DebugUI.Widget CreateFoldout(SettingsPanel panel) =>
+                        new DebugUI.Foldout
                         {
-                            nameAndTooltip = Strings.FullScreenTriangleBudget,
-                            getter = () => panel.data.FullScreenTriangleBudget,
-                            setter = value => panel.data.FullScreenTriangleBudget = value,
-                            min = () => 0,
-                            isHiddenCallback = () => !panel.data.OverrideFullScreenTriangleBudget,
+                            displayName = "GBuffer",
+                            flags = DebugUI.Flags.FrequentlyUsed,
+                            isHeader = true,
+                            opened = true,
+                            children =
+                            {
+                                CreateGBufferDebugMode(panel),
+                                CreateDepthRemap(panel),
+                            },
+                        };
+
+                    private static DebugUI.Widget CreateGBufferDebugMode(SettingsPanel panel) => new DebugUI.EnumField
+                    {
+                        nameAndTooltip = Strings.DebugMode,
+                        autoEnum = typeof(AAAAGBufferDebugMode),
+                        getter = () => (int) panel.data.GBufferDebugMode,
+                        setter = value => panel.data.GBufferDebugMode = (AAAAGBufferDebugMode) value,
+                        getIndex = () => (int) panel.data.GBufferDebugMode,
+                        setIndex = value => panel.data.GBufferDebugMode = (AAAAGBufferDebugMode) value,
+                    };
+
+                    private static DebugUI.Widget CreateDepthRemap(SettingsPanel panel) => new DebugUI.Vector2Field
+                    {
+                        nameAndTooltip = Strings.DepthRemap,
+                        getter = () => panel.data.GBufferDebugDepthRemap,
+                        setter = value => panel.data.GBufferDebugDepthRemap = value,
+                        isHiddenCallback = () => panel.data.GBufferDebugMode != AAAAGBufferDebugMode.Depth,
+                        onValueChanged = (field, value) =>
+                        {
+                            Vector2 newValue = math.max(value, 0);
+                            if (value != newValue)
+                            {
+                                field.SetValue(newValue);
+                            }
                         },
-                    },
-                };
+                    };
+                }
             }
         }
     }

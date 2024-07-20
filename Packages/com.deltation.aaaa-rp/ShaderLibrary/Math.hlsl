@@ -3,6 +3,11 @@
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 
+float InverseLerpUnclamped(const float from, const float to, const float value)
+{
+    return (value - from) / (to - from);
+}
+
 #define DEFINE_AGGREGATE_FUNC_8(name, type, func) \
     type name(const type x1, const type x2, const type x3, const type x4, const type x5, const type x6, const type x7, const type x8) \
     {\

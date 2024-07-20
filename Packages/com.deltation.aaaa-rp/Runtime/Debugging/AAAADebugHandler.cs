@@ -12,6 +12,10 @@ namespace DELTation.AAAARP.Debugging
     internal sealed class AAAADebugHandler : IDebugDisplaySettingsQuery, IDisposable
     {
         private readonly AAAARenderPipelineDebugDisplaySettings _debugDisplaySettings = AAAARenderPipelineDebugDisplaySettings.Instance;
+        [CanBeNull]
+        private readonly GBufferDebugPass _gBufferDebugPass;
+
+        [CanBeNull]
         private readonly VisibilityBufferDebugPass _visibilityBufferDebugPass;
 
         public AAAADebugHandler()
@@ -19,6 +23,7 @@ namespace DELTation.AAAARP.Debugging
             if (GraphicsSettings.TryGetRenderPipelineSettings(out AAAARenderPipelineDebugShaders shaders))
             {
                 _visibilityBufferDebugPass = new VisibilityBufferDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, shaders, _debugDisplaySettings);
+                _gBufferDebugPass = new GBufferDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, shaders, _debugDisplaySettings);
             }
         }
 
@@ -26,7 +31,7 @@ namespace DELTation.AAAARP.Debugging
 
         public void Dispose()
         {
-            _visibilityBufferDebugPass.Dispose();
+            _visibilityBufferDebugPass?.Dispose();
         }
 
         [CanBeNull] public Camera GetGPUCullingCameraOverride()
@@ -47,9 +52,16 @@ namespace DELTation.AAAARP.Debugging
 
         public void Setup(AAAARendererBase renderer, RenderGraph renderGraph, ScriptableRenderContext context)
         {
-            if (_debugDisplaySettings.RenderingSettings.GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None)
+            if (_visibilityBufferDebugPass != null &&
+                _debugDisplaySettings.RenderingSettings.GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None)
             {
                 renderer.EnqueuePass(_visibilityBufferDebugPass);
+            }
+
+            if (_gBufferDebugPass != null &&
+                _debugDisplaySettings.RenderingSettings.GBufferDebugMode != AAAAGBufferDebugMode.None)
+            {
+                renderer.EnqueuePass(_gBufferDebugPass);
             }
         }
     }

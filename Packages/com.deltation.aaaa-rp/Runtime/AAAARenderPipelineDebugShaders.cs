@@ -17,10 +17,20 @@ namespace DELTation.AAAARP
         [ResourcePath("Shaders/Debugging/VisibilityBufferDebug.shader")]
         private Shader _visibilityBufferDebugPS;
 
+        [SerializeField]
+        [ResourcePath("Shaders/Debugging/GBufferDebug.shader")]
+        private Shader _gBufferDebugPS;
+
         public Shader VisibilityBufferDebugPS
         {
             get => _visibilityBufferDebugPS;
             set => this.SetValueAndNotify(ref _visibilityBufferDebugPS, value, nameof(_visibilityBufferDebugPS));
+        }
+
+        public Shader GBufferDebugPS
+        {
+            get => _gBufferDebugPS;
+            set => this.SetValueAndNotify(ref _gBufferDebugPS, value, nameof(_gBufferDebugPS));
         }
 
         public int version => _version;

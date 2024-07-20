@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Passes;
+using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -65,7 +66,7 @@ namespace DELTation.AAAARP
 
         protected virtual void Dispose(bool disposing) { }
 
-        internal void EnqueuePass(AAAARenderPassBase pass)
+        internal void EnqueuePass([NotNull] AAAARenderPassBase pass)
         {
             _activeRenderPassQueue.Add(pass);
         }
