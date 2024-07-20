@@ -92,8 +92,8 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             );
         }
 
-        public static unsafe MeshletBuildResults SimplifyMeshletCluster(Allocator allocator,
-            MeshletBuildResults meshletCluster,
+        public static unsafe MeshletBuildResults SimplifyMeshlets(Allocator allocator,
+            NativeArray<MeshletBuildResults> meshletGroups,
             NativeArray<float> vertices, uint vertexPositionOffset, uint vertexPositionsStride,
             in MeshletGenerationParams meshletGenerationParams
         )
@@ -103,34 +103,37 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
 
             byte* pVertexPositionsBytes = (byte*) vertices.GetUnsafeReadOnlyPtr() + vertexPositionOffset;
 
-            foreach (meshopt_Meshlet meshlet in meshletCluster.Meshlets)
+            foreach (MeshletBuildResults group in meshletGroups)
             {
-                int localOffset = localVertices.Length;
-
-                for (uint v = 0; v < meshlet.VertexCount; v++)
+                foreach (meshopt_Meshlet meshlet in group.Meshlets)
                 {
-                    uint globalIndex = meshletCluster.Vertices[(int) (meshlet.VertexOffset + v)];
-                    localVertices.Add(new ClusterVertex
-                        {
-                            Position = *(float3*) (pVertexPositionsBytes + globalIndex * vertexPositionsStride),
-                            Index = globalIndex,
-                        }
-                    );
-                }
+                    int localOffset = localVertices.Length;
 
-                for (uint t = 0; t < meshlet.TriangleCount; t++)
-                {
-                    localIndices.Add((uint) (localOffset + meshletCluster.Indices[(int) (meshlet.TriangleOffset + t * 3 + 0)]));
-                    localIndices.Add((uint) (localOffset + meshletCluster.Indices[(int) (meshlet.TriangleOffset + t * 3 + 1)]));
-                    localIndices.Add((uint) (localOffset + meshletCluster.Indices[(int) (meshlet.TriangleOffset + t * 3 + 2)]));
+                    for (uint v = 0; v < meshlet.VertexCount; v++)
+                    {
+                        uint globalIndex = group.Vertices[(int) (meshlet.VertexOffset + v)];
+                        localVertices.Add(new ClusterVertex
+                            {
+                                Position = *(float3*) (pVertexPositionsBytes + globalIndex * vertexPositionsStride),
+                                Index = globalIndex,
+                            }
+                        );
+                    }
+
+                    for (uint t = 0; t < meshlet.TriangleCount; t++)
+                    {
+                        localIndices.Add((uint) (localOffset + group.Indices[(int) (meshlet.TriangleOffset + t * 3 + 0)]));
+                        localIndices.Add((uint) (localOffset + group.Indices[(int) (meshlet.TriangleOffset + t * 3 + 1)]));
+                        localIndices.Add((uint) (localOffset + group.Indices[(int) (meshlet.TriangleOffset + t * 3 + 2)]));
+                    }
                 }
             }
 
             // ReSharper disable once PossibleLossOfFraction
-            int targetIndexCount = (int) (localIndices.Length / 3 * 0.5 * 3);
+            int targetIndexCount = (int) (localIndices.Length / 3 * 0.5f * 3);
             int simplifiedIndexCount = (int) meshopt_simplify(localIndices.GetUnsafePtr(), localIndices.GetUnsafePtr(), (nuint) localIndices.Length,
                 (float*) localVertices.GetUnsafePtr(), (nuint) localVertices.Length, (nuint) UnsafeUtility.SizeOf<ClusterVertex>(), (nuint) targetIndexCount,
-                1e-2f, (uint) (meshopt_SimplifyOptions.LockBorder | meshopt_SimplifyOptions.Sparse)
+                1e-1f, (uint) (meshopt_SimplifyOptions.LockBorder | meshopt_SimplifyOptions.Sparse)
             );
             localIndices.Length = simplifiedIndexCount;
 
