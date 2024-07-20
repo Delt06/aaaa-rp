@@ -23,6 +23,8 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
         public Mesh Mesh;
         public bool OptimizeIndexing;
+        public bool OptimizeVertexCache;
+        public bool MeshletSpatialSort;
         [Min(0)]
         public int SimplificationSteps;
 
@@ -50,12 +52,15 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 if (data.indexFormat == IndexFormat.UInt16)
                 {
                     NativeArray<ushort> indexDataU16 = data.GetIndexData<ushort>();
-                    indexDataU32 = CastIndices16To32(indexDataU16);
+                    indexDataU32 = CastIndices16To32(indexDataU16, Allocator.TempJob);
                     indexDataU16.Dispose();
                 }
                 else
                 {
-                    indexDataU32 = data.GetIndexData<uint>();
+                    NativeArray<uint> indexData = data.GetIndexData<uint>();
+                    indexDataU32 = new NativeArray<uint>(indexData.Length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+                    indexDataU32.CopyFrom(indexData);
+                    indexData.Dispose();
                 }
 
                 int uvStream = data.GetVertexAttributeStream(VertexAttribute.TexCoord0);
@@ -64,7 +69,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 byte* pVerticesUV = uvVertexData.IsCreated ? (byte*) uvVertexData.GetUnsafeReadOnlyPtr() : null;
                 int vertexUVOffset = data.GetVertexAttributeOffset(VertexAttribute.TexCoord0);
 
-                int vertexCount = data.vertexCount;
+                uint vertexCount = (uint) data.vertexCount;
 
                 if (OptimizeIndexing)
                 {
@@ -104,7 +109,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     indexDataU32.Dispose();
                     indexDataU32 = copiedIndices;
 
-                    int newVertexCount = AAAAMeshOptimizer.OptimizeIndexingInPlace(vertexCount, indexDataU32, streams.AsArray());
+                    uint newVertexCount = AAAAMeshOptimizer.OptimizeIndexingInPlace(vertexCount, indexDataU32, streams.AsArray());
                     vertexCount = newVertexCount;
 
                     vertexData = vertexData.GetSubArray(0, (int) (newVertexCount * (vertexBufferStride / sizeof(float))));
@@ -115,9 +120,12 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     }
                 }
 
-                NativeArray<uint> sourceIndices = indexDataU32;
-                indexDataU32 = AAAAMeshOptimizer.OptimizeVertexCache(Allocator.TempJob, sourceIndices, (uint) vertexCount);
-                sourceIndices.Dispose();
+                if (OptimizeVertexCache)
+                {
+                    NativeArray<uint> sourceIndices = indexDataU32;
+                    indexDataU32 = AAAAMeshOptimizer.OptimizeVertexCache(Allocator.TempJob, sourceIndices, vertexCount);
+                    sourceIndices.Dispose();
+                }
 
                 AAAAMeshOptimizer.MeshletGenerationParams meshletGenerationParams = AAAAMeshletCollectionAsset.MeshletGenerationParams;
                 const Allocator allocator = Allocator.Temp;
@@ -125,6 +133,10 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     vertexData, vertexPositionOffset, vertexBufferStride, indexDataU32,
                     meshletGenerationParams
                 );
+                if (MeshletSpatialSort)
+                {
+                    SpatialMeshletSort(ref mainMeshletBuildResults, vertexData, vertexPositionOffset, vertexBufferStride);
+                }
 
                 for (int i = 0; i < SimplificationSteps; i++)
                 {
@@ -133,6 +145,12 @@ namespace DELTation.AAAARP.Editor.Meshlets
                         vertexData, vertexPositionOffset, vertexBufferStride,
                         meshletGenerationParams
                     );
+
+                    if (MeshletSpatialSort)
+                    {
+                        SpatialMeshletSort(ref clusterMeshletBuildResults, vertexData, vertexPositionOffset, vertexBufferStride);
+                    }
+
                     mainMeshletBuildResults.Dispose();
                     mainMeshletBuildResults = clusterMeshletBuildResults;
                 }
@@ -153,6 +171,11 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     {
                         thisLodMeshlets.Dispose();
                         break;
+                    }
+
+                    if (MeshletSpatialSort)
+                    {
+                        SpatialMeshletSort(ref thisLodMeshlets, vertexData, vertexPositionOffset, vertexBufferStride);
                     }
 
                     lodMeshlets.Add(thisLodMeshlets);
@@ -258,9 +281,28 @@ namespace DELTation.AAAARP.Editor.Meshlets
             ctx.SetMainObject(meshletCollection);
         }
 
-        private static NativeArray<uint> CastIndices16To32(NativeArray<ushort> indices)
+        private unsafe void SpatialMeshletSort(ref AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults, NativeArray<float> vertexData,
+            uint vertexPositionOffset, uint vertexPositionStride)
         {
-            var result = new NativeArray<uint>(indices.Length, Allocator.Temp);
+            int meshletCount = meshletBuildResults.Meshlets.Length;
+            var sortPositions = new NativeArray<float3>(meshletCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+
+
+            for (int meshletIndex = 0; meshletIndex < meshletCount; meshletIndex++)
+            {
+                meshopt_Bounds meshoptBounds =
+                    AAAAMeshOptimizer.ComputeMeshletBounds(meshletBuildResults, meshletIndex, vertexData, vertexPositionOffset, vertexPositionStride);
+                sortPositions[meshletIndex] = *(float3*) meshoptBounds.Center;
+            }
+
+            NativeArray<meshopt_Meshlet> sortedMeshlets = AAAAMeshOptimizer.SpatialSort(meshletBuildResults.Meshlets, sortPositions, Allocator.TempJob);
+            meshletBuildResults.Meshlets.Dispose();
+            meshletBuildResults.Meshlets = sortedMeshlets;
+        }
+
+        private static NativeArray<uint> CastIndices16To32(NativeArray<ushort> indices, Allocator allocator)
+        {
+            var result = new NativeArray<uint>(indices.Length, allocator);
             for (int i = 0; i < indices.Length; i++)
             {
                 result[i] = indices[i];

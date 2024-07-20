@@ -37,6 +37,13 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
 
         [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern void meshopt_remapIndexBuffer(uint* destination, uint* indices, nuint indexCount, uint* remap);
+
+        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        public static extern void meshopt_spatialSortTriangles(uint* destination, uint* indices, nuint indexCount, float* vertexPositions, nuint vertexCount,
+            nuint vertexPositionsStride);
+
+        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        public static extern void meshopt_spatialSortRemap(uint* destination, float* vertexPositions, nuint vertexCount, nuint vertexPositionsStride);
     }
 
     [StructLayout(LayoutKind.Sequential)]

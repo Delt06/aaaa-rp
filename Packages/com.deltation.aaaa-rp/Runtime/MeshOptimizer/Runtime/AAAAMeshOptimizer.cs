@@ -19,16 +19,16 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             return result;
         }
 
-        public static unsafe int OptimizeIndexingInPlace(int vertexCount, NativeArray<uint> indices, NativeArray<meshopt_Stream> streams)
+        public static unsafe uint OptimizeIndexingInPlace(uint vertexCount, NativeArray<uint> indices, NativeArray<meshopt_Stream> streams)
         {
-            var remap = new NativeArray<uint>(vertexCount, Allocator.Temp);
+            var remap = new NativeArray<uint>((int) vertexCount, Allocator.Temp);
             nuint uniqueVertices = meshopt_generateVertexRemapMulti
             ((uint*) remap.GetUnsafePtr(),
-                (uint*) indices.GetUnsafeReadOnlyPtr(), (nuint) indices.Length, (nuint) vertexCount,
+                (uint*) indices.GetUnsafeReadOnlyPtr(), (nuint) indices.Length, vertexCount,
                 (meshopt_Stream*) streams.GetUnsafeReadOnlyPtr(), (nuint) streams.Length
             );
 
-            Assert.IsTrue(uniqueVertices <= (nuint) vertexCount);
+            Assert.IsTrue(uniqueVertices <= vertexCount);
 
             meshopt_remapIndexBuffer((uint*) indices.GetUnsafePtr(), (uint*) indices.GetUnsafePtr(), (nuint) indices.Length, (uint*) remap.GetUnsafePtr());
 
@@ -36,10 +36,10 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             {
                 ref meshopt_Stream stream = ref streams.ElementAtRef(index);
 
-                meshopt_remapVertexBuffer(stream.data, stream.data, (nuint) vertexCount, stream.stride, (uint*) remap.GetUnsafePtr());
+                meshopt_remapVertexBuffer(stream.data, stream.data, vertexCount, stream.stride, (uint*) remap.GetUnsafePtr());
             }
 
-            return (int) uniqueVertices;
+            return (uint) uniqueVertices;
         }
 
         public static unsafe MeshletBuildResults BuildMeshlets(Allocator allocator, NativeArray<float> vertices, uint vertexPositionOffset,
@@ -144,6 +144,40 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             return BuildMeshlets(allocator, vertices, vertexPositionOffset, vertexPositionsStride, globalIndices.AsArray(), meshletGenerationParams);
         }
 
+        public static unsafe void SpatialSortTrianglesInPlace(NativeArray<uint> indices, NativeArray<float> vertices, uint vertexCount,
+            uint vertexPositionOffset,
+            uint vertexPositionsStride)
+        {
+            uint* pIndices = (uint*) indices.GetUnsafePtr();
+            float* pVertexPositions = (float*) ((byte*) vertices.GetUnsafeReadOnlyPtr() + vertexPositionOffset);
+            meshopt_spatialSortTriangles(pIndices, pIndices, (nuint) indices.Length, pVertexPositions, vertexCount, vertexPositionsStride);
+        }
+
+        public static unsafe NativeArray<T> SpatialSort<T>(NativeArray<T> items, NativeArray<float3> sortPositions, Allocator allocator) where T : struct
+        {
+            Assert.IsTrue(items.Length == sortPositions.Length);
+
+            int itemsCount = items.Length;
+
+            var remap = new NativeArray<uint>(itemsCount, Allocator.Temp);
+            meshopt_spatialSortRemap((uint*) remap.GetUnsafePtr(), (float*) sortPositions.GetUnsafePtr(), (nuint) itemsCount,
+                (nuint) UnsafeUtility.SizeOf<float3>()
+            );
+
+            var sortedItems = new NativeArray<T>(itemsCount, allocator);
+
+            for (int i = 0; i < itemsCount; i++)
+            {
+                uint remapIndex = remap[i];
+                if (remapIndex != ~0u)
+                {
+                    sortedItems.ElementAtRef((int) remapIndex) = items[i];
+                }
+            }
+
+            return sortedItems;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private struct ClusterVertex
         {
@@ -170,14 +204,6 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             {
                 Dispose(default);
             }
-
-            public MeshletBuildResults MeshletSubArray(int startIndex, int count) =>
-                new()
-                {
-                    Meshlets = Meshlets.GetSubArray(startIndex, count),
-                    Vertices = Vertices,
-                    Indices = Indices,
-                };
         }
 
         public struct MeshletGenerationParams
