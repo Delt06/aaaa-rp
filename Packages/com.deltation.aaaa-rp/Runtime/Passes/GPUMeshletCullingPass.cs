@@ -9,24 +9,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class GPUMeshletCullingPassData : PassDataBase
-    {
-
-        public readonly Vector4[] FrustumPlanes = new Vector4[6];
-        public Vector4 CameraPosition;
-        public Matrix4x4 CameraViewProjectionMatrix;
-        public BufferHandle CullingIndirectDispatchArgsBuffer;
-
-        public BufferHandle DestinationMeshletsBuffer;
-        public BufferHandle DestinationMeshletsCounterBuffer;
-        public BufferHandle IndirectDrawArgsBuffer;
-
-        public BufferHandle InitialMeshletListBuffer;
-        public BufferHandle InitialMeshletListCounterBuffer;
-        public int InstanceCount;
-    }
-
-    public class GPUMeshletCullingPass : AAAARenderPass<GPUMeshletCullingPassData>
+    public class GPUMeshletCullingPass : AAAARenderPass<GPUMeshletCullingPass.PassData>
     {
         private readonly ComputeShader _fixupGPUMeshletCullingIndirectDispatchArgsCS;
         private readonly ComputeShader _fixupMeshletIndirectDrawArgsCS;
@@ -48,7 +31,7 @@ namespace DELTation.AAAARP.Passes
 
         public override string Name => "GPUMeshletCulling";
 
-        protected override void Setup(RenderGraphBuilder builder, GPUMeshletCullingPassData passData, ContextContainer frameData)
+        protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAAVisibilityBufferContainer visibilityBufferContainer = renderingData.VisibilityBufferContainer;
@@ -103,7 +86,7 @@ namespace DELTation.AAAARP.Passes
                 name = name,
             };
 
-        protected override void Render(GPUMeshletCullingPassData data, RenderGraphContext context)
+        protected override void Render(PassData data, RenderGraphContext context)
         {
             if (data.InstanceCount == 0)
             {
@@ -188,6 +171,22 @@ namespace DELTation.AAAARP.Passes
                 );
                 context.cmd.DispatchCompute(_fixupMeshletIndirectDrawArgsCS, kernelIndex, 1, 1, 1);
             }
+        }
+
+        public class PassData : PassDataBase
+        {
+            public readonly Vector4[] FrustumPlanes = new Vector4[6];
+            public Vector4 CameraPosition;
+            public Matrix4x4 CameraViewProjectionMatrix;
+            public BufferHandle CullingIndirectDispatchArgsBuffer;
+
+            public BufferHandle DestinationMeshletsBuffer;
+            public BufferHandle DestinationMeshletsCounterBuffer;
+            public BufferHandle IndirectDrawArgsBuffer;
+
+            public BufferHandle InitialMeshletListBuffer;
+            public BufferHandle InitialMeshletListCounterBuffer;
+            public int InstanceCount;
         }
 
         private static class Profiling

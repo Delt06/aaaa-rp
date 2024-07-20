@@ -6,9 +6,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class ResolveVisibilityBufferPassData : PassDataBase { }
-
-    public class ResolveVisibilityBufferPass : AAAARasterRenderPass<ResolveVisibilityBufferPassData>, IDisposable
+    public class ResolveVisibilityBufferPass : AAAARasterRenderPass<ResolveVisibilityBufferPass.PassData>, IDisposable
     {
         private readonly Material _material;
 
@@ -22,7 +20,7 @@ namespace DELTation.AAAARP.Passes
             CoreUtils.Destroy(_material);
         }
 
-        protected override void Setup(IRasterRenderGraphBuilder builder, ResolveVisibilityBufferPassData passData, ContextContainer frameData)
+        protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
 
@@ -35,11 +33,13 @@ namespace DELTation.AAAARP.Passes
             builder.SetGlobalTextureAfterPass(resourceData.GBufferNormals, AAAAResourceData.ShaderPropertyID._GBuffer_Normals);
         }
 
-        protected override void Render(ResolveVisibilityBufferPassData data, RasterGraphContext context)
+        protected override void Render(PassData data, RasterGraphContext context)
         {
             var scaleBias = new Vector4(1, 1, 0, 0);
             const int pass = 0;
             Blitter.BlitTexture(context.cmd, scaleBias, _material, pass);
         }
+
+        public class PassData : PassDataBase { }
     }
 }

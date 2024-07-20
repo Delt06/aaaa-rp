@@ -5,20 +5,13 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class FinalBlitPassData : PassDataBase
-    {
-        public AAAACameraData CameraData;
-        public TextureHandle Destination;
-        public TextureHandle Source;
-    }
-
-    public class FinalBlitPass : AAAARasterRenderPass<FinalBlitPassData>
+    public class FinalBlitPass : AAAARasterRenderPass<FinalBlitPass.PassData>
     {
         public FinalBlitPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
 
         public override string Name => "FinalBlit";
 
-        protected override void Setup(IRasterRenderGraphBuilder builder, FinalBlitPassData passData, ContextContainer frameData)
+        protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             passData.CameraData = frameData.Get<AAAACameraData>();
@@ -29,7 +22,7 @@ namespace DELTation.AAAARP.Passes
             builder.SetRenderAttachment(passData.Destination, 0, AccessFlags.Write);
         }
 
-        protected override void Render(FinalBlitPassData data, RasterGraphContext context)
+        protected override void Render(PassData data, RasterGraphContext context)
         {
             var source = (RTHandle) data.Source;
             var destination = (RTHandle) data.Destination;
@@ -44,6 +37,13 @@ namespace DELTation.AAAARP.Passes
             const float mipLevel = 0;
             const bool bilinear = true;
             Blitter.BlitTexture(context.cmd, data.Source, scaleBias, mipLevel, bilinear);
+        }
+
+        public class PassData : PassDataBase
+        {
+            public AAAACameraData CameraData;
+            public TextureHandle Destination;
+            public TextureHandle Source;
         }
     }
 }

@@ -55,25 +55,6 @@ Shader "Hidden/AAAA/VisibilityBufferDebug"
 
             uint _VisibilityBufferDebugMode;
 
-            float InverseLerpUnclamped(const float a, const float b, const float v)
-            {
-                #pragma warning (disable : 4008) // Suppress the division by zero warning
-                return (v - a) / (b - a);
-                #pragma warning (restore : 4008)
-            }
-
-            float InverseLerpClamped(const float a, const float b, const float v)
-            {
-                return saturate(InverseLerpUnclamped(a, b, v));
-            }
-            
-            // https://www.ronja-tutorials.com/post/046-fwidth/
-            float StepAntiAliased(const float edge, const float value, const float fwidthValue)
-            {
-                const float halfChange = fwidthValue * 0.5f;
-                return InverseLerpClamped(edge - halfChange, edge + halfChange, value);
-            }
-
             float4 Frag(const Varyings IN) : SV_Target
             {
                 const uint2 visibilityBufferPacked = SampleVisibilityBuffer(IN.texcoord);

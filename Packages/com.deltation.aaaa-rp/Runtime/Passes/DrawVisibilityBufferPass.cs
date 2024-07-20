@@ -4,18 +4,13 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class DrawVisibilityBufferPassData : PassDataBase
-    {
-        public RendererListHandle RendererListHandle;
-    }
-
-    public class DrawVisibilityBufferPass : AAAARasterRenderPass<DrawVisibilityBufferPassData>
+    public class DrawVisibilityBufferPass : AAAARasterRenderPass<DrawVisibilityBufferPass.PassData>
     {
         public DrawVisibilityBufferPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
 
         public override string Name => "DrawVisibilityBuffer";
 
-        protected override void Setup(IRasterRenderGraphBuilder builder, DrawVisibilityBufferPassData passData, ContextContainer frameData)
+        protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAARendererListData rendererListData = frameData.Get<AAAARendererListData>();
@@ -28,9 +23,14 @@ namespace DELTation.AAAARP.Passes
             builder.SetGlobalTextureAfterPass(resourceData.VisibilityBuffer, AAAAResourceData.ShaderPropertyID._VisibilityBuffer);
         }
 
-        protected override void Render(DrawVisibilityBufferPassData data, RasterGraphContext context)
+        protected override void Render(PassData data, RasterGraphContext context)
         {
             context.cmd.DrawRendererList(data.RendererListHandle);
+        }
+
+        public class PassData : PassDataBase
+        {
+            public RendererListHandle RendererListHandle;
         }
     }
 }

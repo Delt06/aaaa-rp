@@ -6,9 +6,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class DeferredLightingPassData : PassDataBase { }
-
-    public class DeferredLightingPass : AAAARasterRenderPass<DeferredLightingPassData>, IDisposable
+    public class DeferredLightingPass : AAAARasterRenderPass<DeferredLightingPass.PassData>, IDisposable
     {
         private readonly Material _material;
 
@@ -22,7 +20,7 @@ namespace DELTation.AAAARP.Passes
             CoreUtils.Destroy(_material);
         }
 
-        protected override void Setup(IRasterRenderGraphBuilder builder, DeferredLightingPassData passData, ContextContainer frameData)
+        protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
 
@@ -31,11 +29,13 @@ namespace DELTation.AAAARP.Passes
             builder.SetRenderAttachment(resourceData.CameraColorBuffer, 0, AccessFlags.WriteAll);
         }
 
-        protected override void Render(DeferredLightingPassData data, RasterGraphContext context)
+        protected override void Render(PassData data, RasterGraphContext context)
         {
             var scaleBias = new Vector4(1, 1, 0, 0);
             const int pass = 0;
             Blitter.BlitTexture(context.cmd, scaleBias, _material, pass);
         }
+
+        public class PassData : PassDataBase { }
     }
 }

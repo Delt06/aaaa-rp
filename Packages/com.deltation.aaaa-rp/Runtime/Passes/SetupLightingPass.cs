@@ -6,19 +6,13 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class SetupLightingPassData : PassDataBase
-    {
-        public Vector4 MainLightColor;
-        public Vector4 MainLightDirection;
-    }
-
-    public class SetupLightingPass : AAAARenderPass<SetupLightingPassData>
+    public class SetupLightingPass : AAAARenderPass<SetupLightingPass.PassData>
     {
         public SetupLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
 
         public override string Name => "SetupLighting";
 
-        protected override void Setup(RenderGraphBuilder builder, SetupLightingPassData passData, ContextContainer frameData)
+        protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
 
@@ -32,7 +26,7 @@ namespace DELTation.AAAARP.Passes
             }
         }
 
-        protected override void Render(SetupLightingPassData data, RenderGraphContext context)
+        protected override void Render(PassData data, RenderGraphContext context)
         {
             context.cmd.SetGlobalVector(ShaderPropertyID._MainLight_Color, data.MainLightColor);
             context.cmd.SetGlobalVector(ShaderPropertyID._MainLight_Direction, data.MainLightDirection);
@@ -45,6 +39,12 @@ namespace DELTation.AAAARP.Passes
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBg, shCoefficients.SHBg);
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBb, shCoefficients.SHBb);
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHC, shCoefficients.SHC);
+        }
+
+        public class PassData : PassDataBase
+        {
+            public Vector4 MainLightColor;
+            public Vector4 MainLightDirection;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]

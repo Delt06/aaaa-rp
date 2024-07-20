@@ -8,9 +8,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes.Debugging
 {
-    public class VisibilityBufferDebugPassPassData : PassDataBase { }
-
-    public class VisibilityBufferDebugPass : AAAARasterRenderPass<VisibilityBufferDebugPassPassData>, IDisposable
+    public class VisibilityBufferDebugPass : AAAARasterRenderPass<VisibilityBufferDebugPass.PassData>, IDisposable
     {
         private readonly AAAARenderPipelineDebugDisplaySettings _debugDisplaySettings;
         private readonly Material _material;
@@ -29,7 +27,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             CoreUtils.Destroy(_material);
         }
 
-        protected override void Setup(IRasterRenderGraphBuilder builder, VisibilityBufferDebugPassPassData passData, ContextContainer frameData)
+        protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
 
@@ -39,7 +37,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             builder.AllowGlobalStateModification(true);
         }
 
-        protected override void Render(VisibilityBufferDebugPassPassData data, RasterGraphContext context)
+        protected override void Render(PassData data, RasterGraphContext context)
         {
             AAAAVisibilityBufferDebugMode visibilityBufferDebugMode = _debugDisplaySettings.RenderingSettings.GetOverridenVisibilityBufferDebugMode();
             context.cmd.SetGlobalInt(ShaderID._VisibilityBufferDebugMode, (int) visibilityBufferDebugMode);
@@ -48,6 +46,8 @@ namespace DELTation.AAAARP.Passes.Debugging
             const int pass = 0;
             Blitter.BlitTexture(context.cmd, scaleBias, _material, pass);
         }
+
+        public class PassData : PassDataBase { }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static class ShaderID

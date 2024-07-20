@@ -4,18 +4,13 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class SkyboxPassData : PassDataBase
-    {
-        public RendererListHandle RendererList;
-    }
-
-    public class SkyboxPass : AAAARasterRenderPass<SkyboxPassData>
+    public class SkyboxPass : AAAARasterRenderPass<SkyboxPass.PassData>
     {
         public SkyboxPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
 
         public override string Name => "Skybox";
 
-        protected override void Setup(IRasterRenderGraphBuilder builder, SkyboxPassData passData, ContextContainer frameData)
+        protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
@@ -28,9 +23,14 @@ namespace DELTation.AAAARP.Passes
             builder.SetRenderAttachmentDepth(resourceData.CameraDepthBuffer, AccessFlags.ReadWrite);
         }
 
-        protected override void Render(SkyboxPassData data, RasterGraphContext context)
+        protected override void Render(PassData data, RasterGraphContext context)
         {
             context.cmd.DrawRendererList(data.RendererList);
+        }
+
+        public class PassData : PassDataBase
+        {
+            public RendererListHandle RendererList;
         }
     }
 }
