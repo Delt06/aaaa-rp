@@ -38,7 +38,7 @@ InterpolatedUV InterpolateUV(const BarycentricDerivatives barycentric, const AAA
 float4 SampleTextureArray(TEXTURE2D_ARRAY_PARAM(textureArray, textureArraySampler), const InterpolatedUV uv, const uint textureIndex,
                           const float4                                                                   defaultValue)
 {
-    return textureIndex != NO_TEXTURE_INDEX
+    return textureIndex != (uint)NO_TEXTURE_INDEX
                ? SAMPLE_TEXTURE2D_ARRAY_GRAD(textureArray, textureArraySampler, uv.uv, textureIndex, uv.ddx, uv.ddy)
                : defaultValue;
 }
