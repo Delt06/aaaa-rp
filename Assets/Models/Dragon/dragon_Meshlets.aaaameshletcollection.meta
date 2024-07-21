@@ -9,3 +9,6 @@ ScriptedImporter:
   assetBundleVariant: 
   script: {fileID: 11500000, guid: feb54424408e42d8a9f6ef619368278b, type: 3}
   Mesh: {fileID: -6053382344825935911, guid: eb30184986fff5343816a56328cbde51, type: 3}
+  OptimizeIndexing: 0
+  OptimizeVertexCache: 0
+  MaxStepsCount: 2
