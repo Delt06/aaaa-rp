@@ -25,7 +25,8 @@ namespace DELTation.AAAARP.Editor.Meshlets
         public Mesh Mesh;
         public bool OptimizeIndexing;
         public bool OptimizeVertexCache;
-        public int MaxStepsCount;
+        [Min(0)]
+        public int MaxStepsCount = 100;
 
         public override unsafe void OnImportAsset(AssetImportContext ctx)
         {
@@ -544,7 +545,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 {
                     Position = math.float4(*(float3*) (pSourceVertex + VertexPositionOffset), 1),
                     Normal = math.float4(*(float3*) (pSourceVertex + VertexNormalOffset), 0),
-                    Tangent = *(float4*) (pSourceVertex + VertexTangentOffset),
+                    Tangent = VertexTangentOffset != uint.MaxValue ? *(float4*) (pSourceVertex + VertexTangentOffset) : default,
                 };
 
                 if (VerticesUVPtr != null)

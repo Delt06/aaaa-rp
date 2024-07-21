@@ -20,9 +20,9 @@ namespace DELTation.AAAARP.Editor.Meshlets
             if (partitionsCount <= 1)
             {
                 var groups = new NativeArray<NativeList<int>>(1, allocator, NativeArrayOptions.UninitializedMemory);
-                var allNodes = new NativeList<int>(groups.Length, allocator);
+                var allNodes = new NativeList<int>(graphNodeCount, allocator);
 
-                for (int i = 0; i < allNodes.Length; i++)
+                for (int i = 0; i < graphNodeCount; i++)
                 {
                     allNodes.Add(i);
                 }
