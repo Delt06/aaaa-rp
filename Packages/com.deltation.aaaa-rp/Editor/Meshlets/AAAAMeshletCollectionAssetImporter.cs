@@ -230,11 +230,11 @@ namespace DELTation.AAAARP.Editor.Meshlets
                                             AAAAMeshLODNode* pAAAAMeshLODNode = pMeshLODNodes + meshLODNodeWriteOffset;
                                             *pAAAAMeshLODNode = new AAAAMeshLODNode
                                             {
-                                                ChildrenNodeIndices = firstNode.ChildrenNodeIndices + (uint) levelNodeEndIndex,
+                                                // ChildrenNodeIndices = firstNode.ChildrenNodeIndices + (uint) levelNodeEndIndex,
                                                 MeshletStartOffset = (uint) meshletsWriteOffset,
                                                 MeshletCount = (uint) (nodeIndicesRange.y - nodeIndicesRange.x),
                                             };
-                                            
+
                                             ++meshLODNodeWriteOffset;
                                         }
 
@@ -310,29 +310,14 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                 const int meshletsPerGroup = 4;
 
-                NativeArray<int> meshletGroups = GroupMeshlets(previousLevel, meshletsPerGroup, Allocator.Temp);
+                NativeArray<NativeList<int>> meshletGroups = GroupMeshlets(previousLevel, meshletsPerGroup, Allocator.Temp);
 
-                for (int meshletGroupStart = 0; meshletGroupStart < meshletGroups.Length; meshletGroupStart += meshletsPerGroup)
+                foreach (NativeList<int> meshletGroup in meshletGroups)
                 {
-                    int count = 0;
+                    var sourceMeshlets = new NativeList<AAAAMeshOptimizer.MeshletBuildResults>(meshletGroup.Length, Allocator.Temp);
 
-                    // Count resulting meshlets in group
-                    for (int i = 0; i < meshletsPerGroup; i++)
+                    foreach (int nodeIndex in meshletGroup)
                     {
-                        int itemIndex = meshletGroupStart + i;
-                        if (itemIndex >= meshletGroups.Length || meshletGroups[itemIndex] < 0)
-                        {
-                            break;
-                        }
-
-                        ++count;
-                    }
-
-                    var sourceMeshlets = new NativeList<AAAAMeshOptimizer.MeshletBuildResults>(count, Allocator.Temp);
-
-                    for (int i = 0; i < count; i++)
-                    {
-                        int nodeIndex = meshletGroups[meshletGroupStart + i];
                         MeshLODNode node = previousLevel.Nodes[nodeIndex];
                         AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults =
                             previousLevel.MeshletsNodeLists[node.MeshletNodeListIndex].MeshletBuildResults;
@@ -349,16 +334,11 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                     var nodeIndices = new int2(newLevelNodes.Length, newLevelNodes.Length + simplifiedMeshlets.Meshlets.Length);
 
-                    uint4 childrenNodeIndices = uint4.zero;
-                    for (int i = 0; i < count; i++)
-                    {
-                        int itemIndex = meshletGroupStart + i;
-                        childrenNodeIndices[i] = (uint) meshletGroups[itemIndex];
-                    }
-
                     for (int meshletIndex = 0; meshletIndex < simplifiedMeshlets.Meshlets.Length; meshletIndex++)
                     {
                         newTriangleCount += simplifiedMeshlets.Meshlets[meshletIndex].TriangleCount;
+                        var childrenNodeIndices = new NativeList<int>(meshletGroup.Length, allocator);
+                        childrenNodeIndices.CopyFrom(meshletGroup);
                         newLevelNodes.Add(new MeshLODNode
                             {
                                 MeshletNodeListIndex = meshletNodeLists.Length,
@@ -453,11 +433,16 @@ namespace DELTation.AAAARP.Editor.Meshlets
             Selection.activeObject = meshletCollection;
         }
 
-        private struct MeshLODNode
+        private struct MeshLODNode : IDisposable
         {
             public int MeshletNodeListIndex;
             public int MeshletIndex;
-            public uint4 ChildrenNodeIndices;
+            public NativeList<int> ChildrenNodeIndices;
+
+            public void Dispose()
+            {
+                ChildrenNodeIndices.Dispose();
+            }
         }
 
         private struct MeshLODNodeLevel : IDisposable
@@ -468,6 +453,11 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
             public void Dispose()
             {
+                foreach (MeshLODNode node in Nodes)
+                {
+                    node.Dispose();
+                }
+
                 foreach (MeshletNodeList meshletsNodeList in MeshletsNodeLists)
                 {
                     MeshletNodeList listCopy = meshletsNodeList;

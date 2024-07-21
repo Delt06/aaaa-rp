@@ -13,20 +13,23 @@ namespace DELTation.AAAARP.Editor.Meshlets
 {
     internal partial class AAAAMeshletCollectionAssetImporter
     {
-        private static NativeArray<int> GroupMeshlets(MeshLODNodeLevel meshLODNodeLevel, int meshletsPerGroup, Allocator allocator)
+        private static NativeArray<NativeList<int>> GroupMeshlets(MeshLODNodeLevel meshLODNodeLevel, int meshletsPerGroup, Allocator allocator)
         {
             int graphNodeCount = meshLODNodeLevel.Nodes.Length;
-            int partitionsCount = Mathf.CeilToInt((float) graphNodeCount / (meshletsPerGroup - 1));
+            int partitionsCount = Mathf.CeilToInt((float) graphNodeCount / meshletsPerGroup);
             if (partitionsCount <= 1)
             {
-                var allNodes = new NativeArray<int>(meshLODNodeLevel.Nodes.Length, allocator, NativeArrayOptions.UninitializedMemory);
+                var groups = new NativeArray<NativeList<int>>(1, allocator, NativeArrayOptions.UninitializedMemory);
+                var allNodes = new NativeList<int>(groups.Length, allocator);
 
                 for (int i = 0; i < allNodes.Length; i++)
                 {
-                    allNodes[i] = i;
+                    allNodes.Add(i);
                 }
 
-                return allNodes;
+                groups[0] = allNodes;
+
+                return groups;
             }
 
 
@@ -83,7 +86,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
             adjacencyWeightList.Dispose();
             options.Dispose();
 
-            NativeArray<int> meshletGrouping =
+            NativeArray<NativeList<int>> meshletGrouping =
                 ConstructMeshletGroupingFromVertexPartitioning(vertexPartitioning, allocator, partitionsCount, meshletsPerGroup);
 
             vertexPartitioning.Dispose();
@@ -91,32 +94,22 @@ namespace DELTation.AAAARP.Editor.Meshlets
             return meshletGrouping;
         }
 
-        private static unsafe NativeArray<int> ConstructMeshletGroupingFromVertexPartitioning(NativeArray<int> meshletPartitioning, Allocator allocator,
+        private static NativeArray<NativeList<int>> ConstructMeshletGroupingFromVertexPartitioning(NativeArray<int> meshletPartitioning, Allocator allocator,
             int partitionsCount, int meshletsPerGroup)
         {
-            var reversedGroups = new NativeArray<int>(partitionsCount * meshletsPerGroup, allocator,
+            var reversedGroups = new NativeArray<NativeList<int>>(partitionsCount, allocator,
                 NativeArrayOptions.UninitializedMemory
             );
-            UnsafeUtility.MemSet(reversedGroups.GetUnsafePtr(), (byte) 0xFFu, reversedGroups.Length * sizeof(int));
+
+            for (int i = 0; i < reversedGroups.Length; i++)
+            {
+                reversedGroups[i] = new NativeList<int>(meshletsPerGroup, allocator);
+            }
 
             for (int nodeIndex = 0; nodeIndex < meshletPartitioning.Length; nodeIndex++)
             {
                 int groupIndex = meshletPartitioning[nodeIndex];
-
-                bool foundPlace = false;
-
-                for (int offsetInGroup = 0; offsetInGroup < meshletsPerGroup; offsetInGroup++)
-                {
-                    int itemIndex = groupIndex * meshletsPerGroup + offsetInGroup;
-                    if (reversedGroups[itemIndex] < 0)
-                    {
-                        reversedGroups[itemIndex] = nodeIndex;
-                        foundPlace = true;
-                        break;
-                    }
-                }
-
-                UnityEngine.Assertions.Assert.IsTrue(foundPlace);
+                reversedGroups[groupIndex].Add(nodeIndex);
             }
 
             return reversedGroups;
