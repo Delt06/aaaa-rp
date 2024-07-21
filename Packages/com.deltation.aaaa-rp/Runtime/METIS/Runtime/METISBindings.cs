@@ -5,53 +5,6 @@ namespace DELTation.AAAARP.METIS.Runtime
 {
     internal static unsafe class METISBindings
     {
-
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
-        public enum METISOptions
-        {
-            METIS_OPTION_PTYPE,
-            METIS_OPTION_OBJTYPE,
-            METIS_OPTION_CTYPE,
-            METIS_OPTION_IPTYPE,
-            METIS_OPTION_RTYPE,
-            METIS_OPTION_DBGLVL,
-            METIS_OPTION_NIPARTS,
-            METIS_OPTION_NITER,
-            METIS_OPTION_NCUTS,
-            METIS_OPTION_SEED,
-            METIS_OPTION_ONDISK,
-            METIS_OPTION_MINCONN,
-            METIS_OPTION_CONTIG,
-            METIS_OPTION_COMPRESS,
-            METIS_OPTION_CCORDER,
-            METIS_OPTION_PFACTOR,
-            METIS_OPTION_NSEPS,
-            METIS_OPTION_UFACTOR,
-            METIS_OPTION_NUMBERING,
-            METIS_OPTION_DROPEDGES,
-            METIS_OPTION_NO2HOP,
-            METIS_OPTION_TWOHOP,
-            METIS_OPTION_FAST,
-
-            /* Used for command-line parameter purposes */
-            METIS_OPTION_HELP,
-            METIS_OPTION_TPWGTS,
-            METIS_OPTION_NCOMMON,
-            METIS_OPTION_NOOUTPUT,
-            METIS_OPTION_BALANCE,
-            METIS_OPTION_GTYPE,
-            METIS_OPTION_UBVEC,
-        }
-
-        [SuppressMessage("ReSharper", "InconsistentNaming")]
-        public enum METISStatus
-        {
-            METIS_OK = 1, /*!< Returned normally */
-            METIS_ERROR_INPUT = -2, /*!< Returned due to erroneous inputs and/or options */
-            METIS_ERROR_MEMORY = -3, /*!< Returned due to insufficient memory */
-            METIS_ERROR = -4, /*!< Some other errors */
-        }
-
         // ReSharper disable once InconsistentNaming
         public const int METIS_NOPTIONS = 40;
 
@@ -120,5 +73,51 @@ namespace DELTation.AAAARP.METIS.Runtime
             int* adjncy, int* vwgt, int* vsize, int* adjwgt,
             int* nparts, float* tpwgts, float* ubvec, METISOptions* options,
             int* edgecut, int* part);
+    }
+
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public enum METISStatus
+    {
+        METIS_OK = 1, /*!< Returned normally */
+        METIS_ERROR_INPUT = -2, /*!< Returned due to erroneous inputs and/or options */
+        METIS_ERROR_MEMORY = -3, /*!< Returned due to insufficient memory */
+        METIS_ERROR = -4, /*!< Some other errors */
+    }
+
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    public enum METISOptions
+    {
+        METIS_OPTION_PTYPE,
+        METIS_OPTION_OBJTYPE,
+        METIS_OPTION_CTYPE,
+        METIS_OPTION_IPTYPE,
+        METIS_OPTION_RTYPE,
+        METIS_OPTION_DBGLVL,
+        METIS_OPTION_NIPARTS,
+        METIS_OPTION_NITER,
+        METIS_OPTION_NCUTS,
+        METIS_OPTION_SEED,
+        METIS_OPTION_ONDISK,
+        METIS_OPTION_MINCONN,
+        METIS_OPTION_CONTIG,
+        METIS_OPTION_COMPRESS,
+        METIS_OPTION_CCORDER,
+        METIS_OPTION_PFACTOR,
+        METIS_OPTION_NSEPS,
+        METIS_OPTION_UFACTOR,
+        METIS_OPTION_NUMBERING,
+        METIS_OPTION_DROPEDGES,
+        METIS_OPTION_NO2HOP,
+        METIS_OPTION_TWOHOP,
+        METIS_OPTION_FAST,
+
+        /* Used for command-line parameter purposes */
+        METIS_OPTION_HELP,
+        METIS_OPTION_TPWGTS,
+        METIS_OPTION_NCOMMON,
+        METIS_OPTION_NOOUTPUT,
+        METIS_OPTION_BALANCE,
+        METIS_OPTION_GTYPE,
+        METIS_OPTION_UBVEC,
     }
 }
