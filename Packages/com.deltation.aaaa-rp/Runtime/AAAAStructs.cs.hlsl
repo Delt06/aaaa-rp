@@ -12,7 +12,7 @@
 //
 // DELTation.AAAARP.AAAAMeshletConfiguration:  static fields
 //
-#define MAX_MESHLET_VERTICES (32)
+#define MAX_MESHLET_VERTICES (128)
 #define MAX_MESHLET_TRIANGLES (128)
 #define MAX_MESHLET_INDICES (384)
 #define MESHLET_CONE_WEIGHT (0.25)
@@ -26,9 +26,9 @@ struct AAAAInstanceData
     float4 AABBMin;
     float4 AABBMax;
     uint MeshLODNodeStartIndex;
+    uint MeshLODNodeCount;
     uint MaterialIndex;
     uint Padding0;
-    uint Padding1;
 };
 
 // Generated from DELTation.AAAARP.AAAAMaterialData
@@ -77,11 +77,11 @@ struct AAAAMeshletVertex
 // PackingRules = Exact
 struct AAAAMeshLODNode
 {
-    float4 BoundingSphere;
+    uint4 ChildrenNodeIndices;
     uint MeshletStartOffset;
     uint MeshletCount;
-    uint ChildrenStartOffset;
-    uint ChildrenStartCount;
+    uint Padding0;
+    uint Padding1;
 };
 
 // Generated from DELTation.AAAARP.IndirectDispatchArgs

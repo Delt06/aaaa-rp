@@ -17,6 +17,7 @@ namespace DELTation.AAAARP.METIS.Runtime
             NativeArray<METISOptions> options,
             out NativeArray<int> vertexPartitioning)
         {
+            Assert.IsTrue(partitions > 1);
             graphAdjacencyStructure.Validate();
 
             int numConstraints = 1;

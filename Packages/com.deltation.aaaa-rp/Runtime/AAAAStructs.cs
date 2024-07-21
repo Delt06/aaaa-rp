@@ -16,9 +16,9 @@ namespace DELTation.AAAARP
         public float4 AABBMax;
 
         public uint MeshLODNodeStartIndex;
+        public uint MeshLODNodeCount;
         public uint MaterialIndex;
         public uint Padding0;
-        public uint Padding1;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
@@ -38,7 +38,7 @@ namespace DELTation.AAAARP
     public static class AAAAMeshletConfiguration
     {
         [UsedImplicitly]
-        public const uint MaxMeshletVertices = 32;
+        public const uint MaxMeshletVertices = 128;
         [UsedImplicitly]
         public const uint MaxMeshletTriangles = 128;
         [UsedImplicitly]
@@ -52,12 +52,12 @@ namespace DELTation.AAAARP
     [Serializable]
     public struct AAAAMeshLODNode
     {
-        public float4 BoundingSphere;
+        public uint4 ChildrenNodeIndices;
 
         public uint MeshletStartOffset;
         public uint MeshletCount;
-        public uint ChildrenStartOffset;
-        public uint ChildrenStartCount;
+        public uint Padding0;
+        public uint Padding1;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]

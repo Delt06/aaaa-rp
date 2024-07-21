@@ -6,43 +6,43 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
 {
     internal static unsafe class MeshOptimizerBindings
     {
-        private const string MeshOptimizerDLL = "meshoptimizer.dll";
+        private const string DLL = "meshoptimizer.dll";
         private const CharSet CharSet = System.Runtime.InteropServices.CharSet.Auto;
         private const CallingConvention CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl;
 
-        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern nuint meshopt_buildMeshlets(meshopt_Meshlet* meshlets, uint* meshletVertices, byte* meshletTriangles, uint* indices,
             nuint indexCount, float* vertexPositions, nuint vertexCount, nuint vertexPositionsStride, nuint maxVertices, nuint maxTriangles, float coneWeight);
 
-        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern nuint meshopt_buildMeshletsBound(nuint indexCount, nuint maxVertices, nuint maxTriangles);
 
-        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern meshopt_Bounds meshopt_computeMeshletBounds(uint* meshletVertices, byte* meshletTriangles, nuint triangleCount,
             float* vertexPositions, nuint vertexCount, nuint vertexPositionsStride);
 
-        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern nuint meshopt_simplify(uint* destination, uint* indices, nuint indexCount, float* vertexPositions, nuint vertexCount,
             nuint vertexPositionsStride, nuint targetIndexCount, float targetError, uint options, float* resultError = null);
 
-        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern void meshopt_optimizeVertexCache(uint* destination, uint* indices, nuint indexCount, nuint vertexCount);
 
-        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern nuint meshopt_generateVertexRemapMulti(uint* destination, uint* indices, nuint indexCount, nuint vertexCount,
             meshopt_Stream* streams, nuint streamCount);
 
-        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern void meshopt_remapVertexBuffer(void* destination, void* vertices, nuint vertexCount, nuint vertexSize, uint* remap);
 
-        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern void meshopt_remapIndexBuffer(uint* destination, uint* indices, nuint indexCount, uint* remap);
 
-        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern void meshopt_spatialSortTriangles(uint* destination, uint* indices, nuint indexCount, float* vertexPositions, nuint vertexCount,
             nuint vertexPositionsStride);
 
-        [DllImport(MeshOptimizerDLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern void meshopt_spatialSortRemap(uint* destination, float* vertexPositions, nuint vertexCount, nuint vertexPositionsStride);
     }
 

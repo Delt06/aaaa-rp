@@ -223,6 +223,7 @@ namespace DELTation.AAAARP
                         AABBMin = math.float4(mesh.Bounds.min, 0.0f),
                         AABBMax = math.float4(mesh.Bounds.max, 0.0f),
                         MeshLODNodeStartIndex = (uint) GetOrAllocateMeshLODGraphStartIndex(mesh),
+                        MeshLODNodeCount = (uint)mesh.TopMeshLODNodeCount,
                         MaterialIndex = (uint) GetOrAllocateMaterial(material),
                     }
                 );

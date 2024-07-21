@@ -8,6 +8,9 @@ namespace DELTation.AAAARP.METIS.Runtime
     {
         private void Awake()
         {
+            // 5 - 3 - 4 - 0
+            //     |   | /
+            //     2 - 1
             var graphAdjacencyStructure = new AAAAMETIS.GraphAdjacencyStructure
             {
                 VertexCount = 6,

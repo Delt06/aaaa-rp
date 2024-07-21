@@ -17,6 +17,7 @@ namespace DELTation.AAAARP.Debugging
         InstanceID,
         MeshletID,
         IndexID,
+        VertexID,
         MeshLOD,
     }
 

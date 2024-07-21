@@ -20,5 +20,6 @@ namespace DELTation.AAAARP.Meshlets
         public AAAAMeshlet[] Meshlets = Array.Empty<AAAAMeshlet>();
         public AAAAMeshletVertex[] VertexBuffer = Array.Empty<AAAAMeshletVertex>();
         public byte[] IndexBuffer = Array.Empty<byte>();
+        public int TopMeshLODNodeCount;
     }
 }

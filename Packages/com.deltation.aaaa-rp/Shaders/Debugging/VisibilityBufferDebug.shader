@@ -122,6 +122,13 @@ Shader "Hidden/AAAA/VisibilityBufferDebug"
                     {
                         return float4(GetColor(value.indexID / 3), 1);
                     }
+                case AAAAVISIBILITYBUFFERDEBUGMODE_VERTEX_ID:
+                    {
+                        const float3 color0 = GetColor(indices[0]);
+                        const float3 color1 = GetColor(indices[1]);
+                        const float3 color2 = GetColor(indices[2]);
+                        return float4(color0 * barycentric.lambda.x + color1 * barycentric.lambda.y + color2 * barycentric.lambda.z, 1.0f);
+                    }
                 case AAAAVISIBILITYBUFFERDEBUGMODE_MESH_LOD:
                     {
                         return float4(GetColor(value.localNodeIndex), 1);

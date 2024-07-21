@@ -129,11 +129,23 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
                 }
             }
 
+            var meshoptStreams = new NativeArray<meshopt_Stream>(1, Allocator.Temp);
+            meshoptStreams[0] = new meshopt_Stream
+            {
+                data = localVertices.GetUnsafePtr(),
+                size = (nuint) UnsafeUtility.SizeOf<ClusterVertex>(),
+                stride = (nuint) UnsafeUtility.SizeOf<ClusterVertex>(),
+            };
+            
+            uint newVertexCount = OptimizeIndexingInPlace((uint) localVertices.Length, localIndices.AsArray(), meshoptStreams);
+            localVertices.Length = (int) newVertexCount;
+            meshoptStreams.Dispose();
+
             // ReSharper disable once PossibleLossOfFraction
             int targetIndexCount = (int) (localIndices.Length / 3 * 0.5f * 3);
             int simplifiedIndexCount = (int) meshopt_simplify(localIndices.GetUnsafePtr(), localIndices.GetUnsafePtr(), (nuint) localIndices.Length,
                 (float*) localVertices.GetUnsafePtr(), (nuint) localVertices.Length, (nuint) UnsafeUtility.SizeOf<ClusterVertex>(), (nuint) targetIndexCount,
-                1e-1f, (uint) (meshopt_SimplifyOptions.LockBorder | meshopt_SimplifyOptions.Sparse)
+                1e-01f, (uint) meshopt_SimplifyOptions.LockBorder
             );
             localIndices.Length = simplifiedIndexCount;
 

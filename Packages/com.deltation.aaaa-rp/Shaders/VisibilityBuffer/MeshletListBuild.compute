@@ -43,30 +43,33 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     }
 
     const float2          instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
-    const uint            localNodeIndex = 0;
-    const AAAAMeshLODNode meshLodNode = PullMeshLODNodeRaw(instanceData.MeshLODNodeStartIndex + localNodeIndex);
 
     const uint localThreadIndex = groupThreadID.x;
 
-    if (localThreadIndex == 0)
+    for (uint localNodeIndex = 0; localNodeIndex < instanceData.MeshLODNodeCount; ++localNodeIndex)
     {
-        g_MeshletWriteOffset = 0;
-        _DestinationMeshletsCounter.InterlockedAdd(0, meshLodNode.MeshletCount, g_MeshletWriteOffset);
-        g_WrittenMeshletsCount = 0;
-    }
+        const AAAAMeshLODNode meshLodNode = PullMeshLODNodeRaw(instanceData.MeshLODNodeStartIndex + localNodeIndex);
+        
+        if (localThreadIndex == 0)
+        {
+            g_MeshletWriteOffset = 0;
+            _DestinationMeshletsCounter.InterlockedAdd(0, meshLodNode.MeshletCount, g_MeshletWriteOffset);
+            g_WrittenMeshletsCount = 0;
+        }
 
-    GroupMemoryBarrierWithGroupSync();
+        GroupMemoryBarrierWithGroupSync();
 
-    for (uint relativeMeshletIndex = localThreadIndex; relativeMeshletIndex < meshLodNode.MeshletCount; relativeMeshletIndex += THREAD_GROUP_SIZE)
-    {
-        uint requestWriteOffset = 0;
-        InterlockedAdd(g_WrittenMeshletsCount, 1, requestWriteOffset);
+        for (uint relativeMeshletIndex = localThreadIndex; relativeMeshletIndex < meshLodNode.MeshletCount; relativeMeshletIndex += THREAD_GROUP_SIZE)
+        {
+            uint requestWriteOffset = 0;
+            InterlockedAdd(g_WrittenMeshletsCount, 1, requestWriteOffset);
 
-        AAAAMeshletRenderRequest meshletRenderRequest;
-        meshletRenderRequest.InstanceID = instanceID;
-        meshletRenderRequest.LocalNodeIndex = localNodeIndex;
-        meshletRenderRequest.MeshletID = meshLodNode.MeshletStartOffset + relativeMeshletIndex;
+            AAAAMeshletRenderRequest meshletRenderRequest;
+            meshletRenderRequest.InstanceID = instanceID;
+            meshletRenderRequest.LocalNodeIndex = localNodeIndex;
+            meshletRenderRequest.MeshletID = meshLodNode.MeshletStartOffset + relativeMeshletIndex;
 
-        StoreMeshletRenderRequest(_DestinationMeshlets, g_MeshletWriteOffset + requestWriteOffset, meshletRenderRequest);
+            StoreMeshletRenderRequest(_DestinationMeshlets, g_MeshletWriteOffset + requestWriteOffset, meshletRenderRequest);
+        }
     }
 }
