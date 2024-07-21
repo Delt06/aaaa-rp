@@ -1,6 +1,7 @@
 ﻿using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine.Assertions;
+using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.METIS.Runtime
 {
@@ -17,6 +18,8 @@ namespace DELTation.AAAARP.METIS.Runtime
             NativeArray<METISOptions> options,
             out NativeArray<int> vertexPartitioning)
         {
+            using var _ = new ProfilingScope(Profiling.PartGraphKwaySampler);
+
             Assert.IsTrue(partitions > 1);
             graphAdjacencyStructure.Validate();
 
@@ -25,7 +28,9 @@ namespace DELTation.AAAARP.METIS.Runtime
 
             int* xadj = (int*) graphAdjacencyStructure.AdjacencyIndexList.GetUnsafePtr();
             int* adjncy = (int*) graphAdjacencyStructure.AdjacencyList.GetUnsafePtr();
-            int* adjwgt = (int*) (graphAdjacencyStructure.AdjacencyWeightList.IsCreated ? graphAdjacencyStructure.AdjacencyWeightList.GetUnsafePtr() : null);
+            int* adjwgt = (int*) (graphAdjacencyStructure.AdjacencyWeightList.IsCreated
+                ? graphAdjacencyStructure.AdjacencyWeightList.GetUnsafePtr()
+                : null);
             vertexPartitioning = new NativeArray<int>(graphAdjacencyStructure.VertexCount, allocator, NativeArrayOptions.UninitializedMemory);
 
             METISStatus status = METISBindings.METIS_PartGraphKway(&graphAdjacencyStructure.VertexCount, &numConstraints,
@@ -40,6 +45,11 @@ namespace DELTation.AAAARP.METIS.Runtime
                 vertexPartitioning = default;
             }
             return status;
+        }
+
+        private static class Profiling
+        {
+            public static readonly ProfilingSampler PartGraphKwaySampler = new(nameof(PartGraphKway));
         }
 
         public struct GraphAdjacencyStructure

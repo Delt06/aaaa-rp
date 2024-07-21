@@ -6,6 +6,7 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine.Assertions;
+using UnityEngine.Rendering;
 using static DELTation.AAAARP.MeshOptimizer.Runtime.MeshOptimizerBindings;
 
 namespace DELTation.AAAARP.MeshOptimizer.Runtime
@@ -47,6 +48,8 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             NativeArray<uint> indices,
             in MeshletGenerationParams meshletGenerationParams)
         {
+            using var _ = new ProfilingScope(Profiling.BuildMeshletsSampler);
+
             Assert.IsTrue(vertices.Length > 0);
             Assert.IsTrue(indices.Length > 0);
             Assert.IsTrue(vertexPositionStride > 0);
@@ -98,54 +101,60 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             in MeshletGenerationParams meshletGenerationParams
         )
         {
+            using var _ = new ProfilingScope(Profiling.SimplifyMeshletsSampler);
+
             var localVertices = new NativeList<ClusterVertex>(Allocator.Temp);
             var localIndices = new NativeList<uint>(Allocator.Temp);
 
             byte* pVertexPositionsBytes = (byte*) vertices.GetUnsafeReadOnlyPtr() + vertexPositionOffset;
 
-            foreach (MeshletBuildResults group in meshletGroups)
+            using (new ProfilingScope(Profiling.SimplifyMeshletsSharedVerticesSampler))
             {
-                foreach (meshopt_Meshlet meshlet in group.Meshlets)
+                foreach (MeshletBuildResults group in meshletGroups)
                 {
-                    int localOffset = localVertices.Length;
-
-                    for (uint v = 0; v < meshlet.VertexCount; v++)
+                    foreach (meshopt_Meshlet meshlet in group.Meshlets)
                     {
-                        uint globalIndex = group.Vertices[(int) (meshlet.VertexOffset + v)];
-                        localVertices.Add(new ClusterVertex
-                            {
-                                Position = *(float3*) (pVertexPositionsBytes + globalIndex * vertexPositionsStride),
-                                Index = globalIndex,
-                            }
-                        );
-                    }
+                        int localOffset = localVertices.Length;
 
-                    for (uint t = 0; t < meshlet.TriangleCount; t++)
-                    {
-                        localIndices.Add((uint) (localOffset + group.Indices[(int) (meshlet.TriangleOffset + t * 3 + 0)]));
-                        localIndices.Add((uint) (localOffset + group.Indices[(int) (meshlet.TriangleOffset + t * 3 + 1)]));
-                        localIndices.Add((uint) (localOffset + group.Indices[(int) (meshlet.TriangleOffset + t * 3 + 2)]));
+                        for (uint v = 0; v < meshlet.VertexCount; v++)
+                        {
+                            uint globalIndex = group.Vertices[(int) (meshlet.VertexOffset + v)];
+                            localVertices.Add(new ClusterVertex
+                                {
+                                    Position = *(float3*) (pVertexPositionsBytes + globalIndex * vertexPositionsStride),
+                                    Index = globalIndex,
+                                }
+                            );
+                        }
+
+                        for (uint t = 0; t < meshlet.TriangleCount; t++)
+                        {
+                            localIndices.Add((uint) (localOffset + group.Indices[(int) (meshlet.TriangleOffset + t * 3 + 0)]));
+                            localIndices.Add((uint) (localOffset + group.Indices[(int) (meshlet.TriangleOffset + t * 3 + 1)]));
+                            localIndices.Add((uint) (localOffset + group.Indices[(int) (meshlet.TriangleOffset + t * 3 + 2)]));
+                        }
                     }
                 }
+
+                var meshoptStreams = new NativeArray<meshopt_Stream>(1, Allocator.Temp);
+                meshoptStreams[0] = new meshopt_Stream
+                {
+                    data = localVertices.GetUnsafePtr(),
+                    size = (nuint) UnsafeUtility.SizeOf<ClusterVertex>(),
+                    stride = (nuint) UnsafeUtility.SizeOf<ClusterVertex>(),
+                };
+
+                uint newVertexCount = OptimizeIndexingInPlace((uint) localVertices.Length, localIndices.AsArray(), meshoptStreams);
+                localVertices.Length = (int) newVertexCount;
+                meshoptStreams.Dispose();
             }
 
-            var meshoptStreams = new NativeArray<meshopt_Stream>(1, Allocator.Temp);
-            meshoptStreams[0] = new meshopt_Stream
-            {
-                data = localVertices.GetUnsafePtr(),
-                size = (nuint) UnsafeUtility.SizeOf<ClusterVertex>(),
-                stride = (nuint) UnsafeUtility.SizeOf<ClusterVertex>(),
-            };
-            
-            uint newVertexCount = OptimizeIndexingInPlace((uint) localVertices.Length, localIndices.AsArray(), meshoptStreams);
-            localVertices.Length = (int) newVertexCount;
-            meshoptStreams.Dispose();
 
             // ReSharper disable once PossibleLossOfFraction
             int targetIndexCount = (int) (localIndices.Length / 3 * 0.5f * 3);
             int simplifiedIndexCount = (int) meshopt_simplify(localIndices.GetUnsafePtr(), localIndices.GetUnsafePtr(), (nuint) localIndices.Length,
                 (float*) localVertices.GetUnsafePtr(), (nuint) localVertices.Length, (nuint) UnsafeUtility.SizeOf<ClusterVertex>(), (nuint) targetIndexCount,
-                1e-01f, (uint) meshopt_SimplifyOptions.LockBorder
+                5e-02f, (uint) meshopt_SimplifyOptions.LockBorder
             );
             localIndices.Length = simplifiedIndexCount;
 
@@ -226,6 +235,13 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             public uint MaxVertices;
             public uint MaxTriangles;
             public float ConeWeight;
+        }
+
+        private static class Profiling
+        {
+            public static readonly ProfilingSampler BuildMeshletsSampler = new(nameof(BuildMeshlets));
+            public static readonly ProfilingSampler SimplifyMeshletsSampler = new(nameof(SimplifyMeshlets));
+            public static readonly ProfilingSampler SimplifyMeshletsSharedVerticesSampler = new(nameof(SimplifyMeshlets) + "_SharedVertices");
         }
     }
 }
