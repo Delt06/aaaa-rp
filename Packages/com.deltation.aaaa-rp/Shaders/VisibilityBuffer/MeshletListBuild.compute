@@ -1,5 +1,7 @@
 #pragma kernel CS
 
+#pragma enable_d3d11_debug_symbols
+
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 #define THREAD_GROUP_SIZE MESHLET_LIST_BUILD_THREAD_GROUP_SIZE
 
@@ -7,7 +9,6 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
-#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLOD.hlsl"
 
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4x4 _CameraViewProjection;
@@ -15,12 +16,41 @@ float4x4 _CameraViewProjection;
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
 
-#define MESHLETS_PER_BATCH 1024
-#define ITEMS_IN_MESHLET_MASK 32
-#define MESHLET_MASKS_PER_BATCH (MESHLETS_PER_BATCH / ITEMS_IN_MESHLET_MASK)
+#define LIST_SIZE 1024
+groupshared uint g_MeshletIndices[LIST_SIZE];
+groupshared int g_MeshletCount;
 
-groupshared uint g_WrittenMeshletsCount;
-groupshared uint g_MeshletWriteOffset;
+void MeshletList_Push(const uint meshletIndex)
+{
+    uint offset;
+    InterlockedAdd(g_MeshletCount, 1, offset);
+    g_MeshletIndices[offset] = meshletIndex;
+}
+
+uint MeshletList_TryPop()
+{
+    int oldCount = 0;
+    InterlockedAdd(g_MeshletCount, -1, oldCount);
+
+    if (oldCount < 1)
+    {
+        return -1;
+    }
+
+    return g_MeshletIndices[oldCount - 1];
+}
+
+void PushMeshletRenderRequest(const uint instanceID, const uint meshletIndex)
+{
+    uint meshletWriteOffset;
+    _DestinationMeshletsCounter.InterlockedAdd(0, 1, meshletWriteOffset);
+
+    AAAAMeshletRenderRequest meshletRenderRequest;
+    meshletRenderRequest.InstanceID = instanceID;
+    meshletRenderRequest.MeshletID = meshletIndex;
+
+    StoreMeshletRenderRequest(_DestinationMeshlets, meshletWriteOffset, meshletRenderRequest);
+} 
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_GroupID)
@@ -42,34 +72,62 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
         return;
     }
 
-    const float2          instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
-
     const uint localThreadIndex = groupThreadID.x;
 
-    for (uint localNodeIndex = 0; localNodeIndex < instanceData.MeshLODNodeCount; ++localNodeIndex)
+    if (localThreadIndex == 0)
     {
-        const AAAAMeshLODNode meshLodNode = PullMeshLODNodeRaw(instanceData.MeshLODNodeStartIndex + localNodeIndex);
-        
-        if (localThreadIndex == 0)
+        g_MeshletCount = 0;
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+
+    const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
+    
+    for (uint localMeshletIndex = localThreadIndex; localMeshletIndex < instanceData.TopMeshletCount; localMeshletIndex += THREAD_GROUP_SIZE)
+    {
+        MeshletList_Push(instanceData.TopMeshletStartIndex + localMeshletIndex);
+    }
+
+    
+    UNITY_LOOP
+    while (true)
+    {
+        const uint poppedMeshletIndex = MeshletList_TryPop();
+        if (poppedMeshletIndex == -1)
         {
-            g_MeshletWriteOffset = 0;
-            _DestinationMeshletsCounter.InterlockedAdd(0, meshLodNode.MeshletCount, g_MeshletWriteOffset);
-            g_WrittenMeshletsCount = 0;
+            break;
         }
 
-        GroupMemoryBarrierWithGroupSync();
+        const uint        parentMeshletIndex = poppedMeshletIndex;
+        const AAAAMeshlet parentMeshlet = PullMeshletData(parentMeshletIndex);
 
-        for (uint relativeMeshletIndex = localThreadIndex; relativeMeshletIndex < meshLodNode.MeshletCount; relativeMeshletIndex += THREAD_GROUP_SIZE)
+        if (0)
         {
-            uint requestWriteOffset = 0;
-            InterlockedAdd(g_WrittenMeshletsCount, 1, requestWriteOffset);
+            PushMeshletRenderRequest(instanceID, parentMeshletIndex);
+        }
+        else
+        {
+            bool anyChildren = false;
+            
+            UNITY_LOOP
+            for (uint i = 0; i < (uint) CHILDREN_COUNT; ++i)
+            {
+                const uint childMeshletIndex = parentMeshlet.ChildrenNodeIndices[i];
+                if (childMeshletIndex == (uint)INVALID_CHILD_INDEX)
+                {
+                    continue;
+                }
 
-            AAAAMeshletRenderRequest meshletRenderRequest;
-            meshletRenderRequest.InstanceID = instanceID;
-            meshletRenderRequest.LocalNodeIndex = localNodeIndex;
-            meshletRenderRequest.MeshletID = meshLodNode.MeshletStartOffset + relativeMeshletIndex;
+                const AAAAMeshlet childMeshlet = PullMeshletData(childMeshletIndex);
 
-            StoreMeshletRenderRequest(_DestinationMeshlets, g_MeshletWriteOffset + requestWriteOffset, meshletRenderRequest);
+                PushMeshletRenderRequest(instanceID, childMeshletIndex);
+                anyChildren = true;
+            }
+
+            if (!anyChildren)
+            {
+                PushMeshletRenderRequest(instanceID, parentMeshletIndex);
+            }
         }
     }
 }

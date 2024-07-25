@@ -15,8 +15,8 @@ namespace DELTation.AAAARP
         public float4 AABBMin;
         public float4 AABBMax;
 
-        public uint MeshLODNodeStartIndex;
-        public uint MeshLODNodeCount;
+        public uint TopMeshletStartIndex;
+        public uint TopMeshletCount;
         public uint MaterialIndex;
         public uint Padding0;
     }
@@ -47,24 +47,16 @@ namespace DELTation.AAAARP
         public const float MeshletConeWeight = 0.25f;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
-    [Serializable]
-    public struct AAAAMeshLODNode
-    {
-        public uint4 ChildrenNodeIndices;
-
-        public uint MeshletStartOffset;
-        public uint MeshletCount;
-        public uint Padding0;
-        public uint Padding1;
-    }
-
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     [StructLayout(LayoutKind.Sequential)]
     [Serializable]
-    public struct AAAAMeshlet
+    public unsafe struct AAAAMeshlet
     {
+        public const uint ChildrenCount = 8;
+        public const uint InvalidChildIndex = uint.MaxValue;
+        
+        public fixed uint ChildrenNodeIndices[(int) ChildrenCount];
+        
         public uint VertexOffset;
         public uint TriangleOffset;
         public uint VertexCount;
@@ -73,6 +65,17 @@ namespace DELTation.AAAARP
         public float4 BoundingSphere;
         public float4 ConeApexCutoff;
         public float4 ConeAxis;
+        
+        public void AddChildrenOffset(uint offset)
+        {
+            for (int i = 0; i < ChildrenCount; i++)
+            {
+                if (ChildrenNodeIndices[i] != uint.MaxValue)
+                {
+                    ChildrenNodeIndices[i] += offset;
+                }
+            }
+        }
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]

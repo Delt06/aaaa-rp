@@ -27,7 +27,7 @@ namespace DELTation.AAAARP
         private readonly Material _material;
         private readonly GraphicsBuffer _materialDataBuffer;
         private readonly Dictionary<AAAAMaterialAsset, int> _materialToIndex = new();
-        private readonly Dictionary<AAAAMeshletCollectionAsset, int> _meshletCollectionToMeshLODGraphStartIndex = new();
+        private readonly Dictionary<AAAAMeshletCollectionAsset, int> _meshletCollectionToTopMeshletStartIndex = new();
         private readonly GraphicsBuffer _meshletsDataBuffer;
         private readonly GraphicsBuffer _meshLODNodesBuffer;
         private readonly AAAAMeshLODSettings _meshLODSettings;
@@ -38,7 +38,6 @@ namespace DELTation.AAAARP
         private NativeList<AAAAMaterialData> _materialData;
         private NativeList<AAAAMeshlet> _meshletData;
         private NativeList<AAAAMeshletRenderRequestPacked> _meshletRenderRequests;
-        private NativeList<AAAAMeshLODNode> _meshLODNodes;
         private NativeList<byte> _sharedIndices;
         private NativeList<AAAAMeshletVertex> _sharedVertices;
 
@@ -52,7 +51,6 @@ namespace DELTation.AAAARP
             _meshletRenderRequests = new NativeList<AAAAMeshletRenderRequestPacked>(Allocator.Persistent);
             _sharedVertices = new NativeList<AAAAMeshletVertex>(Allocator.Persistent);
             _sharedIndices = new NativeList<byte>(Allocator.Persistent);
-            _meshLODNodes = new NativeList<AAAAMeshLODNode>(Allocator.Persistent);
 
             AAAARendererAuthoringBase[] authorings = Object.FindObjectsByType<AAAARendererAuthoringBase>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
@@ -89,11 +87,6 @@ namespace DELTation.AAAARP
                 AAAAMathUtils.AlignUp(_sharedIndices.Length, sizeof(uint)) / sizeof(uint), sizeof(uint)
             );
             _sharedIndexBuffer.SetData(_sharedIndices.AsArray());
-
-            _meshLODNodesBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
-                _meshLODNodes.Length, UnsafeUtility.SizeOf<AAAAMeshLODNode>()
-            );
-            _meshLODNodesBuffer.SetData(_meshLODNodes.AsArray());
 
             MeshletRenderRequestsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
                 AAAAMathUtils.AlignUp(_meshletRenderRequests.Length * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(), sizeof(uint)) / sizeof(uint),
@@ -146,11 +139,6 @@ namespace DELTation.AAAARP
             if (_sharedIndices.IsCreated)
             {
                 _sharedIndices.Dispose();
-            }
-
-            if (_meshLODNodes.IsCreated)
-            {
-                _meshLODNodes.Dispose();
             }
 
             IndirectDrawArgsBuffer?.Dispose();
@@ -222,8 +210,8 @@ namespace DELTation.AAAARP
                         WorldToObjectMatrix = worldToObjectMatrix,
                         AABBMin = math.float4(mesh.Bounds.min, 0.0f),
                         AABBMax = math.float4(mesh.Bounds.max, 0.0f),
-                        MeshLODNodeStartIndex = (uint) GetOrAllocateMeshLODGraphStartIndex(mesh),
-                        MeshLODNodeCount = (uint)mesh.TopMeshLODNodeCount,
+                        TopMeshletStartIndex = (uint) GetOrAllocateMeshlets(mesh),
+                        TopMeshletCount = (uint)mesh.TopMeshletCount,
                         MaterialIndex = (uint) GetOrAllocateMaterial(material),
                     }
                 );
@@ -235,30 +223,23 @@ namespace DELTation.AAAARP
             }
         }
 
-        private int GetOrAllocateMeshLODGraphStartIndex(AAAAMeshletCollectionAsset meshletCollection)
+        private int GetOrAllocateMeshlets(AAAAMeshletCollectionAsset meshletCollection)
         {
-            if (_meshletCollectionToMeshLODGraphStartIndex.TryGetValue(meshletCollection, out int meshLodStartIndex))
+            if (_meshletCollectionToTopMeshletStartIndex.TryGetValue(meshletCollection, out int meshletStartIndex))
             {
-                return meshLodStartIndex;
+                return meshletStartIndex;
             }
 
             uint triangleOffset = (uint) _sharedIndices.Length;
             uint vertexOffset = (uint) _sharedVertices.Length;
-            uint meshletOffset = (uint) _meshletData.Length;
-            meshLodStartIndex = _meshLODNodes.Length;
-
-            foreach (AAAAMeshLODNode lodNode in meshletCollection.LODNodes)
-            {
-                AAAAMeshLODNode writtenLodNode = lodNode;
-                writtenLodNode.MeshletStartOffset += meshletOffset;
-                _meshLODNodes.Add(writtenLodNode);
-            }
+            meshletStartIndex = _meshletData.Length;
 
             foreach (AAAAMeshlet sourceMeshlet in meshletCollection.Meshlets)
             {
                 AAAAMeshlet meshlet = sourceMeshlet;
                 meshlet.TriangleOffset += triangleOffset;
                 meshlet.VertexOffset += vertexOffset;
+                meshlet.AddChildrenOffset((uint)meshletStartIndex);
 
                 _meshletData.Add(meshlet);
             }
@@ -266,8 +247,8 @@ namespace DELTation.AAAARP
             AppendFromManagedArray(_sharedVertices, meshletCollection.VertexBuffer);
             AppendFromManagedArray(_sharedIndices, meshletCollection.IndexBuffer);
 
-            _meshletCollectionToMeshLODGraphStartIndex.Add(meshletCollection, meshLodStartIndex);
-            return meshLodStartIndex;
+            _meshletCollectionToTopMeshletStartIndex.Add(meshletCollection, meshletStartIndex);
+            return meshletStartIndex;
         }
 
         private static unsafe void AppendFromManagedArray<T>(NativeList<T> destination, T[] source) where T : unmanaged

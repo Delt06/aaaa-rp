@@ -2,7 +2,6 @@
 #define AAAA_VISIBILITY_BUFFER_UTILS_INCLUDED
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
-#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLOD.hlsl"
 
 TEXTURE2D(_VisibilityBuffer);
 SAMPLER(sampler_VisibilityBuffer);
@@ -13,21 +12,20 @@ SAMPLER(sampler_VisibilityBuffer);
 struct VisibilityBufferValue
 {
     uint instanceID;
-    uint localNodeIndex;
     uint meshletID;
     uint indexID;
 };
 
 uint2 PackVisibilityBufferValue(const VisibilityBufferValue value)
 {
-    return uint2(PackInstanceID_LocalNodeIndex(value.instanceID, value.localNodeIndex),
+    return uint2(value.instanceID,
                  value.meshletID << VISIBILITY_BUFFER_INDEX_ID_BITS | (value.indexID / 3) & VISIBILITY_BUFFER_INDEX_ID_MASK);
 }
 
 VisibilityBufferValue UnpackVisibilityBufferValue(uint2 packedValue)
 {
     VisibilityBufferValue value;
-    UnpackInstanceID_LocalNodeIndex(packedValue.x, value.instanceID, value.localNodeIndex);
+    value.instanceID = packedValue.x;
     value.meshletID = packedValue.y >> VISIBILITY_BUFFER_INDEX_ID_BITS;
     value.indexID = (packedValue.y & VISIBILITY_BUFFER_INDEX_ID_MASK) * 3;
     return value;

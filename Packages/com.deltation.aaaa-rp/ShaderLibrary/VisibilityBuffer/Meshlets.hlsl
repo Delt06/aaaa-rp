@@ -2,7 +2,6 @@
 #define AAAA_VISIBILITY_BUFFER_MESHLETS_INCLUDED
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/AAAAStructs.cs.hlsl"
-#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLOD.hlsl"
 
 uint                                _MeshletCount;
 StructuredBuffer<AAAAMeshlet>       _Meshlets;
@@ -18,7 +17,6 @@ uint MeshletRenderRequestIndexToAddress(const uint index)
 struct AAAAMeshletRenderRequest
 {
     uint InstanceID;
-    uint LocalNodeIndex;
     uint MeshletID;
 };
 
@@ -28,7 +26,7 @@ AAAAMeshletRenderRequest PullMeshletRenderRequest(ByteAddressBuffer renderReques
     const uint2 value = renderRequests.Load2(address);
 
     AAAAMeshletRenderRequest renderRequest;
-    UnpackInstanceID_LocalNodeIndex(value.x, renderRequest.InstanceID, renderRequest.LocalNodeIndex);
+    renderRequest.InstanceID = value.x;
     renderRequest.MeshletID = value.y;
     return renderRequest;
 }
@@ -36,7 +34,7 @@ AAAAMeshletRenderRequest PullMeshletRenderRequest(ByteAddressBuffer renderReques
 void StoreMeshletRenderRequest(RWByteAddressBuffer renderRequests, const uint index, AAAAMeshletRenderRequest renderRequest)
 {
     const uint  address = MeshletRenderRequestIndexToAddress(index);
-    const uint2 value = uint2(PackInstanceID_LocalNodeIndex(renderRequest.InstanceID, renderRequest.LocalNodeIndex), renderRequest.MeshletID);
+    const uint2 value = uint2(renderRequest.InstanceID, renderRequest.MeshletID);
     renderRequests.Store2(address, value);
 }
 

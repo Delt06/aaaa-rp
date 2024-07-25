@@ -18,7 +18,6 @@ namespace DELTation.AAAARP.Debugging
         MeshletID,
         IndexID,
         VertexID,
-        MeshLOD,
     }
 
     [GenerateHLSL]
