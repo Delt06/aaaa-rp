@@ -88,6 +88,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
         MeshletList_Push(instanceData.TopMeshletStartIndex + localMeshletIndex);
     }
 
+    GroupMemoryBarrierWithGroupSync();
     
     UNITY_LOOP
     while (true)
