@@ -15,8 +15,8 @@ namespace DELTation.AAAARP
         public float4 AABBMin;
         public float4 AABBMax;
 
-        public uint TopMeshletStartIndex;
-        public uint TopMeshletCount;
+        public uint TopMeshLODStartIndex;
+        public uint TopMeshLODCount;
         public uint MaterialIndex;
         public uint Padding0;
     }
@@ -50,14 +50,8 @@ namespace DELTation.AAAARP
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     [StructLayout(LayoutKind.Sequential)]
     [Serializable]
-    public unsafe struct AAAAMeshlet
+    public struct AAAAMeshlet
     {
-        public const int ChildrenCount = 8;
-        public const uint InvalidChildIndex = uint.MaxValue;
-
-        [HLSLArray(ChildrenCount, typeof(uint))]
-        public fixed uint ChildrenNodeIndices[ChildrenCount];
-
         public uint VertexOffset;
         public uint TriangleOffset;
         public uint VertexCount;
@@ -66,6 +60,24 @@ namespace DELTation.AAAARP
         public float4 BoundingSphere;
         public float4 ConeApexCutoff;
         public float4 ConeAxis;
+    }
+
+    [GenerateHLSL(PackingRules.Exact, false)]
+    [StructLayout(LayoutKind.Sequential)]
+    [Serializable]
+    public unsafe struct AAAAMeshLODNode
+    {
+        public const int ChildrenCount = 8;
+
+        public const uint InvalidChildIndex = uint.MaxValue;
+
+        [HLSLArray(ChildrenCount, typeof(uint))]
+        public fixed uint ChildrenNodeIndices[ChildrenCount];
+
+        public uint MeshletStartIndex;
+        public uint MeshletCount;
+        public uint IsLeaf;
+        public uint Padding0;
 
         public void AddChildrenOffset(uint offset)
         {

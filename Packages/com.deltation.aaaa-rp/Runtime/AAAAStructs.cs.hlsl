@@ -10,18 +10,18 @@
 #define NO_TEXTURE_INDEX (4294967295)
 
 //
-// DELTation.AAAARP.AAAAMeshlet:  static fields
-//
-#define CHILDREN_COUNT (8)
-#define INVALID_CHILD_INDEX (4294967295)
-
-//
 // DELTation.AAAARP.AAAAMeshletConfiguration:  static fields
 //
 #define MAX_MESHLET_VERTICES (128)
 #define MAX_MESHLET_TRIANGLES (128)
 #define MAX_MESHLET_INDICES (384)
 #define MESHLET_CONE_WEIGHT (0.25)
+
+//
+// DELTation.AAAARP.AAAAMeshLODNode:  static fields
+//
+#define CHILDREN_COUNT (8)
+#define INVALID_CHILD_INDEX (4294967295)
 
 // Generated from DELTation.AAAARP.AAAAInstanceData
 // PackingRules = Exact
@@ -31,8 +31,8 @@ struct AAAAInstanceData
     float4x4 WorldToObjectMatrix;
     float4 AABBMin;
     float4 AABBMax;
-    uint TopMeshletStartIndex;
-    uint TopMeshletCount;
+    uint TopMeshLODStartIndex;
+    uint TopMeshLODCount;
     uint MaterialIndex;
     uint Padding0;
 };
@@ -52,7 +52,6 @@ struct AAAAMaterialData
 // PackingRules = Exact
 struct AAAAMeshlet
 {
-    uint ChildrenNodeIndices[8];
     uint VertexOffset;
     uint TriangleOffset;
     uint VertexCount;
@@ -78,6 +77,17 @@ struct AAAAMeshletVertex
     float4 Normal;
     float4 Tangent;
     float4 UV;
+};
+
+// Generated from DELTation.AAAARP.AAAAMeshLODNode
+// PackingRules = Exact
+struct AAAAMeshLODNode
+{
+    uint ChildrenNodeIndices[8];
+    uint MeshletStartIndex;
+    uint MeshletCount;
+    uint IsLeaf;
+    uint Padding0;
 };
 
 // Generated from DELTation.AAAARP.IndirectDispatchArgs

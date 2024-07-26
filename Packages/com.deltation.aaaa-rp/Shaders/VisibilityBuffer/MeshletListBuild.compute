@@ -9,6 +9,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLODNodes.hlsl"
 
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4x4 _CameraViewProjection;
@@ -17,40 +18,43 @@ RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
 
 #define LIST_SIZE 1024
-groupshared uint g_MeshletIndices[LIST_SIZE];
-groupshared int g_MeshletCount;
+groupshared uint g_MeshLODNodes[LIST_SIZE];
+groupshared int  g_MeshLODNodeCount;
 
-void MeshletList_Push(const uint meshletIndex)
+void MeshLODNodes_Push(const uint nodeIndex)
 {
     uint offset;
-    InterlockedAdd(g_MeshletCount, 1, offset);
-    g_MeshletIndices[offset] = meshletIndex;
+    InterlockedAdd(g_MeshLODNodeCount, 1, offset);
+    g_MeshLODNodes[offset] = nodeIndex;
 }
 
-uint MeshletList_TryPop()
+uint MeshLODNodes_TryPop()
 {
     int oldCount = 0;
-    InterlockedAdd(g_MeshletCount, -1, oldCount);
+    InterlockedAdd(g_MeshLODNodeCount, -1, oldCount);
 
     if (oldCount < 1)
     {
         return -1;
     }
 
-    return g_MeshletIndices[oldCount - 1];
+    return g_MeshLODNodes[oldCount - 1];
 }
 
-void PushMeshletRenderRequest(const uint instanceID, const uint meshletIndex)
+void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode meshLODNode)
 {
     uint meshletWriteOffset;
-    _DestinationMeshletsCounter.InterlockedAdd(0, 1, meshletWriteOffset);
+    _DestinationMeshletsCounter.InterlockedAdd(0, meshLODNode.MeshletCount, meshletWriteOffset);
 
-    AAAAMeshletRenderRequest meshletRenderRequest;
-    meshletRenderRequest.InstanceID = instanceID;
-    meshletRenderRequest.MeshletID = meshletIndex;
+    for (uint i = 0; i < meshLODNode.MeshletCount; ++i)
+    {
+        AAAAMeshletRenderRequest meshletRenderRequest;
+        meshletRenderRequest.InstanceID = instanceID;
+        meshletRenderRequest.MeshletID = meshLODNode.MeshletStartIndex + i;
 
-    StoreMeshletRenderRequest(_DestinationMeshlets, meshletWriteOffset, meshletRenderRequest);
-} 
+        StoreMeshletRenderRequest(_DestinationMeshlets, meshletWriteOffset + i, meshletRenderRequest);
+    }
+}
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_GroupID)
@@ -76,59 +80,60 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
 
     if (localThreadIndex == 0)
     {
-        g_MeshletCount = 0;
+        g_MeshLODNodeCount = 0;
     }
-    
+
     GroupMemoryBarrierWithGroupSync();
 
     const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
-    
-    for (uint localMeshletIndex = localThreadIndex; localMeshletIndex < instanceData.TopMeshletCount; localMeshletIndex += THREAD_GROUP_SIZE)
+
+    for (uint localNodeIndex = localThreadIndex; localNodeIndex < instanceData.TopMeshLODCount; localNodeIndex += THREAD_GROUP_SIZE)
     {
-        MeshletList_Push(instanceData.TopMeshletStartIndex + localMeshletIndex);
+        MeshLODNodes_Push(instanceData.TopMeshLODStartIndex + localNodeIndex);
     }
 
     GroupMemoryBarrierWithGroupSync();
-    
+
     UNITY_LOOP
     while (true)
     {
-        const uint poppedMeshletIndex = MeshletList_TryPop();
-        if (poppedMeshletIndex == -1)
+        const uint poppedNodeIndex = MeshLODNodes_TryPop();
+        if (poppedNodeIndex == -1)
         {
             break;
         }
 
-        const uint        parentMeshletIndex = poppedMeshletIndex;
-        const AAAAMeshlet parentMeshlet = PullMeshletData(parentMeshletIndex);
+        const uint            parentNodeIndex = poppedNodeIndex;
+        const AAAAMeshLODNode parentNode = PullMeshLODNode(parentNodeIndex);
 
-        if (0)
+        if (1)
         {
-            PushMeshletRenderRequest(instanceID, parentMeshletIndex);
+            PushMeshletRenderRequests(instanceID, parentNode);
         }
         else
         {
-            bool anyChildren = false;
-            
-            UNITY_LOOP
-            for (uint i = 0; i < (uint) CHILDREN_COUNT; ++i)
+            UNITY_BRANCH
+            if (parentNode.IsLeaf)
             {
-                const uint childMeshletIndex = parentMeshlet.ChildrenNodeIndices[i];
-                if (childMeshletIndex == (uint)INVALID_CHILD_INDEX)
-                {
-                    continue;
-                }
-
-                const AAAAMeshlet childMeshlet = PullMeshletData(childMeshletIndex);
-
-                PushMeshletRenderRequest(instanceID, childMeshletIndex);
-                anyChildren = true;
+                PushMeshletRenderRequests(instanceID, parentNode);
             }
-
-            if (!anyChildren)
+            else
             {
-                PushMeshletRenderRequest(instanceID, parentMeshletIndex);
+                UNITY_LOOP
+                for (uint i = 0; i < (uint)CHILDREN_COUNT; ++i)
+                {
+                    const uint childNodeIndex = parentNode.ChildrenNodeIndices[i];
+                    if (childNodeIndex == (uint)INVALID_CHILD_INDEX)
+                    {
+                        continue;
+                    }
+
+                    const AAAAMeshLODNode childNode = PullMeshLODNode(childNodeIndex);
+
+                    PushMeshletRenderRequests(instanceID, childNode);
+                }
             }
         }
+
     }
 }

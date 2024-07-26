@@ -14,9 +14,15 @@ namespace DELTation.AAAARP.Editor.Meshlets
             var asset = (AAAAMeshletCollectionAsset) target;
 
             const bool isReadOnly = true;
-            root.Add(new IntegerField("Top Meshlet Count")
+            root.Add(new IntegerField("Top Mesh LOD Node Count")
                 {
-                    value = asset.TopMeshletCount,
+                    value = asset.TopMeshLODNodeCount,
+                    isReadOnly = isReadOnly,
+                }
+            );
+            root.Add(new IntegerField("Total Mesh LOD Nodes")
+                {
+                    value = asset.MeshLODNodes.Length,
                     isReadOnly = isReadOnly,
                 }
             );
