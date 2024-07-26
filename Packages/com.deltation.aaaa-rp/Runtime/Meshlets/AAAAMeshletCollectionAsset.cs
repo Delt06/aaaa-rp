@@ -1,11 +1,9 @@
 ﻿using System;
 using DELTation.AAAARP.MeshOptimizer.Runtime;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Meshlets
 {
-    [GenerateHLSL]
     public class AAAAMeshletCollectionAsset : ScriptableObject
     {
         public static readonly AAAAMeshOptimizer.MeshletGenerationParams MeshletGenerationParams = new()

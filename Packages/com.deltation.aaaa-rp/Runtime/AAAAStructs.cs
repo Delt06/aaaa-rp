@@ -52,11 +52,12 @@ namespace DELTation.AAAARP
     [Serializable]
     public unsafe struct AAAAMeshlet
     {
-        public const uint ChildrenCount = 8;
+        public const int ChildrenCount = 8;
         public const uint InvalidChildIndex = uint.MaxValue;
-        
-        public fixed uint ChildrenNodeIndices[(int) ChildrenCount];
-        
+
+        [HLSLArray(ChildrenCount, typeof(uint))]
+        public fixed uint ChildrenNodeIndices[ChildrenCount];
+
         public uint VertexOffset;
         public uint TriangleOffset;
         public uint VertexCount;
@@ -65,7 +66,7 @@ namespace DELTation.AAAARP
         public float4 BoundingSphere;
         public float4 ConeApexCutoff;
         public float4 ConeAxis;
-        
+
         public void AddChildrenOffset(uint offset)
         {
             for (int i = 0; i < ChildrenCount; i++)
