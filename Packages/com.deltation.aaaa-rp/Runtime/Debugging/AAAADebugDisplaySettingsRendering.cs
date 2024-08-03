@@ -36,6 +36,7 @@ namespace DELTation.AAAARP.Debugging
 
         public bool OverrideFullScreenTriangleBudget { get; private set; }
         public int FullScreenTriangleBudget { get; private set; } = AAAAMeshLODSettings.DefaultFullScreenTriangleBudget;
+        public int ForcedMeshLODNodeDepth { get; private set; } = -1;
 
         public AAAAGBufferDebugMode GBufferDebugMode { get; private set; }
         public Vector2 GBufferDebugDepthRemap { get; private set; } = new(0.1f, 50f);
@@ -43,7 +44,8 @@ namespace DELTation.AAAARP.Debugging
         public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
                                             ForceCullingFromMainCamera ||
                                             OverrideFullScreenTriangleBudget ||
-                                            GBufferDebugMode != AAAAGBufferDebugMode.None;
+                                            GBufferDebugMode != AAAAGBufferDebugMode.None ||
+                                            ForcedMeshLODNodeDepth >= 0;
 
         public IDebugDisplaySettingsPanelDisposable CreatePanel() => new SettingsPanel(this);
 
@@ -81,6 +83,8 @@ namespace DELTation.AAAARP.Debugging
                         { name = "Override Full Screen Triangle Budget" };
                     public static readonly DebugUI.Widget.NameAndTooltip FullScreenTriangleBudget = new()
                         { name = "Budget" };
+                    public static readonly DebugUI.Widget.NameAndTooltip ForcedMeshLODNodeDepth = new()
+                        { name = "Forced Mesh LOD Node Depth" };
                 }
 
                 public static class WidgetFactory
@@ -98,6 +102,7 @@ namespace DELTation.AAAARP.Debugging
                                 CreateForceCullingFrustumOfMainCamera(panel),
                                 CreateOverrideFullScreenTriangleBudget(panel),
                                 CreateFullScreenTriangleBudget(panel),
+                                CreateForcedMeshLODNodeDepth(panel),
                             },
                         };
 
@@ -138,6 +143,15 @@ namespace DELTation.AAAARP.Debugging
                                 isHiddenCallback = () => !panel.data.OverrideFullScreenTriangleBudget,
                             },
                         },
+                    };
+
+                    private static DebugUI.Widget CreateForcedMeshLODNodeDepth(SettingsPanel panel) => new DebugUI.IntField
+                    {
+                        nameAndTooltip = Strings.ForcedMeshLODNodeDepth,
+                        getter = () => panel.data.ForcedMeshLODNodeDepth,
+                        setter = value => panel.data.ForcedMeshLODNodeDepth = value,
+                        min = () => -1,
+                        max = () => 16,
                     };
                 }
             }

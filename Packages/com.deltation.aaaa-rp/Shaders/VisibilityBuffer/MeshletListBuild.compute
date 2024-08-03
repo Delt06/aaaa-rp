@@ -14,6 +14,8 @@
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4x4 _CameraViewProjection;
 
+uint _ForcedMeshLODNodeDepth;
+
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
 
@@ -116,7 +118,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
             const AAAAMeshLODNode parentNode = PullMeshLODNode(parentNodeIndex);
 
             UNITY_BRANCH
-            if (parentNode.IsLeaf)
+            if (parentNode.IsLeaf || parentNode.LevelIndex == _ForcedMeshLODNodeDepth)
             {
                 PushMeshletRenderRequests(instanceID, parentNode);
             }
@@ -126,16 +128,12 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
                 for (uint i = 0; i < (uint)CHILDREN_COUNT; ++i)
                 {
                     const uint childNodeIndex = parentNode.ChildrenNodeIndices[i];
-                    UNITY_BRANCH
                     if (childNodeIndex == (uint)INVALID_CHILD_INDEX)
                     {
                         break;
                     }
-                    else
-                    {
-                        // PushMeshletRenderRequests(instanceID, PullMeshLODNode(childNodeIndex));
-                        MeshLODNodes_Push(childNodeIndex);   
-                    }
+                    
+                    MeshLODNodes_Push(childNodeIndex);
                 }
             }
         }
