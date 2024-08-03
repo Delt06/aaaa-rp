@@ -87,7 +87,7 @@ struct AAAAMeshLODNode
     uint MeshletStartIndex;
     uint MeshletCount;
     uint IsLeaf;
-    uint Padding0;
+    uint LevelIndex;
 };
 
 // Generated from DELTation.AAAARP.IndirectDispatchArgs

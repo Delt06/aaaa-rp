@@ -77,7 +77,7 @@ namespace DELTation.AAAARP
         public uint MeshletStartIndex;
         public uint MeshletCount;
         public uint IsLeaf;
-        public uint Padding0;
+        public uint LevelIndex;
 
         public void AddChildrenOffset(uint offset)
         {

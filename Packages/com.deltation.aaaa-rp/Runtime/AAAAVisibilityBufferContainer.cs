@@ -37,7 +37,6 @@ namespace DELTation.AAAARP
         private NativeList<AAAAInstanceData> _instanceData;
         private NativeList<AAAAMaterialData> _materialData;
         private NativeList<AAAAMeshlet> _meshletData;
-        private NativeList<AAAAMeshletRenderRequestPacked> _meshletRenderRequests;
         private NativeList<AAAAMeshLODNode> _meshLODNodes;
         private NativeList<byte> _sharedIndices;
         private NativeList<AAAAMeshletVertex> _sharedVertices;
@@ -50,7 +49,6 @@ namespace DELTation.AAAARP
             _meshletData = new NativeList<AAAAMeshlet>(Allocator.Persistent);
             _instanceData = new NativeList<AAAAInstanceData>(Allocator.Persistent);
             _materialData = new NativeList<AAAAMaterialData>(Allocator.Persistent);
-            _meshletRenderRequests = new NativeList<AAAAMeshletRenderRequestPacked>(Allocator.Persistent);
             _sharedVertices = new NativeList<AAAAMeshletVertex>(Allocator.Persistent);
             _sharedIndices = new NativeList<byte>(Allocator.Persistent);
 
@@ -67,22 +65,34 @@ namespace DELTation.AAAARP
 
             _instanceDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
                 _instanceData.Length, UnsafeUtility.SizeOf<AAAAInstanceData>()
-            );
+            )
+            {
+                name = "InstanceData",
+            };
             _instanceDataBuffer.SetData(_instanceData.AsArray());
 
             _meshLODNodesBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, math.max(1, _meshLODNodes.Length),
                 UnsafeUtility.SizeOf<AAAAMeshLODNode>()
-            );
+            )
+            {
+                name = "MeshLODNodes",
+            };
             _meshLODNodesBuffer.SetData(_meshLODNodes.AsArray());
 
             _meshletsDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
                 _meshletData.Length, UnsafeUtility.SizeOf<AAAAMeshlet>()
-            );
+            )
+            {
+                name = "MeshletsData",
+            };
             _meshletsDataBuffer.SetData(_meshletData.AsArray());
 
             _materialDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
                 _materialData.Length, UnsafeUtility.SizeOf<AAAAMaterialData>()
-            );
+            )
+            {
+                name = "MaterialData",
+            };
             _materialDataBuffer.SetData(_materialData.AsArray());
 
             _sharedVertexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
@@ -90,13 +100,18 @@ namespace DELTation.AAAARP
             );
             _sharedVertexBuffer.SetData(_sharedVertices.AsArray());
 
+            int indicesToPad = _sharedIndices.Length % 4;
+            for (int i = 0; i < indicesToPad; i++)
+            {
+                _sharedIndices.Add(0);
+            }
             _sharedIndexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
                 AAAAMathUtils.AlignUp(_sharedIndices.Length, sizeof(uint)) / sizeof(uint), sizeof(uint)
             );
             _sharedIndexBuffer.SetData(_sharedIndices.AsArray());
 
             MeshletRenderRequestsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
-                AAAAMathUtils.AlignUp(_meshletRenderRequests.Length * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(), sizeof(uint)) / sizeof(uint),
+                AAAAMathUtils.AlignUp(4 * _meshletData.Length * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(), sizeof(uint)) / sizeof(uint),
                 sizeof(uint)
             )
             {
@@ -136,11 +151,6 @@ namespace DELTation.AAAARP
             if (_materialData.IsCreated)
             {
                 _materialData.Dispose();
-            }
-
-            if (_meshletRenderRequests.IsCreated)
-            {
-                _meshletRenderRequests.Dispose();
             }
 
             if (_sharedVertices.IsCreated)
@@ -228,11 +238,6 @@ namespace DELTation.AAAARP
                         MaterialIndex = (uint) GetOrAllocateMaterial(material),
                     }
                 );
-
-                for (uint relativeMeshletID = 0; relativeMeshletID < mesh.Meshlets.Length; ++relativeMeshletID)
-                {
-                    _meshletRenderRequests.Add(default);
-                }
             }
         }
 

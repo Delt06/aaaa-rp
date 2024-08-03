@@ -33,12 +33,18 @@ uint MeshLODNodes_TryPop()
     int oldCount = 0;
     InterlockedAdd(g_MeshLODNodeCount, -1, oldCount);
 
+    uint returnValue;
+
     if (oldCount < 1)
     {
-        return -1;
+        returnValue = UINT_MAX;
+    }
+    else
+    {
+        returnValue = g_MeshLODNodes[oldCount - 1];   
     }
 
-    return g_MeshLODNodes[oldCount - 1];
+    return returnValue;
 }
 
 void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode meshLODNode)
@@ -71,6 +77,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     const AABB   aabbWS = TransformAABB(aabbOS, instanceData.ObjectToWorldMatrix);
     const float4 instanceBoundingSphere = AABBToBoundingSphere(aabbWS);
 
+    UNITY_BRANCH
     if (!FrustumVsSphereCulling(_CameraFrustumPlanes, instanceBoundingSphere))
     {
         return;
@@ -87,6 +94,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
 
     const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
 
+    UNITY_LOOP
     for (uint localNodeIndex = localThreadIndex; localNodeIndex < instanceData.TopMeshLODCount; localNodeIndex += THREAD_GROUP_SIZE)
     {
         MeshLODNodes_Push(instanceData.TopMeshLODStartIndex + localNodeIndex);
@@ -97,21 +105,16 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     UNITY_LOOP
     while (true)
     {
-        const uint poppedNodeIndex = MeshLODNodes_TryPop();
-        if (poppedNodeIndex == -1)
+        const uint parentNodeIndex = MeshLODNodes_TryPop();
+        UNITY_BRANCH
+        if (parentNodeIndex == UINT_MAX)
         {
             break;
         }
-
-        const uint            parentNodeIndex = poppedNodeIndex;
-        const AAAAMeshLODNode parentNode = PullMeshLODNode(parentNodeIndex);
-
-        if (1)
-        {
-            PushMeshletRenderRequests(instanceID, parentNode);
-        }
         else
         {
+            const AAAAMeshLODNode parentNode = PullMeshLODNode(parentNodeIndex);
+
             UNITY_BRANCH
             if (parentNode.IsLeaf)
             {
@@ -123,17 +126,18 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
                 for (uint i = 0; i < (uint)CHILDREN_COUNT; ++i)
                 {
                     const uint childNodeIndex = parentNode.ChildrenNodeIndices[i];
+                    UNITY_BRANCH
                     if (childNodeIndex == (uint)INVALID_CHILD_INDEX)
                     {
-                        continue;
+                        break;
                     }
-
-                    const AAAAMeshLODNode childNode = PullMeshLODNode(childNodeIndex);
-
-                    PushMeshletRenderRequests(instanceID, childNode);
+                    else
+                    {
+                        // PushMeshletRenderRequests(instanceID, PullMeshLODNode(childNodeIndex));
+                        MeshLODNodes_Push(childNodeIndex);   
+                    }
                 }
             }
         }
-
     }
 }

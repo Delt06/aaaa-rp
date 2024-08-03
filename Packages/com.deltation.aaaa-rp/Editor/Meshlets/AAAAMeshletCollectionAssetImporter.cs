@@ -144,7 +144,6 @@ namespace DELTation.AAAARP.Editor.Meshlets
                         [0] = new()
                         {
                             MeshletBuildResults = mainMeshletBuildResults,
-                            NodeIndices = new int2(0, mainMeshletBuildResults.Meshlets.Length),
                         },
                     },
                 };
@@ -156,30 +155,42 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     {
                         MeshletNodeListIndex = 0,
                         MeshletIndex = i,
-                        ChildrenNodeIndices = new NativeList<int>(0, Allocator.TempJob),
+                        ChildGroupIndex = -1,
                     };
                 }
                 meshLODLevels.Add(topLOD);
 
                 BuildLodGraph(meshLODLevels, allocator, vertexData, vertexPositionOffset, vertexBufferStride, meshletGenerationParams);
 
-                int topMeshLODNodes = 0;
+                int meshLODNodes = 0;
                 int totalMeshlets = 0;
                 int totalVertices = 0;
                 int totalIndices = 0;
 
                 foreach (MeshLODNodeLevel level in meshLODLevels)
                 {
-                    foreach (MeshLODNodeLevel.MeshletNodeList meshletNodeList in level.MeshletsNodeLists)
+                    foreach (NativeList<int> levelGroup in level.Groups)
                     {
-                        ++topMeshLODNodes;
-                        totalMeshlets += meshletNodeList.MeshletBuildResults.Meshlets.Length;
-                        totalVertices += meshletNodeList.MeshletBuildResults.Vertices.Length;
-                        totalIndices += meshletNodeList.MeshletBuildResults.Indices.Length;
+                        ++meshLODNodes;
+
+                        totalMeshlets += levelGroup.Length;
+
+                        NativeArray<MeshLODNodeLevel.MeshletNodeList> meshletsNodeLists = level.MeshletsNodeLists;
+
+                        foreach (int nodeIndex in levelGroup)
+                        {
+                            MeshLODNode node = level.Nodes[nodeIndex];
+                            MeshLODNodeLevel.MeshletNodeList meshletNodeList = meshletsNodeLists[node.MeshletNodeListIndex];
+
+                            AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults = meshletNodeList.MeshletBuildResults;
+                            meshopt_Meshlet meshlet = meshletBuildResults.Meshlets[node.MeshletIndex];
+                            totalVertices += (int) meshlet.VertexCount;
+                            totalIndices += (int) meshlet.TriangleCount * 3;
+                        }
                     }
                 }
 
-                meshletCollection.MeshLODNodes = new AAAAMeshLODNode[topMeshLODNodes];
+                meshletCollection.MeshLODNodes = new AAAAMeshLODNode[meshLODNodes];
                 meshletCollection.Meshlets = new AAAAMeshlet[totalMeshlets];
                 meshletCollection.VertexBuffer = new AAAAMeshletVertex[totalVertices];
                 meshletCollection.IndexBuffer = new byte[totalIndices];
@@ -194,16 +205,16 @@ namespace DELTation.AAAARP.Editor.Meshlets
                         {
                             fixed (byte* pIndexBuffer = meshletCollection.IndexBuffer)
                             {
-                                int meshLODNodeWriteOffset = 0;
-                                int meshletsWriteOffset = 0;
-                                int verticesWriteOffset = 0;
-                                int indicesWriteOffset = 0;
+                                uint meshLODNodeWriteOffset = 0;
+                                uint meshletsWriteOffset = 0;
+                                uint verticesWriteOffset = 0;
+                                uint indicesWriteOffset = 0;
 
                                 for (int levelIndex = 0; levelIndex < meshLODLevels.Length; levelIndex++)
                                 {
                                     MeshLODNodeLevel level = meshLODLevels[levelIndex];
 
-                                    int levelMeshLODNodesCount = level.MeshletsNodeLists.Length;
+                                    int levelMeshLODNodesCount = level.Groups.Length;
 
                                     if (levelIndex == 0)
                                     {
@@ -212,7 +223,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                                     uint childrenOffset = (uint) (meshLODNodeWriteOffset + levelMeshLODNodesCount);
 
-                                    foreach (MeshLODNodeLevel.MeshletNodeList meshletNodeList in level.MeshletsNodeLists)
+                                    foreach (NativeList<int> group in level.Groups)
                                     {
                                         static void CollectChildrenNodeIndices(ref AAAAMeshLODNode meshlet, NativeArray<int> indexList)
                                         {
@@ -231,59 +242,88 @@ namespace DELTation.AAAARP.Editor.Meshlets
                                             }
                                         }
 
-                                        AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults = meshletNodeList.MeshletBuildResults;
+                                        int meshletCount = group.Length;
 
-                                        int meshletCount = meshletBuildResults.Meshlets.Length;
-                                        int2 nodeIndicesRange = meshletNodeList.NodeIndices;
-                                        MeshLODNode firstNode = level.Nodes[nodeIndicesRange.x];
+                                        var childrenGroupIndicesSet = new NativeHashSet<int>(levelMeshLODNodesCount, Allocator.Temp);
 
-                                        ref AAAAMeshLODNode thisMeshLODNode = ref pMeshLODNodes[meshLODNodeWriteOffset];
+                                        foreach (int nodeIndex in group)
+                                        {
+                                            int childGroupIndex = level.Nodes[nodeIndex].ChildGroupIndex;
+                                            if (childGroupIndex >= 0)
+                                            {
+                                                childrenGroupIndicesSet.Add(childGroupIndex);
+                                            }
+                                        }
+
+                                        var childrenGroupIndices = childrenGroupIndicesSet.ToNativeArray(Allocator.Temp);
+                                        childrenGroupIndicesSet.Dispose();
+
+                                        ref AAAAMeshLODNode thisMeshLODNode = ref pMeshLODNodes[meshLODNodeWriteOffset++];
                                         thisMeshLODNode = new AAAAMeshLODNode
                                         {
-                                            MeshletCount = (uint) meshletNodeList.MeshletBuildResults.Meshlets.Length,
-                                            MeshletStartIndex = (uint) meshletsWriteOffset,
-                                            IsLeaf = firstNode.ChildrenNodeIndices.Length == 0 ? 1u : 0u,
+                                            MeshletCount = (uint) meshletCount,
+                                            MeshletStartIndex = meshletsWriteOffset,
+                                            IsLeaf = childrenGroupIndices.Length == 0 ? 1u : 0u,
+                                            LevelIndex = (uint) levelIndex,
                                         };
-                                        CollectChildrenNodeIndices(ref thisMeshLODNode, firstNode.ChildrenNodeIndices.AsArray());
+                                        CollectChildrenNodeIndices(ref thisMeshLODNode, childrenGroupIndices);
                                         thisMeshLODNode.AddChildrenOffset(childrenOffset);
 
-                                        AAAAMeshlet* pThisDestinationMeshlets = pDestinationMeshlets + meshletsWriteOffset;
-                                        JobHandle writeMeshletsJob = new WriteMeshletsJob
+                                        childrenGroupIndices.Dispose();
+
+                                        foreach (int nodeIndex in group)
                                         {
-                                            DestinationPtr = pThisDestinationMeshlets,
-                                            VertexBufferStride = vertexBufferStride,
-                                            VertexPositionOffset = vertexPositionOffset,
-                                            MeshletBuildResults = meshletBuildResults,
-                                            VertexData = vertexData,
-                                            VertexOffset = (uint) verticesWriteOffset,
-                                            TriangleOffset = (uint) indicesWriteOffset,
-                                        }.Schedule(meshletCount, WriteMeshletsJob.BatchSize);
-                                        jobHandles.Add(writeMeshletsJob);
+                                            MeshLODNode node = level.Nodes[nodeIndex];
+                                            MeshLODNodeLevel.MeshletNodeList meshletsNodeList = level.MeshletsNodeLists[node.MeshletNodeListIndex];
 
-                                        jobHandles.Add(new WriteVerticesJob
+                                            AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults = meshletsNodeList.MeshletBuildResults;
+                                            ref readonly meshopt_Meshlet meshoptMeshlet =
+                                                ref meshletBuildResults.Meshlets.ElementAtRefReadonly(node.MeshletIndex);
+                                            meshopt_Bounds meshoptBounds =
+                                                AAAAMeshOptimizer.ComputeMeshletBounds(meshletBuildResults, node.MeshletIndex, vertexData, vertexPositionOffset,
+                                                    vertexBufferStride
+                                                );
+
+                                            pDestinationMeshlets[meshletsWriteOffset++] = new AAAAMeshlet
                                             {
-                                                VerticesPtr = (byte*) vertexData.GetUnsafeReadOnlyPtr(),
-                                                VertexBufferStride = vertexBufferStride,
-                                                MeshletBuildResults = meshletBuildResults,
-                                                VertexNormalOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Normal),
-                                                VertexPositionOffset = vertexPositionOffset,
-                                                VertexTangentOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Tangent),
-                                                UVStreamStride = uvStreamStride,
-                                                VertexUVOffset = (uint) vertexUVOffset,
-                                                VerticesUVPtr = pVerticesUV,
-                                                DestinationPtr = pDestinationVertices + verticesWriteOffset,
-                                            }.Schedule(meshletBuildResults.Vertices.Length, WriteVerticesJob.BatchSize)
-                                        );
+                                                VertexOffset = verticesWriteOffset,
+                                                TriangleOffset = indicesWriteOffset,
+                                                VertexCount = meshoptMeshlet.VertexCount,
+                                                TriangleCount = meshoptMeshlet.TriangleCount,
+                                                BoundingSphere = math.float4(meshoptBounds.Center[0], meshoptBounds.Center[1], meshoptBounds.Center[2],
+                                                    meshoptBounds.Radius
+                                                ),
+                                                ConeApexCutoff = math.float4(meshoptBounds.ConeApex[0], meshoptBounds.ConeApex[1], meshoptBounds.ConeApex[2],
+                                                    meshoptBounds.ConeCutoff
+                                                ),
+                                                ConeAxis = math.float4(meshoptBounds.ConeAxis[0], meshoptBounds.ConeAxis[1], meshoptBounds.ConeAxis[2], 0),
+                                            };
 
+                                            jobHandles.Add(new WriteVerticesJob
+                                                {
+                                                    VerticesPtr = (byte*) vertexData.GetUnsafeReadOnlyPtr(),
+                                                    VertexBufferStride = vertexBufferStride,
+                                                    MeshletBuildResults = meshletBuildResults,
+                                                    MeshletIndex = node.MeshletIndex,
+                                                    VertexNormalOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Normal),
+                                                    VertexPositionOffset = vertexPositionOffset,
+                                                    VertexTangentOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Tangent),
+                                                    UVStreamStride = uvStreamStride,
+                                                    VertexUVOffset = (uint) vertexUVOffset,
+                                                    VerticesUVPtr = pVerticesUV,
+                                                    DestinationPtr = pDestinationVertices + verticesWriteOffset,
+                                                }.Schedule((int) meshoptMeshlet.VertexCount, WriteVerticesJob.BatchSize)
+                                            );
 
-                                        UnsafeUtility.MemCpy(pIndexBuffer + indicesWriteOffset, meshletBuildResults.Indices.GetUnsafeReadOnlyPtr(),
-                                            meshletBuildResults.Indices.Length * sizeof(byte)
-                                        );
+                                            verticesWriteOffset += meshoptMeshlet.VertexCount;
 
-                                        meshLODNodeWriteOffset += 1;
-                                        meshletsWriteOffset += meshletCount;
-                                        verticesWriteOffset += meshletBuildResults.Vertices.Length;
-                                        indicesWriteOffset += meshletBuildResults.Indices.Length;
+                                            uint indexCount = meshoptMeshlet.TriangleCount * 3;
+                                            UnsafeUtility.MemCpy(pIndexBuffer + indicesWriteOffset,
+                                                (byte*) meshletBuildResults.Indices.GetUnsafeReadOnlyPtr() + meshoptMeshlet.TriangleOffset,
+                                                indexCount * sizeof(byte)
+                                            );
+                                            indicesWriteOffset += indexCount;
+                                        }
                                     }
                                 }
                             }
@@ -325,17 +365,23 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     break;
                 }
 
-                MeshLODNodeLevel previousLevel = levels[^1];
+                ref MeshLODNodeLevel previousLevel = ref levels.ElementAt(levels.Length - 1);
+                if (previousLevel.Nodes.Length < 2)
+                {
+                    break;
+                }
+
                 var newLevelNodes = new NativeList<MeshLODNode>(previousLevel.Nodes.Length / 2, Allocator.TempJob);
                 var meshletNodeLists = new NativeList<MeshLODNodeLevel.MeshletNodeList>(previousLevel.MeshletsNodeLists.Length / 2, Allocator.TempJob);
                 uint newTriangleCount = 0;
 
                 const int meshletsPerGroup = 4;
 
-                NativeArray<NativeList<int>> meshletGroups = GroupMeshlets(previousLevel, meshletsPerGroup, Allocator.Temp);
+                NativeArray<NativeList<int>> childMeshletGroups = GroupMeshlets(previousLevel, meshletsPerGroup, Allocator.TempJob);
 
-                foreach (NativeList<int> meshletGroup in meshletGroups)
+                for (int childGroupIndex = 0; childGroupIndex < childMeshletGroups.Length; childGroupIndex++)
                 {
+                    NativeList<int> meshletGroup = childMeshletGroups[childGroupIndex];
                     var sourceMeshlets = new NativeList<AAAAMeshOptimizer.MeshletBuildResults>(meshletGroup.Length, Allocator.Temp);
 
                     foreach (int nodeIndex in meshletGroup)
@@ -354,8 +400,6 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     );
                     sourceMeshlets.Dispose();
 
-                    var nodeIndices = new int2(newLevelNodes.Length, newLevelNodes.Length + simplifiedMeshlets.Meshlets.Length);
-
                     for (int meshletIndex = 0; meshletIndex < simplifiedMeshlets.Meshlets.Length; meshletIndex++)
                     {
                         newTriangleCount += simplifiedMeshlets.Meshlets[meshletIndex].TriangleCount;
@@ -365,20 +409,17 @@ namespace DELTation.AAAARP.Editor.Meshlets
                             {
                                 MeshletNodeListIndex = meshletNodeLists.Length,
                                 MeshletIndex = meshletIndex,
-                                ChildrenNodeIndices = childrenNodeIndices,
+                                ChildGroupIndex = childGroupIndex,
                             }
                         );
                     }
 
                     meshletNodeLists.Add(new MeshLODNodeLevel.MeshletNodeList
                         {
-                            NodeIndices = nodeIndices,
                             MeshletBuildResults = simplifiedMeshlets,
                         }
                     );
                 }
-
-                meshletGroups.Dispose();
 
                 var newMeshLODNodeLevel = new MeshLODNodeLevel
                 {
@@ -386,6 +427,8 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     Nodes = newLevelNodes.AsArray(),
                     MeshletsNodeLists = meshletNodeLists.AsArray(),
                 };
+
+                previousLevel.Groups = childMeshletGroups;
 
                 if (newTriangleCount < previousLevel.TriangleCount)
                 {
@@ -459,18 +502,16 @@ namespace DELTation.AAAARP.Editor.Meshlets
         {
             public int MeshletNodeListIndex;
             public int MeshletIndex;
-            public NativeList<int> ChildrenNodeIndices;
+            public int ChildGroupIndex;
 
-            public void Dispose()
-            {
-                ChildrenNodeIndices.Dispose();
-            }
+            public void Dispose() { }
         }
 
         private struct MeshLODNodeLevel : IDisposable
         {
             public NativeArray<MeshLODNode> Nodes;
             public NativeArray<MeshletNodeList> MeshletsNodeLists;
+            public NativeArray<NativeList<int>> Groups;
             public uint TriangleCount;
 
             public void Dispose()
@@ -488,50 +529,16 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                 MeshletsNodeLists.Dispose();
                 Nodes.Dispose();
+                foreach (NativeList<int> group in Groups)
+                {
+                    group.Dispose();
+                }
+                Groups.Dispose();
             }
 
             public struct MeshletNodeList
             {
                 public AAAAMeshOptimizer.MeshletBuildResults MeshletBuildResults;
-                public int2 NodeIndices;
-            }
-        }
-
-        private unsafe struct WriteMeshletsJob : IJobParallelFor
-        {
-            public const int BatchSize = 32;
-
-            [NativeDisableContainerSafetyRestriction]
-            public AAAAMeshOptimizer.MeshletBuildResults MeshletBuildResults;
-            [ReadOnly]
-            public NativeArray<float> VertexData;
-
-            public uint VertexPositionOffset;
-            public uint VertexBufferStride;
-
-            [NativeDisableUnsafePtrRestriction]
-            public AAAAMeshlet* DestinationPtr;
-
-            public uint VertexOffset;
-            public uint TriangleOffset;
-
-            public void Execute(int index)
-            {
-                ref readonly meshopt_Meshlet meshoptMeshlet = ref MeshletBuildResults.Meshlets.ElementAtRefReadonly(index);
-                meshopt_Bounds meshoptBounds =
-                    AAAAMeshOptimizer.ComputeMeshletBounds(MeshletBuildResults, index, VertexData, VertexPositionOffset, VertexBufferStride);
-
-                var meshlet = new AAAAMeshlet
-                {
-                    VertexOffset = meshoptMeshlet.VertexOffset + VertexOffset,
-                    TriangleOffset = meshoptMeshlet.TriangleOffset + TriangleOffset,
-                    VertexCount = meshoptMeshlet.VertexCount,
-                    TriangleCount = meshoptMeshlet.TriangleCount,
-                    BoundingSphere = math.float4(meshoptBounds.Center[0], meshoptBounds.Center[1], meshoptBounds.Center[2], meshoptBounds.Radius),
-                    ConeApexCutoff = math.float4(meshoptBounds.ConeApex[0], meshoptBounds.ConeApex[1], meshoptBounds.ConeApex[2], meshoptBounds.ConeCutoff),
-                    ConeAxis = math.float4(meshoptBounds.ConeAxis[0], meshoptBounds.ConeAxis[1], meshoptBounds.ConeAxis[2], 0),
-                };
-                DestinationPtr[index] = meshlet;
             }
         }
 
@@ -558,10 +565,13 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
             [NativeDisableUnsafePtrRestriction]
             public AAAAMeshletVertex* DestinationPtr;
+            public int MeshletIndex;
 
             public void Execute(int index)
             {
-                byte* pSourceVertex = VerticesPtr + VertexBufferStride * MeshletBuildResults.Vertices[index];
+                meshopt_Meshlet meshoptMeshlet = MeshletBuildResults.Meshlets[MeshletIndex];
+                int vertexOffset = (int) meshoptMeshlet.VertexOffset;
+                byte* pSourceVertex = VerticesPtr + VertexBufferStride * MeshletBuildResults.Vertices[vertexOffset + index];
 
                 var meshletVertex = new AAAAMeshletVertex
                 {
@@ -572,7 +582,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                 if (VerticesUVPtr != null)
                 {
-                    byte* pSourceVertexUV = VerticesUVPtr + UVStreamStride * MeshletBuildResults.Vertices[index];
+                    byte* pSourceVertexUV = VerticesUVPtr + UVStreamStride * MeshletBuildResults.Vertices[vertexOffset + index];
                     meshletVertex.UV = math.float4(*(float2*) (pSourceVertexUV + VertexUVOffset), 0, 0);
                 }
 
