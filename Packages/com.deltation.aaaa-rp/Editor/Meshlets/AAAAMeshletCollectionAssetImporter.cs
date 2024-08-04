@@ -190,6 +190,11 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     }
                 }
 
+                if (meshLODNodes > AAAAMeshletComputeShaders.MaxMeshLODNodesPerInstance)
+                {
+                    ctx.LogImportError($"Mesh LOD node count exceeds the limit: {meshLODNodes}/{AAAAMeshletComputeShaders.MaxMeshLODNodesPerInstance}.");
+                }
+
                 meshletCollection.MeshLODNodes = new AAAAMeshLODNode[meshLODNodes];
                 meshletCollection.Meshlets = new AAAAMeshlet[totalMeshlets];
                 meshletCollection.VertexBuffer = new AAAAMeshletVertex[totalVertices];

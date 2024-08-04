@@ -1,7 +1,5 @@
 #pragma kernel CS
 
-#pragma enable_d3d11_debug_symbols
-
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 #define THREAD_GROUP_SIZE MESHLET_LIST_BUILD_THREAD_GROUP_SIZE
 
@@ -22,6 +20,32 @@ RWByteAddressBuffer _DestinationMeshlets;
 #define LIST_SIZE 1024
 groupshared uint g_MeshLODNodes[LIST_SIZE];
 groupshared int  g_MeshLODNodeCount;
+
+#define VISITED_NODES_MASK_BITS 32
+#define MAX_VISITED_NODE_MASKS (MAX_MESH_LODNODES_PER_INSTANCE / VISITED_NODES_MASK_BITS) 
+groupshared uint g_VisitedNodes[MAX_VISITED_NODE_MASKS];
+
+bool TryVisitNode(const uint localNodeIndex)
+{
+    bool success;
+
+    if (localNodeIndex >= MAX_MESH_LODNODES_PER_INSTANCE)
+    {
+        success = false;
+    }
+    else
+    {
+        const uint maskIndex = localNodeIndex / VISITED_NODES_MASK_BITS;
+        const uint bitIndex = localNodeIndex % VISITED_NODES_MASK_BITS;
+        const uint thisMask = 1u << bitIndex;
+
+        uint oldMask;
+        InterlockedOr(g_VisitedNodes[maskIndex], thisMask, oldMask);
+        success = (oldMask & thisMask) == 0;
+    }
+
+    return success;
+}
 
 void MeshLODNodes_Push(const uint nodeIndex)
 {
@@ -102,6 +126,12 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
         MeshLODNodes_Push(instanceData.TopMeshLODStartIndex + localNodeIndex);
     }
 
+    UNITY_LOOP
+    for (uint localMaskIndex = localThreadIndex; localMaskIndex < min(MAX_VISITED_NODE_MASKS, instanceData.TotalMeshLODCount); localMaskIndex += THREAD_GROUP_SIZE)
+    {
+        g_VisitedNodes[localMaskIndex] = 0;
+    } 
+
     GroupMemoryBarrierWithGroupSync();
 
     UNITY_LOOP
@@ -115,6 +145,11 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
         }
         else
         {
+            if (!TryVisitNode(parentNodeIndex - instanceData.TopMeshLODStartIndex))
+            {
+                continue;
+            }
+            
             const AAAAMeshLODNode parentNode = PullMeshLODNode(parentNodeIndex);
 
             UNITY_BRANCH

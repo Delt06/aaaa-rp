@@ -33,8 +33,8 @@ struct AAAAInstanceData
     float4 AABBMax;
     uint TopMeshLODStartIndex;
     uint TopMeshLODCount;
+    uint TotalMeshLODCount;
     uint MaterialIndex;
-    uint Padding0;
 };
 
 // Generated from DELTation.AAAARP.AAAAMaterialData
