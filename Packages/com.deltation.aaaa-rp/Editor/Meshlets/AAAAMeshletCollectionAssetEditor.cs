@@ -1,6 +1,5 @@
 using DELTation.AAAARP.Meshlets;
 using UnityEditor;
-using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace DELTation.AAAARP.Editor.Meshlets
@@ -24,6 +23,12 @@ namespace DELTation.AAAARP.Editor.Meshlets
             root.Add(new IntegerField("Total Mesh LOD Nodes")
                 {
                     value = asset.MeshLODNodes.Length,
+                    isReadOnly = isReadOnly,
+                }
+            );
+            root.Add(new IntegerField("Mesh LOD Level Count")
+                {
+                    value = asset.MeshLODLevelCount,
                     isReadOnly = isReadOnly,
                 }
             );

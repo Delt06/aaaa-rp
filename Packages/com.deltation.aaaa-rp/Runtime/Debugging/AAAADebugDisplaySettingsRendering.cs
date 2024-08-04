@@ -151,7 +151,7 @@ namespace DELTation.AAAARP.Debugging
                         getter = () => panel.data.ForcedMeshLODNodeDepth,
                         setter = value => panel.data.ForcedMeshLODNodeDepth = value,
                         min = () => -1,
-                        max = () => 16,
+                        max = () => 32,
                     };
                 }
             }

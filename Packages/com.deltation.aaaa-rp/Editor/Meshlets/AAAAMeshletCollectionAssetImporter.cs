@@ -26,8 +26,10 @@ namespace DELTation.AAAARP.Editor.Meshlets
         public Mesh Mesh;
         public bool OptimizeIndexing;
         public bool OptimizeVertexCache;
-        [Min(0)]
-        public int MaxStepsCount = 100;
+        [Range(0.0f, 0.25f)]
+        public float TargetError = 0.01f;
+        [Range(0.0f, 1.0f)]
+        public float MinTriangleReductionPerStep = 0.8f;
 
         public override unsafe void OnImportAsset(AssetImportContext ctx)
         {
@@ -195,6 +197,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     ctx.LogImportError($"Mesh LOD node count exceeds the limit: {meshLODNodes}/{AAAAMeshletComputeShaders.MaxMeshLODNodesPerInstance}.");
                 }
 
+                meshletCollection.MeshLODLevelCount = meshLODLevels.Length;
                 meshletCollection.MeshLODNodes = new AAAAMeshLODNode[meshLODNodes];
                 meshletCollection.Meshlets = new AAAAMeshlet[totalMeshlets];
                 meshletCollection.VertexBuffer = new AAAAMeshletVertex[totalVertices];
@@ -361,15 +364,8 @@ namespace DELTation.AAAARP.Editor.Meshlets
         private void BuildLodGraph(NativeList<MeshLODNodeLevel> levels, Allocator allocator, NativeArray<float> vertexData, uint vertexPositionOffset,
             uint vertexBufferStride, AAAAMeshOptimizer.MeshletGenerationParams meshletGenerationParams)
         {
-            int stepIndex = 0;
             while (levels[^1].Nodes.Length > 1)
             {
-                ++stepIndex;
-                if (stepIndex > MaxStepsCount)
-                {
-                    break;
-                }
-
                 ref MeshLODNodeLevel previousLevel = ref levels.ElementAt(levels.Length - 1);
                 if (previousLevel.Nodes.Length < 2)
                 {
@@ -401,7 +397,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     AAAAMeshOptimizer.MeshletBuildResults simplifiedMeshlets = AAAAMeshOptimizer.SimplifyMeshlets(allocator,
                         sourceMeshlets.AsArray(),
                         vertexData, vertexPositionOffset, vertexBufferStride,
-                        meshletGenerationParams
+                        meshletGenerationParams, TargetError
                     );
                     sourceMeshlets.Dispose();
 
@@ -435,7 +431,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                 previousLevel.Groups = childMeshletGroups;
 
-                if (newTriangleCount < previousLevel.TriangleCount)
+                if (newTriangleCount < previousLevel.TriangleCount * MinTriangleReductionPerStep)
                 {
                     levels.Add(newMeshLODNodeLevel);
                 }
@@ -452,6 +448,23 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 ref MeshLODNodeLevel level1 = ref levels.ElementAtRef(i);
                 ref MeshLODNodeLevel level2 = ref levels.ElementAtRef(levels.Length - 1 - i);
                 (level1, level2) = (level2, level1);
+            }
+
+            for (int i = 0; i < levels.Length; i++)
+            {
+                ref MeshLODNodeLevel nodeLevel = ref levels.ElementAtRef(i);
+                if (!nodeLevel.Groups.IsCreated)
+                {
+                    nodeLevel.Groups = new NativeArray<NativeList<int>>(1, Allocator.TempJob);
+                    var group = new NativeList<int>(nodeLevel.Nodes.Length, Allocator.TempJob);
+
+                    for (int nodeIndex = 0; nodeIndex < nodeLevel.Nodes.Length; nodeIndex++)
+                    {
+                        group.Add(nodeIndex);
+                    }
+
+                    nodeLevel.Groups[0] = group;
+                }
             }
         }
 

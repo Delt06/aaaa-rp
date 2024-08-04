@@ -98,8 +98,7 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
         public static unsafe MeshletBuildResults SimplifyMeshlets(Allocator allocator,
             NativeArray<MeshletBuildResults> meshletGroups,
             NativeArray<float> vertices, uint vertexPositionOffset, uint vertexPositionsStride,
-            in MeshletGenerationParams meshletGenerationParams
-        )
+            in MeshletGenerationParams meshletGenerationParams, float targetError)
         {
             using var _ = new ProfilingScope(Profiling.SimplifyMeshletsSampler);
 
@@ -154,7 +153,7 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             int targetIndexCount = (int) (localIndices.Length / 3 * 0.5f * 3);
             int simplifiedIndexCount = (int) meshopt_simplify(localIndices.GetUnsafePtr(), localIndices.GetUnsafePtr(), (nuint) localIndices.Length,
                 (float*) localVertices.GetUnsafePtr(), (nuint) localVertices.Length, (nuint) UnsafeUtility.SizeOf<ClusterVertex>(), (nuint) targetIndexCount,
-                5e-02f, (uint) meshopt_SimplifyOptions.LockBorder
+                targetError, (uint) meshopt_SimplifyOptions.LockBorder
             );
             localIndices.Length = simplifiedIndexCount;
 
