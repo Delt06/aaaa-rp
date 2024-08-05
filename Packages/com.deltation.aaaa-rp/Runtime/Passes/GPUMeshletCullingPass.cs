@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Utils;
 using JetBrains.Annotations;
@@ -72,6 +73,26 @@ namespace DELTation.AAAARP.Passes
                 }
             );
 
+            passData.VisitedNodesItemsCapacity = AAAAMathUtils.AlignUp(visibilityBufferContainer.MeshLODNodeCount, 32) / 32;
+            passData.VisitedNodes = builder.CreateTransientBuffer(
+                new BufferDesc(passData.VisitedNodesItemsCapacity, sizeof(uint), GraphicsBuffer.Target.Raw)
+                {
+                    name = "VisitedNodes",
+                }
+            );
+            passData.WorkQueueSlots = builder.CreateTransientBuffer(
+                new BufferDesc(visibilityBufferContainer.MeshLODNodeCount * 4, sizeof(uint), GraphicsBuffer.Target.Raw)
+                {
+                    name = "WorkQueue_Slots",
+                }
+            );
+            passData.WorkQueueHeadTail = builder.CreateTransientBuffer(new BufferDesc(2, sizeof(uint), GraphicsBuffer.Target.Raw)
+                {
+                    name = "WorkQueue_HeadTail",
+                }
+            );
+            passData.WorkQueueCapacity = visibilityBufferContainer.MeshLODNodeCount;
+
             passData.DestinationMeshletsCounterBuffer = builder.CreateTransientBuffer(CreateCounterBufferDesc("MeshletRenderRequestCounter"));
             passData.DestinationMeshletsBuffer = renderingData.RenderGraph.ImportBuffer(meshletRenderRequestsBuffer);
             builder.WriteBuffer(passData.DestinationMeshletsBuffer);
@@ -98,6 +119,13 @@ namespace DELTation.AAAARP.Passes
                 AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.InitialMeshletListCounterBuffer, 1, 0, 0);
             }
 
+            using (new ProfilingScope(context.cmd, Profiling.ClearWorkQueue))
+            {
+                AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.VisitedNodes, data.VisitedNodesItemsCapacity, 0, 0);
+                AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.WorkQueueSlots, data.WorkQueueCapacity * 4, 0, 0);
+                AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.WorkQueueHeadTail, 2, 0, 0);
+            }
+
             using (new ProfilingScope(context.cmd, Profiling.MeshletListBuild))
             {
                 const int kernelIndex = 0;
@@ -111,6 +139,11 @@ namespace DELTation.AAAARP.Passes
                 context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex,
                     ShaderID.MeshletListBuild._DestinationMeshlets, data.InitialMeshletListBuffer
                 );
+
+                context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex, ShaderID.MeshletListBuild._VisitedNodes, data.VisitedNodes);
+                context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex, ShaderID.MeshletListBuild._WorkQueueSlots, data.WorkQueueSlots);
+                context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex, ShaderID.MeshletListBuild._WorkQueueHeadTail, data.WorkQueueHeadTail);
+                context.cmd.SetComputeIntParam(_meshletListBuildCS, ShaderID.MeshletListBuild._WorkQueueCapacity, data.WorkQueueCapacity);
 
                 context.cmd.DispatchCompute(_meshletListBuildCS, kernelIndex,
                     data.InstanceCount, 1, 1
@@ -186,12 +219,20 @@ namespace DELTation.AAAARP.Passes
 
             public BufferHandle InitialMeshletListBuffer;
             public BufferHandle InitialMeshletListCounterBuffer;
+
             public int InstanceCount;
+
+            public BufferHandle VisitedNodes;
+            public int VisitedNodesItemsCapacity;
+            public int WorkQueueCapacity;
+            public BufferHandle WorkQueueHeadTail;
+            public BufferHandle WorkQueueSlots;
         }
 
         private static class Profiling
         {
             public static readonly ProfilingSampler ClearRenderRequestsCount = new(nameof(ClearRenderRequestsCount));
+            public static readonly ProfilingSampler ClearWorkQueue = new(nameof(ClearWorkQueue));
             public static readonly ProfilingSampler MeshletListBuild = new(nameof(MeshletListBuild));
             public static readonly ProfilingSampler FixupMeshletCullingIndirectDispatchArgs = new(nameof(FixupMeshletCullingIndirectDispatchArgs));
             public static readonly ProfilingSampler MeshletCulling = new(nameof(MeshletCulling));
@@ -208,6 +249,11 @@ namespace DELTation.AAAARP.Passes
 
                 public static int _DestinationMeshletsCounter = Shader.PropertyToID(nameof(_DestinationMeshletsCounter));
                 public static int _DestinationMeshlets = Shader.PropertyToID(nameof(_DestinationMeshlets));
+
+                public static int _VisitedNodes = Shader.PropertyToID(nameof(_VisitedNodes));
+                public static int _WorkQueueSlots = Shader.PropertyToID(nameof(_WorkQueueSlots));
+                public static int _WorkQueueHeadTail = Shader.PropertyToID(nameof(_WorkQueueHeadTail));
+                public static int _WorkQueueCapacity = Shader.PropertyToID(nameof(_WorkQueueCapacity));
             }
 
             public static class FixupMeshletCullingIndirectDispatchArgs

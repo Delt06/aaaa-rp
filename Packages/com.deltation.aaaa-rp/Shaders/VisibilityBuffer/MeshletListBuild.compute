@@ -8,7 +8,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLODNodes.hlsl"
-#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/DataStructures/GroupSharedMPMCQueue.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/DataStructures/MPMCQueue.hlsl"
 
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4x4 _CameraViewProjection;
@@ -18,49 +18,57 @@ uint _ForcedMeshLODNodeDepth;
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
 
+globallycoherent RWByteAddressBuffer _VisitedNodes;
+globallycoherent RWByteAddressBuffer _WorkQueueSlots;
+globallycoherent RWByteAddressBuffer _WorkQueueHeadTail;
+uint                                 _WorkQueueCapacity;
+
 groupshared uint g_CurrentTopLODNode;
 
-#define VISITED_NODES_MASK_BITS 32
-#define MAX_VISITED_NODE_MASKS (MAX_MESH_LODNODES_PER_INSTANCE / VISITED_NODES_MASK_BITS)
-groupshared uint g_VisitedNodes[MAX_VISITED_NODE_MASKS];
-
-bool TryVisitNode(const uint localNodeIndex)
+struct WorkNode
 {
-    bool success;
+    uint InstanceID;
+    uint MeshLODNodeIndex;
+};
 
-    if (localNodeIndex >= MAX_MESH_LODNODES_PER_INSTANCE)
+#define VISITED_NODES_MASK_BITS 32
+
+bool TryVisitNode(const uint nodeIndex)
+{
+    const uint maskIndex = nodeIndex / VISITED_NODES_MASK_BITS;
+    const uint bitIndex = nodeIndex % VISITED_NODES_MASK_BITS;
+    const uint thisMask = 1u << bitIndex;
+
+    uint oldMask;
+    _VisitedNodes.InterlockedOr(maskIndex * 4, thisMask, oldMask);
+    return (oldMask & thisMask) == 0;
+}
+
+void EnqueueWorkNode(MPMCQueue queue, const WorkNode workNode)
+{
+    queue.Enqueue(uint3(workNode.InstanceID, workNode.MeshLODNodeIndex, 0));
+}
+
+bool TryDequeueWorkNode(MPMCQueue queue, out WorkNode workNode)
+{
+    bool result;
+    workNode = (WorkNode)0;
+
+    MPMC_QUEUE_VALUE_T value;
+
+    UNITY_BRANCH
+    if (queue.TryDequeue(value))
     {
-        success = false;
+        workNode.InstanceID = value.x;
+        workNode.MeshLODNodeIndex = value.y;
+        result = true;
     }
     else
     {
-        const uint maskIndex = localNodeIndex / VISITED_NODES_MASK_BITS;
-        const uint bitIndex = localNodeIndex % VISITED_NODES_MASK_BITS;
-        const uint thisMask = 1u << bitIndex;
-
-        uint oldMask;
-        InterlockedOr(g_VisitedNodes[maskIndex], thisMask, oldMask);
-        success = (oldMask & thisMask) == 0;
+        result = false;
     }
 
-    return success;
-}
-
-bool MeshLODNodes_TryPush(const uint nodeIndex)
-{
-    return GroupSharedMPMCQueue::TryEnqueue(nodeIndex);
-}
-
-void MeshLODNodes_Push(const uint nodeIndex)
-{
-    GroupSharedMPMCQueue::Enqueue(nodeIndex);
-}
-
-uint MeshLODNodes_TryPop()
-{
-    uint       item;
-    const bool success = GroupSharedMPMCQueue::TryDequeue(item);
-    return success ? item : UINT_MAX;
+    return result;
 }
 
 void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode meshLODNode)
@@ -106,16 +114,9 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
         g_CurrentTopLODNode = 0;
     }
 
-    UNITY_LOOP
-    for (uint localMaskIndex = localThreadIndex; localMaskIndex < min(MAX_VISITED_NODE_MASKS, instanceData.TotalMeshLODCount); localMaskIndex +=
-         THREAD_GROUP_SIZE)
-    {
-        g_VisitedNodes[localMaskIndex] = 0;
-    }
-
-    GroupSharedMPMCQueue::Init(localThreadIndex, THREAD_GROUP_SIZE);
-
     GroupMemoryBarrierWithGroupSync();
+
+    MPMCQueue workQueue = MPMCQueue::Construct(_WorkQueueSlots, _WorkQueueHeadTail, _WorkQueueCapacity);
 
     const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
 
@@ -126,7 +127,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     {
         uint topLODOffset = UINT_MAX;
 
-        // Check if there are top level node to process
+        // Check if there are top level nodes to process
         if (g_CurrentTopLODNode <= instanceData.TopMeshLODCount - 1)
         {
             // Try to take a node 
@@ -140,38 +141,37 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
         UNITY_LOOP
         while (true)
         {
-            uint parentNodeIndex;
+            WorkNode parentWorkNode;
 
             UNITY_BRANCH
             if (topLODOffset != UINT_MAX)
             {
                 // Process the take top level node directly, without pushing to the queue
-                parentNodeIndex = instanceData.TopMeshLODStartIndex + topLODOffset;
+                parentWorkNode.InstanceID = instanceID;
+                parentWorkNode.MeshLODNodeIndex = instanceData.TopMeshLODStartIndex + topLODOffset;
                 topLODOffset = UINT_MAX;
             }
-            else
+            else if (!TryDequeueWorkNode(workQueue, parentWorkNode))
             {
-                // No more top level nodes left, take one from the queue
-                parentNodeIndex = MeshLODNodes_TryPop();
-            }
+                if (workQueue.IsEmpty())
+                {
+                    stopProcessing = true;
+                }
 
-            UNITY_BRANCH
-            if (parentNodeIndex == UINT_MAX)
-            {
-                stopProcessing = true;
                 break;
             }
-            if (!TryVisitNode(parentNodeIndex - instanceData.TopMeshLODStartIndex))
+
+            if (!TryVisitNode(parentWorkNode.MeshLODNodeIndex))
             {
                 continue;
             }
 
-            const AAAAMeshLODNode parentNode = PullMeshLODNode(parentNodeIndex);
+            const AAAAMeshLODNode parentNode = PullMeshLODNode(parentWorkNode.MeshLODNodeIndex);
 
             UNITY_BRANCH
             if (parentNode.IsLeaf || parentNode.LevelIndex == _ForcedMeshLODNodeDepth)
             {
-                PushMeshletRenderRequests(instanceID, parentNode);
+                PushMeshletRenderRequests(parentWorkNode.InstanceID, parentNode);
             }
             else
             {
@@ -184,7 +184,10 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
                         break;
                     }
 
-                    MeshLODNodes_TryPush(childNodeIndex);
+                    WorkNode childWorkNode;
+                    childWorkNode.InstanceID = parentWorkNode.InstanceID;
+                    childWorkNode.MeshLODNodeIndex = childNodeIndex;
+                    EnqueueWorkNode(workQueue, childWorkNode);
                 }
             }
         }

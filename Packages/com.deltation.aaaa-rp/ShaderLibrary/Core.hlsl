@@ -234,6 +234,11 @@ float2 ScreenCoordsToNDC(float4 screenCoords)
     return ndc;
 }
 
+#if defined(SHADER_API_PSSL) || defined(SHADER_API_METAL) || defined(SHADER_API_WEBGPU)
+// TODO: globallycoherent is not supported on PS4, metal, or webgpu this shader may fail
+#define globallycoherent
+#endif
+
 // #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/ShaderVariablesFunctions.hlsl"
 
 #endif // AAAA_CORE_INCLUDED

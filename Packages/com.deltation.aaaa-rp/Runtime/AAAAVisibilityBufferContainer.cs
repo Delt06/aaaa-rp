@@ -127,6 +127,8 @@ namespace DELTation.AAAARP
             Shader.SetGlobalTexture(ShaderIDs._SharedAlbedoTextureArray, albedoTextureArray);
         }
 
+        public int MeshLODNodeCount => _meshLODNodes.Length;
+
         public int InstanceCount => _instanceData.IsCreated ? _instanceData.Length : 0;
         public GraphicsBuffer IndirectDrawArgsBuffer { get; }
         public GraphicsBuffer MeshletRenderRequestsBuffer { get; }
