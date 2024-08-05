@@ -8,6 +8,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLODNodes.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/DataStructures/GroupSharedMPMCQueue.hlsl"
 
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4x4 _CameraViewProjection;
@@ -17,12 +18,10 @@ uint _ForcedMeshLODNodeDepth;
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
 
-#define LIST_SIZE 1024
-groupshared uint g_MeshLODNodes[LIST_SIZE];
-groupshared int  g_MeshLODNodeCount;
+groupshared uint g_CurrentTopLODNode;
 
 #define VISITED_NODES_MASK_BITS 32
-#define MAX_VISITED_NODE_MASKS (MAX_MESH_LODNODES_PER_INSTANCE / VISITED_NODES_MASK_BITS) 
+#define MAX_VISITED_NODE_MASKS (MAX_MESH_LODNODES_PER_INSTANCE / VISITED_NODES_MASK_BITS)
 groupshared uint g_VisitedNodes[MAX_VISITED_NODE_MASKS];
 
 bool TryVisitNode(const uint localNodeIndex)
@@ -47,30 +46,21 @@ bool TryVisitNode(const uint localNodeIndex)
     return success;
 }
 
+bool MeshLODNodes_TryPush(const uint nodeIndex)
+{
+    return GroupSharedMPMCQueue::TryEnqueue(nodeIndex);
+}
+
 void MeshLODNodes_Push(const uint nodeIndex)
 {
-    uint offset;
-    InterlockedAdd(g_MeshLODNodeCount, 1, offset);
-    g_MeshLODNodes[offset] = nodeIndex;
+    GroupSharedMPMCQueue::Enqueue(nodeIndex);
 }
 
 uint MeshLODNodes_TryPop()
 {
-    int oldCount = 0;
-    InterlockedAdd(g_MeshLODNodeCount, -1, oldCount);
-
-    uint returnValue;
-
-    if (oldCount < 1)
-    {
-        returnValue = UINT_MAX;
-    }
-    else
-    {
-        returnValue = g_MeshLODNodes[oldCount - 1];   
-    }
-
-    return returnValue;
+    uint       item;
+    const bool success = GroupSharedMPMCQueue::TryDequeue(item);
+    return success ? item : UINT_MAX;
 }
 
 void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode meshLODNode)
@@ -113,43 +103,69 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
 
     if (localThreadIndex == 0)
     {
-        g_MeshLODNodeCount = 0;
+        g_CurrentTopLODNode = 0;
     }
+
+    UNITY_LOOP
+    for (uint localMaskIndex = localThreadIndex; localMaskIndex < min(MAX_VISITED_NODE_MASKS, instanceData.TotalMeshLODCount); localMaskIndex +=
+         THREAD_GROUP_SIZE)
+    {
+        g_VisitedNodes[localMaskIndex] = 0;
+    }
+
+    GroupSharedMPMCQueue::Init(localThreadIndex, THREAD_GROUP_SIZE);
 
     GroupMemoryBarrierWithGroupSync();
 
     const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
 
-    UNITY_LOOP
-    for (uint localNodeIndex = localThreadIndex; localNodeIndex < instanceData.TopMeshLODCount; localNodeIndex += THREAD_GROUP_SIZE)
-    {
-        MeshLODNodes_Push(instanceData.TopMeshLODStartIndex + localNodeIndex);
-    }
+    bool stopProcessing = false;
 
     UNITY_LOOP
-    for (uint localMaskIndex = localThreadIndex; localMaskIndex < min(MAX_VISITED_NODE_MASKS, instanceData.TotalMeshLODCount); localMaskIndex += THREAD_GROUP_SIZE)
+    while (!stopProcessing)
     {
-        g_VisitedNodes[localMaskIndex] = 0;
-    } 
+        uint topLODOffset = UINT_MAX;
 
-    GroupMemoryBarrierWithGroupSync();
-
-    UNITY_LOOP
-    while (true)
-    {
-        const uint parentNodeIndex = MeshLODNodes_TryPop();
-        UNITY_BRANCH
-        if (parentNodeIndex == UINT_MAX)
+        // Check if there are top level node to process
+        if (g_CurrentTopLODNode <= instanceData.TopMeshLODCount - 1)
         {
-            break;
+            // Try to take a node 
+            InterlockedAdd(g_CurrentTopLODNode, 1, topLODOffset);
+            if (topLODOffset >= instanceData.TopMeshLODCount)
+            {
+                topLODOffset = UINT_MAX;
+            }
         }
-        else
+
+        UNITY_LOOP
+        while (true)
         {
+            uint parentNodeIndex;
+
+            UNITY_BRANCH
+            if (topLODOffset != UINT_MAX)
+            {
+                // Process the take top level node directly, without pushing to the queue
+                parentNodeIndex = instanceData.TopMeshLODStartIndex + topLODOffset;
+                topLODOffset = UINT_MAX;
+            }
+            else
+            {
+                // No more top level nodes left, take one from the queue
+                parentNodeIndex = MeshLODNodes_TryPop();
+            }
+
+            UNITY_BRANCH
+            if (parentNodeIndex == UINT_MAX)
+            {
+                stopProcessing = true;
+                break;
+            }
             if (!TryVisitNode(parentNodeIndex - instanceData.TopMeshLODStartIndex))
             {
                 continue;
             }
-            
+
             const AAAAMeshLODNode parentNode = PullMeshLODNode(parentNodeIndex);
 
             UNITY_BRANCH
@@ -167,8 +183,8 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
                     {
                         break;
                     }
-                    
-                    MeshLODNodes_Push(childNodeIndex);
+
+                    MeshLODNodes_TryPush(childNodeIndex);
                 }
             }
         }
