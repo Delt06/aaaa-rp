@@ -16,7 +16,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
             const bool isReadOnly = true;
             root.Add(new IntegerField("Top Mesh LOD Node Count")
                 {
-                    value = asset.TopMeshLODNodeCount,
+                    value = asset.MeshLODLevelNodeCounts[0],
                     isReadOnly = isReadOnly,
                 }
             );

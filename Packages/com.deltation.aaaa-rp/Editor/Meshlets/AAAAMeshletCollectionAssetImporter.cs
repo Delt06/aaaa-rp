@@ -198,6 +198,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 }
 
                 meshletCollection.MeshLODLevelCount = meshLODLevels.Length;
+                meshletCollection.MeshLODLevelNodeCounts = new int[meshLODLevels.Length];
                 meshletCollection.MeshLODNodes = new AAAAMeshLODNode[meshLODNodes];
                 meshletCollection.Meshlets = new AAAAMeshlet[totalMeshlets];
                 meshletCollection.VertexBuffer = new AAAAMeshletVertex[totalVertices];
@@ -223,11 +224,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                                     MeshLODNodeLevel level = meshLODLevels[levelIndex];
 
                                     int levelMeshLODNodesCount = level.Groups.Length;
-
-                                    if (levelIndex == 0)
-                                    {
-                                        meshletCollection.TopMeshLODNodeCount = levelMeshLODNodesCount;
-                                    }
+                                    meshletCollection.MeshLODLevelNodeCounts[levelIndex] = levelMeshLODNodesCount;
 
                                     uint childrenOffset = (uint) (meshLODNodeWriteOffset + levelMeshLODNodesCount);
 

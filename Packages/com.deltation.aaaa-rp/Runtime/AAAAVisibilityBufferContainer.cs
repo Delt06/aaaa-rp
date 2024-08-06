@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Debugging;
@@ -133,6 +134,8 @@ namespace DELTation.AAAARP
         public GraphicsBuffer IndirectDrawArgsBuffer { get; }
         public GraphicsBuffer MeshletRenderRequestsBuffer { get; }
 
+        public int MaxMeshLODNodesPerLevel { get; private set; }
+
         public void Dispose()
         {
             if (_meshLODNodes.IsCreated)
@@ -239,11 +242,13 @@ namespace DELTation.AAAARP
                         AABBMin = math.float4(mesh.Bounds.min, 0.0f),
                         AABBMax = math.float4(mesh.Bounds.max, 0.0f),
                         TopMeshLODStartIndex = (uint) GetOrAllocateMeshLODNodes(mesh),
-                        TopMeshLODCount = (uint) mesh.TopMeshLODNodeCount,
+                        TopMeshLODCount = (uint) mesh.MeshLODLevelNodeCounts[0],
                         TotalMeshLODCount = (uint) mesh.MeshLODNodes.Length,
                         MaterialIndex = (uint) GetOrAllocateMaterial(material),
                     }
                 );
+
+                MaxMeshLODNodesPerLevel += mesh.MeshLODLevelNodeCounts.Max();
             }
         }
 
