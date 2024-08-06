@@ -4,49 +4,33 @@
 #define THREAD_GROUP_SIZE MESHLET_LIST_BUILD_THREAD_GROUP_SIZE
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
-#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLODNodes.hlsl"
-
-float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
-float4x4 _CameraViewProjection;
-float4   _CameraPosition;
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshletListBuild.hlsl"
 
 uint _ForcedMeshLODNodeDepth;
 
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
 
-#define VISITED_NODES_MASK_BITS (32u)
-#define QUEUE_CAPACITY (2048)
-#define VISITED_NODES_MASK_SIZE (MAX_MESH_LODNODES_PER_INSTANCE / VISITED_NODES_MASK_BITS)
+ByteAddressBuffer _SourceWorkQueue;
+ByteAddressBuffer _SourceWorkQueueSize;
 
-groupshared uint g_VisitedNodeMask[VISITED_NODES_MASK_SIZE];
-groupshared uint g_Queue[QUEUE_CAPACITY * 2];
-groupshared uint g_QueueSize[2];
-groupshared uint g_SourceQueueIndex;
+RWByteAddressBuffer _DestinationWorkQueue;
+RWByteAddressBuffer _DestinationWorkQueueSize;
 
-bool TryVisitNode(const uint nodeIndex)
+RWByteAddressBuffer _VisitedMask;
+
+bool TryVisitNode(const WorkNode workNode, const uint localNodeIndex)
 {
-    const uint maskIndex = nodeIndex / VISITED_NODES_MASK_BITS;
-    const uint bitIndex = nodeIndex % VISITED_NODES_MASK_BITS;
+    const uint maskIndex = localNodeIndex / VISITED_MASK_BITS;
+    const uint bitIndex = localNodeIndex % VISITED_MASK_BITS;
 
-    bool result;
-
-    if (maskIndex >= VISITED_NODES_MASK_SIZE)
-    {
-        result = false;
-    }
-    else
-    {
-        const uint thisBitMask = 1u << bitIndex;
-        uint       oldMask;
-        InterlockedOr(g_VisitedNodeMask[maskIndex], thisBitMask, oldMask);
-        result = (oldMask & thisBitMask) == 0;
-    }
-
-    return result;
+    const uint thisBitMask = 1u << bitIndex;
+    uint       oldMask;
+    _VisitedMask.InterlockedOr((maskIndex + workNode.VisitedMaskOffset) * 4, thisBitMask, oldMask);
+    return (oldMask & thisBitMask) == 0;
 }
 
 void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode meshLODNode)
@@ -65,98 +49,47 @@ void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode mesh
 }
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
-void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_GroupID)
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint instanceID = groupID.x;
-    if (instanceID >= _InstanceCount)
+    const uint sourceItemIndex = dispatchThreadID.x;
+    if (sourceItemIndex >= _SourceWorkQueueSize.Load(0))
     {
         return;
     }
 
-    const AAAAInstanceData instanceData = PullInstanceData(instanceID);
-
-    const AABB   aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);
-    const AABB   aabbWS = TransformAABB(aabbOS, instanceData.ObjectToWorldMatrix);
-    const float4 instanceBoundingSphere = AABBToBoundingSphere(aabbWS);
+    const WorkNode         parentWorkNode = LoadWorkNode(_SourceWorkQueue, sourceItemIndex);
+    const AAAAMeshLODNode  parentMeshLODNode = PullMeshLODNode(parentWorkNode.MeshLODNodeIndex);
+    const AAAAInstanceData instanceData = PullInstanceData(parentWorkNode.InstanceID);
 
     UNITY_BRANCH
-    if (!FrustumVsSphereCulling(_CameraFrustumPlanes, instanceBoundingSphere))
+    if (parentMeshLODNode.IsLeaf || parentMeshLODNode.LevelIndex == _ForcedMeshLODNodeDepth)
     {
-        return;
+        PushMeshletRenderRequests(parentWorkNode.InstanceID, parentMeshLODNode);
     }
-
-    const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
-
-    const uint localThreadIndex = groupThreadID.x;
-
-    if (localThreadIndex == 0)
+    else
     {
-        g_SourceQueueIndex = 0;
-        g_QueueSize[0] = instanceData.TopMeshLODCount;
-        g_QueueSize[1] = 0;
-    }
-
-    uint i;
-
-    for (i = localThreadIndex; i < VISITED_NODES_MASK_SIZE; i += THREAD_GROUP_SIZE)
-    {
-        g_VisitedNodeMask[i] = 0;
-    }
-
-    for (i = localThreadIndex; i < instanceData.TopMeshLODCount; i += THREAD_GROUP_SIZE)
-    {
-        g_Queue[i] = instanceData.TopMeshLODStartIndex + i;
-    }
-
-    GroupMemoryBarrierWithGroupSync();
-
-    while (g_QueueSize[g_SourceQueueIndex] > 0)
-    {
-        GroupMemoryBarrierWithGroupSync();
-
-        const uint destinationQueueIndex = !g_SourceQueueIndex;
-
-        for (uint queueItemIndex = localThreadIndex; queueItemIndex < g_QueueSize[g_SourceQueueIndex]; queueItemIndex += THREAD_GROUP_SIZE)
+        UNITY_LOOP
+        for (uint childIndex = 0; childIndex < (uint)CHILDREN_COUNT; ++childIndex)
         {
-            const uint parentNodeIndex = g_Queue[g_SourceQueueIndex * QUEUE_CAPACITY + queueItemIndex];
-            if (!TryVisitNode(parentNodeIndex - instanceData.TopMeshLODStartIndex))
+            const uint childNodeIndex = parentMeshLODNode.ChildrenNodeIndices[childIndex];
+            if (childNodeIndex == (uint)INVALID_CHILD_INDEX)
+            {
+                break;
+            }
+
+            WorkNode childWorkNode;
+            childWorkNode.InstanceID = parentWorkNode.InstanceID;
+            childWorkNode.MeshLODNodeIndex = childNodeIndex;
+            childWorkNode.VisitedMaskOffset = parentWorkNode.VisitedMaskOffset;
+
+            if (!TryVisitNode(childWorkNode, childNodeIndex - instanceData.TopMeshLODStartIndex))
             {
                 continue;
             }
 
-            const AAAAMeshLODNode parentNode = PullMeshLODNode(parentNodeIndex);
-
-            UNITY_BRANCH
-            if (parentNode.IsLeaf || parentNode.LevelIndex == _ForcedMeshLODNodeDepth)
-            {
-                PushMeshletRenderRequests(instanceID, parentNode);
-            }
-            else
-            {
-                UNITY_LOOP
-                for (uint childIndex = 0; childIndex < (uint)CHILDREN_COUNT; ++childIndex)
-                {
-                    const uint childNodeIndex = parentNode.ChildrenNodeIndices[childIndex];
-                    if (childNodeIndex == (uint)INVALID_CHILD_INDEX)
-                    {
-                        break;
-                    }
-
-                    uint offset;
-                    InterlockedAdd(g_QueueSize[destinationQueueIndex], 1, offset);
-                    g_Queue[destinationQueueIndex * QUEUE_CAPACITY + offset] = childNodeIndex;
-                }
-            }
+            uint offset;
+            _DestinationWorkQueueSize.InterlockedAdd(0, 1, offset);
+            StoreWorkNode(_DestinationWorkQueue, offset, childWorkNode);
         }
-
-        GroupMemoryBarrierWithGroupSync();
-
-        if (localThreadIndex == 0)
-        {
-            g_QueueSize[g_SourceQueueIndex] = 0;
-            g_SourceQueueIndex = destinationQueueIndex;
-        }
-
-        GroupMemoryBarrierWithGroupSync();
     }
 }

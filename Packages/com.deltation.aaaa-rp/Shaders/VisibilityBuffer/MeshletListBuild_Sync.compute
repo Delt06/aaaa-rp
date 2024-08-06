@@ -1,0 +1,28 @@
+#pragma kernel CS
+
+#include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
+#define THREAD_GROUP_SIZE MESHLET_LIST_BUILD_SYNC_THREAD_GROUP_SIZE
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+
+RWByteAddressBuffer _ResetWorkQueueSize;
+ByteAddressBuffer   _FixupWorkQueueSize;
+
+RWStructuredBuffer<IndirectDispatchArgs> _IndirectArgs;
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS()
+{
+    _ResetWorkQueueSize.Store(0, 0);
+
+    const uint queueSize = _FixupWorkQueueSize.Load(0);
+
+    IndirectDispatchArgs indirectDispatchArgs = (IndirectDispatchArgs)0;
+    indirectDispatchArgs.ThreadGroupsX = queueSize > 0
+                                             ? (uint)AlignUp(queueSize, MESHLET_LIST_BUILD_THREAD_GROUP_SIZE) / MESHLET_LIST_BUILD_THREAD_GROUP_SIZE
+                                             : 0;
+    indirectDispatchArgs.ThreadGroupsY = 1;
+    indirectDispatchArgs.ThreadGroupsZ = 1;
+    _IndirectArgs[0] = indirectDispatchArgs;
+}

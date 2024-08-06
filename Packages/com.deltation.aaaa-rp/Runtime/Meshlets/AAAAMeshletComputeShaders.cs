@@ -10,7 +10,11 @@ namespace DELTation.AAAARP.Meshlets
         public const uint MaxMeshLODNodesPerInstance = 32 * 128;
 
         [UsedImplicitly]
+        public const uint MeshletListBuildInitThreadGroupSize = 32;
+        [UsedImplicitly]
         public const uint MeshletListBuildThreadGroupSize = 32;
+        [UsedImplicitly]
+        public const uint MeshletListBuildSyncThreadGroupSize = 1;
         [UsedImplicitly]
         public const uint FixupGPUMeshletCullingIndirectDispatchArgsThreadGroupSize = 1;
 

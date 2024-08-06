@@ -1,0 +1,61 @@
+#pragma kernel CS
+
+#include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
+#define THREAD_GROUP_SIZE MESHLET_LIST_BUILD_INIT_THREAD_GROUP_SIZE
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshletListBuild.hlsl"
+
+float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
+float4x4 _CameraViewProjection;
+
+RWByteAddressBuffer _WorkQueue;
+RWByteAddressBuffer _WorkQueueSize;
+RWByteAddressBuffer _VisitedMaskAllocator;
+
+uint AllocateVisitedMaskChunk(const uint nodeCount)
+{
+    const uint size = AlignUp(nodeCount, VISITED_MASK_BITS) / VISITED_MASK_BITS;
+    uint       offset;
+    _VisitedMaskAllocator.InterlockedAdd(0, size, offset);
+    return offset;
+}
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    const uint instanceID = dispatchThreadID.x;
+    if (instanceID >= _InstanceCount)
+    {
+        return;
+    }
+
+    const AAAAInstanceData instanceData = PullInstanceData(instanceID);
+
+    const AABB   aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);
+    const AABB   aabbWS = TransformAABB(aabbOS, instanceData.ObjectToWorldMatrix);
+    const float4 instanceBoundingSphere = AABBToBoundingSphere(aabbWS);
+
+    UNITY_BRANCH
+    if (!FrustumVsSphereCulling(_CameraFrustumPlanes, instanceBoundingSphere))
+    {
+        return;
+    }
+
+    uint workQueueOffset;
+    _WorkQueueSize.InterlockedAdd(0, instanceData.TopMeshLODCount, workQueueOffset);
+
+    const uint visitedMaskOffset = AllocateVisitedMaskChunk(instanceData.TotalMeshLODCount);
+
+    for (uint i = 0; i < instanceData.TopMeshLODCount; ++i)
+    {
+        WorkNode node;
+        node.InstanceID = instanceID;
+        node.VisitedMaskOffset = visitedMaskOffset;
+        node.MeshLODNodeIndex = instanceData.TopMeshLODStartIndex + i;
+        StoreWorkNode(_WorkQueue, workQueueOffset + i, node);
+    }
+}

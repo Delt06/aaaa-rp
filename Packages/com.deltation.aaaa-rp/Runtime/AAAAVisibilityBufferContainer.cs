@@ -135,6 +135,8 @@ namespace DELTation.AAAARP
         public GraphicsBuffer MeshletRenderRequestsBuffer { get; }
 
         public int MaxMeshLODNodesPerLevel { get; private set; }
+        public int MaxMeshLODLevelsCount { get; private set; }
+        public int VisitedMaskCapacity { get; private set; }
 
         public void Dispose()
         {
@@ -249,6 +251,7 @@ namespace DELTation.AAAARP
                 );
 
                 MaxMeshLODNodesPerLevel += mesh.MeshLODLevelNodeCounts.Max();
+                VisitedMaskCapacity += AAAAMathUtils.AlignUp(mesh.MeshLODNodes.Length, 32) / 32;
             }
         }
 
@@ -258,6 +261,8 @@ namespace DELTation.AAAARP
             {
                 return meshLODNodeStartIndex;
             }
+
+            MaxMeshLODLevelsCount = Mathf.Max(MaxMeshLODLevelsCount, meshletCollection.MeshLODLevelCount);
 
             uint triangleOffset = (uint) _sharedIndices.Length;
             uint vertexOffset = (uint) _sharedVertices.Length;

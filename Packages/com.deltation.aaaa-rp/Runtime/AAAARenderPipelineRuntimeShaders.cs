@@ -32,10 +32,18 @@ namespace DELTation.AAAARP
         [SerializeField]
         [ResourcePath("Shaders/VisibilityBuffer/VisibilityBufferResolve.shader")]
         private Shader _visibilityBufferResolvePS;
+        
+        [SerializeField]
+        [ResourcePath("Shaders/VisibilityBuffer/MeshletListBuild_Init.compute")]
+        private ComputeShader _meshletListBuildInitCS;
 
         [SerializeField]
         [ResourcePath("Shaders/VisibilityBuffer/MeshletListBuild.compute")]
         private ComputeShader _meshletListBuildCS;
+        
+        [SerializeField]
+        [ResourcePath("Shaders/VisibilityBuffer/MeshletListBuild_Sync.compute")]
+        private ComputeShader _meshletListBuildSyncCS;
 
         [SerializeField]
         [ResourcePath("Shaders/VisibilityBuffer/FixupGPUMeshletCullingIndirectDispatchArgs.compute")]
@@ -82,11 +90,23 @@ namespace DELTation.AAAARP
             get => _visibilityBufferResolvePS;
             set => this.SetValueAndNotify(ref _visibilityBufferResolvePS, value, nameof(_visibilityBufferResolvePS));
         }
+        
+        public ComputeShader MeshletListBuildInitCS
+        {
+            get => _meshletListBuildInitCS;
+            set => this.SetValueAndNotify(ref _meshletListBuildInitCS, value, nameof(_meshletListBuildInitCS));
+        }
 
         public ComputeShader MeshletListBuildCS
         {
             get => _meshletListBuildCS;
             set => this.SetValueAndNotify(ref _meshletListBuildCS, value, nameof(_meshletListBuildCS));
+        }
+        
+        public ComputeShader MeshletListBuildSyncCS
+        {
+            get => _meshletListBuildSyncCS;
+            set => this.SetValueAndNotify(ref _meshletListBuildSyncCS, value, nameof(_meshletListBuildSyncCS));
         }
 
         public ComputeShader FixupGPUMeshletCullingIndirectDispatchArgsCS
