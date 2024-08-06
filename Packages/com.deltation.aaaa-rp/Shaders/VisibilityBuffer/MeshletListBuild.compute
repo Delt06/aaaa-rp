@@ -11,6 +11,7 @@
 
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4x4 _CameraViewProjection;
+float4   _CameraPosition;
 
 uint _ForcedMeshLODNodeDepth;
 

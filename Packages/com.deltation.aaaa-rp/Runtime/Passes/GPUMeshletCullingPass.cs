@@ -104,6 +104,7 @@ namespace DELTation.AAAARP.Passes
 
                 context.cmd.SetComputeVectorArrayParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraFrustumPlanes, data.FrustumPlanes);
                 context.cmd.SetComputeMatrixParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraViewProjection, data.CameraViewProjectionMatrix);
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraPosition, data.CameraPosition);
 
                 context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex,
                     ShaderID.MeshletListBuild._DestinationMeshletsCounter, data.InitialMeshletListCounterBuffer
@@ -206,6 +207,7 @@ namespace DELTation.AAAARP.Passes
             {
                 public static int _CameraFrustumPlanes = Shader.PropertyToID(nameof(_CameraFrustumPlanes));
                 public static int _CameraViewProjection = Shader.PropertyToID(nameof(_CameraViewProjection));
+                public static int _CameraPosition = Shader.PropertyToID(nameof(_CameraPosition));
 
                 public static int _DestinationMeshletsCounter = Shader.PropertyToID(nameof(_DestinationMeshletsCounter));
                 public static int _DestinationMeshlets = Shader.PropertyToID(nameof(_DestinationMeshlets));

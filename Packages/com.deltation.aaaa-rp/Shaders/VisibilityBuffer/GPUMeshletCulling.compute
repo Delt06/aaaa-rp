@@ -7,6 +7,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshletCulling.hlsl"
 
 float4 _CameraPosition;
 float4 _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
@@ -17,20 +18,10 @@ ByteAddressBuffer _SourceMeshlets;
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
 
-bool ConeCulling(const AAAAInstanceData instanceData, const AAAAMeshlet meshlet)
-{
-    const float3 coneApexWS = TransformObjectToWorld(meshlet.ConeApexCutoff.xyz, instanceData.ObjectToWorldMatrix);
-    const float3 coneAxisWS = TransformObjectToWorldNormal(meshlet.ConeAxis.xyz, instanceData.WorldToObjectMatrix);
-    const float  dotResult = dot(normalize(coneApexWS - _CameraPosition.xyz), coneAxisWS);
-    // using !>= handles the case when the meshlet's coneAxis is (0, 0, 0)
-    // dotResult stores NaN in this case
-    return !(dotResult >= meshlet.ConeApexCutoff.w);
-}
-
 bool Culling(const AAAAInstanceData instanceData, const AAAAMeshlet meshletData)
 {
     const float4 boundingSphere = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
-    return FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphere) && ConeCulling(instanceData, meshletData);
+    return FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphere) && ConeCulling(_CameraPosition.xyz, instanceData, meshletData);
 }
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
