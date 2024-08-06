@@ -8,7 +8,6 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLODNodes.hlsl"
-#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/DataStructures/MPMCQueue.hlsl"
 
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4x4 _CameraViewProjection;
@@ -18,54 +17,32 @@ uint _ForcedMeshLODNodeDepth;
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
 
-globallycoherent RWByteAddressBuffer _VisitedNodes;
-globallycoherent RWByteAddressBuffer _WorkQueueSlots;
-globallycoherent RWByteAddressBuffer _WorkQueueHeadTail;
-uint                                 _WorkQueueCapacity;
+#define VISITED_NODES_MASK_BITS (32u)
+#define QUEUE_CAPACITY (2048)
+#define VISITED_NODES_MASK_SIZE (MAX_MESH_LODNODES_PER_INSTANCE / VISITED_NODES_MASK_BITS)
 
-groupshared uint g_CurrentTopLODNode;
-
-struct WorkNode
-{
-    uint InstanceID;
-    uint MeshLODNodeIndex;
-};
-
-#define VISITED_NODES_MASK_BITS 32
+groupshared uint g_VisitedNodeMask[VISITED_NODES_MASK_SIZE];
+groupshared uint g_Queue[QUEUE_CAPACITY * 2];
+groupshared uint g_QueueSize[2];
+groupshared uint g_SourceQueueIndex;
 
 bool TryVisitNode(const uint nodeIndex)
 {
     const uint maskIndex = nodeIndex / VISITED_NODES_MASK_BITS;
     const uint bitIndex = nodeIndex % VISITED_NODES_MASK_BITS;
-    const uint thisMask = 1u << bitIndex;
 
-    uint oldMask;
-    _VisitedNodes.InterlockedOr(maskIndex * 4, thisMask, oldMask);
-    return (oldMask & thisMask) == 0;
-}
-
-void EnqueueWorkNode(MPMCQueue queue, const WorkNode workNode)
-{
-    queue.Enqueue(uint3(workNode.InstanceID, workNode.MeshLODNodeIndex, 0));
-}
-
-bool TryDequeueWorkNode(MPMCQueue queue, out WorkNode workNode)
-{
     bool result;
-    workNode = (WorkNode)0;
 
-    MPMC_QUEUE_VALUE_T value;
-
-    UNITY_BRANCH
-    if (queue.TryDequeue(value))
+    if (maskIndex >= VISITED_NODES_MASK_SIZE)
     {
-        workNode.InstanceID = value.x;
-        workNode.MeshLODNodeIndex = value.y;
-        result = true;
+        result = false;
     }
     else
     {
-        result = false;
+        const uint thisBitMask = 1u << bitIndex;
+        uint       oldMask;
+        InterlockedOr(g_VisitedNodeMask[maskIndex], thisBitMask, oldMask);
+        result = (oldMask & thisBitMask) == 0;
     }
 
     return result;
@@ -107,89 +84,78 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
         return;
     }
 
+    const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
+
     const uint localThreadIndex = groupThreadID.x;
 
     if (localThreadIndex == 0)
     {
-        g_CurrentTopLODNode = 0;
+        g_SourceQueueIndex = 0;
+        g_QueueSize[0] = instanceData.TopMeshLODCount;
+        g_QueueSize[1] = 0;
+    }
+
+    uint i;
+
+    for (i = localThreadIndex; i < VISITED_NODES_MASK_SIZE; i += THREAD_GROUP_SIZE)
+    {
+        g_VisitedNodeMask[i] = 0;
+    }
+
+    for (i = localThreadIndex; i < instanceData.TopMeshLODCount; i += THREAD_GROUP_SIZE)
+    {
+        g_Queue[i] = instanceData.TopMeshLODStartIndex + i;
     }
 
     GroupMemoryBarrierWithGroupSync();
 
-    MPMCQueue workQueue = MPMCQueue::Construct(_WorkQueueSlots, _WorkQueueHeadTail, _WorkQueueCapacity);
-
-    const float2 instanceSizeSS = AABBScreenSize(aabbWS, _CameraViewProjection);
-
-    bool stopProcessing = false;
-
-    UNITY_LOOP
-    while (!stopProcessing)
+    while (g_QueueSize[g_SourceQueueIndex] > 0)
     {
-        uint topLODOffset = UINT_MAX;
+        GroupMemoryBarrierWithGroupSync();
 
-        // Check if there are top level nodes to process
-        if (g_CurrentTopLODNode <= instanceData.TopMeshLODCount - 1)
+        const uint destinationQueueIndex = !g_SourceQueueIndex;
+
+        for (uint queueItemIndex = localThreadIndex; queueItemIndex < g_QueueSize[g_SourceQueueIndex]; queueItemIndex += THREAD_GROUP_SIZE)
         {
-            // Try to take a node 
-            InterlockedAdd(g_CurrentTopLODNode, 1, topLODOffset);
-            if (topLODOffset >= instanceData.TopMeshLODCount)
-            {
-                topLODOffset = UINT_MAX;
-            }
-        }
-
-        UNITY_LOOP
-        while (true)
-        {
-            WorkNode parentWorkNode;
-
-            UNITY_BRANCH
-            if (topLODOffset != UINT_MAX)
-            {
-                // Process the take top level node directly, without pushing to the queue
-                parentWorkNode.InstanceID = instanceID;
-                parentWorkNode.MeshLODNodeIndex = instanceData.TopMeshLODStartIndex + topLODOffset;
-                topLODOffset = UINT_MAX;
-            }
-            else if (!TryDequeueWorkNode(workQueue, parentWorkNode))
-            {
-                if (workQueue.IsEmpty())
-                {
-                    stopProcessing = true;
-                }
-
-                break;
-            }
-
-            if (!TryVisitNode(parentWorkNode.MeshLODNodeIndex))
+            const uint parentNodeIndex = g_Queue[g_SourceQueueIndex * QUEUE_CAPACITY + queueItemIndex];
+            if (!TryVisitNode(parentNodeIndex - instanceData.TopMeshLODStartIndex))
             {
                 continue;
             }
 
-            const AAAAMeshLODNode parentNode = PullMeshLODNode(parentWorkNode.MeshLODNodeIndex);
+            const AAAAMeshLODNode parentNode = PullMeshLODNode(parentNodeIndex);
 
             UNITY_BRANCH
             if (parentNode.IsLeaf || parentNode.LevelIndex == _ForcedMeshLODNodeDepth)
             {
-                PushMeshletRenderRequests(parentWorkNode.InstanceID, parentNode);
+                PushMeshletRenderRequests(instanceID, parentNode);
             }
             else
             {
                 UNITY_LOOP
-                for (uint i = 0; i < (uint)CHILDREN_COUNT; ++i)
+                for (uint childIndex = 0; childIndex < (uint)CHILDREN_COUNT; ++childIndex)
                 {
-                    const uint childNodeIndex = parentNode.ChildrenNodeIndices[i];
+                    const uint childNodeIndex = parentNode.ChildrenNodeIndices[childIndex];
                     if (childNodeIndex == (uint)INVALID_CHILD_INDEX)
                     {
                         break;
                     }
 
-                    WorkNode childWorkNode;
-                    childWorkNode.InstanceID = parentWorkNode.InstanceID;
-                    childWorkNode.MeshLODNodeIndex = childNodeIndex;
-                    EnqueueWorkNode(workQueue, childWorkNode);
+                    uint offset;
+                    InterlockedAdd(g_QueueSize[destinationQueueIndex], 1, offset);
+                    g_Queue[destinationQueueIndex * QUEUE_CAPACITY + offset] = childNodeIndex;
                 }
             }
         }
+
+        GroupMemoryBarrierWithGroupSync();
+
+        if (localThreadIndex == 0)
+        {
+            g_QueueSize[g_SourceQueueIndex] = 0;
+            g_SourceQueueIndex = destinationQueueIndex;
+        }
+
+        GroupMemoryBarrierWithGroupSync();
     }
 }
