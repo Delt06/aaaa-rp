@@ -56,6 +56,6 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         node.InstanceID = instanceID;
         node.VisitedMaskOffset = visitedMaskOffset;
         node.MeshLODNodeIndex = instanceData.TopMeshLODStartIndex + i;
-        StoreWorkNode(_WorkQueue, workQueueOffset + i, node);
+        StoreWorkNode(_WorkQueue, workQueueOffset + i, PackWorkNode(node));
     }
 }

@@ -11,9 +11,8 @@ struct WorkNode
     uint VisitedMaskOffset;
 };
 
-WorkNode LoadWorkNode(ByteAddressBuffer buffer, const uint index)
+WorkNode UnpackWorkNode(uint3 value)
 {
-    uint3 value = buffer.Load3(index * WORK_NODE_STRIDE);
     WorkNode node;
     node.InstanceID = value.x;
     node.MeshLODNodeIndex = value.y;
@@ -21,9 +20,19 @@ WorkNode LoadWorkNode(ByteAddressBuffer buffer, const uint index)
     return node;
 }
 
-void StoreWorkNode(RWByteAddressBuffer buffer, const uint index, const WorkNode node)
+uint3 PackWorkNode(WorkNode node)
 {
-    buffer.Store3(index * WORK_NODE_STRIDE, uint3(node.InstanceID, node.MeshLODNodeIndex, node.VisitedMaskOffset));
+    return uint3(node.InstanceID, node.MeshLODNodeIndex, node.VisitedMaskOffset);
+}
+
+WorkNode LoadWorkNode(ByteAddressBuffer buffer, const uint index)
+{
+    return UnpackWorkNode(buffer.Load3(index * WORK_NODE_STRIDE));
+}
+
+void StoreWorkNode(RWByteAddressBuffer buffer, const uint index, const uint3 packedNode)
+{
+    buffer.Store3(index * WORK_NODE_STRIDE, packedNode);
 }
 
 #endif // AAAA_MESHLET_LIST_BUILD_INCLUDED
