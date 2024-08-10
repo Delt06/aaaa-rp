@@ -200,14 +200,13 @@ namespace DELTation.AAAARP
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
+        }
 
+        public void Draw(IRasterCommandBuffer cmd)
+        {
             if (IndirectDrawArgsBuffer != null && _instanceData.Length > 0)
             {
-                var renderParams = new RenderParams(_material)
-                {
-                    worldBounds = new Bounds(Vector3.zero, Vector3.one * 100_000_000f),
-                };
-                Graphics.RenderPrimitivesIndirect(renderParams, MeshTopology.Triangles, IndirectDrawArgsBuffer, 1);
+                cmd.DrawProceduralIndirect(Matrix4x4.identity, _material, 0, MeshTopology.Triangles, IndirectDrawArgsBuffer, 0);
             }
         }
 

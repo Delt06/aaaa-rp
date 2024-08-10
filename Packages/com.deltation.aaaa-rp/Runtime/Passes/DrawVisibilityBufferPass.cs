@@ -14,7 +14,10 @@ namespace DELTation.AAAARP.Passes
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAARendererListData rendererListData = frameData.Get<AAAARendererListData>();
+            AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
+
             passData.RendererListHandle = rendererListData.VisibilityBuffer.Handle;
+            passData.VisibilityBufferContainer = renderingData.VisibilityBufferContainer;
 
             builder.UseRendererList(passData.RendererListHandle);
             builder.SetRenderAttachment(resourceData.VisibilityBuffer, 0, AccessFlags.ReadWrite);
@@ -25,12 +28,14 @@ namespace DELTation.AAAARP.Passes
 
         protected override void Render(PassData data, RasterGraphContext context)
         {
+            data.VisibilityBufferContainer.Draw(context.cmd);
             context.cmd.DrawRendererList(data.RendererListHandle);
         }
 
         public class PassData : PassDataBase
         {
             public RendererListHandle RendererListHandle;
+            public AAAAVisibilityBufferContainer VisibilityBufferContainer;
         }
     }
 }
