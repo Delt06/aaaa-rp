@@ -30,6 +30,8 @@ namespace DELTation.AAAARP.Editor.Meshlets
         public float TargetError = 0.01f;
         [Range(0.0f, 1.0f)]
         public float MinTriangleReductionPerStep = 0.8f;
+        [Range(0, 10)]
+        public int MaxMeshLODLevelCount;
 
         public override unsafe void OnImportAsset(AssetImportContext ctx)
         {
@@ -251,12 +253,15 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                                         var childrenGroupIndicesSet = new NativeHashSet<int>(levelMeshLODNodesCount, Allocator.Temp);
 
-                                        foreach (int nodeIndex in group)
+                                        if (levelIndex != meshLODLevels.Length - 1)
                                         {
-                                            int childGroupIndex = level.Nodes[nodeIndex].ChildGroupIndex;
-                                            if (childGroupIndex >= 0)
+                                            foreach (int nodeIndex in group)
                                             {
-                                                childrenGroupIndicesSet.Add(childGroupIndex);
+                                                int childGroupIndex = level.Nodes[nodeIndex].ChildGroupIndex;
+                                                if (childGroupIndex >= 0)
+                                                {
+                                                    childrenGroupIndicesSet.Add(childGroupIndex);
+                                                }
                                             }
                                         }
 
@@ -461,6 +466,17 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     }
 
                     nodeLevel.Groups[0] = group;
+                }
+            }
+
+            if (MaxMeshLODLevelCount > 0)
+            {
+                while (levels.Length > MaxMeshLODLevelCount)
+                {
+                    int lastIndex = levels.Length - 1;
+                    MeshLODNodeLevel level = levels[lastIndex];
+                    level.Dispose();
+                    levels.RemoveAt(lastIndex);
                 }
             }
         }
