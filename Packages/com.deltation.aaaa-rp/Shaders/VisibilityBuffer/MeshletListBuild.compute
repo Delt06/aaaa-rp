@@ -24,7 +24,6 @@ RWByteAddressBuffer _VisitedMask;
 
 groupshared uint3 g_BatchedWorkNodes[THREAD_GROUP_SIZE * CHILDREN_COUNT];
 groupshared uint  g_BatchedWorkNodesCount;
-groupshared uint  g_BatchedWorkNodesWriteOffset;
 
 bool TryVisitNode(const WorkNode workNode, const uint localNodeIndex)
 {
@@ -52,17 +51,42 @@ void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode mesh
     }
 }
 
-[numthreads(THREAD_GROUP_SIZE, 1, 1)]
-void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupThreadID : SV_GroupThreadID)
+bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode)
 {
-    if (groupThreadID.x == 0)
+    return meshLODNode.IsLeaf || meshLODNode.LevelIndex == _ForcedMeshLODNodeDepth;
+}
+
+void ProcessChildrenNodes(const WorkNode parentWorkNode, const AAAAMeshLODNode       parentMeshLODNode, const AAAAInstanceData instanceData,
+                          out uint3      childrenWorkNodes[CHILDREN_COUNT], out uint childrenWorkNodeCount
+)
+{
+    childrenWorkNodeCount = 0;
+
+    UNITY_LOOP
+    for (uint childIndex = 0; childIndex < (uint)CHILDREN_COUNT; ++childIndex)
     {
-        g_BatchedWorkNodesCount = 0;
+        const uint childNodeIndex = parentMeshLODNode.ChildrenNodeIndices[childIndex];
+        if (childNodeIndex == (uint)INVALID_CHILD_INDEX)
+        {
+            break;
+        }
+
+        WorkNode childWorkNode;
+        childWorkNode.InstanceID = parentWorkNode.InstanceID;
+        childWorkNode.MeshLODNodeIndex = childNodeIndex;
+        childWorkNode.VisitedMaskOffset = parentWorkNode.VisitedMaskOffset;
+
+        if (!TryVisitNode(childWorkNode, childNodeIndex - instanceData.TopMeshLODStartIndex))
+        {
+            continue;
+        }
+
+        childrenWorkNodes[childrenWorkNodeCount++] = PackWorkNode(childWorkNode);
     }
+}
 
-    GroupMemoryBarrierWithGroupSync();
-
-    const uint sourceItemIndex = dispatchThreadID.x;
+void ProcessWorkFromSourceToBatched(const uint sourceItemIndex)
+{
     UNITY_BRANCH
     if (sourceItemIndex < _SourceWorkQueueSize.Load(0))
     {
@@ -71,52 +95,73 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupThr
         const AAAAInstanceData instanceData = PullInstanceData(parentWorkNode.InstanceID);
 
         UNITY_BRANCH
-        if (parentMeshLODNode.IsLeaf || parentMeshLODNode.LevelIndex == _ForcedMeshLODNodeDepth)
+        if (ShouldPushMeshletRenderRequests(parentMeshLODNode))
         {
             PushMeshletRenderRequests(parentWorkNode.InstanceID, parentMeshLODNode);
         }
         else
         {
-            UNITY_LOOP
-            for (uint childIndex = 0; childIndex < (uint)CHILDREN_COUNT; ++childIndex)
+            uint3 childrenWorkNodes[CHILDREN_COUNT];
+            uint  childrenWorkNodeCount;
+            ProcessChildrenNodes(parentWorkNode, parentMeshLODNode, instanceData, childrenWorkNodes, childrenWorkNodeCount);
+
+            uint offset;
+            InterlockedAdd(g_BatchedWorkNodesCount, childrenWorkNodeCount, offset);
+
+            for (uint childIndex = 0; childIndex < childrenWorkNodeCount; ++childIndex)
             {
-                const uint childNodeIndex = parentMeshLODNode.ChildrenNodeIndices[childIndex];
-                if (childNodeIndex == (uint)INVALID_CHILD_INDEX)
-                {
-                    break;
-                }
-
-                WorkNode childWorkNode;
-                childWorkNode.InstanceID = parentWorkNode.InstanceID;
-                childWorkNode.MeshLODNodeIndex = childNodeIndex;
-                childWorkNode.VisitedMaskOffset = parentWorkNode.VisitedMaskOffset;
-
-                if (!TryVisitNode(childWorkNode, childNodeIndex - instanceData.TopMeshLODStartIndex))
-                {
-                    continue;
-                }
-
-                uint offset;
-                InterlockedAdd(g_BatchedWorkNodesCount, 1, offset);
-                g_BatchedWorkNodes[offset] = PackWorkNode(childWorkNode);
+                g_BatchedWorkNodes[offset + childIndex] = childrenWorkNodes[childIndex];
             }
         }
     }
+}
 
+void ProcessWorkFromBatchedToDestination(const uint sourceItemIndex)
+{
+    const WorkNode         parentWorkNode = UnpackWorkNode(g_BatchedWorkNodes[sourceItemIndex]);
+    const AAAAMeshLODNode  parentMeshLODNode = PullMeshLODNode(parentWorkNode.MeshLODNodeIndex);
+    const AAAAInstanceData instanceData = PullInstanceData(parentWorkNode.InstanceID);
+
+    UNITY_BRANCH
+    if (ShouldPushMeshletRenderRequests(parentMeshLODNode))
+    {
+        PushMeshletRenderRequests(parentWorkNode.InstanceID, parentMeshLODNode);
+    }
+    else
+    {
+        uint3 childrenWorkNodes[CHILDREN_COUNT];
+        uint  childrenWorkNodeCount;
+        ProcessChildrenNodes(parentWorkNode, parentMeshLODNode, instanceData, childrenWorkNodes, childrenWorkNodeCount);
+
+        uint offset;
+        _DestinationWorkQueueSize.InterlockedAdd(0, childrenWorkNodeCount, offset);
+
+        for (uint childIndex = 0; childIndex < childrenWorkNodeCount; ++childIndex)
+        {
+            StoreWorkNode(_DestinationWorkQueue, offset + childIndex, childrenWorkNodes[childIndex]);
+        }
+    }
+}
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupThreadID : SV_GroupThreadID)
+{
+    if (groupThreadID.x == 0)
+    {
+        g_BatchedWorkNodesCount = 0;
+    }
     GroupMemoryBarrierWithGroupSync();
 
+    ProcessWorkFromSourceToBatched(dispatchThreadID.x);
+    GroupMemoryBarrierWithGroupSync();
+
+    UNITY_BRANCH
     if (g_BatchedWorkNodesCount > 0)
     {
-        if (groupThreadID.x == 0)
-        {
-            _DestinationWorkQueueSize.InterlockedAdd(0, g_BatchedWorkNodesCount, g_BatchedWorkNodesWriteOffset);
-        }
-
-        GroupMemoryBarrierWithGroupSync();
-
+        UNITY_LOOP
         for (uint i = groupThreadID.x; i < g_BatchedWorkNodesCount; i += THREAD_GROUP_SIZE)
         {
-            StoreWorkNode(_DestinationWorkQueue, g_BatchedWorkNodesWriteOffset + i, g_BatchedWorkNodes[i]);
+            ProcessWorkFromBatchedToDestination(i);
         }
     }
 }

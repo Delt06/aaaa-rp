@@ -123,7 +123,7 @@ namespace DELTation.AAAARP.Passes
                     name = nameof(PassData.VisitedMaskAllocator),
                 }
             );
-            passData.MeshletListBuildDepth = visibilityBufferContainer.MaxMeshLODLevelsCount;
+            passData.MeshletListBuildDepth = Mathf.CeilToInt(0.5f * visibilityBufferContainer.MaxMeshLODLevelsCount);
 
             passData.DestinationMeshletsCounterBuffer = builder.CreateTransientBuffer(CreateCounterBufferDesc("MeshletRenderRequestCounter"));
             passData.DestinationMeshletsBuffer = renderingData.RenderGraph.ImportBuffer(meshletRenderRequestsBuffer);
