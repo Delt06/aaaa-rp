@@ -189,6 +189,7 @@ namespace DELTation.AAAARP
                 cmd.SetGlobalBuffer(ShaderIDs._MeshLODNodes, _meshLODNodesBuffer);
                 cmd.SetGlobalFloat(ShaderIDs._FullScreenMeshletBudget, GetFullScreenMeshletBudget());
                 cmd.SetGlobalInt(ShaderIDs._ForcedMeshLODNodeDepth, GetForcedMeshLODNodeDepth());
+                cmd.SetGlobalFloat(ShaderIDs._MeshLODTargetError, GetMeshLODTargetError());
                 cmd.SetGlobalBuffer(ShaderIDs._SharedVertexBuffer, _sharedVertexBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._SharedIndexBuffer, _sharedIndexBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._InstanceData, _instanceDataBuffer);
@@ -219,6 +220,7 @@ namespace DELTation.AAAARP
         }
 
         private int GetForcedMeshLODNodeDepth() => _debugDisplaySettings?.RenderingSettings.ForcedMeshLODNodeDepth ?? -1;
+        private float GetMeshLODTargetError() => _meshLODSettings.TargetError;
 
         private void CreateInstances(AAAARendererAuthoringBase[] authorings)
         {
@@ -278,7 +280,6 @@ namespace DELTation.AAAARP
             foreach (AAAAMeshLODNode sourceNode in meshletCollection.MeshLODNodes)
             {
                 AAAAMeshLODNode node = sourceNode;
-                node.AddChildrenOffset((uint) meshLODNodeStartIndex);
                 node.MeshletStartIndex += meshletOffset;
 
                 _meshLODNodes.Add(node);
@@ -377,6 +378,7 @@ namespace DELTation.AAAARP
             public static readonly int _MeshLODNodes = Shader.PropertyToID(nameof(_MeshLODNodes));
             public static readonly int _FullScreenMeshletBudget = Shader.PropertyToID(nameof(_FullScreenMeshletBudget));
             public static readonly int _ForcedMeshLODNodeDepth = Shader.PropertyToID(nameof(_ForcedMeshLODNodeDepth));
+            public static readonly int _MeshLODTargetError = Shader.PropertyToID(nameof(_MeshLODTargetError));
             public static readonly int _SharedVertexBuffer = Shader.PropertyToID(nameof(_SharedVertexBuffer));
             public static readonly int _SharedIndexBuffer = Shader.PropertyToID(nameof(_SharedIndexBuffer));
             public static readonly int _InstanceData = Shader.PropertyToID(nameof(_InstanceData));

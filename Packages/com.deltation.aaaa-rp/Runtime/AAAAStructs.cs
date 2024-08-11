@@ -65,30 +65,16 @@ namespace DELTation.AAAARP
     [GenerateHLSL(PackingRules.Exact, false)]
     [StructLayout(LayoutKind.Sequential)]
     [Serializable]
-    public unsafe struct AAAAMeshLODNode
+    public struct AAAAMeshLODNode
     {
-        public const int ChildrenCount = 8;
-
-        public const uint InvalidChildIndex = uint.MaxValue;
-
-        [HLSLArray(ChildrenCount, typeof(uint))]
-        public fixed uint ChildrenNodeIndices[ChildrenCount];
-
+        public float ParentError;
+        public float Error;
         public uint MeshletStartIndex;
         public uint MeshletCount;
-        public uint IsLeaf;
+        
+        public uint ChildrenCount;
         public uint LevelIndex;
-
-        public void AddChildrenOffset(uint offset)
-        {
-            for (int i = 0; i < ChildrenCount; i++)
-            {
-                if (ChildrenNodeIndices[i] != uint.MaxValue)
-                {
-                    ChildrenNodeIndices[i] += offset;
-                }
-            }
-        }
+        public uint2 Padding0;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]

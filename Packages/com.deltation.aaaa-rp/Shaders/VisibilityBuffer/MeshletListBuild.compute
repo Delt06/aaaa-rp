@@ -1,5 +1,7 @@
 #pragma kernel CS
 
+#pragma enable_d3d11_debug_symbols
+
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 #define THREAD_GROUP_SIZE MESHLET_LIST_BUILD_THREAD_GROUP_SIZE
 
@@ -9,7 +11,8 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLODNodes.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshletListBuild.hlsl"
 
-uint _ForcedMeshLODNodeDepth;
+uint  _ForcedMeshLODNodeDepth;
+float _MeshLODTargetError;
 
 StructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
 
@@ -33,11 +36,18 @@ void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode mesh
 
 bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode)
 {
+    bool result;
+
     if (_ForcedMeshLODNodeDepth != UINT_MAX)
     {
-        return meshLODNode.LevelIndex == _ForcedMeshLODNodeDepth || meshLODNode.IsLeaf && meshLODNode.LevelIndex < _ForcedMeshLODNodeDepth;
+        result = meshLODNode.LevelIndex == _ForcedMeshLODNodeDepth || meshLODNode.ChildrenCount == 0 && meshLODNode.LevelIndex < _ForcedMeshLODNodeDepth;
     }
-    return meshLODNode.IsLeaf;
+    else
+    {
+        result = meshLODNode.ParentError > _MeshLODTargetError && meshLODNode.Error <= _MeshLODTargetError;
+    }
+
+    return result;
 }
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]

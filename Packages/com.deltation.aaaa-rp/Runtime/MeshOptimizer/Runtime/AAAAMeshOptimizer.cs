@@ -98,7 +98,7 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
         public static unsafe MeshletBuildResults SimplifyMeshlets(Allocator allocator,
             NativeArray<MeshletBuildResults> meshletGroups,
             NativeArray<float> vertices, uint vertexPositionOffset, uint vertexPositionsStride,
-            in MeshletGenerationParams meshletGenerationParams, float targetError)
+            in MeshletGenerationParams meshletGenerationParams, float targetError, out float resultError)
         {
             using var _ = new ProfilingScope(Profiling.SimplifyMeshletsSampler);
 
@@ -151,9 +151,10 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
 
             // ReSharper disable once PossibleLossOfFraction
             int targetIndexCount = (int) (localIndices.Length / 3 * 0.5f * 3);
+            float resultErrorValue = 0.0f;
             int simplifiedIndexCount = (int) meshopt_simplify(localIndices.GetUnsafePtr(), localIndices.GetUnsafePtr(), (nuint) localIndices.Length,
                 (float*) localVertices.GetUnsafePtr(), (nuint) localVertices.Length, (nuint) UnsafeUtility.SizeOf<ClusterVertex>(), (nuint) targetIndexCount,
-                targetError, (uint) meshopt_SimplifyOptions.LockBorder
+                targetError, (uint) meshopt_SimplifyOptions.LockBorder, &resultErrorValue
             );
             localIndices.Length = simplifiedIndexCount;
 
@@ -164,6 +165,7 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
                 globalIndices.Add(localVertices[(int) localIndex].Index);
             }
 
+            resultError = resultErrorValue;
             return BuildMeshlets(allocator, vertices, vertexPositionOffset, vertexPositionsStride, globalIndices.AsArray(), meshletGenerationParams);
         }
 

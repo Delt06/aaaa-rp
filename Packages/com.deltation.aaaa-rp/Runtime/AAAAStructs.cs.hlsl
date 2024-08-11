@@ -17,12 +17,6 @@
 #define MAX_MESHLET_INDICES (384)
 #define MESHLET_CONE_WEIGHT (0.25)
 
-//
-// DELTation.AAAARP.AAAAMeshLODNode:  static fields
-//
-#define CHILDREN_COUNT (8)
-#define INVALID_CHILD_INDEX (4294967295)
-
 // Generated from DELTation.AAAARP.AAAAInstanceData
 // PackingRules = Exact
 struct AAAAInstanceData
@@ -83,11 +77,13 @@ struct AAAAMeshletVertex
 // PackingRules = Exact
 struct AAAAMeshLODNode
 {
-    uint ChildrenNodeIndices[8];
+    float ParentError;
+    float Error;
     uint MeshletStartIndex;
     uint MeshletCount;
-    uint IsLeaf;
+    uint ChildrenCount;
     uint LevelIndex;
+    uint2 Padding0;
 };
 
 // Generated from DELTation.AAAARP.IndirectDispatchArgs

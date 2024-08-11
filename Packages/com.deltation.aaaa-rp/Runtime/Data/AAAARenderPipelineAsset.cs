@@ -12,6 +12,8 @@ namespace DELTation.AAAARP.Data
 
         [Min(0.0f)]
         public int FullScreenTriangleBudget = DefaultFullScreenTriangleBudget;
+        [Range(0.0f, 1.0f)]
+        public float TargetError;
     }
 
     [CreateAssetMenu(menuName = "AAAA RP/AAAA Render Pipeline Asset")]

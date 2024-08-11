@@ -40,7 +40,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 return;
             }
 
-            ctx.DependsOnArtifact(AssetDatabase.GetAssetPath(Mesh));
+            // ctx.DependsOnArtifact(AssetDatabase.GetAssetPath(Mesh));
 
             AAAAMeshletCollectionAsset meshletCollection = ScriptableObject.CreateInstance<AAAAMeshletCollectionAsset>();
             meshletCollection.Bounds = Mesh.bounds;
@@ -160,6 +160,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                         MeshletNodeListIndex = 0,
                         MeshletIndex = i,
                         ChildGroupIndex = -1,
+                        Error = 0.0f,
                     };
                 }
                 meshLODLevels.Add(topLOD);
@@ -230,25 +231,9 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                                     uint childrenOffset = (uint) (meshLODNodeWriteOffset + levelMeshLODNodesCount);
 
-                                    foreach (NativeList<int> group in level.Groups)
+                                    for (int groupIndex = 0; groupIndex < level.Groups.Length; groupIndex++)
                                     {
-                                        static void CollectChildrenNodeIndices(ref AAAAMeshLODNode meshlet, NativeArray<int> indexList)
-                                        {
-                                            Assert.IsTrue(indexList.Length <= AAAAMeshLODNode.ChildrenCount);
-
-                                            for (int i = 0; i < AAAAMeshLODNode.ChildrenCount; i++)
-                                            {
-                                                if (i < indexList.Length)
-                                                {
-                                                    meshlet.ChildrenNodeIndices[i] = (uint) indexList[i];
-                                                }
-                                                else
-                                                {
-                                                    meshlet.ChildrenNodeIndices[i] = AAAAMeshLODNode.InvalidChildIndex;
-                                                }
-                                            }
-                                        }
-
+                                        NativeList<int> group = level.Groups[groupIndex];
                                         int meshletCount = group.Length;
 
                                         var childrenGroupIndicesSet = new NativeHashSet<int>(levelMeshLODNodesCount, Allocator.Temp);
@@ -265,25 +250,35 @@ namespace DELTation.AAAARP.Editor.Meshlets
                                             }
                                         }
 
-                                        var childrenGroupIndices = childrenGroupIndicesSet.ToNativeArray(Allocator.Temp);
-                                        childrenGroupIndicesSet.Dispose();
+                                        MeshLODNode firstGroupNode = level.Nodes[group[0]];
+                                        foreach (int nodeIndex in group)
+                                        {
+                                            Assert.IsTrue(level.Nodes[nodeIndex].Error <= level.Nodes[nodeIndex].ParentError);
+
+                                            // ReSharper disable once CompareOfFloatsByEqualityOperator
+                                            Assert.IsTrue(level.Nodes[nodeIndex].Error == firstGroupNode.Error);
+
+                                            // ReSharper disable once CompareOfFloatsByEqualityOperator
+                                            Assert.IsTrue(level.Nodes[nodeIndex].ParentError == firstGroupNode.ParentError);
+                                        }
 
                                         ref AAAAMeshLODNode thisMeshLODNode = ref pMeshLODNodes[meshLODNodeWriteOffset++];
                                         thisMeshLODNode = new AAAAMeshLODNode
                                         {
                                             MeshletCount = (uint) meshletCount,
                                             MeshletStartIndex = meshletsWriteOffset,
-                                            IsLeaf = childrenGroupIndices.Length == 0 ? 1u : 0u,
                                             LevelIndex = (uint) levelIndex,
+                                            Error = firstGroupNode.Error,
+                                            ChildrenCount = (uint) childrenGroupIndicesSet.Count,
+                                            ParentError = firstGroupNode.ParentError,
                                         };
-                                        CollectChildrenNodeIndices(ref thisMeshLODNode, childrenGroupIndices);
-                                        thisMeshLODNode.AddChildrenOffset(childrenOffset);
 
-                                        childrenGroupIndices.Dispose();
+                                        childrenGroupIndicesSet.Dispose();
 
                                         foreach (int nodeIndex in group)
                                         {
                                             MeshLODNode node = level.Nodes[nodeIndex];
+
                                             MeshLODNodeLevel.MeshletNodeList meshletsNodeList = level.MeshletsNodeLists[node.MeshletNodeListIndex];
 
                                             AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults = meshletsNodeList.MeshletBuildResults;
@@ -384,12 +379,15 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                 for (int childGroupIndex = 0; childGroupIndex < childMeshletGroups.Length; childGroupIndex++)
                 {
-                    NativeList<int> meshletGroup = childMeshletGroups[childGroupIndex];
-                    var sourceMeshlets = new NativeList<AAAAMeshOptimizer.MeshletBuildResults>(meshletGroup.Length, Allocator.Temp);
+                    NativeList<int> sourceMeshletGroup = childMeshletGroups[childGroupIndex];
+                    var sourceMeshlets = new NativeList<AAAAMeshOptimizer.MeshletBuildResults>(sourceMeshletGroup.Length, Allocator.Temp);
 
-                    foreach (int nodeIndex in meshletGroup)
+                    float sourceError = 0.0f;
+
+                    foreach (int nodeIndex in sourceMeshletGroup)
                     {
                         MeshLODNode node = previousLevel.Nodes[nodeIndex];
+                        sourceError = math.max(sourceError, node.Error);
                         AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults =
                             previousLevel.MeshletsNodeLists[node.MeshletNodeListIndex].MeshletBuildResults;
                         meshletBuildResults.Meshlets = meshletBuildResults.Meshlets.GetSubArray(node.MeshletIndex, 1);
@@ -399,22 +397,30 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     AAAAMeshOptimizer.MeshletBuildResults simplifiedMeshlets = AAAAMeshOptimizer.SimplifyMeshlets(allocator,
                         sourceMeshlets.AsArray(),
                         vertexData, vertexPositionOffset, vertexBufferStride,
-                        meshletGenerationParams, TargetError
+                        meshletGenerationParams, TargetError, out float localError
                     );
                     sourceMeshlets.Dispose();
+
+                    float error = 1 - (1 - localError) * (1 - sourceError);
+                    Assert.IsTrue(error >= sourceError);
 
                     for (int meshletIndex = 0; meshletIndex < simplifiedMeshlets.Meshlets.Length; meshletIndex++)
                     {
                         newTriangleCount += simplifiedMeshlets.Meshlets[meshletIndex].TriangleCount;
-                        var childrenNodeIndices = new NativeList<int>(meshletGroup.Length, allocator);
-                        childrenNodeIndices.CopyFrom(meshletGroup);
                         newLevelNodes.Add(new MeshLODNode
                             {
                                 MeshletNodeListIndex = meshletNodeLists.Length,
                                 MeshletIndex = meshletIndex,
                                 ChildGroupIndex = childGroupIndex,
+                                Error = error,
                             }
                         );
+                    }
+
+                    foreach (int nodeIndex in sourceMeshletGroup)
+                    {
+                        ref MeshLODNode node = ref previousLevel.Nodes.ElementAtRef(nodeIndex);
+                        node.Error = sourceError;
                     }
 
                     meshletNodeLists.Add(new MeshLODNodeLevel.MeshletNodeList
@@ -479,6 +485,33 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     levels.RemoveAt(lastIndex);
                 }
             }
+
+            {
+                MeshLODNodeLevel firstLevel = levels[0];
+                for (int index = 0; index < firstLevel.Nodes.Length; index++)
+                {
+                    ref MeshLODNode node = ref firstLevel.Nodes.ElementAtRef(index);
+                    node.ParentError = 1000.0f;
+                }
+            }
+
+            {
+                for (int levelIndex = 0; levelIndex < levels.Length - 1; levelIndex++)
+                {
+                    MeshLODNodeLevel level = levels[levelIndex];
+                    MeshLODNodeLevel childLevel = levels[levelIndex + 1];
+
+                    foreach (MeshLODNode node in level.Nodes)
+                    {
+                        NativeList<int> childGroup = childLevel.Groups[node.ChildGroupIndex];
+                        foreach (int childNodeIndex in childGroup)
+                        {
+                            ref MeshLODNode childNode = ref childLevel.Nodes.ElementAtRef(childNodeIndex);
+                            childNode.ParentError = node.Error;
+                        }
+                    }
+                }
+            }
         }
 
         private static NativeArray<uint> CastIndices16To32(NativeArray<ushort> indices, Allocator allocator)
@@ -534,6 +567,8 @@ namespace DELTation.AAAARP.Editor.Meshlets
             public int MeshletNodeListIndex;
             public int MeshletIndex;
             public int ChildGroupIndex;
+            public float ParentError;
+            public float Error;
 
             public void Dispose() { }
         }
