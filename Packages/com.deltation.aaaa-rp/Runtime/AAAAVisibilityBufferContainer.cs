@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Debugging;
@@ -38,6 +37,7 @@ namespace DELTation.AAAARP
         private NativeList<AAAAInstanceData> _instanceData;
         private NativeList<AAAAMaterialData> _materialData;
         private NativeList<AAAAMeshlet> _meshletData;
+        private NativeList<AAAAMeshletListBuildJob> _meshletListBuildJobs;
         private NativeList<AAAAMeshLODNode> _meshLODNodes;
         private NativeList<byte> _sharedIndices;
         private NativeList<AAAAMeshletVertex> _sharedVertices;
@@ -52,6 +52,7 @@ namespace DELTation.AAAARP
             _materialData = new NativeList<AAAAMaterialData>(Allocator.Persistent);
             _sharedVertices = new NativeList<AAAAMeshletVertex>(Allocator.Persistent);
             _sharedIndices = new NativeList<byte>(Allocator.Persistent);
+            _meshletListBuildJobs = new NativeList<AAAAMeshletListBuildJob>(Allocator.Persistent);
 
             AAAARendererAuthoringBase[] authorings = Object.FindObjectsByType<AAAARendererAuthoringBase>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
@@ -128,15 +129,15 @@ namespace DELTation.AAAARP
             Shader.SetGlobalTexture(ShaderIDs._SharedAlbedoTextureArray, albedoTextureArray);
         }
 
+        public NativeArray<AAAAMeshletListBuildJob> MeshletListBuildJobs => _meshletListBuildJobs.AsArray();
+
         public int MeshLODNodeCount => _meshLODNodes.Length;
 
         public int InstanceCount => _instanceData.IsCreated ? _instanceData.Length : 0;
         public GraphicsBuffer IndirectDrawArgsBuffer { get; }
         public GraphicsBuffer MeshletRenderRequestsBuffer { get; }
 
-        public int MaxMeshLODNodesPerLevel { get; private set; }
         public int MaxMeshLODLevelsCount { get; private set; }
-        public int VisitedMaskCapacity { get; private set; }
 
         public void Dispose()
         {
@@ -168,6 +169,11 @@ namespace DELTation.AAAARP
             if (_sharedIndices.IsCreated)
             {
                 _sharedIndices.Dispose();
+            }
+
+            if (_meshletListBuildJobs.IsCreated)
+            {
+                _meshletListBuildJobs.Dispose();
             }
 
             IndirectDrawArgsBuffer?.Dispose();
@@ -236,21 +242,34 @@ namespace DELTation.AAAARP
                 Matrix4x4 objectToWorldMatrix = authoringTransform.localToWorldMatrix;
                 Matrix4x4 worldToObjectMatrix = authoringTransform.worldToLocalMatrix;
 
-                _instanceData.Add(new AAAAInstanceData
-                    {
-                        ObjectToWorldMatrix = objectToWorldMatrix,
-                        WorldToObjectMatrix = worldToObjectMatrix,
-                        AABBMin = math.float4(mesh.Bounds.min, 0.0f),
-                        AABBMax = math.float4(mesh.Bounds.max, 0.0f),
-                        TopMeshLODStartIndex = (uint) GetOrAllocateMeshLODNodes(mesh),
-                        TopMeshLODCount = (uint) mesh.MeshLODLevelNodeCounts[0],
-                        TotalMeshLODCount = (uint) mesh.MeshLODNodes.Length,
-                        MaterialIndex = (uint) GetOrAllocateMaterial(material),
-                    }
-                );
+                var instanceData = new AAAAInstanceData
+                {
+                    ObjectToWorldMatrix = objectToWorldMatrix,
+                    WorldToObjectMatrix = worldToObjectMatrix,
+                    AABBMin = math.float4(mesh.Bounds.min, 0.0f),
+                    AABBMax = math.float4(mesh.Bounds.max, 0.0f),
+                    TopMeshLODStartIndex = (uint) GetOrAllocateMeshLODNodes(mesh),
+                    TopMeshLODCount = (uint) mesh.MeshLODLevelNodeCounts[0],
+                    TotalMeshLODCount = (uint) mesh.MeshLODNodes.Length,
+                    MaterialIndex = (uint) GetOrAllocateMaterial(material),
+                };
+                _instanceData.Add(instanceData);
 
-                MaxMeshLODNodesPerLevel += mesh.MeshLODLevelNodeCounts.Max();
-                VisitedMaskCapacity += AAAAMathUtils.AlignUp(mesh.MeshLODNodes.Length, 32) / 32;
+                uint instanceID = (uint) (_instanceData.Length - 1);
+                for (uint meshLODNodeOffset = 0;
+                     meshLODNodeOffset < instanceData.TotalMeshLODCount;
+                     meshLODNodeOffset += AAAAMeshletListBuildJob.MaxLODNodesPerThreadGroup)
+                {
+                    uint nodesLeft = instanceData.TotalMeshLODCount - meshLODNodeOffset;
+                    uint count = math.min(nodesLeft, AAAAMeshletListBuildJob.MaxLODNodesPerThreadGroup);
+                    _meshletListBuildJobs.Add(new AAAAMeshletListBuildJob
+                        {
+                            InstanceID = instanceID,
+                            MeshLODNodeOffset = meshLODNodeOffset,
+                            MeshLODNodeCount = count,
+                        }
+                    );
+                }
             }
         }
 

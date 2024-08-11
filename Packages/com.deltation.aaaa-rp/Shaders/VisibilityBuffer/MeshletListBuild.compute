@@ -11,30 +11,10 @@
 
 uint _ForcedMeshLODNodeDepth;
 
+StructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
+
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
-
-ByteAddressBuffer _SourceWorkQueue;
-ByteAddressBuffer _SourceWorkQueueSize;
-
-RWByteAddressBuffer _DestinationWorkQueue;
-RWByteAddressBuffer _DestinationWorkQueueSize;
-
-RWByteAddressBuffer _VisitedMask;
-
-groupshared uint3 g_BatchedWorkNodes[THREAD_GROUP_SIZE * CHILDREN_COUNT];
-groupshared uint  g_BatchedWorkNodesCount;
-
-bool TryVisitNode(const WorkNode workNode, const uint localNodeIndex)
-{
-    const uint maskIndex = localNodeIndex / VISITED_MASK_BITS;
-    const uint bitIndex = localNodeIndex % VISITED_MASK_BITS;
-
-    const uint thisBitMask = 1u << bitIndex;
-    uint       oldMask;
-    _VisitedMask.InterlockedOr((maskIndex + workNode.VisitedMaskOffset) * 4, thisBitMask, oldMask);
-    return (oldMask & thisBitMask) == 0;
-}
 
 void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode meshLODNode)
 {
@@ -53,115 +33,29 @@ void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode mesh
 
 bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode)
 {
-    return meshLODNode.IsLeaf || meshLODNode.LevelIndex == _ForcedMeshLODNodeDepth;
-}
-
-void ProcessChildrenNodes(const WorkNode parentWorkNode, const AAAAMeshLODNode       parentMeshLODNode, const AAAAInstanceData instanceData,
-                          out uint3      childrenWorkNodes[CHILDREN_COUNT], out uint childrenWorkNodeCount
-)
-{
-    childrenWorkNodeCount = 0;
-
-    UNITY_LOOP
-    for (uint childIndex = 0; childIndex < (uint)CHILDREN_COUNT; ++childIndex)
+    if (_ForcedMeshLODNodeDepth != UINT_MAX)
     {
-        const uint childNodeIndex = parentMeshLODNode.ChildrenNodeIndices[childIndex];
-        if (childNodeIndex == (uint)INVALID_CHILD_INDEX)
-        {
-            break;
-        }
-
-        WorkNode childWorkNode;
-        childWorkNode.InstanceID = parentWorkNode.InstanceID;
-        childWorkNode.MeshLODNodeIndex = childNodeIndex;
-        childWorkNode.VisitedMaskOffset = parentWorkNode.VisitedMaskOffset;
-
-        if (!TryVisitNode(childWorkNode, childNodeIndex - instanceData.TopMeshLODStartIndex))
-        {
-            continue;
-        }
-
-        childrenWorkNodes[childrenWorkNodeCount++] = PackWorkNode(childWorkNode);
+        return meshLODNode.LevelIndex == _ForcedMeshLODNodeDepth || meshLODNode.IsLeaf && meshLODNode.LevelIndex < _ForcedMeshLODNodeDepth;
     }
-}
-
-void ProcessWorkFromSourceToBatched(const uint sourceItemIndex)
-{
-    UNITY_BRANCH
-    if (sourceItemIndex < _SourceWorkQueueSize.Load(0))
-    {
-        const WorkNode         parentWorkNode = LoadWorkNode(_SourceWorkQueue, sourceItemIndex);
-        const AAAAMeshLODNode  parentMeshLODNode = PullMeshLODNode(parentWorkNode.MeshLODNodeIndex);
-        const AAAAInstanceData instanceData = PullInstanceData(parentWorkNode.InstanceID);
-
-        UNITY_BRANCH
-        if (ShouldPushMeshletRenderRequests(parentMeshLODNode))
-        {
-            PushMeshletRenderRequests(parentWorkNode.InstanceID, parentMeshLODNode);
-        }
-        else
-        {
-            uint3 childrenWorkNodes[CHILDREN_COUNT];
-            uint  childrenWorkNodeCount;
-            ProcessChildrenNodes(parentWorkNode, parentMeshLODNode, instanceData, childrenWorkNodes, childrenWorkNodeCount);
-
-            uint offset;
-            InterlockedAdd(g_BatchedWorkNodesCount, childrenWorkNodeCount, offset);
-
-            for (uint childIndex = 0; childIndex < childrenWorkNodeCount; ++childIndex)
-            {
-                g_BatchedWorkNodes[offset + childIndex] = childrenWorkNodes[childIndex];
-            }
-        }
-    }
-}
-
-void ProcessWorkFromBatchedToDestination(const uint sourceItemIndex)
-{
-    const WorkNode         parentWorkNode = UnpackWorkNode(g_BatchedWorkNodes[sourceItemIndex]);
-    const AAAAMeshLODNode  parentMeshLODNode = PullMeshLODNode(parentWorkNode.MeshLODNodeIndex);
-    const AAAAInstanceData instanceData = PullInstanceData(parentWorkNode.InstanceID);
-
-    UNITY_BRANCH
-    if (ShouldPushMeshletRenderRequests(parentMeshLODNode))
-    {
-        PushMeshletRenderRequests(parentWorkNode.InstanceID, parentMeshLODNode);
-    }
-    else
-    {
-        uint3 childrenWorkNodes[CHILDREN_COUNT];
-        uint  childrenWorkNodeCount;
-        ProcessChildrenNodes(parentWorkNode, parentMeshLODNode, instanceData, childrenWorkNodes, childrenWorkNodeCount);
-
-        uint offset;
-        _DestinationWorkQueueSize.InterlockedAdd(0, childrenWorkNodeCount, offset);
-
-        for (uint childIndex = 0; childIndex < childrenWorkNodeCount; ++childIndex)
-        {
-            StoreWorkNode(_DestinationWorkQueue, offset + childIndex, childrenWorkNodes[childIndex]);
-        }
-    }
+    return meshLODNode.IsLeaf;
 }
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
-void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupThreadID : SV_GroupThreadID)
+void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_GroupID)
 {
-    if (groupThreadID.x == 0)
-    {
-        g_BatchedWorkNodesCount = 0;
-    }
-    GroupMemoryBarrierWithGroupSync();
+    const AAAAMeshletListBuildJob job = _Jobs[groupID.x];
+    const AAAAInstanceData        instanceData = PullInstanceData(job.InstanceID);
 
-    ProcessWorkFromSourceToBatched(dispatchThreadID.x);
-    GroupMemoryBarrierWithGroupSync();
+    const uint from = instanceData.TopMeshLODStartIndex + job.MeshLODNodeOffset;
+    const uint to = from + job.MeshLODNodeCount;
 
-    UNITY_BRANCH
-    if (g_BatchedWorkNodesCount > 0)
+    for (uint nodeIndex = from + groupThreadID.x; nodeIndex < to; nodeIndex += THREAD_GROUP_SIZE)
     {
-        UNITY_LOOP
-        for (uint i = groupThreadID.x; i < g_BatchedWorkNodesCount; i += THREAD_GROUP_SIZE)
+        const AAAAMeshLODNode meshLODNode = PullMeshLODNode(nodeIndex);
+
+        if (ShouldPushMeshletRenderRequests(meshLODNode))
         {
-            ProcessWorkFromBatchedToDestination(i);
+            PushMeshletRenderRequests(job.InstanceID, meshLODNode);
         }
     }
 }
