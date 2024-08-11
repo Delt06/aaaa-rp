@@ -1,0 +1,16 @@
+#pragma kernel CS
+
+#include "Packages/com.deltation.aaaa-rp/Runtime/AAAAStructs.cs.hlsl"
+
+ByteAddressBuffer                        _JobCounter;
+RWStructuredBuffer<IndirectDispatchArgs> _IndirectArgs;
+
+[numthreads(1, 1, 1)]
+void CS()
+{
+    IndirectDispatchArgs indirectDispatchArgs = (IndirectDispatchArgs)0;
+    indirectDispatchArgs.ThreadGroupsX = _JobCounter.Load(0);
+    indirectDispatchArgs.ThreadGroupsY = 1;
+    indirectDispatchArgs.ThreadGroupsZ = 1;
+    _IndirectArgs[0] = indirectDispatchArgs;
+}

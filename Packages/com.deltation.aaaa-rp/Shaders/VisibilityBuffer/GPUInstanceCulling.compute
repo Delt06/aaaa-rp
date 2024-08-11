@@ -1,0 +1,57 @@
+#pragma kernel CS
+
+#pragma enable_d3d11_debug_symbols
+
+#include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
+#define THREAD_GROUP_SIZE GPUINSTANCE_CULLING_THREAD_GROUP_SIZE
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+
+float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
+float4x4 _CameraViewProjection;
+
+RWStructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
+RWByteAddressBuffer                         _JobCounter;
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    const uint instanceID = dispatchThreadID.x;
+    if (instanceID >= _InstanceCount)
+    {
+        return;
+    }
+
+    const AAAAInstanceData instanceData = PullInstanceData(instanceID);
+
+    const AABB   aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);
+    const AABB   aabbWS = TransformAABB(aabbOS, instanceData.ObjectToWorldMatrix);
+    const float4 instanceBoundingSphere = AABBToBoundingSphere(aabbWS);
+
+    UNITY_BRANCH
+    if (!FrustumVsSphereCulling(_CameraFrustumPlanes, instanceBoundingSphere))
+    {
+        return;
+    }
+
+    const uint totalMeshLODCount = instanceData.TotalMeshLODCount;
+    const uint jobCount = ceil((float)totalMeshLODCount / MAX_LODNODES_PER_THREAD_GROUP);
+    uint       jobWriteOffset;
+    _JobCounter.InterlockedAdd(0, jobCount, jobWriteOffset);
+
+    for (uint jobIndex = 0; jobIndex < jobCount; ++jobIndex)
+    {
+        const uint offset = jobIndex * MAX_LODNODES_PER_THREAD_GROUP;
+        const uint jobsLeft = totalMeshLODCount - offset;
+        const uint count = min(jobsLeft, MAX_LODNODES_PER_THREAD_GROUP);
+
+        AAAAMeshletListBuildJob job = (AAAAMeshletListBuildJob)0;
+        job.InstanceID = instanceID,
+        job.MeshLODNodeOffset = offset;
+        job.MeshLODNodeCount = count;
+        _Jobs[jobWriteOffset + jobIndex] = job;
+    }
+}
