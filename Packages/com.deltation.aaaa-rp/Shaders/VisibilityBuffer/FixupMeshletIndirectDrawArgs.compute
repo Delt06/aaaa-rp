@@ -2,15 +2,12 @@
 
 #include <UnityIndirect.cginc>
 
-#include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
-#define THREAD_GROUP_SIZE FIXUP_MESHLET_INDIRECT_DRAW_ARGS_THREAD_GROUP_SIZE
-
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 
 ByteAddressBuffer                    _RequestCounter;
 RWStructuredBuffer<IndirectDrawArgs> _IndirectArgs;
 
-[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+[numthreads(1, 1, 1)]
 void CS()
 {
     const uint requestCount = _RequestCounter.Load(0);

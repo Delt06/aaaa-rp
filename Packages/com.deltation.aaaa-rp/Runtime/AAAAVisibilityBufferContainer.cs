@@ -37,7 +37,6 @@ namespace DELTation.AAAARP
         private NativeList<AAAAInstanceData> _instanceData;
         private NativeList<AAAAMaterialData> _materialData;
         private NativeList<AAAAMeshlet> _meshletData;
-        private NativeList<AAAAMeshletListBuildJob> _meshletListBuildJobs;
         private NativeList<AAAAMeshLODNode> _meshLODNodes;
         private NativeList<byte> _sharedIndices;
         private NativeList<AAAAMeshletVertex> _sharedVertices;
@@ -52,7 +51,6 @@ namespace DELTation.AAAARP
             _materialData = new NativeList<AAAAMaterialData>(Allocator.Persistent);
             _sharedVertices = new NativeList<AAAAMeshletVertex>(Allocator.Persistent);
             _sharedIndices = new NativeList<byte>(Allocator.Persistent);
-            _meshletListBuildJobs = new NativeList<AAAAMeshletListBuildJob>(Allocator.Persistent);
 
             AAAARendererAuthoringBase[] authorings = Object.FindObjectsByType<AAAARendererAuthoringBase>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
@@ -129,7 +127,7 @@ namespace DELTation.AAAARP
             Shader.SetGlobalTexture(ShaderIDs._SharedAlbedoTextureArray, albedoTextureArray);
         }
 
-        public NativeArray<AAAAMeshletListBuildJob> MeshletListBuildJobs => _meshletListBuildJobs.AsArray();
+        public int MaxMeshletListBuildJobCount { get; private set; }
 
         public int MeshLODNodeCount => _meshLODNodes.Length;
 
@@ -169,11 +167,6 @@ namespace DELTation.AAAARP
             if (_sharedIndices.IsCreated)
             {
                 _sharedIndices.Dispose();
-            }
-
-            if (_meshletListBuildJobs.IsCreated)
-            {
-                _meshletListBuildJobs.Dispose();
             }
 
             IndirectDrawArgsBuffer?.Dispose();
@@ -255,21 +248,7 @@ namespace DELTation.AAAARP
                 };
                 _instanceData.Add(instanceData);
 
-                uint instanceID = (uint) (_instanceData.Length - 1);
-                for (uint meshLODNodeOffset = 0;
-                     meshLODNodeOffset < instanceData.TotalMeshLODCount;
-                     meshLODNodeOffset += AAAAMeshletListBuildJob.MaxLODNodesPerThreadGroup)
-                {
-                    uint nodesLeft = instanceData.TotalMeshLODCount - meshLODNodeOffset;
-                    uint count = math.min(nodesLeft, AAAAMeshletListBuildJob.MaxLODNodesPerThreadGroup);
-                    _meshletListBuildJobs.Add(new AAAAMeshletListBuildJob
-                        {
-                            InstanceID = instanceID,
-                            MeshLODNodeOffset = meshLODNodeOffset,
-                            MeshLODNodeCount = count,
-                        }
-                    );
-                }
+                MaxMeshletListBuildJobCount += Mathf.CeilToInt((float) instanceData.TotalMeshLODCount / AAAAMeshletListBuildJob.MaxLODNodesPerThreadGroup);
             }
         }
 

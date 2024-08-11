@@ -34,6 +34,14 @@ namespace DELTation.AAAARP
         private Shader _visibilityBufferResolvePS;
 
         [SerializeField]
+        [ResourcePath("Shaders/VisibilityBuffer/GPUInstanceCulling.compute")]
+        private ComputeShader _gpuInstanceCullingCS;
+
+        [SerializeField]
+        [ResourcePath("Shaders/VisibilityBuffer/FixupMeshletListBuildIndirectDispatchArgs.compute")]
+        private ComputeShader _fixupMeshletListBuildIndirectDispatchArgsCS;
+
+        [SerializeField]
         [ResourcePath("Shaders/VisibilityBuffer/MeshletListBuild.compute")]
         private ComputeShader _meshletListBuildCS;
 
@@ -81,6 +89,18 @@ namespace DELTation.AAAARP
         {
             get => _visibilityBufferResolvePS;
             set => this.SetValueAndNotify(ref _visibilityBufferResolvePS, value, nameof(_visibilityBufferResolvePS));
+        }
+
+        public ComputeShader GPUInstanceCullingCS
+        {
+            get => _gpuInstanceCullingCS;
+            set => this.SetValueAndNotify(ref _gpuInstanceCullingCS, value, nameof(_gpuInstanceCullingCS));
+        }
+
+        public ComputeShader FixupMeshletListBuildIndirectDispatchArgsCS
+        {
+            get => _fixupMeshletListBuildIndirectDispatchArgsCS;
+            set => this.SetValueAndNotify(ref _fixupMeshletListBuildIndirectDispatchArgsCS, value, nameof(_fixupMeshletListBuildIndirectDispatchArgsCS));
         }
 
         public ComputeShader MeshletListBuildCS
