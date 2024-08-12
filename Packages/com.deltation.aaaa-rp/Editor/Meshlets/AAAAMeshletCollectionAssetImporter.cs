@@ -507,7 +507,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                         foreach (int childNodeIndex in childGroup)
                         {
                             ref MeshLODNode childNode = ref childLevel.Nodes.ElementAtRef(childNodeIndex);
-                            childNode.ParentError = node.Error;
+                            childNode.ParentError = math.max(childNode.ParentError, node.Error);
                         }
                     }
                 }
