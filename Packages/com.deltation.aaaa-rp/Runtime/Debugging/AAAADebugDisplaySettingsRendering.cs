@@ -37,6 +37,7 @@ namespace DELTation.AAAARP.Debugging
         public bool OverrideFullScreenTriangleBudget { get; private set; }
         public int FullScreenTriangleBudget { get; private set; } = AAAAMeshLODSettings.DefaultFullScreenTriangleBudget;
         public int ForcedMeshLODNodeDepth { get; private set; } = -1;
+        public float MeshLODTargetErrorBias { get; private set; }
 
         public AAAAGBufferDebugMode GBufferDebugMode { get; private set; }
         public Vector2 GBufferDebugDepthRemap { get; private set; } = new(0.1f, 50f);
@@ -45,7 +46,8 @@ namespace DELTation.AAAARP.Debugging
                                             ForceCullingFromMainCamera ||
                                             OverrideFullScreenTriangleBudget ||
                                             GBufferDebugMode != AAAAGBufferDebugMode.None ||
-                                            ForcedMeshLODNodeDepth >= 0;
+                                            ForcedMeshLODNodeDepth >= 0 ||
+                                            MeshLODTargetErrorBias != 0.0f;
 
         public IDebugDisplaySettingsPanelDisposable CreatePanel() => new SettingsPanel(this);
 
@@ -85,6 +87,8 @@ namespace DELTation.AAAARP.Debugging
                         { name = "Budget" };
                     public static readonly DebugUI.Widget.NameAndTooltip ForcedMeshLODNodeDepth = new()
                         { name = "Forced Mesh LOD Node Depth" };
+                    public static readonly DebugUI.Widget.NameAndTooltip MeshLODTargetErrorBias = new()
+                        { name = "Mesh LOD Target Error Bias" };
                 }
 
                 public static class WidgetFactory
@@ -103,6 +107,7 @@ namespace DELTation.AAAARP.Debugging
                                 CreateOverrideFullScreenTriangleBudget(panel),
                                 CreateFullScreenTriangleBudget(panel),
                                 CreateForcedMeshLODNodeDepth(panel),
+                                CreateMeshLODTargetErrorBias(panel),
                             },
                         };
 
@@ -152,6 +157,15 @@ namespace DELTation.AAAARP.Debugging
                         setter = value => panel.data.ForcedMeshLODNodeDepth = value,
                         min = () => -1,
                         max = () => 32,
+                    };
+
+                    private static DebugUI.Widget CreateMeshLODTargetErrorBias(SettingsPanel panel) => new DebugUI.FloatField
+                    {
+                        nameAndTooltip = Strings.MeshLODTargetErrorBias,
+                        getter = () => panel.data.MeshLODTargetErrorBias,
+                        setter = value => panel.data.MeshLODTargetErrorBias = value,
+                        min = () => 0.0f,
+                        max = () => 1.0f,
                     };
                 }
             }

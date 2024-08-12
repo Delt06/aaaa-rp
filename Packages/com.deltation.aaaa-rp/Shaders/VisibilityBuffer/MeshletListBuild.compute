@@ -12,7 +12,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshletListBuild.hlsl"
 
 uint  _ForcedMeshLODNodeDepth;
-float _MeshLODTargetError;
+float _MeshLODTargetErrorBias;
 
 StructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
 
@@ -44,7 +44,7 @@ bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode)
     }
     else
     {
-        result = meshLODNode.ParentError > _MeshLODTargetError && meshLODNode.Error <= _MeshLODTargetError;
+        result = meshLODNode.ParentError > _MeshLODTargetErrorBias && meshLODNode.Error <= _MeshLODTargetErrorBias;
     }
 
     return result;
