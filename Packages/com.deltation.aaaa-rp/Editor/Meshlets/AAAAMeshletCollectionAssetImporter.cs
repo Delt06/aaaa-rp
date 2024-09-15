@@ -40,8 +40,6 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 return;
             }
 
-            // ctx.DependsOnArtifact(AssetDatabase.GetAssetPath(Mesh));
-
             AAAAMeshletCollectionAsset meshletCollection = ScriptableObject.CreateInstance<AAAAMeshletCollectionAsset>();
             meshletCollection.Bounds = Mesh.bounds;
             meshletCollection.name = name;
@@ -176,8 +174,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 {
                     foreach (NativeList<int> levelGroup in level.Groups)
                     {
-                        ++meshLODNodes;
-
+                        meshLODNodes += levelGroup.Length;
                         totalMeshlets += levelGroup.Length;
 
                         NativeArray<MeshLODNodeLevel.MeshletNodeList> meshletsNodeLists = level.MeshletsNodeLists;
@@ -229,51 +226,29 @@ namespace DELTation.AAAARP.Editor.Meshlets
                                     int levelMeshLODNodesCount = level.Groups.Length;
                                     meshletCollection.MeshLODLevelNodeCounts[levelIndex] = levelMeshLODNodesCount;
 
-                                    uint childrenOffset = (uint) (meshLODNodeWriteOffset + levelMeshLODNodesCount);
-
-                                    for (int groupIndex = 0; groupIndex < level.Groups.Length; groupIndex++)
+                                    foreach (NativeList<int> group in level.Groups)
                                     {
-                                        NativeList<int> group = level.Groups[groupIndex];
-                                        int meshletCount = group.Length;
-
-                                        var childrenGroupIndicesSet = new NativeHashSet<int>(levelMeshLODNodesCount, Allocator.Temp);
-
-                                        if (levelIndex != meshLODLevels.Length - 1)
-                                        {
-                                            foreach (int nodeIndex in group)
-                                            {
-                                                int childGroupIndex = level.Nodes[nodeIndex].ChildGroupIndex;
-                                                if (childGroupIndex >= 0)
-                                                {
-                                                    childrenGroupIndicesSet.Add(childGroupIndex);
-                                                }
-                                            }
-                                        }
-
-                                        MeshLODNode firstGroupNode = level.Nodes[group[0]];
                                         foreach (int nodeIndex in group)
                                         {
                                             Assert.IsTrue(level.Nodes[nodeIndex].Error <= level.Nodes[nodeIndex].ParentError);
-
-                                            // ReSharper disable once CompareOfFloatsByEqualityOperator
-                                            Assert.IsTrue(level.Nodes[nodeIndex].Error == firstGroupNode.Error);
-
-                                            // ReSharper disable once CompareOfFloatsByEqualityOperator
-                                            Assert.IsTrue(level.Nodes[nodeIndex].ParentError == firstGroupNode.ParentError);
                                         }
 
-                                        ref AAAAMeshLODNode thisMeshLODNode = ref pMeshLODNodes[meshLODNodeWriteOffset++];
-                                        thisMeshLODNode = new AAAAMeshLODNode
+                                        for (int index = 0; index < group.Length; index++)
                                         {
-                                            MeshletCount = (uint) meshletCount,
-                                            MeshletStartIndex = meshletsWriteOffset,
-                                            LevelIndex = (uint) levelIndex,
-                                            Error = firstGroupNode.Error,
-                                            ChildrenCount = (uint) childrenGroupIndicesSet.Count,
-                                            ParentError = firstGroupNode.ParentError,
-                                        };
+                                            int nodeIndex = group[index];
+                                            MeshLODNode node = level.Nodes[nodeIndex];
 
-                                        childrenGroupIndicesSet.Dispose();
+                                            ref AAAAMeshLODNode thisMeshLODNode = ref pMeshLODNodes[meshLODNodeWriteOffset++];
+                                            thisMeshLODNode = new AAAAMeshLODNode
+                                            {
+                                                MeshletCount = 1u,
+                                                MeshletStartIndex = (uint)(meshletsWriteOffset + index),
+                                                LevelIndex = (uint) levelIndex,
+                                                Error = node.Error,
+                                                ChildrenCount = thisMeshLODNode.ChildrenCount,
+                                                ParentError = node.ParentError,
+                                            };
+                                        }
 
                                         foreach (int nodeIndex in group)
                                         {
@@ -399,10 +374,12 @@ namespace DELTation.AAAARP.Editor.Meshlets
                         vertexData, vertexPositionOffset, vertexBufferStride,
                         meshletGenerationParams, TargetError, out float localError
                     );
+                    Assert.IsTrue(localError >= 0.0f);
                     sourceMeshlets.Dispose();
 
-                    float error = 1 - (1 - localError) * (1 - sourceError);
-                    Assert.IsTrue(error >= sourceError);
+                    const float minSimplificationError = 0.000001f;
+                    float error = sourceError + math.max(localError, minSimplificationError);
+                    Assert.IsTrue(error > sourceError);
 
                     for (int meshletIndex = 0; meshletIndex < simplifiedMeshlets.Meshlets.Length; meshletIndex++)
                     {
@@ -416,11 +393,11 @@ namespace DELTation.AAAARP.Editor.Meshlets
                             }
                         );
                     }
-
+                    
                     foreach (int nodeIndex in sourceMeshletGroup)
                     {
-                        ref MeshLODNode node = ref previousLevel.Nodes.ElementAtRef(nodeIndex);
-                        node.Error = sourceError;
+                        ref MeshLODNode childNode = ref previousLevel.Nodes.ElementAtRef(nodeIndex);
+                        childNode.ParentError = error;
                     }
 
                     meshletNodeLists.Add(new MeshLODNodeLevel.MeshletNodeList
@@ -492,24 +469,6 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 {
                     ref MeshLODNode node = ref firstLevel.Nodes.ElementAtRef(index);
                     node.ParentError = 1000.0f;
-                }
-            }
-
-            {
-                for (int levelIndex = 0; levelIndex < levels.Length - 1; levelIndex++)
-                {
-                    MeshLODNodeLevel level = levels[levelIndex];
-                    MeshLODNodeLevel childLevel = levels[levelIndex + 1];
-
-                    foreach (MeshLODNode node in level.Nodes)
-                    {
-                        NativeList<int> childGroup = childLevel.Groups[node.ChildGroupIndex];
-                        foreach (int childNodeIndex in childGroup)
-                        {
-                            ref MeshLODNode childNode = ref childLevel.Nodes.ElementAtRef(childNodeIndex);
-                            childNode.ParentError = math.max(childNode.ParentError, node.Error);
-                        }
-                    }
                 }
             }
         }

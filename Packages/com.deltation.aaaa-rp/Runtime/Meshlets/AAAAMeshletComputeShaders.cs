@@ -7,7 +7,7 @@ namespace DELTation.AAAARP.Meshlets
     public static class AAAAMeshletComputeShaders
     {
         [UsedImplicitly]
-        public const uint MaxMeshLODNodesPerInstance = 32 * 128;
+        public const uint MaxMeshLODNodesPerInstance = 128 * 128;
 
         [UsedImplicitly]
         public const uint GPUInstanceCullingThreadGroupSize = 32;
