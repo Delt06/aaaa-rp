@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using DELTation.AAAARP.Core;
+using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
@@ -80,6 +81,7 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             };
         }
 
+        [MustUseReturnValue]
         public static unsafe meshopt_Bounds ComputeMeshletBounds(in MeshletBuildResults buildResults, int meshletIndex,
             NativeArray<float> vertices, uint vertexPositionOffset,
             uint vertexPositionStride)

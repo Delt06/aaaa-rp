@@ -67,6 +67,9 @@ namespace DELTation.AAAARP
     [Serializable]
     public struct AAAAMeshLODNode
     {
+        public float4 Bounds;
+        public float4 ParentBounds;
+        
         public float ParentError;
         public float Error;
         public uint MeshletStartIndex;

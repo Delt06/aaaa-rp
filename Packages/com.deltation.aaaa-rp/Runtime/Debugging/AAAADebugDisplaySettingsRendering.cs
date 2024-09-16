@@ -1,4 +1,3 @@
-using DELTation.AAAARP.Data;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -34,20 +33,17 @@ namespace DELTation.AAAARP.Debugging
         public AAAAVisibilityBufferDebugMode VisibilityBufferDebugMode { get; private set; }
         public bool ForceCullingFromMainCamera { get; private set; }
 
-        public bool OverrideFullScreenTriangleBudget { get; private set; }
-        public int FullScreenTriangleBudget { get; private set; } = AAAAMeshLODSettings.DefaultFullScreenTriangleBudget;
         public int ForcedMeshLODNodeDepth { get; private set; } = -1;
-        public float MeshLODTargetErrorBias { get; private set; }
+        public float MeshLODErrorThresholdBias { get; private set; }
 
         public AAAAGBufferDebugMode GBufferDebugMode { get; private set; }
         public Vector2 GBufferDebugDepthRemap { get; private set; } = new(0.1f, 50f);
 
         public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
                                             ForceCullingFromMainCamera ||
-                                            OverrideFullScreenTriangleBudget ||
                                             GBufferDebugMode != AAAAGBufferDebugMode.None ||
                                             ForcedMeshLODNodeDepth >= 0 ||
-                                            MeshLODTargetErrorBias != 0.0f;
+                                            MeshLODErrorThresholdBias != 0.0f;
 
         public IDebugDisplaySettingsPanelDisposable CreatePanel() => new SettingsPanel(this);
 
@@ -81,14 +77,10 @@ namespace DELTation.AAAARP.Debugging
                         { name = "Debug Mode", tooltip = "The mode of visibility buffer debug display." };
                     public static readonly DebugUI.Widget.NameAndTooltip ForceCullingFromMainCamera = new()
                         { name = "Force Culling From Main Camera", tooltip = "Pass the main camera's data for GPU culling." };
-                    public static readonly DebugUI.Widget.NameAndTooltip OverrideFullScreenTriangleBudget = new()
-                        { name = "Override Full Screen Triangle Budget" };
-                    public static readonly DebugUI.Widget.NameAndTooltip FullScreenTriangleBudget = new()
-                        { name = "Budget" };
                     public static readonly DebugUI.Widget.NameAndTooltip ForcedMeshLODNodeDepth = new()
                         { name = "Forced Mesh LOD Node Depth" };
-                    public static readonly DebugUI.Widget.NameAndTooltip MeshLODTargetErrorBias = new()
-                        { name = "Mesh LOD Target Error Bias" };
+                    public static readonly DebugUI.Widget.NameAndTooltip MeshLODErrorThresholdBias = new()
+                        { name = "Mesh LOD Error Threshold Bias" };
                 }
 
                 public static class WidgetFactory
@@ -104,8 +96,6 @@ namespace DELTation.AAAARP.Debugging
                             {
                                 CreateVisibilityBufferDebugMode(panel),
                                 CreateForceCullingFrustumOfMainCamera(panel),
-                                CreateOverrideFullScreenTriangleBudget(panel),
-                                CreateFullScreenTriangleBudget(panel),
                                 CreateForcedMeshLODNodeDepth(panel),
                                 CreateMeshLODTargetErrorBias(panel),
                             },
@@ -128,28 +118,6 @@ namespace DELTation.AAAARP.Debugging
                         setter = value => panel.data.ForceCullingFromMainCamera = value,
                     };
 
-                    private static DebugUI.Widget CreateOverrideFullScreenTriangleBudget(SettingsPanel panel) => new DebugUI.BoolField
-                    {
-                        nameAndTooltip = Strings.OverrideFullScreenTriangleBudget,
-                        getter = () => panel.data.OverrideFullScreenTriangleBudget,
-                        setter = value => panel.data.OverrideFullScreenTriangleBudget = value,
-                    };
-
-                    private static DebugUI.Widget CreateFullScreenTriangleBudget(SettingsPanel panel) => new DebugUI.Container
-                    {
-                        children =
-                        {
-                            new DebugUI.IntField
-                            {
-                                nameAndTooltip = Strings.FullScreenTriangleBudget,
-                                getter = () => panel.data.FullScreenTriangleBudget,
-                                setter = value => panel.data.FullScreenTriangleBudget = value,
-                                min = () => 0,
-                                isHiddenCallback = () => !panel.data.OverrideFullScreenTriangleBudget,
-                            },
-                        },
-                    };
-
                     private static DebugUI.Widget CreateForcedMeshLODNodeDepth(SettingsPanel panel) => new DebugUI.IntField
                     {
                         nameAndTooltip = Strings.ForcedMeshLODNodeDepth,
@@ -161,11 +129,11 @@ namespace DELTation.AAAARP.Debugging
 
                     private static DebugUI.Widget CreateMeshLODTargetErrorBias(SettingsPanel panel) => new DebugUI.FloatField
                     {
-                        nameAndTooltip = Strings.MeshLODTargetErrorBias,
-                        getter = () => panel.data.MeshLODTargetErrorBias,
-                        setter = value => panel.data.MeshLODTargetErrorBias = value,
-                        min = () => 0.0f,
-                        max = () => 1.0f,
+                        nameAndTooltip = Strings.MeshLODErrorThresholdBias,
+                        getter = () => panel.data.MeshLODErrorThresholdBias,
+                        setter = value => panel.data.MeshLODErrorThresholdBias = value,
+                        min = () => -1000.0f,
+                        max = () => 1000.0f,
                     };
                 }
             }

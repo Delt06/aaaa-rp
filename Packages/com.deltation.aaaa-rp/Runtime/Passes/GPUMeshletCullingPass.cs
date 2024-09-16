@@ -5,6 +5,7 @@ using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.Utils;
 using JetBrains.Annotations;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -15,11 +16,11 @@ namespace DELTation.AAAARP.Passes
     {
         private readonly ComputeShader _fixupGPUMeshletCullingIndirectDispatchArgsCS;
         private readonly ComputeShader _fixupMeshletIndirectDrawArgsCS;
+        private readonly ComputeShader _fixupMeshletListBuildIndirectDispatchArgsCS;
+        private readonly ComputeShader _gpuInstanceCullingCS;
         private readonly ComputeShader _gpuMeshletCullingCS;
         private readonly ComputeShader _meshletListBuildCS;
         private readonly ComputeShader _rawBufferClearCS;
-        private readonly ComputeShader _fixupMeshletListBuildIndirectDispatchArgsCS;
-        private readonly ComputeShader _gpuInstanceCullingCS;
 
         public GPUMeshletCullingPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent)
         {
@@ -49,8 +50,14 @@ namespace DELTation.AAAARP.Passes
 
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             Camera camera = CullingCameraOverride != null ? CullingCameraOverride : cameraData.Camera;
-            Vector3 cameraPosition = camera.transform.position;
+            Transform cameraTransform = camera.transform;
+            Vector3 cameraPosition = cameraTransform.position;
             passData.CameraPosition = new Vector4(cameraPosition.x, cameraPosition.y, cameraPosition.z, 1);
+            passData.CameraUp = cameraTransform.up;
+            passData.CameraRight = cameraTransform.right;
+            passData.ScreenSizePixels = new Vector2(cameraData.ScaledWidth, cameraData.ScaledHeight);
+            passData.CotHalfFov = 1.0f / math.tan(0.5f * Mathf.Deg2Rad * cameraData.Camera.fieldOfView);
+
             Plane[] frustumPlanes = TempCollections.Planes;
             GeometryUtility.CalculateFrustumPlanes(camera, frustumPlanes);
 
@@ -130,8 +137,8 @@ namespace DELTation.AAAARP.Passes
             {
                 const int kernelIndex = 0;
 
-                context.cmd.SetComputeVectorArrayParam(_gpuInstanceCullingCS, ShaderID.MeshletCulling._CameraFrustumPlanes, data.FrustumPlanes);
-                context.cmd.SetComputeVectorParam(_gpuInstanceCullingCS, ShaderID.MeshletCulling._CameraPosition, data.CameraPosition);
+                context.cmd.SetComputeVectorArrayParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraFrustumPlanes, data.FrustumPlanes);
+                context.cmd.SetComputeMatrixParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraViewProjection, data.CameraViewProjectionMatrix);
 
                 context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
                     ShaderID.GPUInstanceCulling._Jobs, data.MeshletListBuildJobsBuffer
@@ -162,6 +169,12 @@ namespace DELTation.AAAARP.Passes
             using (new ProfilingScope(context.cmd, Profiling.MeshletListBuild))
             {
                 const int kernelIndex = 0;
+
+                context.cmd.SetComputeMatrixParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraViewProjection, data.CameraViewProjectionMatrix);
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraPosition, data.CameraPosition);
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraUp, data.CameraUp);
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraRight, data.CameraRight);
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._ScreenSizePixels, data.ScreenSizePixels);
 
                 context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex,
                     ShaderID.MeshletListBuild._Jobs, data.MeshletListBuildJobsBuffer
@@ -237,8 +250,12 @@ namespace DELTation.AAAARP.Passes
         public class PassData : PassDataBase
         {
             public readonly Vector4[] FrustumPlanes = new Vector4[6];
+
             public Vector4 CameraPosition;
+            public Vector4 CameraRight;
+            public Vector4 CameraUp;
             public Matrix4x4 CameraViewProjectionMatrix;
+            public float CotHalfFov;
 
             public BufferHandle DestinationMeshletsBuffer;
             public BufferHandle DestinationMeshletsCounterBuffer;
@@ -253,6 +270,7 @@ namespace DELTation.AAAARP.Passes
             public BufferHandle MeshletListBuildIndirectDispatchArgsBuffer;
             public BufferHandle MeshletListBuildJobCounterBuffer;
             public BufferHandle MeshletListBuildJobsBuffer;
+            public Vector2 ScreenSizePixels;
         }
 
         private static class Profiling
@@ -286,6 +304,12 @@ namespace DELTation.AAAARP.Passes
 
             public static class MeshletListBuild
             {
+                public static int _CameraViewProjection = Shader.PropertyToID(nameof(_CameraViewProjection));
+                public static int _CameraPosition = Shader.PropertyToID(nameof(_CameraPosition));
+                public static int _CameraUp = Shader.PropertyToID(nameof(_CameraUp));
+                public static int _CameraRight = Shader.PropertyToID(nameof(_CameraRight));
+                public static int _ScreenSizePixels = Shader.PropertyToID(nameof(_ScreenSizePixels));
+
                 public static int _Jobs = Shader.PropertyToID(nameof(_Jobs));
 
                 public static int _DestinationMeshletsCounter = Shader.PropertyToID(nameof(_DestinationMeshletsCounter));

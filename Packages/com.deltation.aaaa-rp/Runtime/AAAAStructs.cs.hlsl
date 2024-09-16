@@ -77,6 +77,8 @@ struct AAAAMeshletVertex
 // PackingRules = Exact
 struct AAAAMeshLODNode
 {
+    float4 Bounds;
+    float4 ParentBounds;
     float ParentError;
     float Error;
     uint MeshletStartIndex;

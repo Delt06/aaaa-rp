@@ -143,7 +143,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     Nodes = new NativeArray<MeshLODNode>(mainMeshletBuildResults.Meshlets.Length, allocator),
                     MeshletsNodeLists = new NativeArray<MeshLODNodeLevel.MeshletNodeList>(1, allocator)
                     {
-                        [0] = new()
+                        [0] = new MeshLODNodeLevel.MeshletNodeList
                         {
                             MeshletBuildResults = mainMeshletBuildResults,
                         },
@@ -152,13 +152,19 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                 for (int i = 0; i < topLOD.Nodes.Length; ++i)
                 {
-                    topLOD.TriangleCount += topLOD.MeshletsNodeLists[0].MeshletBuildResults.Meshlets[i].TriangleCount;
+                    AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults = topLOD.MeshletsNodeLists[0].MeshletBuildResults;
+                    meshopt_Meshlet meshlet = meshletBuildResults.Meshlets[i];
+                    meshopt_Bounds bounds =
+                        AAAAMeshOptimizer.ComputeMeshletBounds(meshletBuildResults, i, vertexData, vertexPositionOffset, vertexBufferStride);
+
+                    topLOD.TriangleCount += meshlet.TriangleCount;
                     topLOD.Nodes[i] = new MeshLODNode
                     {
                         MeshletNodeListIndex = 0,
                         MeshletIndex = i,
                         ChildGroupIndex = -1,
                         Error = 0.0f,
+                        Bounds = math.float4(bounds.Center[0], bounds.Center[1], bounds.Center[2], bounds.Radius),
                     };
                 }
                 meshLODLevels.Add(topLOD);
@@ -230,7 +236,10 @@ namespace DELTation.AAAARP.Editor.Meshlets
                                     {
                                         foreach (int nodeIndex in group)
                                         {
-                                            Assert.IsTrue(level.Nodes[nodeIndex].Error <= level.Nodes[nodeIndex].ParentError);
+                                            if (levelIndex != 0)
+                                            {
+                                                Assert.IsTrue(level.Nodes[nodeIndex].Error <= level.Nodes[nodeIndex].ParentError);
+                                            }
                                         }
 
                                         for (int index = 0; index < group.Length; index++)
@@ -242,11 +251,13 @@ namespace DELTation.AAAARP.Editor.Meshlets
                                             thisMeshLODNode = new AAAAMeshLODNode
                                             {
                                                 MeshletCount = 1u,
-                                                MeshletStartIndex = (uint)(meshletsWriteOffset + index),
+                                                MeshletStartIndex = (uint) (meshletsWriteOffset + index),
                                                 LevelIndex = (uint) levelIndex,
-                                                Error = node.Error,
                                                 ChildrenCount = thisMeshLODNode.ChildrenCount,
+                                                Error = node.Error,
+                                                Bounds = node.Bounds,
                                                 ParentError = node.ParentError,
+                                                ParentBounds = node.ParentBounds,
                                             };
                                         }
 
@@ -359,6 +370,9 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
                     float sourceError = 0.0f;
 
+                    float3 sourceBoundsMin = float.PositiveInfinity;
+                    float3 sourceBoundsMax = float.NegativeInfinity;
+
                     foreach (int nodeIndex in sourceMeshletGroup)
                     {
                         MeshLODNode node = previousLevel.Nodes[nodeIndex];
@@ -366,8 +380,15 @@ namespace DELTation.AAAARP.Editor.Meshlets
                         AAAAMeshOptimizer.MeshletBuildResults meshletBuildResults =
                             previousLevel.MeshletsNodeLists[node.MeshletNodeListIndex].MeshletBuildResults;
                         meshletBuildResults.Meshlets = meshletBuildResults.Meshlets.GetSubArray(node.MeshletIndex, 1);
+                        sourceBoundsMin = math.min(sourceBoundsMin, node.Bounds.xyz - node.Bounds.w);
+                        sourceBoundsMax = math.max(sourceBoundsMin, node.Bounds.xyz + node.Bounds.w);
+
                         sourceMeshlets.Add(meshletBuildResults);
                     }
+
+                    float3 sourceBoundsCenter = (sourceBoundsMin + sourceBoundsMax) * 0.5f;
+                    float sourceBoundsRadius = math.length(sourceBoundsCenter - sourceBoundsMin);
+                    float4 sourceBounds = math.float4(sourceBoundsCenter, sourceBoundsRadius);
 
                     AAAAMeshOptimizer.MeshletBuildResults simplifiedMeshlets = AAAAMeshOptimizer.SimplifyMeshlets(allocator,
                         sourceMeshlets.AsArray(),
@@ -377,9 +398,15 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     Assert.IsTrue(localError >= 0.0f);
                     sourceMeshlets.Dispose();
 
-                    const float minSimplificationError = 0.000001f;
+                    const float minSimplificationError = 0.0001f;
                     float error = sourceError + math.max(localError, minSimplificationError);
                     Assert.IsTrue(error > sourceError);
+
+                    float4 bounds = sourceBounds;
+
+                    // Ensure bounds are at least slightly bigger than the parents.
+                    const float radiusEpsilon = 0.0001f;
+                    bounds.w += radiusEpsilon;
 
                     for (int meshletIndex = 0; meshletIndex < simplifiedMeshlets.Meshlets.Length; meshletIndex++)
                     {
@@ -390,14 +417,16 @@ namespace DELTation.AAAARP.Editor.Meshlets
                                 MeshletIndex = meshletIndex,
                                 ChildGroupIndex = childGroupIndex,
                                 Error = error,
+                                Bounds = bounds,
                             }
                         );
                     }
-                    
+
                     foreach (int nodeIndex in sourceMeshletGroup)
                     {
                         ref MeshLODNode childNode = ref previousLevel.Nodes.ElementAtRef(nodeIndex);
                         childNode.ParentError = error;
+                        childNode.ParentBounds = bounds;
                     }
 
                     meshletNodeLists.Add(new MeshLODNodeLevel.MeshletNodeList
@@ -468,7 +497,8 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 for (int index = 0; index < firstLevel.Nodes.Length; index++)
                 {
                     ref MeshLODNode node = ref firstLevel.Nodes.ElementAtRef(index);
-                    node.ParentError = 1000.0f;
+                    node.ParentError = -1.0f;
+                    node.ParentBounds = default;
                 }
             }
         }
@@ -526,8 +556,12 @@ namespace DELTation.AAAARP.Editor.Meshlets
             public int MeshletNodeListIndex;
             public int MeshletIndex;
             public int ChildGroupIndex;
-            public float ParentError;
+
+            public float4 Bounds;
             public float Error;
+
+            public float4 ParentBounds;
+            public float ParentError;
 
             public void Dispose() { }
         }

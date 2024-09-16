@@ -1,23 +1,49 @@
 #pragma kernel CS
 
-#pragma enable_d3d11_debug_symbols
+// #pragma enable_d3d11_debug_symbols
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 #define THREAD_GROUP_SIZE MESHLET_LIST_BUILD_THREAD_GROUP_SIZE
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLODNodes.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshletListBuild.hlsl"
 
 uint  _ForcedMeshLODNodeDepth;
-float _MeshLODTargetErrorBias;
+float _MeshLODErrorThreshold;
+
+float4x4 _CameraViewProjection;
+float4   _CameraPosition;
+float4   _CameraUp;
+float4   _CameraRight;
+float2   _ScreenSizePixels;
 
 StructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
 
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
+
+float2 GetNormalizedScreenCoordinates(const float4x4 mvpMatrix, const float3 positionWS)
+{
+    float4 centerCS = mul(mvpMatrix, float4(positionWS, 1.0f));
+    centerCS.xy /= centerCS.w;
+    centerCS.xy = centerCS.xy * 0.5f + 0.5f;
+    return centerCS.xy;
+}
+
+float GetScreenBoundRadiusSq(const float4x4 vpMatrix, const float4 boundsWS)
+{
+    const float2 p0 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz);
+    const float2 p1 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz + _CameraUp.xyz * boundsWS.w);
+    const float2 p2 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz + _CameraRight.xyz * boundsWS.w);
+
+    const float2 v0 = (p1 - p0) * _ScreenSizePixels;
+    const float2 v1 = (p2 - p0) * _ScreenSizePixels;
+    return max(dot(v0, v0), dot(v1, v1));
+}
 
 void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode meshLODNode)
 {
@@ -34,17 +60,25 @@ void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode mesh
     }
 }
 
-bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode)
+bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode, const AAAAInstanceData instanceData)
 {
     bool result;
 
+    UNITY_BRANCH
     if (_ForcedMeshLODNodeDepth != UINT_MAX)
     {
         result = meshLODNode.LevelIndex == _ForcedMeshLODNodeDepth || meshLODNode.ChildrenCount == 0 && meshLODNode.LevelIndex < _ForcedMeshLODNodeDepth;
     }
     else
     {
-        result = meshLODNode.ParentError > _MeshLODTargetErrorBias && meshLODNode.Error <= _MeshLODTargetErrorBias;
+        const float4 boundsWS = TransformBoundingSphere(meshLODNode.Bounds, instanceData.ObjectToWorldMatrix);
+        const float4 parentBoundsWS = TransformBoundingSphere(meshLODNode.ParentBounds, instanceData.ObjectToWorldMatrix);
+        const float  error = meshLODNode.Error * GetScreenBoundRadiusSq(_CameraViewProjection, boundsWS);
+        const float  parentError = meshLODNode.ParentError >= 0
+                                      ? meshLODNode.ParentError * GetScreenBoundRadiusSq(_CameraViewProjection, parentBoundsWS)
+                                      : 100000.0f;
+        const float threshold = _MeshLODErrorThreshold;
+        result = parentError > threshold && error <= threshold;
     }
 
     return result;
@@ -63,7 +97,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     {
         const AAAAMeshLODNode meshLODNode = PullMeshLODNode(nodeIndex);
 
-        if (ShouldPushMeshletRenderRequests(meshLODNode))
+        if (ShouldPushMeshletRenderRequests(meshLODNode, instanceData))
         {
             PushMeshletRenderRequests(job.InstanceID, meshLODNode);
         }

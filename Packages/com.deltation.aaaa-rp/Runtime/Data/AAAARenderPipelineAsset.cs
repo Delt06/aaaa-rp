@@ -8,12 +8,8 @@ namespace DELTation.AAAARP.Data
     [Serializable]
     public class AAAAMeshLODSettings
     {
-        public const int DefaultFullScreenTriangleBudget = 1_000_000;
-
         [Min(0.0f)]
-        public int FullScreenTriangleBudget = DefaultFullScreenTriangleBudget;
-        [Range(0.0f, 1.0f)]
-        public float TargetErrorBias;
+        public float ErrorThreshold = 50.0f;
     }
 
     [CreateAssetMenu(menuName = "AAAA RP/AAAA Render Pipeline Asset")]
