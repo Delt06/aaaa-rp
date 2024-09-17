@@ -26,9 +26,9 @@ struct AAAAInstanceData
     float4 AABBMin;
     float4 AABBMax;
     uint TopMeshLODStartIndex;
-    uint TopMeshLODCount;
     uint TotalMeshLODCount;
     uint MaterialIndex;
+    uint MeshLODLevelCount;
 };
 
 // Generated from DELTation.AAAARP.AAAAMaterialData
@@ -83,9 +83,8 @@ struct AAAAMeshLODNode
     float Error;
     uint MeshletStartIndex;
     uint MeshletCount;
-    uint ChildrenCount;
     uint LevelIndex;
-    uint2 Padding0;
+    uint3 Padding0;
 };
 
 // Generated from DELTation.AAAARP.IndirectDispatchArgs

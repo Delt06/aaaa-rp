@@ -11,6 +11,6 @@ ScriptedImporter:
   Mesh: {fileID: -8670151273213183110, guid: d2b0c517fd9d2e444bef20c0a2b21591, type: 3}
   OptimizeIndexing: 0
   OptimizeVertexCache: 0
-  TargetError: 0.2
+  TargetError: 0.02
   MinTriangleReductionPerStep: 0.75
   MaxMeshLODLevelCount: 0

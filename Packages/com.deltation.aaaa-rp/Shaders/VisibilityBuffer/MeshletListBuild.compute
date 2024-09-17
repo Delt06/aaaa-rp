@@ -1,6 +1,6 @@
 #pragma kernel CS
 
-// #pragma enable_d3d11_debug_symbols
+#pragma enable_d3d11_debug_symbols
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 #define THREAD_GROUP_SIZE MESHLET_LIST_BUILD_THREAD_GROUP_SIZE
@@ -60,14 +60,15 @@ void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode mesh
     }
 }
 
-bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode, const AAAAInstanceData instanceData)
+bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode, const AAAAInstanceData instanceData, const float distanceToViewSq)
 {
     bool result;
 
     UNITY_BRANCH
     if (_ForcedMeshLODNodeDepth != UINT_MAX)
     {
-        result = meshLODNode.LevelIndex == _ForcedMeshLODNodeDepth || meshLODNode.ChildrenCount == 0 && meshLODNode.LevelIndex < _ForcedMeshLODNodeDepth;
+        const bool isLeaf = meshLODNode.LevelIndex == instanceData.MeshLODLevelCount - 1;
+        result = meshLODNode.LevelIndex == _ForcedMeshLODNodeDepth || meshLODNode.LevelIndex < _ForcedMeshLODNodeDepth && isLeaf;
     }
     else
     {
@@ -76,8 +77,8 @@ bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode, const AA
         const float  error = meshLODNode.Error * GetScreenBoundRadiusSq(_CameraViewProjection, boundsWS);
         const float  parentError = meshLODNode.ParentError >= 0
                                       ? meshLODNode.ParentError * GetScreenBoundRadiusSq(_CameraViewProjection, parentBoundsWS)
-                                      : 100000.0f;
-        const float threshold = _MeshLODErrorThreshold;
+                                      : FLT_INF;
+        const float threshold = _MeshLODErrorThreshold * distanceToViewSq;
         result = parentError > threshold && error <= threshold;
     }
 
@@ -90,6 +91,9 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     const AAAAMeshletListBuildJob job = _Jobs[groupID.x];
     const AAAAInstanceData        instanceData = PullInstanceData(job.InstanceID);
 
+    const float3 instanceBoundsCenter = (instanceData.AABBMin.xyz + instanceData.AABBMax.xyz) * 0.5f;
+    const float  distanceToViewSq = Length2(_CameraPosition.xyz - instanceBoundsCenter);
+
     const uint from = instanceData.TopMeshLODStartIndex + job.MeshLODNodeOffset;
     const uint to = from + job.MeshLODNodeCount;
 
@@ -97,7 +101,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     {
         const AAAAMeshLODNode meshLODNode = PullMeshLODNode(nodeIndex);
 
-        if (ShouldPushMeshletRenderRequests(meshLODNode, instanceData))
+        if (ShouldPushMeshletRenderRequests(meshLODNode, instanceData, distanceToViewSq))
         {
             PushMeshletRenderRequests(job.InstanceID, meshLODNode);
         }

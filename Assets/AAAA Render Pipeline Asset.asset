@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: AAAA Render Pipeline Asset
   m_EditorClassIdentifier: 
   _meshLODSettings:
-    ErrorThreshold: 50
+    ErrorThreshold: 100

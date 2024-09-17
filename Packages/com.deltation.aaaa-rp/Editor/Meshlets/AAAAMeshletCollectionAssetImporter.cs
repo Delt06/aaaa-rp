@@ -253,7 +253,6 @@ namespace DELTation.AAAARP.Editor.Meshlets
                                                 MeshletCount = 1u,
                                                 MeshletStartIndex = (uint) (meshletsWriteOffset + index),
                                                 LevelIndex = (uint) levelIndex,
-                                                ChildrenCount = thisMeshLODNode.ChildrenCount,
                                                 Error = node.Error,
                                                 Bounds = node.Bounds,
                                                 ParentError = node.ParentError,

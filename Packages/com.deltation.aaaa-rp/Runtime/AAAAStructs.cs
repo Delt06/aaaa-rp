@@ -16,9 +16,9 @@ namespace DELTation.AAAARP
         public float4 AABBMax;
 
         public uint TopMeshLODStartIndex;
-        public uint TopMeshLODCount;
         public uint TotalMeshLODCount;
         public uint MaterialIndex;
+        public uint MeshLODLevelCount;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
@@ -75,9 +75,8 @@ namespace DELTation.AAAARP
         public uint MeshletStartIndex;
         public uint MeshletCount;
         
-        public uint ChildrenCount;
         public uint LevelIndex;
-        public uint2 Padding0;
+        public uint3 Padding0;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
