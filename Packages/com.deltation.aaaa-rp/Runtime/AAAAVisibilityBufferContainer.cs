@@ -238,7 +238,7 @@ namespace DELTation.AAAARP
                     TopMeshLODStartIndex = (uint) GetOrAllocateMeshLODNodes(mesh),
                     TotalMeshLODCount = (uint) mesh.MeshLODNodes.Length,
                     MaterialIndex = (uint) GetOrAllocateMaterial(material),
-                    MeshLODLevelCount = (uint)mesh.MeshLODLevelCount,
+                    MeshLODLevelCount = (uint) mesh.MeshLODLevelCount,
                 };
                 _instanceData.Add(instanceData);
 
@@ -345,6 +345,7 @@ namespace DELTation.AAAARP
             {
                 filterMode = parametersSource.filterMode,
                 wrapMode = parametersSource.wrapMode,
+                hideFlags = HideFlags.HideAndDontSave,
             };
 
             for (int index = 0; index < array.depth; index++)
