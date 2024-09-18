@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: dragon_Material
   m_EditorClassIdentifier: 
   Albedo: {fileID: 0}
-  AlbedoColor: {r: 0.4198113, g: 0.8532807, b: 1, a: 1}
+  AlbedoColor: {r: 0.46226418, g: 0.11120505, b: 0.11120505, a: 1}

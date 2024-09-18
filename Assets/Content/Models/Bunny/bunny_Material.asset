@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d124dbe9abb4e0ba3228241f9483940, type: 3}
   m_Name: bunny_Material
   m_EditorClassIdentifier: 
-  Albedo: {fileID: 0}
-  AlbedoColor: {r: 0.62488675, g: 1, b: 0.4669811, a: 1}
+  Albedo: {fileID: 2800000, guid: 8b1ebe65e7046a9409179ac718e7ca60, type: 3}
+  AlbedoColor: {r: 1, g: 1, b: 1, a: 1}
