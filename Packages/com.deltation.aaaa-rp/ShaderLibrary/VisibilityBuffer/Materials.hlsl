@@ -37,7 +37,7 @@ float4 SampleBindlessTexture(const InterpolatedUV uv, const uint textureIndex, c
 {
     if (textureIndex != (uint)NO_TEXTURE_INDEX)
     {
-        Texture2D texture = GetBindlessTexture2D(textureIndex);
+        Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
         return SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearClamp, uv.uv, uv.ddx, uv.ddy);
     }
     return defaultValue;
