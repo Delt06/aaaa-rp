@@ -1,6 +1,7 @@
 #ifndef AAAA_VISIBILITY_BUFFER_MATERIALS_INCLUDED
 #define AAAA_VISIBILITY_BUFFER_MATERIALS_INCLUDED
 
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Barycentric.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/AAAAStructs.cs.hlsl"
@@ -36,7 +37,7 @@ float4 SampleBindlessTexture(const InterpolatedUV uv, const uint textureIndex, c
 {
     if (textureIndex != (uint)NO_TEXTURE_INDEX)
     {
-        Texture2D texture = ResourceDescriptorHeap[textureIndex];
+        Texture2D texture = GetBindlessTexture2D(textureIndex);
         return SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearClamp, uv.uv, uv.ddx, uv.ddy);
     }
     return defaultValue;
