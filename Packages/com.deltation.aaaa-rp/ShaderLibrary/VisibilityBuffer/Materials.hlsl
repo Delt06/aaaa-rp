@@ -5,9 +5,6 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Barycentric.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/AAAAStructs.cs.hlsl"
 
-TEXTURE2D_ARRAY(_SharedAlbedoTextureArray);
-SAMPLER(sampler_SharedAlbedoTextureArray);
-
 StructuredBuffer<AAAAMaterialData> _MaterialData;
 
 AAAAMaterialData PullMaterialData(const uint materialIndex)
@@ -35,18 +32,19 @@ InterpolatedUV InterpolateUV(const BarycentricDerivatives barycentric, const AAA
     return uv;
 }
 
-float4 SampleTextureArray(TEXTURE2D_ARRAY_PARAM(textureArray, textureArraySampler), const InterpolatedUV uv, const uint textureIndex,
-                          const float4                                                                   defaultValue)
+float4 SampleBindlessTexture(const InterpolatedUV uv, const uint textureIndex, const float4 defaultValue)
 {
-    return textureIndex != (uint)NO_TEXTURE_INDEX
-               ? SAMPLE_TEXTURE2D_ARRAY_GRAD(textureArray, textureArraySampler, uv.uv, textureIndex, uv.ddx, uv.ddy)
-               : defaultValue;
+    if (textureIndex != (uint)NO_TEXTURE_INDEX)
+    {
+        Texture2D texture = ResourceDescriptorHeap[textureIndex];
+        return SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearClamp, uv.uv, uv.ddx, uv.ddy);
+    }
+    return defaultValue;
 }
 
 float4 SampleAlbedo(const InterpolatedUV uv, const AAAAMaterialData materialData)
 {
-    const float4 textureAlbedo = SampleTextureArray(
-        TEXTURE2D_ARRAY_ARGS(_SharedAlbedoTextureArray, sampler_SharedAlbedoTextureArray), uv, materialData.AlbedoIndex, float4(1, 1, 1, 1));
+    const float4 textureAlbedo = SampleBindlessTexture(uv, materialData.AlbedoIndex, float4(1, 1, 1, 1));
     return materialData.AlbedoColor * textureAlbedo;
 }
 

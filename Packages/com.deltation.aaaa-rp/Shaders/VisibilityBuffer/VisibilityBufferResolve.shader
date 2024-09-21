@@ -24,6 +24,8 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
+            // Forces Shader Model 6.6
+            #pragma require Int64BufferAtomics
             #pragma editor_sync_compilation
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"

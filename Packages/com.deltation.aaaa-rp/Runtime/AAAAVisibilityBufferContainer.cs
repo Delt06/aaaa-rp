@@ -18,27 +18,25 @@ namespace DELTation.AAAARP
 {
     public class AAAAVisibilityBufferContainer : IDisposable
     {
-        private readonly List<Texture2D> _albedoTextures = new();
-
+        private readonly BindlessTextureContainer _bindlessTextureContainer = new();
         [CanBeNull]
         private readonly AAAARenderPipelineDebugDisplaySettings _debugDisplaySettings;
-
-        private readonly GraphicsBuffer _instanceDataBuffer;
         private readonly Material _material;
-        private readonly GraphicsBuffer _materialDataBuffer;
         private readonly Dictionary<AAAAMaterialAsset, int> _materialToIndex = new();
         private readonly Dictionary<AAAAMeshletCollectionAsset, int> _meshletCollectionToTopMeshLODNodesStartIndex = new();
-        private readonly GraphicsBuffer _meshletsDataBuffer;
-        private readonly GraphicsBuffer _meshLODNodesBuffer;
         private readonly AAAAMeshLODSettings _meshLODSettings;
-        private readonly GraphicsBuffer _sharedIndexBuffer;
-        private readonly GraphicsBuffer _sharedVertexBuffer;
-        private readonly Dictionary<Texture2D, int> _textureToAlbedoIndex = new();
         private NativeList<AAAAInstanceData> _instanceData;
+
+        private GraphicsBuffer _instanceDataBuffer;
         private NativeList<AAAAMaterialData> _materialData;
+        private GraphicsBuffer _materialDataBuffer;
         private NativeList<AAAAMeshlet> _meshletData;
+        private GraphicsBuffer _meshletsDataBuffer;
         private NativeList<AAAAMeshLODNode> _meshLODNodes;
+        private GraphicsBuffer _meshLODNodesBuffer;
+        private GraphicsBuffer _sharedIndexBuffer;
         private NativeList<byte> _sharedIndices;
+        private GraphicsBuffer _sharedVertexBuffer;
         private NativeList<AAAAMeshletVertex> _sharedVertices;
 
         internal AAAAVisibilityBufferContainer(AAAAMeshLODSettings meshLODSettings, [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings)
@@ -52,79 +50,10 @@ namespace DELTation.AAAARP
             _sharedVertices = new NativeList<AAAAMeshletVertex>(Allocator.Persistent);
             _sharedIndices = new NativeList<byte>(Allocator.Persistent);
 
-            AAAARendererAuthoringBase[] authorings = Object.FindObjectsByType<AAAARendererAuthoringBase>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-
-            CreateInstances(authorings);
-            if (_instanceData.Length == 0)
-            {
-                return;
-            }
-
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
             _material = new Material(shaders.VisibilityBufferPS);
 
-            _instanceDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
-                _instanceData.Length, UnsafeUtility.SizeOf<AAAAInstanceData>()
-            )
-            {
-                name = "InstanceData",
-            };
-            _instanceDataBuffer.SetData(_instanceData.AsArray());
-
-            _meshLODNodesBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, math.max(1, _meshLODNodes.Length),
-                UnsafeUtility.SizeOf<AAAAMeshLODNode>()
-            )
-            {
-                name = "MeshLODNodes",
-            };
-            _meshLODNodesBuffer.SetData(_meshLODNodes.AsArray());
-
-            _meshletsDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
-                _meshletData.Length, UnsafeUtility.SizeOf<AAAAMeshlet>()
-            )
-            {
-                name = "MeshletsData",
-            };
-            _meshletsDataBuffer.SetData(_meshletData.AsArray());
-
-            _materialDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
-                _materialData.Length, UnsafeUtility.SizeOf<AAAAMaterialData>()
-            )
-            {
-                name = "MaterialData",
-            };
-            _materialDataBuffer.SetData(_materialData.AsArray());
-
-            _sharedVertexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
-                _sharedVertices.Length, UnsafeUtility.SizeOf<AAAAMeshletVertex>()
-            );
-            _sharedVertexBuffer.SetData(_sharedVertices.AsArray());
-
-            int indicesToPad = _sharedIndices.Length % 4;
-            for (int i = 0; i < indicesToPad; i++)
-            {
-                _sharedIndices.Add(0);
-            }
-            _sharedIndexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
-                AAAAMathUtils.AlignUp(_sharedIndices.Length, sizeof(uint)) / sizeof(uint), sizeof(uint)
-            );
-            _sharedIndexBuffer.SetData(_sharedIndices.AsArray());
-
-            MeshletRenderRequestsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
-                AAAAMathUtils.AlignUp(4 * _meshletData.Length * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(), sizeof(uint)) / sizeof(uint),
-                sizeof(uint)
-            )
-            {
-                name = "VisibilityBuffer_MeshletRenderRequests",
-            };
-
-            IndirectDrawArgsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, GraphicsBuffer.IndirectDrawArgs.size)
-            {
-                name = "VisibilityBuffer_IndirectDrawArgs",
-            };
-
-            Texture2DArray albedoTextureArray = BuildTextureArray(_albedoTextures);
-            Shader.SetGlobalTexture(ShaderIDs._SharedAlbedoTextureArray, albedoTextureArray);
+            CollectSceneRenderers();
         }
 
         public int MaxMeshletListBuildJobCount { get; private set; }
@@ -132,10 +61,10 @@ namespace DELTation.AAAARP
         public int MeshLODNodeCount => _meshLODNodes.Length;
 
         public int InstanceCount => _instanceData.IsCreated ? _instanceData.Length : 0;
-        public GraphicsBuffer IndirectDrawArgsBuffer { get; }
-        public GraphicsBuffer MeshletRenderRequestsBuffer { get; }
+        public GraphicsBuffer IndirectDrawArgsBuffer { get; private set; }
+        public GraphicsBuffer MeshletRenderRequestsBuffer { get; private set; }
 
-        public int MaxMeshLODLevelsCount { get; private set; }
+        private int MaxMeshLODLevelsCount { get; set; }
 
         public void Dispose()
         {
@@ -179,42 +108,18 @@ namespace DELTation.AAAARP
             MeshletRenderRequestsBuffer?.Dispose();
         }
 
-        public void PreRender(ScriptableRenderContext context)
+        private void CollectSceneRenderers()
         {
-            CommandBuffer cmd = CommandBufferPool.Get();
+            _instanceData.Clear();
+            _materialToIndex.Clear();
+            _materialData.Clear();
 
-            using (new ProfilingScope(cmd, Profiling.PreRender))
-            {
-                cmd.SetGlobalBuffer(ShaderIDs._Meshlets, _meshletsDataBuffer);
-                cmd.SetGlobalBuffer(ShaderIDs._MeshLODNodes, _meshLODNodesBuffer);
-                cmd.SetGlobalInt(ShaderIDs._ForcedMeshLODNodeDepth, GetForcedMeshLODNodeDepth());
-                cmd.SetGlobalFloat(ShaderIDs._MeshLODErrorThreshold, GetMeshLODErrorThreshold());
-                cmd.SetGlobalBuffer(ShaderIDs._SharedVertexBuffer, _sharedVertexBuffer);
-                cmd.SetGlobalBuffer(ShaderIDs._SharedIndexBuffer, _sharedIndexBuffer);
-                cmd.SetGlobalBuffer(ShaderIDs._InstanceData, _instanceDataBuffer);
-                cmd.SetGlobalInt(ShaderIDs._InstanceCount, _instanceData.Length);
-                cmd.SetGlobalBuffer(ShaderIDs._MaterialData, _materialDataBuffer);
-                cmd.SetGlobalBuffer(ShaderIDs._MeshletRenderRequests, MeshletRenderRequestsBuffer);
-            }
-
-            context.ExecuteCommandBuffer(cmd);
-            CommandBufferPool.Release(cmd);
+            AAAARendererAuthoringBase[] authorings = Object.FindObjectsByType<AAAARendererAuthoringBase>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            CreateInstancesFromAuthorings(authorings);
+            UploadData();
         }
 
-        public void Draw(IRasterCommandBuffer cmd)
-        {
-            if (IndirectDrawArgsBuffer != null && _instanceData.Length > 0)
-            {
-                cmd.DrawProceduralIndirect(Matrix4x4.identity, _material, 0, MeshTopology.Triangles, IndirectDrawArgsBuffer, 0);
-            }
-        }
-
-        private int GetForcedMeshLODNodeDepth() => _debugDisplaySettings?.RenderingSettings.ForcedMeshLODNodeDepth ?? -1;
-
-        private float GetMeshLODErrorThreshold() =>
-            math.max(0, _meshLODSettings.ErrorThreshold + (_debugDisplaySettings?.RenderingSettings.MeshLODErrorThresholdBias ?? 0.0f));
-
-        private void CreateInstances(AAAARendererAuthoringBase[] authorings)
+        private void CreateInstancesFromAuthorings(AAAARendererAuthoringBase[] authorings)
         {
             foreach (AAAARendererAuthoringBase authoring in authorings)
             {
@@ -245,6 +150,124 @@ namespace DELTation.AAAARP
                 MaxMeshletListBuildJobCount += Mathf.CeilToInt((float) instanceData.TotalMeshLODCount / AAAAMeshletListBuildJob.MaxLODNodesPerThreadGroup);
             }
         }
+
+        public void PreRender(ScriptableRenderContext context)
+        {
+            _bindlessTextureContainer.PreRender();
+
+            if (_debugDisplaySettings is { RenderingSettings: { AutoUpdateRenderers: true } })
+            {
+                CollectSceneRenderers();
+            }
+
+            CommandBuffer cmd = CommandBufferPool.Get();
+
+            using (new ProfilingScope(cmd, Profiling.PreRender))
+            {
+                cmd.SetGlobalBuffer(ShaderIDs._Meshlets, _meshletsDataBuffer);
+                cmd.SetGlobalBuffer(ShaderIDs._MeshLODNodes, _meshLODNodesBuffer);
+                cmd.SetGlobalInt(ShaderIDs._ForcedMeshLODNodeDepth, GetForcedMeshLODNodeDepth());
+                cmd.SetGlobalFloat(ShaderIDs._MeshLODErrorThreshold, GetMeshLODErrorThreshold());
+                cmd.SetGlobalBuffer(ShaderIDs._SharedVertexBuffer, _sharedVertexBuffer);
+                cmd.SetGlobalBuffer(ShaderIDs._SharedIndexBuffer, _sharedIndexBuffer);
+                cmd.SetGlobalBuffer(ShaderIDs._InstanceData, _instanceDataBuffer);
+                cmd.SetGlobalInt(ShaderIDs._InstanceCount, _instanceData.Length);
+                cmd.SetGlobalBuffer(ShaderIDs._MaterialData, _materialDataBuffer);
+                cmd.SetGlobalBuffer(ShaderIDs._MeshletRenderRequests, MeshletRenderRequestsBuffer);
+            }
+
+            context.ExecuteCommandBuffer(cmd);
+            CommandBufferPool.Release(cmd);
+        }
+
+        private void UploadData()
+        {
+            if (_instanceData.Length == 0)
+            {
+                return;
+            }
+
+            _instanceDataBuffer?.Dispose();
+            _instanceDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
+                _instanceData.Length, UnsafeUtility.SizeOf<AAAAInstanceData>()
+            )
+            {
+                name = "InstanceData",
+            };
+            _instanceDataBuffer.SetData(_instanceData.AsArray());
+
+            _meshLODNodesBuffer?.Dispose();
+            _meshLODNodesBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, math.max(1, _meshLODNodes.Length),
+                UnsafeUtility.SizeOf<AAAAMeshLODNode>()
+            )
+            {
+                name = "MeshLODNodes",
+            };
+            _meshLODNodesBuffer.SetData(_meshLODNodes.AsArray());
+
+            _meshletsDataBuffer?.Dispose();
+            _meshletsDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
+                _meshletData.Length, UnsafeUtility.SizeOf<AAAAMeshlet>()
+            )
+            {
+                name = "MeshletsData",
+            };
+            _meshletsDataBuffer.SetData(_meshletData.AsArray());
+
+            _materialDataBuffer?.Dispose();
+            _materialDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
+                _materialData.Length, UnsafeUtility.SizeOf<AAAAMaterialData>()
+            )
+            {
+                name = "MaterialData",
+            };
+            _materialDataBuffer.SetData(_materialData.AsArray());
+
+            _sharedVertexBuffer?.Dispose();
+            _sharedVertexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
+                _sharedVertices.Length, UnsafeUtility.SizeOf<AAAAMeshletVertex>()
+            );
+            _sharedVertexBuffer.SetData(_sharedVertices.AsArray());
+
+            int indicesToPad = _sharedIndices.Length % 4;
+            for (int i = 0; i < indicesToPad; i++)
+            {
+                _sharedIndices.Add(0);
+            }
+            _sharedIndexBuffer?.Dispose();
+            _sharedIndexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
+                AAAAMathUtils.AlignUp(_sharedIndices.Length, sizeof(uint)) / sizeof(uint), sizeof(uint)
+            );
+            _sharedIndexBuffer.SetData(_sharedIndices.AsArray());
+
+            MeshletRenderRequestsBuffer?.Dispose();
+            MeshletRenderRequestsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
+                AAAAMathUtils.AlignUp(4 * _meshletData.Length * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(), sizeof(uint)) / sizeof(uint),
+                sizeof(uint)
+            )
+            {
+                name = "VisibilityBuffer_MeshletRenderRequests",
+            };
+
+            IndirectDrawArgsBuffer?.Dispose();
+            IndirectDrawArgsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, GraphicsBuffer.IndirectDrawArgs.size)
+            {
+                name = "VisibilityBuffer_IndirectDrawArgs",
+            };
+        }
+
+        public void Draw(IRasterCommandBuffer cmd)
+        {
+            if (IndirectDrawArgsBuffer != null && _instanceData.Length > 0)
+            {
+                cmd.DrawProceduralIndirect(Matrix4x4.identity, _material, 0, MeshTopology.Triangles, IndirectDrawArgsBuffer, 0);
+            }
+        }
+
+        private int GetForcedMeshLODNodeDepth() => _debugDisplaySettings?.RenderingSettings.ForcedMeshLODNodeDepth ?? -1;
+
+        private float GetMeshLODErrorThreshold() =>
+            math.max(0, _meshLODSettings.ErrorThreshold + (_debugDisplaySettings?.RenderingSettings.MeshLODErrorThresholdBias ?? 0.0f));
 
         private int GetOrAllocateMeshLODNodes(AAAAMeshletCollectionAsset meshletCollection)
         {
@@ -320,43 +343,7 @@ namespace DELTation.AAAARP
                 return AAAAMaterialData.NoTextureIndex;
             }
 
-            if (_textureToAlbedoIndex.TryGetValue(texture, out int index))
-            {
-                return (uint) index;
-            }
-
-            _albedoTextures.Add(texture);
-            index = _albedoTextures.Count - 1;
-            _textureToAlbedoIndex.Add(texture, index);
-            return (uint) index;
-        }
-
-        private static Texture2DArray BuildTextureArray(List<Texture2D> textures)
-        {
-            if (textures.Count == 0)
-            {
-                return null;
-            }
-
-            Texture2D parametersSource = textures[0];
-            var array = new Texture2DArray(parametersSource.width, parametersSource.height, textures.Count, parametersSource.format,
-                parametersSource.mipmapCount, !parametersSource.isDataSRGB
-            )
-            {
-                filterMode = parametersSource.filterMode,
-                wrapMode = parametersSource.wrapMode,
-                hideFlags = HideFlags.HideAndDontSave,
-            };
-
-            for (int index = 0; index < array.depth; index++)
-            {
-                for (int mipIndex = 0; mipIndex < array.mipmapCount; mipIndex++)
-                {
-                    Graphics.CopyTexture(textures[index], 0, mipIndex, array, index, mipIndex);
-                }
-            }
-
-            return array;
+            return _bindlessTextureContainer.GetOrCreateIndex(texture);
         }
 
         private static class Profiling
@@ -377,8 +364,6 @@ namespace DELTation.AAAARP
             public static readonly int _InstanceCount = Shader.PropertyToID(nameof(_InstanceCount));
             public static readonly int _MaterialData = Shader.PropertyToID(nameof(_MaterialData));
             public static readonly int _MeshletRenderRequests = Shader.PropertyToID(nameof(_MeshletRenderRequests));
-
-            public static readonly int _SharedAlbedoTextureArray = Shader.PropertyToID(nameof(_SharedAlbedoTextureArray));
         }
     }
 }

@@ -1,0 +1,5 @@
+.idea/
+.vs/
+out/
+build/
+*.vcxproj.user

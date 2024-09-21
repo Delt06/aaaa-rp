@@ -30,6 +30,7 @@ namespace DELTation.AAAARP.Debugging
 
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData
     {
+        public bool AutoUpdateRenderers { get; private set; }
         public AAAAVisibilityBufferDebugMode VisibilityBufferDebugMode { get; private set; }
         public bool ForceCullingFromMainCamera { get; private set; }
 
@@ -39,7 +40,8 @@ namespace DELTation.AAAARP.Debugging
         public AAAAGBufferDebugMode GBufferDebugMode { get; private set; }
         public Vector2 GBufferDebugDepthRemap { get; private set; } = new(0.1f, 50f);
 
-        public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
+        public bool AreAnySettingsActive => AutoUpdateRenderers ||
+                                            GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
                                             ForceCullingFromMainCamera ||
                                             GBufferDebugMode != AAAAGBufferDebugMode.None ||
                                             ForcedMeshLODNodeDepth >= 0 ||
@@ -65,8 +67,41 @@ namespace DELTation.AAAARP.Debugging
             public SettingsPanel(AAAADebugDisplaySettingsRendering data)
                 : base(data)
             {
+                AddWidget(Renderers.WidgetFactory.CreateFoldout(this));
                 AddWidget(VisibilityBuffer.WidgetFactory.CreateFoldout(this));
                 AddWidget(GBuffer.WidgetFactory.CreateFoldout(this));
+            }
+
+            private static class Renderers
+            {
+                private static class Strings
+                {
+                    public static readonly DebugUI.Widget.NameAndTooltip AutoUpdateRenderers = new()
+                        { name = "Auto Update Renderers" };
+                }
+
+                public static class WidgetFactory
+                {
+                    public static DebugUI.Widget CreateFoldout(SettingsPanel panel) =>
+                        new DebugUI.Foldout
+                        {
+                            displayName = "Renderers",
+                            flags = DebugUI.Flags.FrequentlyUsed,
+                            isHeader = true,
+                            opened = true,
+                            children =
+                            {
+                                CreateAutoUpdateRenderers(panel),
+                            },
+                        };
+
+                    private static DebugUI.Widget CreateAutoUpdateRenderers(SettingsPanel panel) => new DebugUI.BoolField
+                    {
+                        nameAndTooltip = Strings.AutoUpdateRenderers,
+                        getter = () => panel.data.AutoUpdateRenderers,
+                        setter = value => panel.data.AutoUpdateRenderers = value,
+                    };
+                }
             }
 
             private static class VisibilityBuffer
