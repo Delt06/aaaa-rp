@@ -47,9 +47,7 @@ IUnityGraphics* s_Graphics = nullptr;
 IUnityLog* s_Log = nullptr;
 
 static HookWrapper<t_D3D12SerializeRootSignature>* s_pSerializeRootSignatureHook = nullptr;
-static HookWrapper<t_CreateShaderResourceView>* s_pCreateShaderResourceViewHook = nullptr;
 static HookWrapper<t_CreateDescriptorHeap>* s_pCreateDescriptorHeapHook = nullptr;
-static HookWrapper<t_CopyDescriptorsSimple>* s_pCopyDescriptorsSimpleHook = nullptr;
 
 static HRESULT WINAPI DetourD3D12SerializeRootSignature(
 			_In_ const D3D12_ROOT_SIGNATURE_DESC* pRootSignature,
@@ -66,45 +64,6 @@ static HRESULT WINAPI DetourD3D12SerializeRootSignature(
 	else
 		UNITY_LOG(s_Log, "Serializing root signature success");
 	return result;
-}
-
-struct SRVSet
-{
-	std::set<SIZE_T> CreatedHandles;
-	std::set<SIZE_T> CopiedHandles;
-};
-
-static std::map<ID3D12Resource*, SRVSet> s_SRVSets = {};
-static std::map<SIZE_T, ID3D12Resource*> s_SRVHandleToResource = {};
-
-static void DetourCreateShaderResourceView(
-			ID3D12Device *pThis,
-			ID3D12Resource *pResource,
-			const D3D12_SHADER_RESOURCE_VIEW_DESC *pDesc,
-			D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
-{
-	s_pCreateShaderResourceViewHook->GetOriginalPtr()(pThis, pResource, pDesc, DestDescriptor);
-	
-	if (pDesc->ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D)
-	{
-		if (const auto handleToResourceIter = s_SRVHandleToResource.find(DestDescriptor.ptr); handleToResourceIter != s_SRVHandleToResource.end())
-		{
-			ID3D12Resource* pOldResource = handleToResourceIter->second;
-			if (const auto resourceToSRVSetIter = s_SRVSets.find(pOldResource); resourceToSRVSetIter != s_SRVSets.end())
-			{
-				resourceToSRVSetIter->second.CreatedHandles.erase(DestDescriptor.ptr);
-			}
-			s_SRVHandleToResource.erase(DestDescriptor.ptr);
-		}
-		
-		if (s_SRVSets.find(pResource) == s_SRVSets.end())
-		{
-			s_SRVSets.emplace(pResource, SRVSet{});
-		}
-
-		s_SRVSets.find(pResource)->second.CreatedHandles.emplace(DestDescriptor.ptr);
-		s_SRVHandleToResource.emplace(DestDescriptor.ptr, pResource);
-	}
 }
 
 ID3D12DescriptorHeap* s_pDescriptorHeap_CBV_SRV_UAV = nullptr;
@@ -128,29 +87,6 @@ static HRESULT DetourCreateDescriptorHeap(
 	}
 
 	return result;
-}
-
-static void DetourCopyDescriptorsSimple(
-			ID3D12Device *pThis, 
-			UINT NumDescriptors,
-			D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptorRangeStart,
-			D3D12_CPU_DESCRIPTOR_HANDLE SrcDescriptorRangeStart,
-			D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapsType)
-{
-	if (NumDescriptors == 1 && DescriptorHeapsType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
-	{
-		if (const auto iter = s_SRVHandleToResource.find(SrcDescriptorRangeStart.ptr); iter != s_SRVHandleToResource.end())
-		{
-			ID3D12Resource* pResource = iter->second;
-			SRVSet&         srvSet = s_SRVSets.find(pResource)->second;
-			srvSet.CreatedHandles.erase(SrcDescriptorRangeStart.ptr);
-			srvSet.CopiedHandles.emplace(DestDescriptorRangeStart.ptr);
-
-			s_SRVHandleToResource.erase(SrcDescriptorRangeStart.ptr);
-			s_SRVHandleToResource.emplace(DestDescriptorRangeStart.ptr, pResource);
-		}
-	}
-	s_pCopyDescriptorsSimpleHook->GetOriginalPtr()(pThis, NumDescriptors, DestDescriptorRangeStart, SrcDescriptorRangeStart, DescriptorHeapsType);
 }
 
 #define NAMEOF(x) #x
@@ -289,17 +225,10 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
 		if (pDevice != nullptr)
 		{
 			void** pDeviceVTable = *reinterpret_cast<void***>(pDevice);
-			void* fnCreateShaderResourceView = pDeviceVTable[18];
-			s_pCreateShaderResourceViewHook = new HookWrapper<t_CreateShaderResourceView>(fnCreateShaderResourceView);
-			s_pCreateShaderResourceViewHook->CreateAndEnable(&DetourCreateShaderResourceView);
 
 			void* fnCreateDescriptorHeap = pDeviceVTable[14];
 			s_pCreateDescriptorHeapHook = new HookWrapper<t_CreateDescriptorHeap>(fnCreateDescriptorHeap);
 			s_pCreateDescriptorHeapHook->CreateAndEnable(&DetourCreateDescriptorHeap);
-
-			void* fnCopyDescriptorsSimple = pDeviceVTable[24];
-			s_pCopyDescriptorsSimpleHook = new HookWrapper<t_CopyDescriptorsSimple>(fnCopyDescriptorsSimple);
-			s_pCopyDescriptorsSimpleHook->CreateAndEnable(&DetourCopyDescriptorsSimple);
 		}
 		else
 		{
@@ -323,13 +252,6 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
 		delete s_CurrentAPI;
 		s_CurrentAPI = NULL;
 		s_DeviceType = kUnityGfxRendererNull;
-		
-		if (s_pCreateShaderResourceViewHook != nullptr)
-		{
-			s_pCreateShaderResourceViewHook->Disable();
-			delete s_pCreateShaderResourceViewHook;
-			s_pCreateShaderResourceViewHook = nullptr;	
-		}
 
 		if (s_pCreateDescriptorHeapHook != nullptr)
 		{
