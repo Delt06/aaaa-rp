@@ -33,7 +33,7 @@ InterpolatedUV InterpolateUV(const BarycentricDerivatives barycentric, const AAA
     return uv;
 }
 
-float4 SampleBindlessTexture(const InterpolatedUV uv, const uint textureIndex, const float4 defaultValue)
+float4 SampleBindlessTextureGrad(const InterpolatedUV uv, const uint textureIndex, const float4 defaultValue)
 {
     if (textureIndex != (uint)NO_TEXTURE_INDEX)
     {
@@ -45,7 +45,7 @@ float4 SampleBindlessTexture(const InterpolatedUV uv, const uint textureIndex, c
 
 float4 SampleAlbedo(const InterpolatedUV uv, const AAAAMaterialData materialData)
 {
-    const float4 textureAlbedo = SampleBindlessTexture(uv, materialData.AlbedoIndex, float4(1, 1, 1, 1));
+    const float4 textureAlbedo = SampleBindlessTextureGrad(uv, materialData.AlbedoIndex, float4(1, 1, 1, 1));
     return materialData.AlbedoColor * textureAlbedo;
 }
 
