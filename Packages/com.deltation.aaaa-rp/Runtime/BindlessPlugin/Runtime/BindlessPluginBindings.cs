@@ -1,9 +1,9 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace DELTation.AAAARP
+namespace DELTation.AAAARP.BindlessPlugin.Runtime
 {
-    public static class DELTationBindlessPlugin
+    public static class BindlessPluginBindings
     {
         private const string DLLName =
 #if (PLATFORM_IOS || PLATFORM_TVOS || PLATFORM_BRATWURST || PLATFORM_SWITCH) && !UNITY_EDITOR

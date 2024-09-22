@@ -1,15 +1,16 @@
 using System;
 using System.Collections.Generic;
+using DELTation.AAAARP.BindlessPlugin.Runtime;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP
 {
-    public class BindlessTextureContainer
+    internal class BindlessTextureContainer
     {
         private readonly Dictionary<Texture2D, BindlessTextureInfo> _bindlessTextureInfos = new();
-        private readonly uint _heapNumDescriptors = DELTationBindlessPlugin.GetSRVDescriptorHeapCount();
+        private readonly uint _heapNumDescriptors = BindlessPluginBindings.GetSRVDescriptorHeapCount();
         private uint _counter;
 
         public void PreRender()
@@ -18,7 +19,7 @@ namespace DELTation.AAAARP
 
             foreach ((Texture2D texture, BindlessTextureInfo bindlessTextureInfo) in _bindlessTextureInfos)
             {
-                if (texture.GetNativeTexturePtr() != bindlessTextureInfo.NativeTexturePtr)
+                if (texture == null || texture.GetNativeTexturePtr() != bindlessTextureInfo.NativeTexturePtr)
                 {
                     dirtyTextures.Add(texture);
                 }
@@ -32,14 +33,16 @@ namespace DELTation.AAAARP
 
         public uint GetOrCreateIndex(Texture2D texture)
         {
-            if (texture == null)
+            Texture2D effectiveTexture = texture;
+
+            if (effectiveTexture == null)
             {
-                texture = Texture2D.whiteTexture;
+                effectiveTexture = Texture2D.whiteTexture;
             }
 
             uint index;
 
-            IntPtr nativeTexturePtr = texture.GetNativeTexturePtr();
+            IntPtr nativeTexturePtr = effectiveTexture.GetNativeTexturePtr();
             if (_bindlessTextureInfos.TryGetValue(texture, out BindlessTextureInfo info))
             {
                 if (info.NativeTexturePtr == nativeTexturePtr)
@@ -55,7 +58,7 @@ namespace DELTation.AAAARP
                 ++_counter;
             }
 
-            int result = DELTationBindlessPlugin.CreateSRVDescriptor(nativeTexturePtr, index);
+            int result = BindlessPluginBindings.CreateSRVDescriptor(nativeTexturePtr, index);
             Assert.IsTrue(result == 0);
 
             _bindlessTextureInfos[texture] = new BindlessTextureInfo
