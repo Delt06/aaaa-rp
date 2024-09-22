@@ -15,19 +15,28 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class GPUCullingPass : AAAARenderPass<GPUCullingPass.PassData>, IDisposable
+    public sealed class GPUCullingPass : AAAARenderPass<GPUCullingPass.PassData>, IDisposable
     {
+        public enum PassType
+        {
+            Basic,
+            Main,
+            FalseNegative,
+        }
+
         private readonly ComputeShader _fixupGPUMeshletCullingIndirectDispatchArgsCS;
         private readonly ComputeShader _fixupMeshletIndirectDrawArgsCS;
         private readonly ComputeShader _fixupMeshletListBuildIndirectDispatchArgsCS;
         private readonly ComputeShader _gpuInstanceCullingCS;
         private readonly ComputeShader _gpuMeshletCullingCS;
         private readonly ComputeShader _meshletListBuildCS;
+        private readonly PassType _passType;
         private readonly ComputeShader _rawBufferClearCS;
         private NativeList<int> _instanceIndices;
 
-        public GPUCullingPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent)
+        public GPUCullingPass(PassType passType, AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent)
         {
+            _passType = passType;
             _rawBufferClearCS = runtimeShaders.RawBufferClearCS;
             _gpuInstanceCullingCS = runtimeShaders.GPUInstanceCullingCS;
             _fixupMeshletListBuildIndirectDispatchArgsCS = runtimeShaders.FixupMeshletListBuildIndirectDispatchArgsCS;
@@ -36,12 +45,18 @@ namespace DELTation.AAAARP.Passes
             _gpuMeshletCullingCS = runtimeShaders.GPUMeshletCullingCS;
             _fixupMeshletIndirectDrawArgsCS = runtimeShaders.FixupMeshletIndirectDrawArgsCS;
             _instanceIndices = new NativeList<int>(Allocator.Persistent);
+
+            Name = "GPUCulling";
+            if (_passType != PassType.Basic)
+            {
+                Name += "." + _passType;
+            }
         }
 
         [CanBeNull]
         public Camera CullingCameraOverride { get; set; }
 
-        public override string Name => "GPUCulling";
+        public override string Name { get; }
 
         public void Dispose()
         {
@@ -130,6 +145,18 @@ namespace DELTation.AAAARP.Passes
                 }
             );
 
+            if (_passType != PassType.Basic)
+            {
+                OcclusionCullingResources.FrameResources currentFrameResources = rendererContainer.OcclusionCullingResources.GetCurrentFrameResources();
+                passData.OcclusionCullingInstanceVisibilityMask = renderingData.RenderGraph.ImportBuffer(currentFrameResources.InstanceVisibilityMask);
+                passData.OcclusionCullingInstanceVisibilityMaskCount = rendererContainer.OcclusionCullingResources.InstanceVisibilityMaskItemCount;
+            }
+            else
+            {
+                passData.OcclusionCullingInstanceVisibilityMask = default;
+                passData.OcclusionCullingInstanceVisibilityMaskCount = default;
+            }
+
             passData.DestinationMeshletsCounterBuffer = builder.CreateTransientBuffer(CreateCounterBufferDesc("MeshletRenderRequestCounter"));
             passData.DestinationMeshletsBuffer = renderingData.RenderGraph.ImportBuffer(meshletRenderRequestsBuffer);
             builder.WriteBuffer(passData.DestinationMeshletsBuffer);
@@ -155,11 +182,25 @@ namespace DELTation.AAAARP.Passes
             {
                 AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.InitialMeshletListCounterBuffer, 1, 0, 0);
                 AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.MeshletListBuildJobCounterBuffer, 1, 0, 0);
+
+                if (data.OcclusionCullingInstanceVisibilityMask.IsValid())
+                {
+                    AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.OcclusionCullingInstanceVisibilityMask,
+                        data.OcclusionCullingInstanceVisibilityMaskCount, 0, 0
+                    );
+                }
             }
 
             using (new ProfilingScope(context.cmd, Profiling.InstanceCulling))
             {
                 const int kernelIndex = 0;
+
+                context.cmd.SetKeyword(_gpuInstanceCullingCS,
+                    new LocalKeyword(_gpuInstanceCullingCS, Keywords.GPUInstanceCulling.MAIN_PASS), _passType == PassType.Main
+                );
+                context.cmd.SetKeyword(_gpuInstanceCullingCS,
+                    new LocalKeyword(_gpuInstanceCullingCS, Keywords.GPUInstanceCulling.FALSE_NEGATIVE_PASS), _passType == PassType.FalseNegative
+                );
 
                 context.cmd.SetComputeVectorArrayParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraFrustumPlanes, data.FrustumPlanes);
                 context.cmd.SetComputeMatrixParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraViewProjection, data.CameraViewProjectionMatrix);
@@ -244,6 +285,13 @@ namespace DELTation.AAAARP.Passes
             using (new ProfilingScope(context.cmd, Profiling.MeshletCulling))
             {
                 const int kernelIndex = 0;
+                
+                context.cmd.SetKeyword(_gpuMeshletCullingCS,
+                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.GPUInstanceCulling.MAIN_PASS), _passType == PassType.Main
+                );
+                context.cmd.SetKeyword(_gpuMeshletCullingCS,
+                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.GPUInstanceCulling.FALSE_NEGATIVE_PASS), _passType == PassType.FalseNegative
+                );
 
                 context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraFrustumPlanes, data.FrustumPlanes);
                 context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraPosition, data.CameraPosition);
@@ -304,6 +352,10 @@ namespace DELTation.AAAARP.Passes
             public BufferHandle MeshletListBuildIndirectDispatchArgsBuffer;
             public BufferHandle MeshletListBuildJobCounterBuffer;
             public BufferHandle MeshletListBuildJobsBuffer;
+
+            public BufferHandle OcclusionCullingInstanceVisibilityMask;
+            public int OcclusionCullingInstanceVisibilityMaskCount;
+
             public Vector2 ScreenSizePixels;
         }
 
@@ -316,6 +368,22 @@ namespace DELTation.AAAARP.Passes
             public static readonly ProfilingSampler FixupMeshletCullingIndirectDispatchArgs = new(nameof(FixupMeshletCullingIndirectDispatchArgs));
             public static readonly ProfilingSampler MeshletCulling = new(nameof(MeshletCulling));
             public static readonly ProfilingSampler FixupIndirectDrawArgs = new(nameof(FixupIndirectDrawArgs));
+        }
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        private static class Keywords
+        {
+            public static class GPUInstanceCulling
+            {
+                public static string MAIN_PASS = nameof(MAIN_PASS);
+                public static string FALSE_NEGATIVE_PASS = nameof(FALSE_NEGATIVE_PASS);
+            }
+            
+            public static class MeshletCulling
+            {
+                public static string MAIN_PASS = nameof(MAIN_PASS);
+                public static string FALSE_NEGATIVE_PASS = nameof(FALSE_NEGATIVE_PASS);
+            }
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]

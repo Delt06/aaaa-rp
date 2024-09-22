@@ -27,7 +27,6 @@ namespace DELTation.AAAARP.Renderers
         private readonly AAAAMeshLODSettings _meshLODSettings;
 
         private readonly AAAAObjectTracker _objectTracker;
-        private readonly OcclusionCullingResources _occlusionCullingResources;
         private bool _isDirty;
 
         private NativeList<AAAAMaterialData> _materialData;
@@ -48,7 +47,7 @@ namespace DELTation.AAAARP.Renderers
             _meshLODSettings = meshLODSettings;
             _debugDisplaySettings = debugDisplaySettings;
             InstanceDataBuffer = new InstanceDataBuffer(this, Allocator.Persistent);
-            _occlusionCullingResources = new OcclusionCullingResources(shaders.RawBufferClearCS);
+            OcclusionCullingResources = new OcclusionCullingResources(shaders.RawBufferClearCS);
             _meshLODNodes = new NativeList<AAAAMeshLODNode>(Allocator.Persistent);
             _meshletData = new NativeList<AAAAMeshlet>(Allocator.Persistent);
             _materialData = new NativeList<AAAAMaterialData>(Allocator.Persistent);
@@ -69,6 +68,8 @@ namespace DELTation.AAAARP.Renderers
             _isDirty = true;
         }
 
+        internal OcclusionCullingResources OcclusionCullingResources { get; }
+
         public int MaxMeshletListBuildJobCount { get; internal set; }
 
         public int MeshLODNodeCount => _meshLODNodes.Length;
@@ -82,7 +83,7 @@ namespace DELTation.AAAARP.Renderers
         public void Dispose()
         {
             _bindlessTextureContainer.Dispose();
-            _occlusionCullingResources.Dispose();
+            OcclusionCullingResources.Dispose();
             _objectTracker.Dispose();
 
             if (_meshLODNodes.IsCreated)
@@ -137,7 +138,7 @@ namespace DELTation.AAAARP.Renderers
             using (new ProfilingScope(cmd, Profiling.PreRender))
             {
                 InstanceDataBuffer.PreRender(cmd);
-                _occlusionCullingResources.PreRender(cmd);
+                OcclusionCullingResources.PreRender(cmd);
 
                 cmd.SetGlobalBuffer(ShaderIDs._Meshlets, _meshletsDataBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._MeshLODNodes, _meshLODNodesBuffer);
@@ -157,7 +158,7 @@ namespace DELTation.AAAARP.Renderers
         {
             using (new ProfilingScope(Profiling.PostRender))
             {
-                _occlusionCullingResources.PostRender();
+                OcclusionCullingResources.PostRender();
             }
         }
 

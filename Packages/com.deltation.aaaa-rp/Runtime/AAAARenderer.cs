@@ -1,5 +1,5 @@
 using DELTation.AAAARP.Passes;
-using DELTation.AAAARP.Renderers;
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
@@ -11,7 +11,8 @@ namespace DELTation.AAAARP
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferDepthOnlyPass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferPass;
         private readonly FinalBlitPass _finalBlitPass;
-        private readonly GPUCullingPass _gpuCullingPass;
+        private readonly GPUCullingPass _gpuCullingFalseNegativePass;
+        private readonly GPUCullingPass _gpuCullingMainPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly SetupLightingPass _setupLightingPass;
         private readonly SkyboxPass _skyboxPass;
@@ -22,9 +23,12 @@ namespace DELTation.AAAARP
             AAAARenderPipelineDefaultTextures defaultTextures = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineDefaultTextures>();
 
             _setupLightingPass = new SetupLightingPass(AAAARenderPassEvent.BeforeRendering);
-            _gpuCullingPass = new GPUCullingPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
-            _drawVisibilityBufferDepthOnlyPass = new DrawVisibilityBufferPass(DrawVisibilityBufferPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer);
-            _drawVisibilityBufferPass = new DrawVisibilityBufferPass(DrawVisibilityBufferPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer);
+            _gpuCullingMainPass = new GPUCullingPass(GPUCullingPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
+            _gpuCullingFalseNegativePass = new GPUCullingPass(GPUCullingPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
+            _drawVisibilityBufferDepthOnlyPass =
+                new DrawVisibilityBufferPass(DrawVisibilityBufferPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer);
+            _drawVisibilityBufferPass =
+                new DrawVisibilityBufferPass(DrawVisibilityBufferPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer);
             _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
@@ -35,9 +39,11 @@ namespace DELTation.AAAARP
         {
             EnqueuePass(_setupLightingPass);
 
-            _gpuCullingPass.CullingCameraOverride = DebugHandler?.GetGPUCullingCameraOverride();
-            EnqueuePass(_gpuCullingPass);
+            Camera cullingCameraOverride = DebugHandler?.GetGPUCullingCameraOverride();
+            _gpuCullingMainPass.CullingCameraOverride = cullingCameraOverride;
+            EnqueuePass(_gpuCullingMainPass);
             EnqueuePass(_drawVisibilityBufferDepthOnlyPass);
+            EnqueuePass(_gpuCullingFalseNegativePass);
             EnqueuePass(_drawVisibilityBufferPass);
             EnqueuePass(_resolveVisibilityBufferPass);
 
@@ -52,7 +58,8 @@ namespace DELTation.AAAARP
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            _gpuCullingPass.Dispose();
+            _gpuCullingMainPass.Dispose();
+            _gpuCullingFalseNegativePass.Dispose();
         }
     }
 }

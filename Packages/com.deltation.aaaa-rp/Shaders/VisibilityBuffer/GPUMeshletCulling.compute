@@ -1,5 +1,11 @@
 #pragma kernel CS
 
+#pragma multi_compile _ MAIN_PASS FALSE_NEGATIVE_PASS
+
+#if defined(MAIN_PASS) || defined(FALSE_NEGATIVE_PASS)
+#define OCCLUSION_CULLING_ON
+#endif
+
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 #define THREAD_GROUP_SIZE GPUMESHLET_CULLING_THREAD_GROUP_SIZE
 
@@ -8,6 +14,8 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshletCulling.hlsl"
+#define RW_OCCLUSION_CULLING_INSTANCE_VISIBILITY_MASK
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/OcclusionCulling.hlsl"
 
 float4 _CameraPosition;
 float4 _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
@@ -49,4 +57,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     _DestinationMeshletsCounter.InterlockedAdd(0, 1, renderRequestWriteOffset);
 
     StoreMeshletRenderRequest(_DestinationMeshlets, renderRequestWriteOffset, meshletRenderRequest);
+    #ifdef OCCLUSION_CULLING_ON
+    OcclusionCulling::MarkVisibleThisFrame(meshletRenderRequest.InstanceID);
+    #endif
 }

@@ -6,7 +6,7 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Renderers
 {
-    public class OcclusionCullingResources : IDisposable
+    internal class OcclusionCullingResources : IDisposable
     {
         private const int FramesInFlight = 3;
         private readonly FrameResources[] _frameResources;
@@ -20,14 +20,15 @@ namespace DELTation.AAAARP.Renderers
             _frameResources = new FrameResources[FramesInFlight];
             _rawBufferClearCS = rawBufferClearCS;
 
+            const int stride = sizeof(uint);
+            const int instancesPerItem = stride * 8;
+            InstanceVisibilityMaskItemCount = AAAAMathUtils.AlignUp(InstanceDataBuffer.Capacity, instancesPerItem) / instancesPerItem;
+
             for (int index = 0; index < FramesInFlight; index++)
             {
                 ref FrameResources frameResources = ref _frameResources[index];
 
-                const int stride = sizeof(uint);
-                const int instancesPerItem = stride * 8;
-                int count = AAAAMathUtils.AlignUp(InstanceDataBuffer.Capacity, instancesPerItem) / instancesPerItem;
-                frameResources.InstanceVisibilityMask = new GraphicsBuffer(GraphicsBuffer.Target.Raw, count, stride)
+                frameResources.InstanceVisibilityMask = new GraphicsBuffer(GraphicsBuffer.Target.Raw, InstanceVisibilityMaskItemCount, stride)
                 {
                     name = $"{nameof(OcclusionCullingResources)}_{nameof(FrameResources.InstanceVisibilityMask)}[{index}]",
                 };
@@ -35,6 +36,8 @@ namespace DELTation.AAAARP.Renderers
 
             _isDirty = true;
         }
+
+        public int InstanceVisibilityMaskItemCount { get; }
 
         public void Dispose()
         {
@@ -44,6 +47,8 @@ namespace DELTation.AAAARP.Renderers
                 frameResources.Dispose();
             }
         }
+
+        public ref readonly FrameResources GetCurrentFrameResources() => ref _frameResources[_frameIndex];
 
         public void PreRender(CommandBuffer cmd)
         {
@@ -89,7 +94,7 @@ namespace DELTation.AAAARP.Renderers
             _frameIndex %= FramesInFlight;
         }
 
-        private int GetPrevResourcesIndex(int index)
+        private static int GetPrevResourcesIndex(int index)
         {
             int prevIndex = index - 1;
             if (prevIndex < 0)
@@ -99,7 +104,7 @@ namespace DELTation.AAAARP.Renderers
             return prevIndex;
         }
 
-        private struct FrameResources : IDisposable
+        internal struct FrameResources : IDisposable
         {
             public GraphicsBuffer InstanceVisibilityMask;
 

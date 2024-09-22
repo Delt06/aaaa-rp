@@ -1,5 +1,7 @@
 #pragma kernel CS
 
+#pragma multi_compile _ MAIN_PASS FALSE_NEGATIVE_PASS
+
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 #define THREAD_GROUP_SIZE GPUINSTANCE_CULLING_THREAD_GROUP_SIZE
 
@@ -7,12 +9,13 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/OcclusionCulling.hlsl"
 
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4x4 _CameraViewProjection;
 
 Buffer<uint> _InstanceIndices;
-uint _InstanceIndicesCount;
+uint         _InstanceIndicesCount;
 
 RWStructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
 RWByteAddressBuffer                         _JobCounter;
@@ -26,7 +29,22 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    const uint             instanceID = _InstanceIndices[i];
+    const uint instanceID = _InstanceIndices[i];
+
+    #if defined(MAIN_PASS)
+    UNITY_BRANCH
+    if (!OcclusionCulling::WasInstanceVisibleLastFrame(instanceID))
+    {
+        return;
+    }
+    #elif defined(FALSE_NEGATIVE_PASS)
+    UNITY_BRANCH
+    if (OcclusionCulling::WasInstanceVisibleThisFrame(instanceID))
+    {
+        return;
+    }
+    #endif
+
     const AAAAInstanceData instanceData = PullInstanceData(instanceID);
 
     const AABB   aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);
