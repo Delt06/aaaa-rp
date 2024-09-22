@@ -55,15 +55,14 @@ static HRESULT WINAPI DetourD3D12SerializeRootSignature(
 			_Out_ ID3DBlob** ppBlob,
 			_Always_(_Outptr_opt_result_maybenull_) ID3DBlob** ppErrorBlob)
 {
-	UNITY_LOG(s_Log, "Serializing root signature...");
 	D3D12_ROOT_SIGNATURE_DESC desc = *pRootSignature;
 	desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
 	const HRESULT result = s_pSerializeRootSignatureHook->GetOriginalPtr()(&desc, Version, ppBlob, ppErrorBlob);
 	if (FAILED(result))
-		UNITY_LOG_ERROR(s_Log, "Serializing root signature failure");
-	else
-		UNITY_LOG(s_Log, "Serializing root signature success");
-	return result;
+    {
+        UNITY_LOG_ERROR(s_Log, "Serializing root signature failure");
+    }
+    return result;
 }
 
 ID3D12DescriptorHeap* s_pDescriptorHeap_CBV_SRV_UAV = nullptr;
@@ -229,10 +228,7 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
 			void* fnCreateDescriptorHeap = pDeviceVTable[14];
 			s_pCreateDescriptorHeapHook = new HookWrapper<t_CreateDescriptorHeap>(fnCreateDescriptorHeap);
 			s_pCreateDescriptorHeapHook->CreateAndEnable(&DetourCreateDescriptorHeap);
-		}
-		else
-		{
-			UNITY_LOG_ERROR(s_Log, "Failed to get device");
+		    UNITY_LOG(s_Log, "Hooked CreateDescriptorHeap");
 		}
 		
 		assert(s_CurrentAPI == NULL);
