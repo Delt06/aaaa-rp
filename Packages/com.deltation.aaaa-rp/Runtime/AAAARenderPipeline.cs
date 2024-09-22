@@ -1,6 +1,7 @@
 ﻿using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.Renderers;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -16,7 +17,7 @@ namespace DELTation.AAAARP
 
         private readonly AAAARenderPipelineAsset _pipelineAsset;
         private readonly AAAARendererBase _renderer;
-        private readonly AAAAVisibilityBufferContainer _visibilityBufferContainer;
+        private readonly AAAARendererContainer _rendererContainer;
         private RenderGraph _renderGraph;
 
         public AAAARenderPipeline(AAAARenderPipelineAsset pipelineAsset)
@@ -40,12 +41,12 @@ namespace DELTation.AAAARP
             RTHandles.Initialize(Screen.width, Screen.height);
             ShaderGlobalKeywords.InitializeShaderGlobalKeywords();
 
-            _visibilityBufferContainer = new AAAAVisibilityBufferContainer(pipelineAsset.MeshLODSettings, pipelineDebugDisplaySettings);
+            _rendererContainer = new AAAARendererContainer(pipelineAsset.MeshLODSettings, pipelineDebugDisplaySettings);
         }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
         {
-            _visibilityBufferContainer.PreRender(context);
+            _rendererContainer.PreRender(context);
 
             foreach (Camera camera in cameras)
             {
@@ -109,7 +110,7 @@ namespace DELTation.AAAARP
             _debugDisplaySettingsUI.UnregisterDebug();
 #endif
 
-            _visibilityBufferContainer.Dispose();
+            _rendererContainer.Dispose();
             Blitter.Cleanup();
 
             base.Dispose(disposing);
@@ -131,7 +132,7 @@ namespace DELTation.AAAARP
             AAAARenderingData renderingData = frameData.GetOrCreate<AAAARenderingData>();
 
             renderingData.RenderGraph = _renderGraph;
-            renderingData.VisibilityBufferContainer = _visibilityBufferContainer;
+            renderingData.RendererContainer = _rendererContainer;
 
             return renderingData;
         }

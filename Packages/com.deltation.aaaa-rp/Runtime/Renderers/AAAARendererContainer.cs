@@ -14,9 +14,9 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
 
-namespace DELTation.AAAARP
+namespace DELTation.AAAARP.Renderers
 {
-    public class AAAAVisibilityBufferContainer : IDisposable
+    public class AAAARendererContainer : IDisposable
     {
         private readonly BindlessTextureContainer _bindlessTextureContainer = new();
         [CanBeNull]
@@ -25,6 +25,8 @@ namespace DELTation.AAAARP
         private readonly Dictionary<AAAAMaterialAsset, int> _materialToIndex = new();
         private readonly Dictionary<AAAAMeshletCollectionAsset, int> _meshletCollectionToTopMeshLODNodesStartIndex = new();
         private readonly AAAAMeshLODSettings _meshLODSettings;
+
+        private readonly AAAAObjectTracker _objectTracker;
         private NativeList<AAAAInstanceData> _instanceData;
 
         private GraphicsBuffer _instanceDataBuffer;
@@ -39,7 +41,7 @@ namespace DELTation.AAAARP
         private GraphicsBuffer _sharedVertexBuffer;
         private NativeList<AAAAMeshletVertex> _sharedVertices;
 
-        internal AAAAVisibilityBufferContainer(AAAAMeshLODSettings meshLODSettings, [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings)
+        internal AAAARendererContainer(AAAAMeshLODSettings meshLODSettings, [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings)
         {
             _meshLODSettings = meshLODSettings;
             _debugDisplaySettings = debugDisplaySettings;
@@ -49,6 +51,8 @@ namespace DELTation.AAAARP
             _materialData = new NativeList<AAAAMaterialData>(Allocator.Persistent);
             _sharedVertices = new NativeList<AAAAMeshletVertex>(Allocator.Persistent);
             _sharedIndices = new NativeList<byte>(Allocator.Persistent);
+
+            _objectTracker = new AAAAObjectTracker(_bindlessTextureContainer);
 
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
             _material = new Material(shaders.VisibilityBufferPS);
@@ -68,6 +72,9 @@ namespace DELTation.AAAARP
 
         public void Dispose()
         {
+            _bindlessTextureContainer.Dispose();
+            _objectTracker.Dispose();
+
             if (_meshLODNodes.IsCreated)
             {
                 _meshLODNodes.Dispose();
@@ -343,7 +350,7 @@ namespace DELTation.AAAARP
                 return AAAAMaterialData.NoTextureIndex;
             }
 
-            return _bindlessTextureContainer.GetOrCreateIndex(texture);
+            return _bindlessTextureContainer.GetOrCreateIndex(texture, texture.GetInstanceID());
         }
 
         private static class Profiling

@@ -2,6 +2,7 @@
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Meshlets;
+using DELTation.AAAARP.Renderers;
 using DELTation.AAAARP.Utils;
 using JetBrains.Annotations;
 using Unity.Collections.LowLevel.Unsafe;
@@ -41,8 +42,8 @@ namespace DELTation.AAAARP.Passes
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
-            AAAAVisibilityBufferContainer visibilityBufferContainer = renderingData.VisibilityBufferContainer;
-            passData.InstanceCount = visibilityBufferContainer.InstanceCount;
+            AAAARendererContainer rendererContainer = renderingData.RendererContainer;
+            passData.InstanceCount = rendererContainer.InstanceCount;
             if (passData.InstanceCount == 0)
             {
                 return;
@@ -69,7 +70,7 @@ namespace DELTation.AAAARP.Passes
 
             passData.CameraViewProjectionMatrix = GL.GetGPUProjectionMatrix(camera.projectionMatrix * camera.worldToCameraMatrix, true);
 
-            GraphicsBuffer meshletRenderRequestsBuffer = visibilityBufferContainer.MeshletRenderRequestsBuffer;
+            GraphicsBuffer meshletRenderRequestsBuffer = rendererContainer.MeshletRenderRequestsBuffer;
 
             passData.InitialMeshletListCounterBuffer = builder.CreateTransientBuffer(CreateCounterBufferDesc("InitialMeshletListCounter"));
             passData.InitialMeshletListBuffer = builder.CreateTransientBuffer(
@@ -98,7 +99,7 @@ namespace DELTation.AAAARP.Passes
                 }
             );
             passData.MeshletListBuildJobsBuffer = builder.CreateTransientBuffer(
-                new BufferDesc(visibilityBufferContainer.MaxMeshletListBuildJobCount, UnsafeUtility.SizeOf<AAAAMeshletListBuildJob>(),
+                new BufferDesc(rendererContainer.MaxMeshletListBuildJobCount, UnsafeUtility.SizeOf<AAAAMeshletListBuildJob>(),
                     GraphicsBuffer.Target.Structured
                 )
                 {
@@ -110,7 +111,7 @@ namespace DELTation.AAAARP.Passes
             passData.DestinationMeshletsBuffer = renderingData.RenderGraph.ImportBuffer(meshletRenderRequestsBuffer);
             builder.WriteBuffer(passData.DestinationMeshletsBuffer);
 
-            passData.IndirectDrawArgsBuffer = renderingData.RenderGraph.ImportBuffer(visibilityBufferContainer.IndirectDrawArgsBuffer);
+            passData.IndirectDrawArgsBuffer = renderingData.RenderGraph.ImportBuffer(rendererContainer.IndirectDrawArgsBuffer);
             builder.WriteBuffer(passData.IndirectDrawArgsBuffer);
         }
 

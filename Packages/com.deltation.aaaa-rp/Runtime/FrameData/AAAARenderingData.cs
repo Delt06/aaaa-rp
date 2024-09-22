@@ -1,3 +1,4 @@
+using DELTation.AAAARP.Renderers;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
@@ -7,13 +8,13 @@ namespace DELTation.AAAARP.FrameData
     {
         public CullingResults CullingResults;
         public RenderGraph RenderGraph;
-        public AAAAVisibilityBufferContainer VisibilityBufferContainer;
+        public AAAARendererContainer RendererContainer;
 
         public override void Reset()
         {
             RenderGraph = default;
             CullingResults = default;
-            VisibilityBufferContainer = default;
+            RendererContainer = default;
         }
     }
 }

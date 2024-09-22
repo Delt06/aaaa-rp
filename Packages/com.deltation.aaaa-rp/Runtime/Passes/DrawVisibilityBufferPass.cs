@@ -1,4 +1,5 @@
 using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.Renderers;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
@@ -17,7 +18,7 @@ namespace DELTation.AAAARP.Passes
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
 
             passData.RendererListHandle = rendererListData.VisibilityBuffer.Handle;
-            passData.VisibilityBufferContainer = renderingData.VisibilityBufferContainer;
+            passData.RendererContainer = renderingData.RendererContainer;
 
             builder.UseRendererList(passData.RendererListHandle);
             builder.SetRenderAttachment(resourceData.VisibilityBuffer, 0, AccessFlags.ReadWrite);
@@ -28,14 +29,14 @@ namespace DELTation.AAAARP.Passes
 
         protected override void Render(PassData data, RasterGraphContext context)
         {
-            data.VisibilityBufferContainer.Draw(context.cmd);
+            data.RendererContainer.Draw(context.cmd);
             context.cmd.DrawRendererList(data.RendererListHandle);
         }
 
         public class PassData : PassDataBase
         {
             public RendererListHandle RendererListHandle;
-            public AAAAVisibilityBufferContainer VisibilityBufferContainer;
+            public AAAARendererContainer RendererContainer;
         }
     }
 }

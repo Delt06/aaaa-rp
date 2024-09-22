@@ -4,6 +4,7 @@ using Unity.Collections.LowLevel.Unsafe;
 
 namespace DELTation.AAAARP.Core
 {
+
     public static class AAAANativeCollectionsExtensions
     {
         public static unsafe ref T ElementAtRef<T>(this NativeArray<T> array, int index) where T : struct
