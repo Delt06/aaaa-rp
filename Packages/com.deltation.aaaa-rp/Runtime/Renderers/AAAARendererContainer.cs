@@ -224,7 +224,9 @@ namespace DELTation.AAAARP.Renderers
 
             if (IndirectDrawArgsBuffer != null && InstanceDataBuffer.InstanceCount > 0)
             {
-                cmd.DrawProceduralIndirect(Matrix4x4.identity, _material, 0, MeshTopology.Triangles, IndirectDrawArgsBuffer, 0);
+                const int shaderPass = 0;
+                const int argsOffset = 0;
+                cmd.DrawProceduralIndirect(Matrix4x4.identity, _material, shaderPass, MeshTopology.Triangles, IndirectDrawArgsBuffer, argsOffset);
             }
         }
 

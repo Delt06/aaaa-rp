@@ -1,17 +1,19 @@
 Shader "Hidden/AAAA/VisibilityBuffer"
 {
-    Properties
-    {
-        
-    }
+    Properties {}
     SubShader
     {
         Pass
         {
-            Tags {"LightMode" = "Visibility"}
-            
-            HLSLPROGRAM
+            Tags
+            {
+                "LightMode" = "Visibility"
+            }
 
+            ZTest Less
+            ZWrite On
+
+            HLSLPROGRAM
             #pragma vertex VS
             #pragma fragment PS
 
@@ -27,7 +29,7 @@ Shader "Hidden/AAAA/VisibilityBuffer"
 
             struct Varyings
             {
-                float4 positionCS : SV_POSITION;
+                float4                positionCS : SV_POSITION;
                 nointerpolation uint2 visibilityValue : VISIBILITY_VALUE;
             };
 
@@ -44,7 +46,7 @@ Shader "Hidden/AAAA/VisibilityBuffer"
             {
                 if (index == -1)
                 {
-                    return (AAAAMeshletVertex) 0;
+                    return (AAAAMeshletVertex)0;
                 }
                 return PullVertex(meshlet, index);
             }
@@ -52,10 +54,11 @@ Shader "Hidden/AAAA/VisibilityBuffer"
             Varyings VS(const uint svInstanceID : SV_InstanceID, const uint svIndexID : SV_VertexID)
             {
                 InitIndirectDrawArgs(0);
-                
+
                 Varyings OUT;
 
-                const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(_MeshletRenderRequests, GetIndirectInstanceID_Base(svInstanceID));
+                const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(
+                    _MeshletRenderRequests, GetIndirectInstanceID_Base(svInstanceID));
                 const uint indexID = GetIndirectVertexID_Base(svIndexID);
 
                 const AAAAInstanceData perInstanceData = PullInstanceData(meshletRenderRequest.InstanceID);
@@ -64,7 +67,7 @@ Shader "Hidden/AAAA/VisibilityBuffer"
                 const uint              index = PullIndexChecked(meshlet, indexID);
                 const AAAAMeshletVertex vertex = PullVertexChecked(meshlet, index);
 
-                
+
                 const float3 positionWS = mul(perInstanceData.ObjectToWorldMatrix, float4(vertex.Position.xyz, 1.0f)).xyz;
 
                 OUT.positionCS = TransformWorldToHClip(positionWS);
@@ -81,8 +84,7 @@ Shader "Hidden/AAAA/VisibilityBuffer"
             uint2 PS(const Varyings IN) : SV_TARGET
             {
                 return IN.visibilityValue;
-            } 
-            
+            }
             ENDHLSL
         }
     }

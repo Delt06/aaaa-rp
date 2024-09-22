@@ -15,7 +15,8 @@ namespace DELTation.AAAARP.Renderers
 {
     internal sealed class InstanceDataBuffer : IDisposable
     {
-        private const int Capacity = 128;
+        public const int Capacity = 128;
+
         private readonly AAAARendererContainer _rendererContainer;
 
         private NativeArray<AAAAInstanceData> _cpuBuffer;

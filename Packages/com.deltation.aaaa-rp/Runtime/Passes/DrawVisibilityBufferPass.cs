@@ -1,3 +1,4 @@
+using System;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Renderers;
 using UnityEngine;
@@ -8,9 +9,21 @@ namespace DELTation.AAAARP.Passes
 {
     public class DrawVisibilityBufferPass : AAAARasterRenderPass<DrawVisibilityBufferPass.PassData>
     {
-        public DrawVisibilityBufferPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
+        public enum PassType
+        {
+            Main,
+            FalseNegative,
+        }
 
-        public override string Name => "DrawVisibilityBuffer";
+        private readonly PassType _passType;
+
+        public DrawVisibilityBufferPass(PassType passType, AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
+        {
+            _passType = passType;
+            Name = "DrawVisibilityBuffer." + passType;
+        }
+
+        public override string Name { get; }
 
         protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
@@ -21,7 +34,12 @@ namespace DELTation.AAAARP.Passes
 
             passData.CameraType = cameraData.CameraType;
 
-            passData.RendererListHandle = rendererListData.VisibilityBuffer.Handle;
+            passData.RendererListHandle = _passType switch
+            {
+                PassType.Main => rendererListData.VisibilityBufferMain.Handle,
+                PassType.FalseNegative => rendererListData.VisibilityBufferFalseNegative.Handle,
+                var _ => throw new ArgumentOutOfRangeException(),
+            };
             passData.RendererContainer = renderingData.RendererContainer;
 
             builder.UseRendererList(passData.RendererListHandle);

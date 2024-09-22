@@ -14,18 +14,26 @@ namespace DELTation.AAAARP.FrameData
     {
         private static readonly ShaderTagId VisibilityBufferLightMode = new("Visibility");
 
-        public AAAARendererList VisibilityBuffer;
+        public AAAARendererList VisibilityBufferMain;
+        public AAAARendererList VisibilityBufferFalseNegative;
 
         public void Init(AAAARenderingData renderingData, AAAACameraData cameraData)
         {
             RenderGraph renderGraph = renderingData.RenderGraph;
             CullingResults cullingResults = renderingData.CullingResults;
 
-            VisibilityBuffer = Create(renderGraph,
-                AAAARenderingUtils.CreateRendererListDesc(cullingResults, cameraData.Camera, VisibilityBufferLightMode, PerObjectData.None,
-                    RenderQueueRange.opaque, SortingCriteria.None
-                )
-            );
+            {
+                const PerObjectData perObjectData = PerObjectData.None;
+                RenderQueueRange renderQueueRange = RenderQueueRange.opaque;
+                const SortingCriteria sortingCriteria = SortingCriteria.None;
+                RendererListDesc desc = AAAARenderingUtils.CreateRendererListDesc(
+                    cullingResults, cameraData.Camera,
+                    VisibilityBufferLightMode, perObjectData, renderQueueRange, sortingCriteria
+                );
+                VisibilityBufferMain = Create(renderGraph, desc);
+                VisibilityBufferFalseNegative = Create(renderGraph, desc);
+            }
+
         }
 
         private static AAAARendererList Create(RenderGraph renderGraph, RendererListDesc desc) =>
@@ -37,7 +45,7 @@ namespace DELTation.AAAARP.FrameData
 
         public override void Reset()
         {
-            VisibilityBuffer = default;
+            VisibilityBufferMain = default;
         }
     }
 }
