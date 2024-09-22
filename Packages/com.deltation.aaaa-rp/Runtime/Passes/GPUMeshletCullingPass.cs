@@ -133,7 +133,7 @@ namespace DELTation.AAAARP.Passes
                 AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.MeshletListBuildJobCounterBuffer, 1, 0, 0);
             }
 
-            using (new ProfilingScope(context.cmd, Profiling.GPUInstanceCulling))
+            using (new ProfilingScope(context.cmd, Profiling.InstanceCulling))
             {
                 const int kernelIndex = 0;
 
@@ -276,7 +276,7 @@ namespace DELTation.AAAARP.Passes
         private static class Profiling
         {
             public static readonly ProfilingSampler ClearBuffers = new(nameof(ClearBuffers));
-            public static readonly ProfilingSampler GPUInstanceCulling = new(nameof(GPUInstanceCulling));
+            public static readonly ProfilingSampler InstanceCulling = new(nameof(InstanceCulling));
             public static readonly ProfilingSampler FixupMeshletListBuildIndirectDispatchArgs = new(nameof(FixupMeshletListBuildIndirectDispatchArgs));
             public static readonly ProfilingSampler MeshletListBuild = new(nameof(MeshletListBuild));
             public static readonly ProfilingSampler FixupMeshletCullingIndirectDispatchArgs = new(nameof(FixupMeshletCullingIndirectDispatchArgs));
