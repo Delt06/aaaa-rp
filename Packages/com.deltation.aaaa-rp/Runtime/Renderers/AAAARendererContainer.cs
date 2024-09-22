@@ -215,13 +215,20 @@ namespace DELTation.AAAARP.Renderers
             };
         }
 
-        public void Draw(IRasterCommandBuffer cmd)
+        public void Draw(CameraType cameraType, RasterCommandBuffer cmd)
         {
+            if (!ShouldDraw(cameraType))
+            {
+                return;
+            }
+
             if (IndirectDrawArgsBuffer != null && InstanceDataBuffer.InstanceCount > 0)
             {
                 cmd.DrawProceduralIndirect(Matrix4x4.identity, _material, 0, MeshTopology.Triangles, IndirectDrawArgsBuffer, 0);
             }
         }
+
+        private static bool ShouldDraw(CameraType cameraType) => cameraType is CameraType.Game or CameraType.SceneView;
 
         private int GetForcedMeshLODNodeDepth() => _debugDisplaySettings?.RenderingSettings.ForcedMeshLODNodeDepth ?? -1;
 
