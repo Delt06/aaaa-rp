@@ -53,6 +53,8 @@ namespace DELTation.AAAARP
                 RenderSingleCamera(context, _renderer, camera);
             }
 
+            _rendererContainer.PostRender();
+
             _renderGraph.EndFrame();
         }
 

@@ -27,6 +27,7 @@ namespace DELTation.AAAARP.Renderers
         private readonly AAAAMeshLODSettings _meshLODSettings;
 
         private readonly AAAAObjectTracker _objectTracker;
+        private readonly OcclusionCullingResources _occlusionCullingResources;
         private bool _isDirty;
 
         private NativeList<AAAAMaterialData> _materialData;
@@ -42,9 +43,12 @@ namespace DELTation.AAAARP.Renderers
 
         internal AAAARendererContainer(AAAAMeshLODSettings meshLODSettings, [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings)
         {
+            AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
+
             _meshLODSettings = meshLODSettings;
             _debugDisplaySettings = debugDisplaySettings;
             InstanceDataBuffer = new InstanceDataBuffer(this, Allocator.Persistent);
+            _occlusionCullingResources = new OcclusionCullingResources(shaders.RawBufferClearCS);
             _meshLODNodes = new NativeList<AAAAMeshLODNode>(Allocator.Persistent);
             _meshletData = new NativeList<AAAAMeshlet>(Allocator.Persistent);
             _materialData = new NativeList<AAAAMaterialData>(Allocator.Persistent);
@@ -53,7 +57,6 @@ namespace DELTation.AAAARP.Renderers
 
             _objectTracker = new AAAAObjectTracker(InstanceDataBuffer, _bindlessTextureContainer);
 
-            AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
             _material = CoreUtils.CreateEngineMaterial(shaders.VisibilityBufferPS);
 
 #if UNITY_EDITOR
@@ -79,6 +82,7 @@ namespace DELTation.AAAARP.Renderers
         public void Dispose()
         {
             _bindlessTextureContainer.Dispose();
+            _occlusionCullingResources.Dispose();
             _objectTracker.Dispose();
 
             if (_meshLODNodes.IsCreated)
@@ -133,6 +137,7 @@ namespace DELTation.AAAARP.Renderers
             using (new ProfilingScope(cmd, Profiling.PreRender))
             {
                 InstanceDataBuffer.PreRender(cmd);
+                _occlusionCullingResources.PreRender(cmd);
 
                 cmd.SetGlobalBuffer(ShaderIDs._Meshlets, _meshletsDataBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._MeshLODNodes, _meshLODNodesBuffer);
@@ -146,6 +151,14 @@ namespace DELTation.AAAARP.Renderers
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
+        }
+
+        public void PostRender()
+        {
+            using (new ProfilingScope(Profiling.PostRender))
+            {
+                _occlusionCullingResources.PostRender();
+            }
         }
 
         private void UploadData()
@@ -319,6 +332,7 @@ namespace DELTation.AAAARP.Renderers
         private static class Profiling
         {
             public static readonly ProfilingSampler PreRender = new("Visibility Buffer Container: Pre Render");
+            public static readonly ProfilingSampler PostRender = new("Visibility Buffer Container: Post Render");
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
