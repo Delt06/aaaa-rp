@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2378623545977491097}
-  - component: {fileID: 2532010526494248845}
+  - component: {fileID: 2471449732357888344}
   m_Layer: 0
   m_Name: bunny_Authoring
   m_TagString: Untagged
@@ -32,7 +32,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2532010526494248845
+--- !u!114 &2471449732357888344
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -41,9 +41,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 613175618774192634}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 86c39da87b974ab98b6440247e6d4e9d, type: 3}
+  m_Script: {fileID: 11500000, guid: 4492dc8a18b24f9eb49f2b35a40ba4d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   _mesh: {fileID: -6794912392173530250, guid: 0f0cc68fd7199024da40bf3e0d089a56, type: 3}
-  _materialPool:
-  - {fileID: 11400000, guid: 28eba81675f382c4287976985b33265c, type: 2}
+  _material: {fileID: 11400000, guid: 28eba81675f382c4287976985b33265c, type: 2}

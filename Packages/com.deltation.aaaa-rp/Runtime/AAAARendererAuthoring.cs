@@ -1,16 +1,16 @@
-using DELTation.AAAARP.Materials;
+﻿using DELTation.AAAARP.Materials;
 using DELTation.AAAARP.Meshlets;
 using UnityEngine;
 
 namespace DELTation.AAAARP
 {
-    public class AAAARendererAuthoring : AAAARendererAuthoringBase
+    public sealed class AAAARendererAuthoring : MonoBehaviour
     {
         [SerializeField] private AAAAMeshletCollectionAsset _mesh;
         [SerializeField] private AAAAMaterialAsset _material;
 
-        public override AAAAMeshletCollectionAsset Mesh => _mesh;
+        public AAAAMeshletCollectionAsset Mesh => _mesh;
 
-        public override AAAAMaterialAsset Material => _material;
+        public AAAAMaterialAsset Material => _material;
     }
 }

@@ -114,14 +114,14 @@ namespace DELTation.AAAARP
             _materialToIndex.Clear();
             _materialData.Clear();
 
-            AAAARendererAuthoringBase[] authorings = Object.FindObjectsByType<AAAARendererAuthoringBase>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            AAAARendererAuthoring[] authorings = Object.FindObjectsByType<AAAARendererAuthoring>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             CreateInstancesFromAuthorings(authorings);
             UploadData();
         }
 
-        private void CreateInstancesFromAuthorings(AAAARendererAuthoringBase[] authorings)
+        private void CreateInstancesFromAuthorings(AAAARendererAuthoring[] authorings)
         {
-            foreach (AAAARendererAuthoringBase authoring in authorings)
+            foreach (AAAARendererAuthoring authoring in authorings)
             {
                 AAAAMaterialAsset material = authoring.Material;
                 AAAAMeshletCollectionAsset mesh = authoring.Mesh;
