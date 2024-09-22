@@ -4,7 +4,6 @@
 #include "Packages/com.deltation.aaaa-rp/Runtime/AAAAStructs.cs.hlsl"
 
 StructuredBuffer<AAAAInstanceData> _InstanceData;
-uint                               _InstanceCount;
 
 AAAAInstanceData PullInstanceData(const uint instanceID)
 {

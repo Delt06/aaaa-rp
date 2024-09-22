@@ -7,6 +7,5 @@ namespace DELTation.AAAARP.Renderers
     internal static class RendererContainerShaderIDs
     {
         public static readonly int _InstanceData = Shader.PropertyToID(nameof(_InstanceData));
-        public static readonly int _InstanceCount = Shader.PropertyToID(nameof(_InstanceCount));
     }
 }

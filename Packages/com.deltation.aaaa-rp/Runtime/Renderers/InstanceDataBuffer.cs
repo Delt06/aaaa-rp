@@ -184,7 +184,6 @@ namespace DELTation.AAAARP.Renderers
             }
 
             cmd.SetGlobalBuffer(RendererContainerShaderIDs._InstanceData, _gpuBuffer);
-            cmd.SetGlobalInt(RendererContainerShaderIDs._InstanceCount, InstanceCount);
         }
 
         private struct InstanceMetadata

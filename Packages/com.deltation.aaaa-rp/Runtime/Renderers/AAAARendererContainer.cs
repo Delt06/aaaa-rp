@@ -328,7 +328,6 @@ namespace DELTation.AAAARP.Renderers
             public static readonly int _MeshLODErrorThreshold = Shader.PropertyToID(nameof(_MeshLODErrorThreshold));
             public static readonly int _SharedVertexBuffer = Shader.PropertyToID(nameof(_SharedVertexBuffer));
             public static readonly int _SharedIndexBuffer = Shader.PropertyToID(nameof(_SharedIndexBuffer));
-            public static readonly int _InstanceCount = Shader.PropertyToID(nameof(_InstanceCount));
             public static readonly int _MaterialData = Shader.PropertyToID(nameof(_MaterialData));
             public static readonly int _MeshletRenderRequests = Shader.PropertyToID(nameof(_MeshletRenderRequests));
         }

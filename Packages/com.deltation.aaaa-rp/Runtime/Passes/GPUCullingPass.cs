@@ -15,7 +15,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class GPUMeshletCullingPass : AAAARenderPass<GPUMeshletCullingPass.PassData>, IDisposable
+    public class GPUCullingPass : AAAARenderPass<GPUCullingPass.PassData>, IDisposable
     {
         private readonly ComputeShader _fixupGPUMeshletCullingIndirectDispatchArgsCS;
         private readonly ComputeShader _fixupMeshletIndirectDrawArgsCS;
@@ -26,7 +26,7 @@ namespace DELTation.AAAARP.Passes
         private readonly ComputeShader _rawBufferClearCS;
         private NativeList<int> _instanceIndices;
 
-        public GPUMeshletCullingPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent)
+        public GPUCullingPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent)
         {
             _rawBufferClearCS = runtimeShaders.RawBufferClearCS;
             _gpuInstanceCullingCS = runtimeShaders.GPUInstanceCullingCS;
@@ -41,7 +41,7 @@ namespace DELTation.AAAARP.Passes
         [CanBeNull]
         public Camera CullingCameraOverride { get; set; }
 
-        public override string Name => "GPUMeshletCulling";
+        public override string Name => "GPUCulling";
 
         public void Dispose()
         {
@@ -167,6 +167,9 @@ namespace DELTation.AAAARP.Passes
                 context.cmd.SetBufferData(data.InstanceIndices, _instanceIndices.AsArray());
                 context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
                     ShaderID.GPUInstanceCulling._InstanceIndices, data.InstanceIndices
+                );
+                context.cmd.SetComputeIntParam(_gpuInstanceCullingCS,
+                    ShaderID.GPUInstanceCulling._InstanceIndicesCount, data.InstanceCount
                 );
 
                 context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
@@ -324,6 +327,7 @@ namespace DELTation.AAAARP.Passes
                 public static int _CameraViewProjection = Shader.PropertyToID(nameof(_CameraViewProjection));
 
                 public static int _InstanceIndices = Shader.PropertyToID(nameof(_InstanceIndices));
+                public static int _InstanceIndicesCount = Shader.PropertyToID(nameof(_InstanceIndicesCount));
 
                 public static int _Jobs = Shader.PropertyToID(nameof(_Jobs));
                 public static int _JobCounter = Shader.PropertyToID(nameof(_JobCounter));

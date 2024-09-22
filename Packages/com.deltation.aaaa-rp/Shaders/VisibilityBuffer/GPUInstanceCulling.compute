@@ -12,6 +12,7 @@ float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4x4 _CameraViewProjection;
 
 Buffer<uint> _InstanceIndices;
+uint _InstanceIndicesCount;
 
 RWStructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
 RWByteAddressBuffer                         _JobCounter;
@@ -20,7 +21,7 @@ RWByteAddressBuffer                         _JobCounter;
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     const uint i = dispatchThreadID.x;
-    if (i >= _InstanceCount)
+    if (i >= _InstanceIndicesCount)
     {
         return;
     }
