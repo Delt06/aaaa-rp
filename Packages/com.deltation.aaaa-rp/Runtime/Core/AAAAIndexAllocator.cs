@@ -15,12 +15,12 @@ namespace DELTation.AAAARP.Core
         private int _headIndex;
         private NativeArray<Node> _nodes;
 
-        public AAAAIndexAllocator(int capacity, bool autoGrow = false)
+        public AAAAIndexAllocator(int capacity, Allocator allocator, bool autoGrow = false)
         {
             _autoGrow = autoGrow;
             Assert.IsTrue(capacity > 0);
 
-            _nodes = new NativeArray<Node>(capacity, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+            _nodes = new NativeArray<Node>(capacity, allocator, NativeArrayOptions.UninitializedMemory);
             _headIndex = 0;
             InitNodesFrom(_headIndex);
         }
@@ -94,6 +94,12 @@ namespace DELTation.AAAARP.Core
             _nodes.ResizeArray(newCapacity);
             _headIndex = oldCapacity;
             InitNodesFrom(_headIndex);
+        }
+
+        public bool IsValidGeneration(IndexAllocation indexAllocation)
+        {
+            Assert.IsTrue(indexAllocation.Index != InvalidAllocationIndex);
+            return GetNodeGeneration(indexAllocation.Index) == indexAllocation.Generation;
         }
 
         public int GetNodeGeneration(int index)

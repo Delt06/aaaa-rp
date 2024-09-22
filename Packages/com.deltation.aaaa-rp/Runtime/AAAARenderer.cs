@@ -44,5 +44,11 @@ namespace DELTation.AAAARP
 
             DebugHandler?.Setup(this, renderGraph, context);
         }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            _gpuMeshletCullingPass.Dispose();
+        }
     }
 }

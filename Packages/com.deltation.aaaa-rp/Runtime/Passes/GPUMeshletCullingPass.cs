@@ -1,10 +1,12 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.Renderers;
 using DELTation.AAAARP.Utils;
 using JetBrains.Annotations;
+using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
@@ -13,7 +15,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class GPUMeshletCullingPass : AAAARenderPass<GPUMeshletCullingPass.PassData>
+    public class GPUMeshletCullingPass : AAAARenderPass<GPUMeshletCullingPass.PassData>, IDisposable
     {
         private readonly ComputeShader _fixupGPUMeshletCullingIndirectDispatchArgsCS;
         private readonly ComputeShader _fixupMeshletIndirectDrawArgsCS;
@@ -22,6 +24,7 @@ namespace DELTation.AAAARP.Passes
         private readonly ComputeShader _gpuMeshletCullingCS;
         private readonly ComputeShader _meshletListBuildCS;
         private readonly ComputeShader _rawBufferClearCS;
+        private NativeList<int> _instanceIndices;
 
         public GPUMeshletCullingPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent)
         {
@@ -32,6 +35,7 @@ namespace DELTation.AAAARP.Passes
             _fixupGPUMeshletCullingIndirectDispatchArgsCS = runtimeShaders.FixupGPUMeshletCullingIndirectDispatchArgsCS;
             _gpuMeshletCullingCS = runtimeShaders.GPUMeshletCullingCS;
             _fixupMeshletIndirectDrawArgsCS = runtimeShaders.FixupMeshletIndirectDrawArgsCS;
+            _instanceIndices = new NativeList<int>(Allocator.Persistent);
         }
 
         [CanBeNull]
@@ -39,11 +43,23 @@ namespace DELTation.AAAARP.Passes
 
         public override string Name => "GPUMeshletCulling";
 
+        public void Dispose()
+        {
+            if (_instanceIndices.IsCreated)
+            {
+                _instanceIndices.Dispose();
+            }
+        }
+
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAARendererContainer rendererContainer = renderingData.RendererContainer;
-            passData.InstanceCount = rendererContainer.InstanceCount;
+
+            _instanceIndices.Clear();
+            rendererContainer.InstanceDataBuffer.GetInstanceIndices(_instanceIndices);
+            passData.InstanceCount = _instanceIndices.Length;
+
             if (passData.InstanceCount == 0)
             {
                 return;
@@ -69,6 +85,13 @@ namespace DELTation.AAAARP.Passes
             }
 
             passData.CameraViewProjectionMatrix = GL.GetGPUProjectionMatrix(camera.projectionMatrix * camera.worldToCameraMatrix, true);
+
+            passData.InstanceIndices = builder.CreateTransientBuffer(
+                new BufferDesc(_instanceIndices.Length, sizeof(uint), GraphicsBuffer.Target.Raw)
+                {
+                    name = nameof(PassData.InstanceIndices),
+                }
+            );
 
             GraphicsBuffer meshletRenderRequestsBuffer = rendererContainer.MeshletRenderRequestsBuffer;
 
@@ -140,6 +163,11 @@ namespace DELTation.AAAARP.Passes
 
                 context.cmd.SetComputeVectorArrayParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraFrustumPlanes, data.FrustumPlanes);
                 context.cmd.SetComputeMatrixParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraViewProjection, data.CameraViewProjectionMatrix);
+
+                context.cmd.SetBufferData(data.InstanceIndices, _instanceIndices.AsArray());
+                context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
+                    ShaderID.GPUInstanceCulling._InstanceIndices, data.InstanceIndices
+                );
 
                 context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
                     ShaderID.GPUInstanceCulling._Jobs, data.MeshletListBuildJobsBuffer
@@ -268,6 +296,8 @@ namespace DELTation.AAAARP.Passes
 
             public int InstanceCount;
 
+            public BufferHandle InstanceIndices;
+
             public BufferHandle MeshletListBuildIndirectDispatchArgsBuffer;
             public BufferHandle MeshletListBuildJobCounterBuffer;
             public BufferHandle MeshletListBuildJobsBuffer;
@@ -292,6 +322,8 @@ namespace DELTation.AAAARP.Passes
             {
                 public static int _CameraFrustumPlanes = Shader.PropertyToID(nameof(_CameraFrustumPlanes));
                 public static int _CameraViewProjection = Shader.PropertyToID(nameof(_CameraViewProjection));
+
+                public static int _InstanceIndices = Shader.PropertyToID(nameof(_InstanceIndices));
 
                 public static int _Jobs = Shader.PropertyToID(nameof(_Jobs));
                 public static int _JobCounter = Shader.PropertyToID(nameof(_JobCounter));

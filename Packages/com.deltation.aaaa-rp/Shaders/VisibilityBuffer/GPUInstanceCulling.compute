@@ -11,18 +11,21 @@
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4x4 _CameraViewProjection;
 
+Buffer<uint> _InstanceIndices;
+
 RWStructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
 RWByteAddressBuffer                         _JobCounter;
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint instanceID = dispatchThreadID.x;
-    if (instanceID >= _InstanceCount)
+    const uint i = dispatchThreadID.x;
+    if (i >= _InstanceCount)
     {
         return;
     }
 
+    const uint             instanceID = _InstanceIndices[i];
     const AAAAInstanceData instanceData = PullInstanceData(instanceID);
 
     const AABB   aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);

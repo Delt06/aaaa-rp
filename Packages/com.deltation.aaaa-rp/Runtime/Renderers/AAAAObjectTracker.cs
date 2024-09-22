@@ -2,19 +2,20 @@
 using System.Collections.Generic;
 using DELTation.AAAARP.Core.ObjectDispatching;
 using Unity.Collections;
+using Unity.Mathematics;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace DELTation.AAAARP.Renderers
 {
-    public class AAAAObjectTracker : IDisposable
+    internal class AAAAObjectTracker : IDisposable
     {
         private readonly AuthoringTracker _authoringTracker;
         private readonly TextureTracker _textureTracker;
 
-        internal AAAAObjectTracker(BindlessTextureContainer bindlessTextureContainer)
+        internal AAAAObjectTracker(InstanceDataBuffer instanceDataBuffer, BindlessTextureContainer bindlessTextureContainer)
         {
-            _authoringTracker = new AuthoringTracker(ObjectDispatcherService.TypeTrackingFlags.SceneObjects);
+            _authoringTracker = new AuthoringTracker(instanceDataBuffer, ObjectDispatcherService.TypeTrackingFlags.SceneObjects);
             ObjectDispatcherService.RegisterObjectTracker(_authoringTracker);
 
             _textureTracker = new TextureTracker(bindlessTextureContainer, ObjectDispatcherService.TypeTrackingFlags.Assets);
@@ -27,11 +28,28 @@ namespace DELTation.AAAARP.Renderers
             ObjectDispatcherService.UnregisterObjectTracker(_textureTracker);
         }
 
-        private class AuthoringTracker : ObjectTracker<AAAARendererAuthoring>
+        private class AuthoringTracker : ObjectTracker<AAAARendererAuthoring>, IObjectTransformTracker
         {
-            public AuthoringTracker(ObjectDispatcherService.TypeTrackingFlags trackingFlags) : base(trackingFlags) { }
+            private readonly InstanceDataBuffer _instanceDataBuffer;
 
-            public override void ProcessData(List<Object> changed, NativeArray<int> changedID, NativeArray<int> destroyedID) { }
+            public AuthoringTracker(InstanceDataBuffer instanceDataBuffer, ObjectDispatcherService.TypeTrackingFlags trackingFlags) : base(trackingFlags) =>
+                _instanceDataBuffer = instanceDataBuffer;
+
+            public void ProcessTransformData(NativeArray<int> transformedID, NativeArray<int> parentID, NativeArray<Matrix4x4> localToWorldMatrices,
+                NativeArray<Vector3> positions, NativeArray<Quaternion> rotations,
+                NativeArray<Vector3> scales)
+            {
+                if (transformedID.Length > 0)
+                {
+                    _instanceDataBuffer.OnRendererTransformsChanged(transformedID, localToWorldMatrices.Reinterpret<float4x4>());
+                }
+            }
+
+            public override void ProcessData(List<Object> changed, NativeArray<int> changedID, NativeArray<int> destroyedID)
+            {
+                _instanceDataBuffer.OnRenderersChanged(changed, changedID);
+                _instanceDataBuffer.OnRenderersDestroyed(destroyedID);
+            }
         }
 
         private class TextureTracker : ObjectTracker<Texture2D>
