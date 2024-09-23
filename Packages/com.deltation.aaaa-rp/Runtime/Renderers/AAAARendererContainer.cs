@@ -224,7 +224,7 @@ namespace DELTation.AAAARP.Renderers
 
             IndirectDrawArgsBuffer?.Dispose();
             IndirectDrawArgsBuffer =
-                new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, GraphicsBuffer.IndirectDrawArgs.size / sizeof(uint), sizeof(uint))
+                new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw, GraphicsBuffer.IndirectDrawArgs.size / sizeof(uint), sizeof(uint))
                 {
                     name = "VisibilityBuffer_IndirectDrawArgs",
                 };
