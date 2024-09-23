@@ -1,9 +1,9 @@
 #pragma kernel CS
 
-#include "Packages/com.deltation.aaaa-rp/Runtime/AAAAStructs.cs.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Compute/IndirectArgs.hlsl"
 
-ByteAddressBuffer                        _JobCounter;
-RWStructuredBuffer<IndirectDispatchArgs> _IndirectArgs;
+ByteAddressBuffer   _JobCounter;
+RWByteAddressBuffer _IndirectArgs;
 
 [numthreads(1, 1, 1)]
 void CS()
@@ -12,5 +12,5 @@ void CS()
     indirectDispatchArgs.ThreadGroupsX = _JobCounter.Load(0);
     indirectDispatchArgs.ThreadGroupsY = 1;
     indirectDispatchArgs.ThreadGroupsZ = 1;
-    _IndirectArgs[0] = indirectDispatchArgs;
+    _IndirectArgs.Store4(0, IndirectArgs::PackDispatchArgs(indirectDispatchArgs));
 }

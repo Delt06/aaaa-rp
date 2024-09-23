@@ -223,10 +223,11 @@ namespace DELTation.AAAARP.Renderers
             };
 
             IndirectDrawArgsBuffer?.Dispose();
-            IndirectDrawArgsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, GraphicsBuffer.IndirectDrawArgs.size)
-            {
-                name = "VisibilityBuffer_IndirectDrawArgs",
-            };
+            IndirectDrawArgsBuffer =
+                new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, GraphicsBuffer.IndirectDrawArgs.size / sizeof(uint), sizeof(uint))
+                {
+                    name = "VisibilityBuffer_IndirectDrawArgs",
+                };
         }
 
         public void Draw(CameraType cameraType, RasterCommandBuffer cmd)

@@ -118,16 +118,16 @@ namespace DELTation.AAAARP.Passes
                 }
             );
             passData.GPUMeshletCullingIndirectDispatchArgsBuffer = builder.CreateTransientBuffer(
-                new BufferDesc(1, UnsafeUtility.SizeOf<IndirectDispatchArgs>(), GraphicsBuffer.Target.IndirectArguments)
+                new BufferDesc(UnsafeUtility.SizeOf<IndirectDispatchArgs>() / sizeof(uint), sizeof(uint), GraphicsBuffer.Target.IndirectArguments)
                 {
                     name = nameof(PassData.GPUMeshletCullingIndirectDispatchArgsBuffer),
                 }
             );
 
             passData.MeshletListBuildIndirectDispatchArgsBuffer = builder.CreateTransientBuffer(
-                new BufferDesc(1, UnsafeUtility.SizeOf<IndirectDispatchArgs>(), GraphicsBuffer.Target.IndirectArguments)
+                new BufferDesc(UnsafeUtility.SizeOf<IndirectDispatchArgs>() / sizeof(uint), sizeof(uint), GraphicsBuffer.Target.IndirectArguments)
                 {
-                    name = "MeshletListBuildIndirectDispatchArgs",
+                    name = nameof(PassData.MeshletListBuildIndirectDispatchArgsBuffer),
                 }
             );
             passData.MeshletListBuildJobCounterBuffer = builder.CreateTransientBuffer(

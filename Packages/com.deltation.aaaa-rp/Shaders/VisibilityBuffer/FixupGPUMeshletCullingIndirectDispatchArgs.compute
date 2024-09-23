@@ -1,11 +1,11 @@
 #pragma kernel CS
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
-#include "Packages/com.deltation.aaaa-rp/Runtime/AAAAStructs.cs.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Compute/IndirectArgs.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 
-ByteAddressBuffer                        _RequestCounter;
-RWStructuredBuffer<IndirectDispatchArgs> _IndirectArgs;
+ByteAddressBuffer   _RequestCounter;
+RWByteAddressBuffer _IndirectArgs;
 
 [numthreads(1, 1, 1)]
 void CS()
@@ -16,5 +16,5 @@ void CS()
     indirectDispatchArgs.ThreadGroupsX = (uint)AlignUp(requestCount, GPUMESHLET_CULLING_THREAD_GROUP_SIZE) / GPUMESHLET_CULLING_THREAD_GROUP_SIZE;
     indirectDispatchArgs.ThreadGroupsY = 1;
     indirectDispatchArgs.ThreadGroupsZ = 1;
-    _IndirectArgs[0] = indirectDispatchArgs;
+    _IndirectArgs.Store4(0, IndirectArgs::PackDispatchArgs(indirectDispatchArgs));
 }

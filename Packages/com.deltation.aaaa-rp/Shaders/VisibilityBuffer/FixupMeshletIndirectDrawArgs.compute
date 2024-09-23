@@ -1,11 +1,10 @@
 #pragma kernel CS
 
-#include <UnityIndirect.cginc>
-
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Compute/IndirectArgs.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 
-ByteAddressBuffer                    _RequestCounter;
-RWStructuredBuffer<IndirectDrawArgs> _IndirectArgs;
+ByteAddressBuffer   _RequestCounter;
+RWByteAddressBuffer _IndirectArgs;
 
 [numthreads(1, 1, 1)]
 void CS()
@@ -17,5 +16,5 @@ void CS()
     indirectDrawArgs.instanceCount = requestCount;
     indirectDrawArgs.startVertex = 0;
     indirectDrawArgs.vertexCountPerInstance = MAX_MESHLET_INDICES;
-    _IndirectArgs[0] = indirectDrawArgs;
+    _IndirectArgs.Store4(0, IndirectArgs::PackIndirectDrawArgs(indirectDrawArgs));
 }
