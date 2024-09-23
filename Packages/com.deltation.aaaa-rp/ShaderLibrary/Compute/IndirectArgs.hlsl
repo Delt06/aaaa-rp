@@ -7,13 +7,12 @@
 
 struct IndirectArgs
 {
-    static uint4 PackDispatchArgs(const IndirectDispatchArgs dispatchArgs)
+    static uint3 PackDispatchArgs(const IndirectDispatchArgs dispatchArgs)
     {
-        uint4 value;
+        uint3 value;
         value.x = dispatchArgs.ThreadGroupsX;
         value.y = dispatchArgs.ThreadGroupsY;
         value.z = dispatchArgs.ThreadGroupsZ;
-        value.w = 0;
         return value;
     }
 
