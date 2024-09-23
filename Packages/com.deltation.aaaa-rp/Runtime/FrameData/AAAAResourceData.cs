@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using DELTation.AAAARP.Meshlets;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -11,6 +12,7 @@ namespace DELTation.AAAARP.FrameData
     {
         private TextureHandle _cameraColorBuffer;
         private TextureHandle _cameraDepthBuffer;
+        private TextureHandle _cameraHzbScaled;
         private TextureHandle _cameraResolveColorBuffer;
         private TextureHandle _cameraResolveDepthBuffer;
         private TextureHandle _cameraScaledColorBuffer;
@@ -33,6 +35,10 @@ namespace DELTation.AAAARP.FrameData
 
         public TextureHandle GBufferAlbedo => CheckAndGetTextureHandle(ref _gbufferAlbedo);
         public TextureHandle GBufferNormals => CheckAndGetTextureHandle(ref _gbufferNormals);
+
+        public TextureHandle CameraHZBScaled => CheckAndGetTextureHandle(ref _cameraHzbScaled);
+
+        public HZBInfo CameraScaledHZBInfo { get; } = new();
 
         public bool IsActiveTargetBackBuffer
         {
@@ -89,6 +95,18 @@ namespace DELTation.AAAARP.FrameData
 
                 _cameraColorBuffer = _cameraScaledColorBuffer;
                 _cameraDepthBuffer = _cameraScaledDepthBuffer;
+
+                CameraScaledHZBInfo.Compute(new int2(cameraDepthDesc.width, cameraDepthDesc.height));
+
+                TextureDesc cameraHzbScaledDesc = cameraDepthDesc;
+                cameraHzbScaledDesc.width = CameraScaledHZBInfo.TextureSize.x;
+                cameraHzbScaledDesc.height = CameraScaledHZBInfo.TextureSize.y;
+                cameraHzbScaledDesc.colorFormat = GraphicsFormat.R32_SFloat;
+                cameraHzbScaledDesc.depthBufferBits = 0;
+                cameraHzbScaledDesc.enableRandomWrite = true;
+                cameraHzbScaledDesc.name = "CameraHZB_Scaled";
+                cameraHzbScaledDesc.clearBuffer = false;
+                _cameraHzbScaled = renderGraph.CreateTexture(cameraHzbScaledDesc);
             }
 
             {
@@ -195,6 +213,64 @@ namespace DELTation.AAAARP.FrameData
 
             _gbufferAlbedo = default;
             _gbufferNormals = default;
+
+            _cameraHzbScaled = default;
+        }
+
+        public class HZBInfo
+        {
+            public readonly Vector4[] MipRects = new Vector4[AAAAMeshletComputeShaders.HZBMaxLevelCount];
+            public int LevelCount { get; private set; }
+            public int2 TextureSize { get; private set; }
+
+            // https://github.com/Unity-Technologies/Graphics/blob/3fb000debc138e82dcd7ac069c6818c4857a78da/Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/Utility/HDUtils.cs#L669
+            // We pack all MIP levels into the top MIP level to avoid the Pow2 MIP chain restriction.
+            // We compute the required size iteratively.
+            // This function is NOT fast, but it is illustrative, and can be optimized later.
+            public void Compute(int2 viewportSize)
+            {
+                TextureSize = viewportSize >> 1;
+                MipRects[0] = new Vector4(0, 0, viewportSize.x, viewportSize.y);
+
+                int mipLevel = 0;
+                int2 mipSize = viewportSize;
+
+                do
+                {
+                    mipLevel++;
+
+                    // Round up.
+                    mipSize.x = math.max(1, mipSize.x + 1 >> 1);
+                    mipSize.y = math.max(1, mipSize.y + 1 >> 1);
+
+                    float4 prevRect = MipRects[mipLevel - 1];
+
+                    var prevMipBegin = (int2) prevRect.xy;
+                    int2 prevMipEnd = prevMipBegin + (int2) prevRect.zw;
+
+                    int2 mipBegin = 0;
+
+                    if (mipLevel > 1)
+                    {
+                        if ((mipLevel & 1) != 0) // Odd
+                        {
+                            mipBegin.x = prevMipBegin.x;
+                            mipBegin.y = prevMipEnd.y;
+                        }
+                        else // Even
+                        {
+                            mipBegin.x = prevMipEnd.x;
+                            mipBegin.y = prevMipBegin.y;
+                        }
+                    }
+
+                    MipRects[mipLevel] = new Vector4(mipBegin.x, mipBegin.y, mipSize.x, mipSize.y);
+                    TextureSize = math.max(TextureSize, mipBegin + mipSize);
+
+                } while (mipSize.x > 1 || mipSize.y > 1);
+
+                LevelCount = mipLevel + 1;
+            }
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]

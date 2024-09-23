@@ -1,0 +1,54 @@
+#pragma multi_compile _ MIP_1
+
+#include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
+
+#define THREAD_GROUP_SIZE_X HZBGENERATION_THREAD_GROUP_SIZE_X
+#define THREAD_GROUP_SIZE_Y HZBGENERATION_THREAD_GROUP_SIZE_Y
+
+#pragma kernel CS
+
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Depth.hlsl"
+
+float2 _HZBTextureSize;
+uint4  _SrcOffsetAndLimit; // {x, y, w - 1, h - 1}
+uint4  _DstOffset; // {x, y, 0, 0}
+
+#ifdef MIP_1
+TYPED_TEXTURE2D(float, _CameraDepth);
+#endif
+
+RW_TEXTURE2D(float, _HZB);
+
+#ifdef MIP_1
+#define SOURCE_TEXTURE _CameraDepth
+#else
+#define SOURCE_TEXTURE _HZB
+#endif
+
+[numthreads(THREAD_GROUP_SIZE_X, THREAD_GROUP_SIZE_Y, 1)]
+void CS(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    uint2 srcOffset = _SrcOffsetAndLimit.xy;
+    uint2 srcLimit = _SrcOffsetAndLimit.zw;
+    uint2 dstOffset = _DstOffset.xy;
+
+    // https://github.com/Unity-Technologies/Graphics/blob/3fb000debc138e82dcd7ac069c6818c4857a78da/Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/RenderPass/GenerateMaxZ.compute#L150
+    // Upper-left pixel coordinate of quad that this thread will read
+    const uint2 srcPixelUL = srcOffset + (dispatchThreadId.xy << 1);
+
+    const float  p00 = SOURCE_TEXTURE[min(srcPixelUL + uint2(0u, 0u), srcLimit)];
+    const float  p10 = SOURCE_TEXTURE[min(srcPixelUL + uint2(1u, 0u), srcLimit)];
+    const float  p01 = SOURCE_TEXTURE[min(srcPixelUL + uint2(0u, 1u), srcLimit)];
+    const float  p11 = SOURCE_TEXTURE[min(srcPixelUL + uint2(1u, 1u), srcLimit)];
+    const float4 depths = float4(p00, p10, p01, p11);
+
+    const float combinedDepth = MAX_DEPTH(MAX_DEPTH(depths.x, depths.y), MAX_DEPTH(depths.z, depths.w));
+
+    const uint2 uavSize = (uint2)_HZBTextureSize;
+    const uint2 id = dstOffset + dispatchThreadId.xy;
+    if (id.x < uavSize.x && id.y < uavSize.y)
+    {
+        _HZB[id.xy] = combinedDepth;
+    }
+}

@@ -8,14 +8,18 @@ namespace DELTation.AAAARP.Meshlets
     {
         [UsedImplicitly]
         public const uint MaxMeshLODNodesPerInstance = 128 * 128;
-
         [UsedImplicitly]
         public const uint GPUInstanceCullingThreadGroupSize = 32;
         [UsedImplicitly]
         public const uint MeshletListBuildThreadGroupSize = 32;
-
         [UsedImplicitly]
         public const uint GPUMeshletCullingThreadGroupSize = 32;
+        [UsedImplicitly]
+        public const uint HZBGenerationThreadGroupSizeX = 8;
+        [UsedImplicitly]
+        public const uint HZBGenerationThreadGroupSizeY = 8;
+        [UsedImplicitly]
+        public const uint HZBMaxLevelCount = 16;
     }
 
     [GenerateHLSL]
@@ -23,7 +27,7 @@ namespace DELTation.AAAARP.Meshlets
     {
         [UsedImplicitly]
         public const uint MaxLODNodesPerThreadGroup = AAAAMeshletComputeShaders.MeshletListBuildThreadGroupSize * 4;
-        
+
         public uint InstanceID;
         public uint MeshLODNodeOffset;
         public uint MeshLODNodeCount;

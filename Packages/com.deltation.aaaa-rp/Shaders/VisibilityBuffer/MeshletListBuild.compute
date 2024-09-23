@@ -1,7 +1,5 @@
 #pragma kernel CS
 
-#pragma enable_d3d11_debug_symbols
-
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 #define THREAD_GROUP_SIZE MESHLET_LIST_BUILD_THREAD_GROUP_SIZE
 

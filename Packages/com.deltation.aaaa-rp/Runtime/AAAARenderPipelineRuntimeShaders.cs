@@ -61,6 +61,9 @@ namespace DELTation.AAAARP
         [ResourcePath("Shaders/DeferredLighting.shader")]
         private Shader _deferredLightingPS;
 
+        [ResourcePath("Shaders/VisibilityBuffer/HZBGeneration.compute")]
+        private ComputeShader _hzbGenerationCS;
+
         public Shader CoreBlitPS
         {
             get => _coreBlitPS;
@@ -125,6 +128,12 @@ namespace DELTation.AAAARP
         {
             get => _fixupMeshletIndirectDrawArgsCS;
             set => this.SetValueAndNotify(ref _fixupMeshletIndirectDrawArgsCS, value, nameof(_fixupMeshletIndirectDrawArgsCS));
+        }
+
+        public ComputeShader HZBGenerationCS
+        {
+            get => _hzbGenerationCS;
+            set => this.SetValueAndNotify(ref _hzbGenerationCS, value, nameof(_hzbGenerationCS));
         }
 
         public Shader DeferredLightingPS
