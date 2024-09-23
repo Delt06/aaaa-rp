@@ -8,9 +8,9 @@ RWByteAddressBuffer _IndirectArgs;
 [numthreads(1, 1, 1)]
 void CS()
 {
-    IndirectDispatchArgs indirectDispatchArgs = (IndirectDispatchArgs)0;
+    IndirectDispatchArgs indirectDispatchArgs;
     indirectDispatchArgs.ThreadGroupsX = _JobCounter.Load(0);
     indirectDispatchArgs.ThreadGroupsY = 1;
     indirectDispatchArgs.ThreadGroupsZ = 1;
-    _IndirectArgs.Store4(0, IndirectArgs::PackDispatchArgs(indirectDispatchArgs));
+    _IndirectArgs.Store3(0, IndirectArgs::PackDispatchArgs(indirectDispatchArgs));
 }

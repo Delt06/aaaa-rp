@@ -84,7 +84,9 @@ struct AAAAMeshLODNode
     uint MeshletStartIndex;
     uint MeshletCount;
     uint LevelIndex;
-    uint3 Padding0;
+    uint Padding0;
+    uint Padding1;
+    uint Padding2;
 };
 
 // Generated from DELTation.AAAARP.IndirectDispatchArgs
@@ -94,7 +96,6 @@ struct IndirectDispatchArgs
     uint ThreadGroupsX;
     uint ThreadGroupsY;
     uint ThreadGroupsZ;
-    uint Padding0;
 };
 
 

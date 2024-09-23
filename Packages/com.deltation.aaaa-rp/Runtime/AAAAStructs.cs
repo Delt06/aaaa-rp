@@ -76,7 +76,9 @@ namespace DELTation.AAAARP
         public uint MeshletCount;
         
         public uint LevelIndex;
-        public uint3 Padding0;
+        public uint Padding0;
+        public uint Padding1;
+        public uint Padding2;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
@@ -105,6 +107,5 @@ namespace DELTation.AAAARP
         public uint ThreadGroupsX;
         public uint ThreadGroupsY;
         public uint ThreadGroupsZ;
-        public uint Padding0;
     }
 }

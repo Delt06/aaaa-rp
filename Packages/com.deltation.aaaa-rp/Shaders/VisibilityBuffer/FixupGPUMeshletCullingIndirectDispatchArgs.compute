@@ -12,9 +12,9 @@ void CS()
 {
     const uint requestCount = _RequestCounter.Load(0);
 
-    IndirectDispatchArgs indirectDispatchArgs = (IndirectDispatchArgs)0;
+    IndirectDispatchArgs indirectDispatchArgs;
     indirectDispatchArgs.ThreadGroupsX = (uint)AlignUp(requestCount, GPUMESHLET_CULLING_THREAD_GROUP_SIZE) / GPUMESHLET_CULLING_THREAD_GROUP_SIZE;
     indirectDispatchArgs.ThreadGroupsY = 1;
     indirectDispatchArgs.ThreadGroupsZ = 1;
-    _IndirectArgs.Store4(0, IndirectArgs::PackDispatchArgs(indirectDispatchArgs));
+    _IndirectArgs.Store3(0, IndirectArgs::PackDispatchArgs(indirectDispatchArgs));
 }
