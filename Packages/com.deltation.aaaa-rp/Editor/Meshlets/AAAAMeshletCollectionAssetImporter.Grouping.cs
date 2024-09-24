@@ -1,13 +1,13 @@
 ﻿using System;
 using DELTation.AAAARP.MeshOptimizer.Runtime;
 using DELTation.AAAARP.METIS.Runtime;
-using NUnit.Framework;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 namespace DELTation.AAAARP.Editor.Meshlets
 {
