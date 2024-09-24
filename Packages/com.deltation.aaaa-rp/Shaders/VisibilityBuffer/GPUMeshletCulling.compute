@@ -17,8 +17,9 @@
 #define RW_OCCLUSION_CULLING_INSTANCE_VISIBILITY_MASK
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/OcclusionCulling.hlsl"
 
-float4 _CameraPosition;
-float4 _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
+float4   _CameraPosition;
+float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
+float4x4 _CameraViewProjection;
 
 ByteAddressBuffer _SourceMeshletsCounter;
 ByteAddressBuffer _SourceMeshlets;
@@ -29,7 +30,23 @@ RWByteAddressBuffer _DestinationMeshlets;
 bool Culling(const AAAAInstanceData instanceData, const AAAAMeshlet meshletData)
 {
     const float4 boundingSphere = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
-    return FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphere) && ConeCulling(_CameraPosition.xyz, instanceData, meshletData);
+
+    UNITY_BRANCH
+    if (!FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphere) || !ConeCulling(_CameraPosition.xyz, instanceData, meshletData))
+    {
+        return false;
+    }
+
+    #if defined(FALSE_NEGATIVE_PASS)
+    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(boundingSphere, _CameraViewProjection);
+    UNITY_BRANCH
+    if (!OcclusionCulling::IsVisible(boundingSquareSS))
+    {
+        return false;
+    }
+    #endif
+
+    return true;
 }
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]

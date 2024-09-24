@@ -1,5 +1,7 @@
 #pragma kernel CS
 
+#pragma enable_d3d11_debug_symbols
+
 #pragma multi_compile _ MAIN_PASS FALSE_NEGATIVE_PASS
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
@@ -9,6 +11,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
+#define RW_OCCLUSION_CULLING_INSTANCE_VISIBILITY_MASK
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/OcclusionCulling.hlsl"
 
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
@@ -38,12 +41,6 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     {
         return;
     }
-    #elif defined(FALSE_NEGATIVE_PASS)
-    UNITY_BRANCH
-    if (OcclusionCulling::WasInstanceVisibleThisFrame(instanceID))
-    {
-        return;
-    }
     #endif
 
     const AAAAInstanceData instanceData = PullInstanceData(instanceID);
@@ -55,8 +52,27 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     UNITY_BRANCH
     if (!FrustumVsSphereCulling(_CameraFrustumPlanes, instanceBoundingSphere))
     {
+        OcclusionCulling::MarkInvisibleThisFrame(instanceID);
         return;
     }
+
+    #if defined(FALSE_NEGATIVE_PASS)
+    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(aabbWS, _CameraViewProjection);
+
+    UNITY_BRANCH
+    if (!OcclusionCulling::IsVisible(boundingSquareSS))
+    {
+        OcclusionCulling::MarkInvisibleThisFrame(instanceID);
+        return;
+    }
+
+    UNITY_BRANCH
+    if (OcclusionCulling::WasInstanceVisibleThisFrame(instanceID))
+    {
+        return;
+    }
+    
+    #endif
 
     const uint totalMeshLODCount = instanceData.TotalMeshLODCount;
     const uint jobCount = ceil((float)totalMeshLODCount / MAX_LODNODES_PER_THREAD_GROUP);

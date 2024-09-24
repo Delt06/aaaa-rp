@@ -118,14 +118,18 @@ namespace DELTation.AAAARP.Passes
                 }
             );
             passData.GPUMeshletCullingIndirectDispatchArgsBuffer = builder.CreateTransientBuffer(
-                new BufferDesc(UnsafeUtility.SizeOf<IndirectDispatchArgs>() / sizeof(uint), sizeof(uint), GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw)
+                new BufferDesc(UnsafeUtility.SizeOf<IndirectDispatchArgs>() / sizeof(uint), sizeof(uint),
+                    GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw
+                )
                 {
                     name = nameof(PassData.GPUMeshletCullingIndirectDispatchArgsBuffer),
                 }
             );
 
             passData.MeshletListBuildIndirectDispatchArgsBuffer = builder.CreateTransientBuffer(
-                new BufferDesc(UnsafeUtility.SizeOf<IndirectDispatchArgs>() / sizeof(uint), sizeof(uint), GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw)
+                new BufferDesc(UnsafeUtility.SizeOf<IndirectDispatchArgs>() / sizeof(uint), sizeof(uint),
+                    GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw
+                )
                 {
                     name = nameof(PassData.MeshletListBuildIndirectDispatchArgsBuffer),
                 }
@@ -158,11 +162,21 @@ namespace DELTation.AAAARP.Passes
             }
 
             passData.DestinationMeshletsCounterBuffer = builder.CreateTransientBuffer(CreateCounterBufferDesc("MeshletRenderRequestCounter"));
-            passData.DestinationMeshletsBuffer = renderingData.RenderGraph.ImportBuffer(meshletRenderRequestsBuffer);
-            builder.WriteBuffer(passData.DestinationMeshletsBuffer);
+            passData.DestinationMeshletsBuffer = builder.WriteBuffer(renderingData.RenderGraph.ImportBuffer(meshletRenderRequestsBuffer));
 
-            passData.IndirectDrawArgsBuffer = renderingData.RenderGraph.ImportBuffer(rendererContainer.IndirectDrawArgsBuffer);
-            builder.WriteBuffer(passData.IndirectDrawArgsBuffer);
+            passData.IndirectDrawArgsBuffer = builder.WriteBuffer(renderingData.RenderGraph.ImportBuffer(rendererContainer.IndirectDrawArgsBuffer));
+
+            if (_passType == PassType.FalseNegative)
+            {
+                AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
+                passData.CameraDepth = builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
+                passData.CameraHZB = builder.ReadTexture(resourceData.CameraHZBScaled);
+            }
+            else
+            {
+                passData.CameraDepth = TextureHandle.nullHandle;
+                passData.CameraHZB = TextureHandle.nullHandle;
+            }
         }
 
         private static BufferDesc CreateCounterBufferDesc(string name) =>
@@ -285,16 +299,17 @@ namespace DELTation.AAAARP.Passes
             using (new ProfilingScope(context.cmd, Profiling.MeshletCulling))
             {
                 const int kernelIndex = 0;
-                
+
                 context.cmd.SetKeyword(_gpuMeshletCullingCS,
-                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.GPUInstanceCulling.MAIN_PASS), _passType == PassType.Main
+                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.MeshletCulling.MAIN_PASS), _passType == PassType.Main
                 );
                 context.cmd.SetKeyword(_gpuMeshletCullingCS,
-                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.GPUInstanceCulling.FALSE_NEGATIVE_PASS), _passType == PassType.FalseNegative
+                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.MeshletCulling.FALSE_NEGATIVE_PASS), _passType == PassType.FalseNegative
                 );
 
                 context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraFrustumPlanes, data.FrustumPlanes);
                 context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraPosition, data.CameraPosition);
+                context.cmd.SetComputeMatrixParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraViewProjection, data.CameraViewProjectionMatrix);
 
                 context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, kernelIndex,
                     ShaderID.MeshletCulling._SourceMeshletsCounter, data.InitialMeshletListCounterBuffer
@@ -325,11 +340,27 @@ namespace DELTation.AAAARP.Passes
                 );
                 context.cmd.DispatchCompute(_fixupMeshletIndirectDrawArgsCS, kernelIndex, 1, 1, 1);
             }
+
+            using (new ProfilingScope(context.cmd, Profiling.Readback))
+            {
+                context.cmd.RequestAsyncReadback(data.OcclusionCullingInstanceVisibilityMask, request =>
+                    {
+                        NativeArray<uint> mask = request.GetData<uint>();
+                        if (mask.Length > 0)
+                        {
+                            Debug.Log(mask[0]);
+                        }
+                    }
+                );
+            }
         }
 
         public class PassData : PassDataBase
         {
             public readonly Vector4[] FrustumPlanes = new Vector4[6];
+
+            public TextureHandle CameraDepth;
+            public TextureHandle CameraHZB;
 
             public Vector4 CameraPosition;
             public Vector4 CameraRight;
@@ -368,6 +399,7 @@ namespace DELTation.AAAARP.Passes
             public static readonly ProfilingSampler FixupMeshletCullingIndirectDispatchArgs = new(nameof(FixupMeshletCullingIndirectDispatchArgs));
             public static readonly ProfilingSampler MeshletCulling = new(nameof(MeshletCulling));
             public static readonly ProfilingSampler FixupIndirectDrawArgs = new(nameof(FixupIndirectDrawArgs));
+            public static readonly ProfilingSampler Readback = new(nameof(Readback));
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -378,7 +410,7 @@ namespace DELTation.AAAARP.Passes
                 public static string MAIN_PASS = nameof(MAIN_PASS);
                 public static string FALSE_NEGATIVE_PASS = nameof(FALSE_NEGATIVE_PASS);
             }
-            
+
             public static class MeshletCulling
             {
                 public static string MAIN_PASS = nameof(MAIN_PASS);
@@ -431,6 +463,7 @@ namespace DELTation.AAAARP.Passes
             {
                 public static int _CameraFrustumPlanes = Shader.PropertyToID(nameof(_CameraFrustumPlanes));
                 public static int _CameraPosition = Shader.PropertyToID(nameof(_CameraPosition));
+                public static int _CameraViewProjection = Shader.PropertyToID(nameof(_CameraViewProjection));
 
                 public static int _SourceMeshletsCounter = Shader.PropertyToID(nameof(_SourceMeshletsCounter));
                 public static int _SourceMeshlets = Shader.PropertyToID(nameof(_SourceMeshlets));

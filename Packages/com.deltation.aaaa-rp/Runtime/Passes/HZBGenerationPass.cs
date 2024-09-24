@@ -25,8 +25,6 @@ namespace DELTation.AAAARP.Passes
             passData.CameraDepth = builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
             passData.HZB = builder.WriteTexture(resourceData.CameraHZBScaled);
             passData.HZBInfo = resourceData.CameraScaledHZBInfo;
-
-            builder.AllowPassCulling(false);
         }
 
         protected override void Render(PassData data, RenderGraphContext context)

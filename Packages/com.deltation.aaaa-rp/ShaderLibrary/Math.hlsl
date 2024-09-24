@@ -145,4 +145,11 @@ bool FrustumVsSphereCulling(const float4 planes[PLANES_IN_FRUSTUM], const float4
     return min(min(dist01, dist23), dist45) + radius > 0;
 }
 
+struct BoundingSquareSS
+{
+    float2 MinUV;
+    float2 MaxUV;
+    float  NDCMinZ;
+};
+
 #endif // AAAA_MATH_INCLUDED
