@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
+using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.Renderers;
@@ -24,6 +25,9 @@ namespace DELTation.AAAARP.Passes
             FalseNegative,
         }
 
+        [CanBeNull]
+        private readonly AAAARenderPipelineDebugDisplaySettings _debugDisplaySettings;
+
         private readonly ComputeShader _fixupGPUMeshletCullingIndirectDispatchArgsCS;
         private readonly ComputeShader _fixupMeshletIndirectDrawArgsCS;
         private readonly ComputeShader _fixupMeshletListBuildIndirectDispatchArgsCS;
@@ -34,7 +38,8 @@ namespace DELTation.AAAARP.Passes
         private readonly ComputeShader _rawBufferClearCS;
         private NativeList<int> _instanceIndices;
 
-        public GPUCullingPass(PassType passType, AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent)
+        public GPUCullingPass(PassType passType, AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders,
+            [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings) : base(renderPassEvent)
         {
             _passType = passType;
             _rawBufferClearCS = runtimeShaders.RawBufferClearCS;
@@ -45,6 +50,7 @@ namespace DELTation.AAAARP.Passes
             _gpuMeshletCullingCS = runtimeShaders.GPUMeshletCullingCS;
             _fixupMeshletIndirectDrawArgsCS = runtimeShaders.FixupMeshletIndirectDrawArgsCS;
             _instanceIndices = new NativeList<int>(Allocator.Persistent);
+            _debugDisplaySettings = debugDisplaySettings;
 
             Name = "GPUCulling";
             if (_passType != PassType.Basic)
@@ -177,6 +183,10 @@ namespace DELTation.AAAARP.Passes
                 passData.CameraDepth = TextureHandle.nullHandle;
                 passData.CameraHZB = TextureHandle.nullHandle;
             }
+
+            passData.DebugDataBuffer = _debugDisplaySettings is { RenderingSettings: { DebugGPUCulling: true } }
+                ? builder.ReadBuffer(frameData.Get<AAAADebugData>().GPUCullingDebugBuffer)
+                : default;
         }
 
         private static BufferDesc CreateCounterBufferDesc(string name) =>
@@ -210,10 +220,13 @@ namespace DELTation.AAAARP.Passes
                 const int kernelIndex = 0;
 
                 context.cmd.SetKeyword(_gpuInstanceCullingCS,
-                    new LocalKeyword(_gpuInstanceCullingCS, Keywords.GPUInstanceCulling.MAIN_PASS), _passType == PassType.Main
+                    new LocalKeyword(_gpuInstanceCullingCS, Keywords.MAIN_PASS), _passType == PassType.Main
                 );
                 context.cmd.SetKeyword(_gpuInstanceCullingCS,
-                    new LocalKeyword(_gpuInstanceCullingCS, Keywords.GPUInstanceCulling.FALSE_NEGATIVE_PASS), _passType == PassType.FalseNegative
+                    new LocalKeyword(_gpuInstanceCullingCS, Keywords.FALSE_NEGATIVE_PASS), _passType == PassType.FalseNegative
+                );
+                context.cmd.SetKeyword(_gpuInstanceCullingCS,
+                    new LocalKeyword(_gpuInstanceCullingCS, Keywords.Debug.DEBUG_GPU_CULLING), data.DebugDataBuffer.IsValid()
                 );
 
                 context.cmd.SetComputeVectorArrayParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraFrustumPlanes, data.FrustumPlanes);
@@ -233,6 +246,13 @@ namespace DELTation.AAAARP.Passes
                 context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
                     ShaderID.GPUInstanceCulling._JobCounter, data.MeshletListBuildJobCounterBuffer
                 );
+
+                if (data.DebugDataBuffer.IsValid())
+                {
+                    context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
+                        ShaderID.Debug._GPUCullingDebugDataBuffer, data.DebugDataBuffer
+                    );
+                }
 
                 const int groupSize = (int) AAAAMeshletComputeShaders.GPUInstanceCullingThreadGroupSize;
                 context.cmd.DispatchCompute(_gpuInstanceCullingCS, kernelIndex,
@@ -301,10 +321,13 @@ namespace DELTation.AAAARP.Passes
                 const int kernelIndex = 0;
 
                 context.cmd.SetKeyword(_gpuMeshletCullingCS,
-                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.MeshletCulling.MAIN_PASS), _passType == PassType.Main
+                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.MAIN_PASS), _passType == PassType.Main
                 );
                 context.cmd.SetKeyword(_gpuMeshletCullingCS,
-                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.MeshletCulling.FALSE_NEGATIVE_PASS), _passType == PassType.FalseNegative
+                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.FALSE_NEGATIVE_PASS), _passType == PassType.FalseNegative
+                );
+                context.cmd.SetKeyword(_gpuMeshletCullingCS,
+                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.Debug.DEBUG_GPU_CULLING), data.DebugDataBuffer.IsValid()
                 );
 
                 context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraFrustumPlanes, data.FrustumPlanes);
@@ -325,6 +348,13 @@ namespace DELTation.AAAARP.Passes
                     ShaderID.MeshletCulling._DestinationMeshlets, data.DestinationMeshletsBuffer
                 );
 
+                if (data.DebugDataBuffer.IsValid())
+                {
+                    context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, kernelIndex,
+                        ShaderID.Debug._GPUCullingDebugDataBuffer, data.DebugDataBuffer
+                    );
+                }
+
                 context.cmd.DispatchCompute(_gpuMeshletCullingCS, kernelIndex, data.GPUMeshletCullingIndirectDispatchArgsBuffer, 0);
             }
 
@@ -340,19 +370,6 @@ namespace DELTation.AAAARP.Passes
                 );
                 context.cmd.DispatchCompute(_fixupMeshletIndirectDrawArgsCS, kernelIndex, 1, 1, 1);
             }
-
-            using (new ProfilingScope(context.cmd, Profiling.Readback))
-            {
-                context.cmd.RequestAsyncReadback(data.OcclusionCullingInstanceVisibilityMask, request =>
-                    {
-                        NativeArray<uint> mask = request.GetData<uint>();
-                        if (mask.Length > 0)
-                        {
-                            Debug.Log(mask[0]);
-                        }
-                    }
-                );
-            }
         }
 
         public class PassData : PassDataBase
@@ -367,6 +384,8 @@ namespace DELTation.AAAARP.Passes
             public Vector4 CameraUp;
             public Matrix4x4 CameraViewProjectionMatrix;
             public float CotHalfFov;
+
+            public BufferHandle DebugDataBuffer;
 
             public BufferHandle DestinationMeshletsBuffer;
             public BufferHandle DestinationMeshletsCounterBuffer;
@@ -399,28 +418,28 @@ namespace DELTation.AAAARP.Passes
             public static readonly ProfilingSampler FixupMeshletCullingIndirectDispatchArgs = new(nameof(FixupMeshletCullingIndirectDispatchArgs));
             public static readonly ProfilingSampler MeshletCulling = new(nameof(MeshletCulling));
             public static readonly ProfilingSampler FixupIndirectDrawArgs = new(nameof(FixupIndirectDrawArgs));
-            public static readonly ProfilingSampler Readback = new(nameof(Readback));
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static class Keywords
         {
-            public static class GPUInstanceCulling
-            {
-                public static string MAIN_PASS = nameof(MAIN_PASS);
-                public static string FALSE_NEGATIVE_PASS = nameof(FALSE_NEGATIVE_PASS);
-            }
+            public static string MAIN_PASS = nameof(MAIN_PASS);
+            public static string FALSE_NEGATIVE_PASS = nameof(FALSE_NEGATIVE_PASS);
 
-            public static class MeshletCulling
+            public static class Debug
             {
-                public static string MAIN_PASS = nameof(MAIN_PASS);
-                public static string FALSE_NEGATIVE_PASS = nameof(FALSE_NEGATIVE_PASS);
+                public static string DEBUG_GPU_CULLING = nameof(DEBUG_GPU_CULLING);
             }
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static class ShaderID
         {
+            public static class Debug
+            {
+                public static int _GPUCullingDebugDataBuffer = Shader.PropertyToID(nameof(_GPUCullingDebugDataBuffer));
+            }
+
             public static class GPUInstanceCulling
             {
                 public static int _CameraFrustumPlanes = Shader.PropertyToID(nameof(_CameraFrustumPlanes));

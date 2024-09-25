@@ -1,6 +1,8 @@
 #pragma kernel CS
 
-#pragma multi_compile _ MAIN_PASS FALSE_NEGATIVE_PASS
+#pragma multi_compile_local _ MAIN_PASS FALSE_NEGATIVE_PASS
+
+#include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/GPUCullingDebug.hlsl"
 
 #if defined(MAIN_PASS) || defined(FALSE_NEGATIVE_PASS)
 #define OCCLUSION_CULLING_ON
@@ -31,22 +33,33 @@ bool Culling(const AAAAInstanceData instanceData, const AAAAMeshlet meshletData)
 {
     const float4 boundingSphere = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
 
+
+    bool result = false;
+
     UNITY_BRANCH
-    if (!FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphere) || !ConeCulling(_CameraPosition.xyz, instanceData, meshletData))
+    if (FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphere) || !ConeCulling(_CameraPosition.xyz, instanceData, meshletData))
     {
-        return false;
+        #if defined(FALSE_NEGATIVE_PASS)
+        
+        const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(boundingSphere, _CameraViewProjection);
+        UNITY_BRANCH
+        if (OcclusionCulling::IsVisible(boundingSquareSS))
+        {
+            result = true;
+        }
+        else
+        {
+            GPUCullingDebug::OnCulled((boundingSquareSS.MinUV + boundingSquareSS.MaxUV) * 0.5f, AAAAGPUCULLINGDEBUGGRANULARITY_MESHLET, AAAAGPUCULLINGDEBUGTYPE_OCCLUSION);
+        }
+        
+        #else
+
+        result = true;
+
+        #endif
     }
 
-    #if defined(FALSE_NEGATIVE_PASS)
-    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(boundingSphere, _CameraViewProjection);
-    UNITY_BRANCH
-    if (!OcclusionCulling::IsVisible(boundingSquareSS))
-    {
-        return false;
-    }
-    #endif
-
-    return true;
+    return result;
 }
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]

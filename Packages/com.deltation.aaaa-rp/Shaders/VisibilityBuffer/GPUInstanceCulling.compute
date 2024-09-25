@@ -1,10 +1,10 @@
 #pragma kernel CS
 
-#pragma enable_d3d11_debug_symbols
-
-#pragma multi_compile _ MAIN_PASS FALSE_NEGATIVE_PASS
+#pragma multi_compile_local _ MAIN_PASS FALSE_NEGATIVE_PASS
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
+#include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/GPUCullingDebug.hlsl"
+
 #define THREAD_GROUP_SIZE GPUINSTANCE_CULLING_THREAD_GROUP_SIZE
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
@@ -63,6 +63,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     if (!OcclusionCulling::IsVisible(boundingSquareSS))
     {
         OcclusionCulling::MarkInvisibleThisFrame(instanceID);
+        GPUCullingDebug::OnCulled((boundingSquareSS.MinUV + boundingSquareSS.MaxUV) * 0.5f, AAAAGPUCULLINGDEBUGGRANULARITY_INSTANCE, AAAAGPUCULLINGDEBUGTYPE_OCCLUSION);
         return;
     }
 

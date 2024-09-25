@@ -20,6 +20,10 @@ namespace DELTation.AAAARP
         [SerializeField]
         [ResourcePath("Shaders/Debugging/GBufferDebug.shader")]
         private Shader _gBufferDebugPS;
+        
+        [SerializeField]
+        [ResourcePath("Shaders/Debugging/GPUCullingDebugView.shader")]
+        private Shader _gpuCullingDebugViewPS;
 
         public Shader VisibilityBufferDebugPS
         {
@@ -31,6 +35,12 @@ namespace DELTation.AAAARP
         {
             get => _gBufferDebugPS;
             set => this.SetValueAndNotify(ref _gBufferDebugPS, value, nameof(_gBufferDebugPS));
+        }
+
+        public Shader GPUCullingDebugViewPS
+        {
+            get => _gpuCullingDebugViewPS;
+            set => this.SetValueAndNotify(ref _gpuCullingDebugViewPS, value, nameof(_gpuCullingDebugViewPS));
         }
 
         public int version => _version;

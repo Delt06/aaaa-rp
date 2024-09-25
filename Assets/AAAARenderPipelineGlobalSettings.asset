@@ -29,14 +29,7 @@ MonoBehaviour:
       - rid: 420113878623191103
       - rid: 420113878623191104
     m_RuntimeSettings:
-      m_List:
-      - rid: 420113878623191093
-      - rid: 420113878623191096
-      - rid: 420113878623191097
-      - rid: 420113878623191100
-      - rid: 420113878623191102
-      - rid: 420113878623191103
-      - rid: 420113878623191104
+      m_List: []
   references:
     version: 2
     RefIds:
@@ -91,6 +84,7 @@ MonoBehaviour:
         _version: 0
         _visibilityBufferDebugPS: {fileID: 4800000, guid: 481682f92fd345ff9a8fb8d9ed920b98, type: 3}
         _gBufferDebugPS: {fileID: 4800000, guid: d667ea4a980b4ae6bc5d4fbb99dfe007, type: 3}
+        _gpuCullingDebugViewPS: {fileID: 4800000, guid: 732dd7d6dd8b401f9eef24b39da3f807, type: 3}
     - rid: 3789630116398891061
       type: {class: GPUResidentDrawerResources, ns: UnityEngine.Rendering, asm: Unity.RenderPipelines.GPUDriven.Runtime}
       data:
