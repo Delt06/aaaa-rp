@@ -14,14 +14,11 @@ namespace DELTation.AAAARP.Passes.Debugging
         public GPUCullingDebugSetupPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent) =>
             _runtimeShaders = runtimeShaders;
 
-        public override string Name => "GPUCullingDebug.Setup";
+        public override string Name => "GPUCulling.Debug.Setup";
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
-            AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
-            AAAADebugData debugData = frameData.GetOrCreate<AAAADebugData>();
-            debugData.Init(renderingData.RenderGraph);
-
+            AAAADebugData debugData = frameData.Get<AAAADebugData>();
             passData.DebugBuffer = builder.WriteBuffer(debugData.GPUCullingDebugBuffer);
         }
 

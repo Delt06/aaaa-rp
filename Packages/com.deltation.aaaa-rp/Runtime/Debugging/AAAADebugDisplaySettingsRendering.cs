@@ -1,3 +1,4 @@
+using System.Text;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -30,6 +31,10 @@ namespace DELTation.AAAARP.Debugging
 
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData
     {
+        private readonly AAAADebugStats _debugStats;
+
+        public AAAADebugDisplaySettingsRendering(AAAADebugStats debugStats) => _debugStats = debugStats;
+
         public bool AutoUpdateRenderers { get; private set; }
         public AAAAVisibilityBufferDebugMode VisibilityBufferDebugMode { get; private set; }
         public bool ForceCullingFromMainCamera { get; private set; }
@@ -51,7 +56,7 @@ namespace DELTation.AAAARP.Debugging
                                             ForcedMeshLODNodeDepth >= 0 ||
                                             MeshLODErrorThresholdBias != 0.0f;
 
-        public IDebugDisplaySettingsPanelDisposable CreatePanel() => new SettingsPanel(this);
+        public IDebugDisplaySettingsPanelDisposable CreatePanel() => new SettingsPanel(this, _debugStats);
 
         public AAAAVisibilityBufferDebugMode GetOverridenVisibilityBufferDebugMode()
         {
@@ -68,12 +73,15 @@ namespace DELTation.AAAARP.Debugging
         [DisplayInfo(name = "Rendering", order = 1)]
         private class SettingsPanel : DebugDisplaySettingsPanel<AAAADebugDisplaySettingsRendering>
         {
-            public SettingsPanel(AAAADebugDisplaySettingsRendering data)
+            private readonly AAAADebugStats _stats;
+
+            public SettingsPanel(AAAADebugDisplaySettingsRendering data, AAAADebugStats stats)
                 : base(data)
             {
                 AddWidget(Renderers.WidgetFactory.CreateFoldout(this));
                 AddWidget(VisibilityBuffer.WidgetFactory.CreateFoldout(this));
                 AddWidget(GBuffer.WidgetFactory.CreateFoldout(this));
+                _stats = stats;
             }
 
             private static class Renderers
@@ -116,6 +124,8 @@ namespace DELTation.AAAARP.Debugging
                         { name = "Debug Mode", tooltip = "The mode of visibility buffer debug display." };
                     public static readonly DebugUI.Widget.NameAndTooltip ForceCullingFromMainCamera = new()
                         { name = "Force Culling From Main Camera", tooltip = "Pass the main camera's data for GPU culling." };
+                    public static readonly DebugUI.Widget.NameAndTooltip GPUCulling = new()
+                        { name = "GPU Culling" };
                     public static readonly DebugUI.Widget.NameAndTooltip DebugGPUCulling = new()
                         { name = "Debug GPU Culling", tooltip = "Collect and show GPU culling statistics." };
                     public static readonly DebugUI.Widget.NameAndTooltip DebugGPUCullingViewInstanceCountLimit = new()
@@ -130,6 +140,8 @@ namespace DELTation.AAAARP.Debugging
 
                 public static class WidgetFactory
                 {
+                    private static readonly StringBuilder StringBuilder = new();
+
                     public static DebugUI.Widget CreateFoldout(SettingsPanel panel) =>
                         new DebugUI.Foldout
                         {
@@ -140,12 +152,9 @@ namespace DELTation.AAAARP.Debugging
                             children =
                             {
                                 CreateVisibilityBufferDebugMode(panel),
-                                CreateForceCullingFrustumOfMainCamera(panel),
-                                CreateDebugGPUCulling(panel),
-                                CreateDebugGPUCullingViewInstanceCountLimit(panel),
-                                CreateDebugGPUCullingViewMeshletCountLimit(panel),
                                 CreateForcedMeshLODNodeDepth(panel),
                                 CreateMeshLODTargetErrorBias(panel),
+                                CreateGPUCullingFoldout(panel),
                             },
                         };
 
@@ -159,38 +168,53 @@ namespace DELTation.AAAARP.Debugging
                         setIndex = value => panel.data.VisibilityBufferDebugMode = (AAAAVisibilityBufferDebugMode) value,
                     };
 
-                    private static DebugUI.Widget CreateForceCullingFrustumOfMainCamera(SettingsPanel panel) => new DebugUI.BoolField
+                    private static DebugUI.Widget CreateGPUCullingFoldout(SettingsPanel panel) => new DebugUI.Foldout
                     {
-                        nameAndTooltip = Strings.ForceCullingFromMainCamera,
-                        getter = () => panel.data.ForceCullingFromMainCamera,
-                        setter = value => panel.data.ForceCullingFromMainCamera = value,
-                    };
-
-                    private static DebugUI.Widget CreateDebugGPUCulling(SettingsPanel panel) => new DebugUI.BoolField
-                    {
-                        nameAndTooltip = Strings.DebugGPUCulling,
-                        getter = () => panel.data.DebugGPUCulling,
-                        setter = value => panel.data.DebugGPUCulling = value,
-                    };
-
-                    private static DebugUI.Widget CreateDebugGPUCullingViewInstanceCountLimit(SettingsPanel panel) => new DebugUI.IntField
-                    {
-                        nameAndTooltip = Strings.DebugGPUCullingViewInstanceCountLimit,
-                        getter = () => panel.data.DebugGPUCullingViewInstanceCountLimit,
-                        setter = value => panel.data.DebugGPUCullingViewInstanceCountLimit = value,
-                        min = () => 1,
-                        max = () => 128,
-                        isHiddenCallback = () => !panel.data.DebugGPUCulling,
-                    };
-
-                    private static DebugUI.Widget CreateDebugGPUCullingViewMeshletCountLimit(SettingsPanel panel) => new DebugUI.IntField
-                    {
-                        nameAndTooltip = Strings.DebugGPUCullingViewMeshletCountLimit,
-                        getter = () => panel.data.DebugGPUCullingViewMeshletCountLimit,
-                        setter = value => panel.data.DebugGPUCullingViewMeshletCountLimit = value,
-                        min = () => 1,
-                        max = () => 16384,
-                        isHiddenCallback = () => !panel.data.DebugGPUCulling,
+                        nameAndTooltip = Strings.GPUCulling,
+                        children =
+                        {
+                            new DebugUI.BoolField
+                            {
+                                nameAndTooltip = Strings.ForceCullingFromMainCamera,
+                                getter = () => panel.data.ForceCullingFromMainCamera,
+                                setter = value => panel.data.ForceCullingFromMainCamera = value,
+                            },
+                            new DebugUI.BoolField
+                            {
+                                nameAndTooltip = Strings.DebugGPUCulling,
+                                getter = () => panel.data.DebugGPUCulling,
+                                setter = value => panel.data.DebugGPUCulling = value,
+                            },
+                            new DebugUI.IntField
+                            {
+                                nameAndTooltip = Strings.DebugGPUCullingViewInstanceCountLimit,
+                                getter = () => panel.data.DebugGPUCullingViewInstanceCountLimit,
+                                setter = value => panel.data.DebugGPUCullingViewInstanceCountLimit = value,
+                                min = () => 1,
+                                max = () => 128,
+                                isHiddenCallback = () => !panel.data.DebugGPUCulling,
+                            },
+                            new DebugUI.IntField
+                            {
+                                nameAndTooltip = Strings.DebugGPUCullingViewMeshletCountLimit,
+                                getter = () => panel.data.DebugGPUCullingViewMeshletCountLimit,
+                                setter = value => panel.data.DebugGPUCullingViewMeshletCountLimit = value,
+                                min = () => 1,
+                                max = () => 16384,
+                                isHiddenCallback = () => !panel.data.DebugGPUCulling,
+                            },
+                            new DebugUI.MessageBox
+                            {
+                                nameAndTooltip = Strings.DebugGPUCullingViewMeshletCountLimit,
+                                messageCallback = () =>
+                                {
+                                    StringBuilder.Clear();
+                                    panel._stats.BuildGPUCullingString(StringBuilder);
+                                    return StringBuilder.ToString();
+                                },
+                                isHiddenCallback = () => !panel.data.DebugGPUCulling,
+                            },
+                        },
                     };
 
                     private static DebugUI.Widget CreateForcedMeshLODNodeDepth(SettingsPanel panel) => new DebugUI.IntField

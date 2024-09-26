@@ -21,7 +21,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             _displaySettings = displaySettings;
         }
 
-        public override string Name => "GPUCullingDebug.View";
+        public override string Name => "GPUCulling.Debug.View";
 
         public void Dispose()
         {

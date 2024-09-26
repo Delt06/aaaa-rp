@@ -1,8 +1,10 @@
-﻿using UnityEngine.Rendering;
+﻿using System;
+using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Debugging
 {
     [GenerateHLSL(PackingRules.Exact, false)]
+    [Serializable]
     public struct AAAAGPUCullingDebugData
     {
         public const uint GPUCullingDebugBufferDimension = 16;

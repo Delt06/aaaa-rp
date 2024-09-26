@@ -11,6 +11,7 @@ namespace DELTation.AAAARP.Debugging
 {
     internal sealed class AAAADebugHandler : IDebugDisplaySettingsQuery, IDisposable
     {
+        private readonly DebugSetupPass _debugSetupPass;
         [CanBeNull]
         private readonly GBufferDebugPass _gBufferDebugPass;
         [CanBeNull]
@@ -24,6 +25,8 @@ namespace DELTation.AAAARP.Debugging
 
         public AAAADebugHandler()
         {
+            _debugSetupPass = new DebugSetupPass(AAAARenderPassEvent.BeforeRendering);
+
             if (GraphicsSettings.TryGetRenderPipelineSettings(out AAAARenderPipelineDebugShaders debugShaders))
             {
                 _visibilityBufferDebugPass = new VisibilityBufferDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
@@ -33,7 +36,7 @@ namespace DELTation.AAAARP.Debugging
                 {
                     _gpuCullingDebugSetupPass = new GPUCullingDebugSetupPass(AAAARenderPassEvent.BeforeRendering, runtimeShaders);
                     _gpuCullingDebugViewPass = new GPUCullingDebugViewPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
-                    _gpuCullingDebugReadbackPass = new GPUCullingDebugReadbackPass(AAAARenderPassEvent.AfterRendering);
+                    _gpuCullingDebugReadbackPass = new GPUCullingDebugReadbackPass(AAAARenderPassEvent.AfterRendering, DisplaySettings);
                 }
             }
         }
@@ -65,6 +68,11 @@ namespace DELTation.AAAARP.Debugging
 
         public void Setup(AAAARendererBase renderer, RenderGraph renderGraph, ScriptableRenderContext context)
         {
+            if (DisplaySettings.AreAnySettingsActive)
+            {
+                renderer.EnqueuePass(_debugSetupPass);
+            }
+
             if (_visibilityBufferDebugPass != null &&
                 DisplaySettings.RenderingSettings.GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None)
             {
