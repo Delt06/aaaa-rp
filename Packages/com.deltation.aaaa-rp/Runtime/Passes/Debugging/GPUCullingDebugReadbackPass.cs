@@ -32,6 +32,11 @@ namespace DELTation.AAAARP.Passes.Debugging
 
             context.cmd.RequestAsyncReadback(data.Buffer, request =>
                 {
+                    if (request.hasError)
+                    {
+                        return;
+                    }
+
                     NativeArray<AAAAGPUCullingDebugData> readbackDebugData = request.GetData<AAAAGPUCullingDebugData>();
                     _displaySettings.DebugStats.GPUCulling[camera] = new AAAADebugStats.GPUCullingStats
                     {
@@ -50,7 +55,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             {
                 aggregateData.FrustumCulledInstances += item.FrustumCulledInstances;
                 aggregateData.FrustumCulledMeshlets += item.FrustumCulledMeshlets;
-                
+
                 aggregateData.OcclusionCulledInstances += item.OcclusionCulledInstances;
                 aggregateData.OcclusionCulledMeshlets += item.OcclusionCulledMeshlets;
 

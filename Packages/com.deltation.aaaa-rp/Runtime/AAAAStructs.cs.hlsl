@@ -37,9 +37,9 @@ struct AAAAMaterialData
 {
     float4 AlbedoColor;
     uint AlbedoIndex;
+    uint NormalsIndex;
+    float NormalsStrength;
     uint Padding0;
-    uint Padding1;
-    uint Padding2;
 };
 
 // Generated from DELTation.AAAARP.AAAAMeshlet

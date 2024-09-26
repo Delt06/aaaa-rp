@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d124dbe9abb4e0ba3228241f9483940, type: 3}
+  m_Name: cerberus_Material
+  m_EditorClassIdentifier: 
+  Albedo: {fileID: 2800000, guid: 24594f8fdd0257e46b5b6a087859f648, type: 3}
+  AlbedoColor: {r: 1, g: 1, b: 1, a: 1}
+  Normals: {fileID: 2800000, guid: 6b0265e4bd87301478528d0095fe73d5, type: 3}
+  NormalsStrength: 5

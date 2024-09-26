@@ -7,8 +7,6 @@ Shader "Hidden/AAAA/CoreBlit"
         // Core.hlsl for XR dependencies
         #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
-        // DebuggingFullscreen.hlsl for AAAA debug draw
-        #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
         // Color.hlsl for color space conversion
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
 

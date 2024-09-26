@@ -225,6 +225,16 @@ float3 TransformObjectToWorldNormal(const float3 normalOS, const float4x4 worldT
     return normalWS;
 }
 
+float3 TransformObjectToWorldDir(const float3 dirOS, const float4x4 objectToWorld, bool doNormalize = true)
+{
+    float3 dirWS = mul((float3x3)objectToWorld, dirOS);
+    if (doNormalize)
+    {
+        return SafeNormalize(dirWS);
+    }
+    return dirWS;
+}
+
 float2 ScreenCoordsToNDC(float4 screenCoords)
 {
     float2 ndc = screenCoords.xy * _ScreenSize.zw * 2 - 1;

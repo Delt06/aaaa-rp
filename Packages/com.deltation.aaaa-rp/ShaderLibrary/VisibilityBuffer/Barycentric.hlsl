@@ -71,4 +71,14 @@ float3 InterpolateWithBarycentricNoDerivatives(const BarycentricDerivatives bary
     );
 }
 
+float4 InterpolateWithBarycentricNoDerivatives(const BarycentricDerivatives barycentric, float4 v0, float4 v1, float4 v2)
+{
+    return float4(
+        InterpolateWithBarycentric(barycentric, v0.x, v1.x, v2.x).x,
+        InterpolateWithBarycentric(barycentric, v0.y, v1.y, v2.y).x,
+        InterpolateWithBarycentric(barycentric, v0.z, v1.z, v2.z).x,
+        InterpolateWithBarycentric(barycentric, v0.w, v1.w, v2.w).x
+    );
+}
+
 #endif // AAAA_VISIBILITY_BUFFER_UTILS_INCLUDED

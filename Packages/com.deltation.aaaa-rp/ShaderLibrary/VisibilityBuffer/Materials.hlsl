@@ -5,6 +5,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Barycentric.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/AAAAStructs.cs.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
 
 StructuredBuffer<AAAAMaterialData> _MaterialData;
 
@@ -33,20 +34,45 @@ InterpolatedUV InterpolateUV(const BarycentricDerivatives barycentric, const AAA
     return uv;
 }
 
-float4 SampleBindlessTextureGrad(const InterpolatedUV uv, const uint textureIndex, const float4 defaultValue)
-{
-    if (textureIndex != (uint)NO_TEXTURE_INDEX)
-    {
-        Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
-        return SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearClamp, uv.uv, uv.ddx, uv.ddy);
-    }
-    return defaultValue;
-}
-
 float4 SampleAlbedo(const InterpolatedUV uv, const AAAAMaterialData materialData)
 {
-    const float4 textureAlbedo = SampleBindlessTextureGrad(uv, materialData.AlbedoIndex, float4(1, 1, 1, 1));
+    const uint textureIndex = materialData.AlbedoIndex;
+
+    float4 textureAlbedo;
+
+    UNITY_BRANCH
+    if (textureIndex != (uint)NO_TEXTURE_INDEX)
+    {
+        const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
+        textureAlbedo = SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearRepeat, uv.uv, uv.ddx, uv.ddy);
+    }
+    else
+    {
+        textureAlbedo = float4(1, 1, 1, 1);
+    }
+
     return materialData.AlbedoColor * textureAlbedo;
+}
+
+float3 SampleNormalTS(const InterpolatedUV uv, const AAAAMaterialData materialData)
+{
+    const uint textureIndex = materialData.NormalsIndex;
+
+    float3 normalTS;
+
+    UNITY_BRANCH
+    if (textureIndex != (uint)NO_TEXTURE_INDEX)
+    {
+        const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
+        const float4    packedNormal = SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearRepeat, uv.uv, uv.ddx, uv.ddy);
+        normalTS = UnpackNormalScale(packedNormal, materialData.NormalsStrength);
+    }
+    else
+    {
+        normalTS = float3(0, 0, 1);
+    }
+
+    return normalTS;
 }
 
 

@@ -205,6 +205,7 @@ namespace DELTation.AAAARP.Debugging
                                 setter = value => panel.data.GPUCullingDebugViewMode = (AAAAGPUCullingDebugViewMode) value,
                                 getIndex = () => (int) panel.data.GPUCullingDebugViewMode,
                                 setIndex = value => panel.data.GPUCullingDebugViewMode = (AAAAGPUCullingDebugViewMode) value,
+                                isHiddenCallback = () => !panel.data.DebugGPUCulling,
                             },
                             new DebugUI.IntField
                             {

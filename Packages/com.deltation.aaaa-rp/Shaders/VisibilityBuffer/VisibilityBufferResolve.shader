@@ -3,7 +3,6 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
     HLSLINCLUDE
         #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
-        #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
     ENDHLSL
 
@@ -86,7 +85,20 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                     SafeNormalize(
                     InterpolateWithBarycentricNoDerivatives(barycentric, vertices[0].Normal.xyz, vertices[1].Normal.xyz, vertices[2].Normal.xyz)
                 );
-                const float3 normalWS = TransformObjectToWorldNormal(normalOS, instanceData.WorldToObjectMatrix);
+                float3 normalWS = TransformObjectToWorldNormal(normalOS, instanceData.WorldToObjectMatrix);
+
+                UNITY_BRANCH
+                if (materialData.NormalsIndex != (uint)NO_TEXTURE_INDEX)
+                {
+                    const float4 tangentOS = InterpolateWithBarycentricNoDerivatives(barycentric,
+                                                                                     vertices[0].Tangent, vertices[1].Tangent, vertices[2].Tangent);
+                    const float4 tangentWS = float4(TransformObjectToWorldDir(tangentOS.xyz, instanceData.ObjectToWorldMatrix), tangentOS.w);
+                    const float3 bitangentWS = tangentWS.w * cross(normalWS, tangentWS.xyz);
+
+                    const float3x3 tangentToWorld = float3x3(tangentWS.xyz, bitangentWS, normalWS);
+                    const float3   normalTS = SampleNormalTS(uv, materialData);
+                    normalWS = TransformTangentToWorld(normalTS, tangentToWorld, true);
+                }
 
                 GBufferValue gbufferValue;
                 gbufferValue.albedo = albedo;

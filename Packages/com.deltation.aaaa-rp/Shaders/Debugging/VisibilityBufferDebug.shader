@@ -6,7 +6,6 @@ Shader "Hidden/AAAA/VisibilityBufferDebug"
         
         #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
-        #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
     ENDHLSL
 

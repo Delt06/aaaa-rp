@@ -7,5 +7,8 @@ namespace DELTation.AAAARP.Materials
     {
         public Texture2D Albedo;
         public Color AlbedoColor = Color.white;
+        public Texture2D Normals;
+        [Range(0.0f, 10.0f)]
+        public float NormalsStrength = 1.0f;
     }
 }

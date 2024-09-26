@@ -1,4 +1,4 @@
-#pragma multi_compile _ MIP_1
+#pragma multi_compile_local _ MIP_1
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 

@@ -202,8 +202,7 @@ namespace DELTation.AAAARP.Renderers
             );
             _sharedVertexBuffer.SetData(_sharedVertices.AsArray());
 
-            int indicesToPad = _sharedIndices.Length % 4;
-            for (int i = 0; i < indicesToPad; i++)
+            while (_sharedIndices.Length % 4 > 0)
             {
                 _sharedIndices.Add(0);
             }
@@ -224,7 +223,9 @@ namespace DELTation.AAAARP.Renderers
 
             IndirectDrawArgsBuffer?.Dispose();
             IndirectDrawArgsBuffer =
-                new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw, GraphicsBuffer.IndirectDrawArgs.size / sizeof(uint), sizeof(uint))
+                new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw, GraphicsBuffer.IndirectDrawArgs.size / sizeof(uint),
+                    sizeof(uint)
+                )
                 {
                     name = "VisibilityBuffer_IndirectDrawArgs",
                 };
@@ -312,7 +313,9 @@ namespace DELTation.AAAARP.Renderers
             var materialData = new AAAAMaterialData
             {
                 AlbedoColor = (Vector4) material.AlbedoColor,
-                AlbedoIndex = GetOrAllocateAlbedoTexture(material.Albedo),
+                AlbedoIndex = GetOrAllocateTexture(material.Albedo),
+                NormalsIndex = GetOrAllocateTexture(material.Normals),
+                NormalsStrength = material.NormalsStrength,
             };
             _materialData.Add(materialData);
             index = _materialData.Length - 1;
@@ -321,7 +324,7 @@ namespace DELTation.AAAARP.Renderers
             return index;
         }
 
-        private uint GetOrAllocateAlbedoTexture(Texture2D texture)
+        private uint GetOrAllocateTexture(Texture2D texture)
         {
             if (texture == null)
             {
