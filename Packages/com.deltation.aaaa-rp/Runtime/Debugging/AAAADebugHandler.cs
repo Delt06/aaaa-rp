@@ -86,13 +86,16 @@ namespace DELTation.AAAARP.Debugging
             }
 
             if (_gpuCullingDebugSetupPass != null &&
-                _gpuCullingDebugViewPass != null &&
                 DisplaySettings.RenderingSettings.DebugGPUCulling)
             {
                 renderer.EnqueuePass(_gpuCullingDebugSetupPass);
-                renderer.EnqueuePass(_gpuCullingDebugViewPass);
 
-                if (_gpuCullingDebugReadbackPass != null)
+                if (_gpuCullingDebugViewPass != null && DisplaySettings.RenderingSettings.GPUCullingDebugViewMode != AAAAGPUCullingDebugViewMode.None)
+                {
+                    renderer.EnqueuePass(_gpuCullingDebugViewPass);
+                }
+
+                if (_gpuCullingDebugReadbackPass != null && DisplaySettings.RenderingSettings.DebugGPUCulling)
                 {
                     renderer.EnqueuePass(_gpuCullingDebugReadbackPass);
                 }

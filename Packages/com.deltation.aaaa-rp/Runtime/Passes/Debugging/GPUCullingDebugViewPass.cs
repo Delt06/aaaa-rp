@@ -41,6 +41,7 @@ namespace DELTation.AAAARP.Passes.Debugging
 
             _material.SetFloat(ShaderIDs._InstanceCountLimit, _displaySettings.RenderingSettings.DebugGPUCullingViewInstanceCountLimit);
             _material.SetFloat(ShaderIDs._MeshletCountLimit, _displaySettings.RenderingSettings.DebugGPUCullingViewMeshletCountLimit);
+            _material.SetFloat(ShaderIDs._Mode, (float) _displaySettings.RenderingSettings.GPUCullingDebugViewMode);
         }
 
         protected override void Render(PassData data, RasterGraphContext context)
@@ -62,6 +63,8 @@ namespace DELTation.AAAARP.Passes.Debugging
         {
             public static readonly int _InstanceCountLimit = Shader.PropertyToID(nameof(_InstanceCountLimit));
             public static readonly int _MeshletCountLimit = Shader.PropertyToID(nameof(_MeshletCountLimit));
+            public static readonly int _Mode = Shader.PropertyToID(nameof(_Mode));
+
             public static readonly int _GPUCullingDebugDataBuffer = Shader.PropertyToID(nameof(_GPUCullingDebugDataBuffer));
         }
     }

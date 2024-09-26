@@ -33,26 +33,55 @@ Shader "Hidden/AAAA/GPUCullingDebugView"
             #define GPU_CULLING_DEBUG_DATA_BUFFER_READONLY
             #define DEBUG_GPU_CULLING
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/GPUCullingDebug.hlsl"
+            #include "Packages/com.deltation.aaaa-rp/Runtime/Debugging/AAAADebugDisplaySettingsRendering.cs.hlsl"
 
             float _InstanceCountLimit;
             float _MeshletCountLimit;
+            float _Mode;
+
+            void GetCounts(const AAAAGPUCullingDebugData debugData, out uint instanceCount, out uint meshletCount)
+            {
+                switch (_Mode)
+                {
+                case AAAAGPUCULLINGDEBUGVIEWMODE_FRUSTUM:
+                    instanceCount = debugData.FrustumCulledInstances;
+                    meshletCount = debugData.FrustumCulledMeshlets;
+                    break;
+                case AAAAGPUCULLINGDEBUGVIEWMODE_OCCLUSION:
+                    instanceCount = debugData.OcclusionCulledInstances;
+                    meshletCount = debugData.OcclusionCulledMeshlets;
+                    break;
+                case AAAAGPUCULLINGDEBUGVIEWMODE_CONE:
+                    instanceCount = 0;
+                    meshletCount = debugData.ConeCulledMeshlets;
+                    break;
+                default:
+                    instanceCount = 0;
+                    meshletCount = 0;
+                    break;
+                }
+            }
 
             float4 Frag(const Varyings IN) : SV_Target
             {
                 const uint                    itemIndex = GPUCullingDebug::ScreenUVToBufferItemIndex(IN.texcoord);
                 const AAAAGPUCullingDebugData debugData = _GPUCullingDebugDataBuffer[itemIndex];
 
+                uint instanceCount, meshletCount;
+                GetCounts(debugData, instanceCount, meshletCount);
+
                 float3 mappedCounts;
-                mappedCounts.x = debugData.OcclusionCulledInstances / _InstanceCountLimit;
-                mappedCounts.y = debugData.OcclusionCulledMeshlets / _MeshletCountLimit;
+                mappedCounts.x = instanceCount / _InstanceCountLimit;
+                mappedCounts.y = meshletCount / _MeshletCountLimit;
                 mappedCounts.z = 0;
                 mappedCounts = saturate(mappedCounts);
 
-                float3 result = lerp(0.25, 0.75f, mappedCounts);
+                float3 result = lerp(0.25f, 0.75f, mappedCounts);
                 result *= mappedCounts > 0;
 
                 return float4(result, 1.0);
             }
+
             ENDHLSL
         }
     }

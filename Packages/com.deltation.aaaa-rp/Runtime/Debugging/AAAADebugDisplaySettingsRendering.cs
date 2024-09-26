@@ -29,6 +29,15 @@ namespace DELTation.AAAARP.Debugging
         Normals,
     }
 
+    [GenerateHLSL]
+    public enum AAAAGPUCullingDebugViewMode
+    {
+        None,
+        Frustum,
+        Occlusion,
+        Cone,
+    }
+
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData
     {
         private readonly AAAADebugStats _debugStats;
@@ -39,6 +48,7 @@ namespace DELTation.AAAARP.Debugging
         public AAAAVisibilityBufferDebugMode VisibilityBufferDebugMode { get; private set; }
         public bool ForceCullingFromMainCamera { get; private set; }
         public bool DebugGPUCulling { get; private set; }
+        public AAAAGPUCullingDebugViewMode GPUCullingDebugViewMode { get; private set; }
         public int DebugGPUCullingViewInstanceCountLimit { get; private set; } = 32;
         public int DebugGPUCullingViewMeshletCountLimit { get; private set; } = 1024;
 
@@ -128,6 +138,8 @@ namespace DELTation.AAAARP.Debugging
                         { name = "GPU Culling" };
                     public static readonly DebugUI.Widget.NameAndTooltip DebugGPUCulling = new()
                         { name = "Debug GPU Culling", tooltip = "Collect and show GPU culling statistics." };
+                    public static readonly DebugUI.Widget.NameAndTooltip GPUCullingDebugViewMode = new()
+                        { name = "Debug View Mode" };
                     public static readonly DebugUI.Widget.NameAndTooltip DebugGPUCullingViewInstanceCountLimit = new()
                         { name = "Culled Instance Count Limit", tooltip = "Remap displayed culled instance count." };
                     public static readonly DebugUI.Widget.NameAndTooltip DebugGPUCullingViewMeshletCountLimit = new()
@@ -185,6 +197,15 @@ namespace DELTation.AAAARP.Debugging
                                 getter = () => panel.data.DebugGPUCulling,
                                 setter = value => panel.data.DebugGPUCulling = value,
                             },
+                            new DebugUI.EnumField
+                            {
+                                nameAndTooltip = Strings.GPUCullingDebugViewMode,
+                                autoEnum = typeof(AAAAGPUCullingDebugViewMode),
+                                getter = () => (int) panel.data.GPUCullingDebugViewMode,
+                                setter = value => panel.data.GPUCullingDebugViewMode = (AAAAGPUCullingDebugViewMode) value,
+                                getIndex = () => (int) panel.data.GPUCullingDebugViewMode,
+                                setIndex = value => panel.data.GPUCullingDebugViewMode = (AAAAGPUCullingDebugViewMode) value,
+                            },
                             new DebugUI.IntField
                             {
                                 nameAndTooltip = Strings.DebugGPUCullingViewInstanceCountLimit,
@@ -192,7 +213,7 @@ namespace DELTation.AAAARP.Debugging
                                 setter = value => panel.data.DebugGPUCullingViewInstanceCountLimit = value,
                                 min = () => 1,
                                 max = () => 128,
-                                isHiddenCallback = () => !panel.data.DebugGPUCulling,
+                                isHiddenCallback = () => !panel.data.DebugGPUCulling || panel.data.GPUCullingDebugViewMode == AAAAGPUCullingDebugViewMode.None,
                             },
                             new DebugUI.IntField
                             {
@@ -201,7 +222,7 @@ namespace DELTation.AAAARP.Debugging
                                 setter = value => panel.data.DebugGPUCullingViewMeshletCountLimit = value,
                                 min = () => 1,
                                 max = () => 16384,
-                                isHiddenCallback = () => !panel.data.DebugGPUCulling,
+                                isHiddenCallback = () => !panel.data.DebugGPUCulling || panel.data.GPUCullingDebugViewMode == AAAAGPUCullingDebugViewMode.None,
                             },
                             new DebugUI.MessageBox
                             {
