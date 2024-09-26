@@ -30,6 +30,7 @@ Shader "Hidden/AAAA/DeferredLighting"
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PBR.hlsl"
+            #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
             
             Varyings OverrideVert(Attributes input)
             {
@@ -43,10 +44,14 @@ Shader "Hidden/AAAA/DeferredLighting"
             float4 Frag(const Varyings IN) : SV_Target
             {
                 const GBufferValue gbuffer = SampleGBuffer(IN.texcoord);
+                const float deviceDepth = SampleDeviceDepth(IN.texcoord);
 
                 SurfaceData surfaceData;
                 surfaceData.albedo = gbuffer.albedo;
+                surfaceData.roughness = gbuffer.roughness;
+                surfaceData.metallic = gbuffer.metallic;
                 surfaceData.normalWS = gbuffer.normalWS;
+                surfaceData.positionWS = ComputeWorldSpacePosition(IN.texcoord, deviceDepth, UNITY_MATRIX_I_VP);
 
                 const float3 lighting = ComputeLightingPBR(surfaceData);
                 return float4(lighting, 1);

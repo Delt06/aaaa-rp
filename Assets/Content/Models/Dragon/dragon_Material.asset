@@ -14,3 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Albedo: {fileID: 0}
   AlbedoColor: {r: 0.46226418, g: 0.11120505, b: 0.11120505, a: 1}
+  Normals: {fileID: 0}
+  NormalsStrength: 1
+  Masks: {fileID: 0}
+  Roughness: 0.1
+  Metallic: 0

@@ -306,4 +306,9 @@ float4x4 OptimizeProjectionMatrix(float4x4 M)
     return M;
 }
 
+float3 GetCameraPositionWS()
+{
+    return _WorldSpaceCameraPos;
+}
+
 #endif // AAAA_UNITY_INPUT_INCLUDED
