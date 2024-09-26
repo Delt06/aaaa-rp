@@ -57,6 +57,11 @@ Shader "Hidden/AAAA/GBufferDebug"
                         resultColor = value.normalWS * 0.5 + 0.5;
                         break;
                     }
+                case AAAAGBUFFERDEBUGMODE_MASKS:
+                    {
+                        resultColor = float3(value.roughness, value.metallic, 0);
+                        break;
+                    }
                 default:
                     {
                         resultColor = 0;

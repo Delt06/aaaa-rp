@@ -27,8 +27,13 @@ namespace DELTation.AAAARP
     {
         public float4 AlbedoColor;
         public uint AlbedoIndex;
+        
         public uint NormalsIndex;
         public float NormalsStrength;
+        
+        public uint MasksIndex;
+        public float Roughness;
+        public float Metallic;
         public uint Padding0;
 
         public const uint NoTextureIndex = uint.MaxValue;

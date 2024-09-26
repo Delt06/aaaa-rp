@@ -75,5 +75,36 @@ float3 SampleNormalTS(const InterpolatedUV uv, const AAAAMaterialData materialDa
     return normalTS;
 }
 
+struct MaterialMasks
+{
+    float roughness;
+    float metallic;
+};
+
+MaterialMasks SampleMasks(const InterpolatedUV uv, const AAAAMaterialData materialData)
+{
+    const uint textureIndex = materialData.MasksIndex;
+
+    MaterialMasks materialMasks;
+
+    UNITY_BRANCH
+    if (textureIndex != (uint)NO_TEXTURE_INDEX)
+    {
+        const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
+        const float4    packedMasks = SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearRepeat, uv.uv, uv.ddx, uv.ddy);
+        materialMasks.roughness = packedMasks.r;
+        materialMasks.metallic = packedMasks.g;
+    }
+    else
+    {
+        materialMasks.roughness = 1;
+        materialMasks.metallic = 1;
+    }
+
+    materialMasks.roughness *= materialData.Roughness;
+    materialMasks.metallic *= materialData.Metallic;
+
+    return materialMasks;
+}
 
 #endif // AAAA_VISIBILITY_BUFFER_MATERIALS_INCLUDED

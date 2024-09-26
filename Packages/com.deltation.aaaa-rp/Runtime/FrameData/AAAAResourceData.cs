@@ -19,6 +19,7 @@ namespace DELTation.AAAARP.FrameData
         private TextureHandle _cameraScaledDepthBuffer;
         private TextureHandle _gbufferAlbedo;
         private TextureHandle _gbufferNormals;
+        private TextureHandle _gbufferMasks;
         private TextureHandle _visibilityBuffer;
 
         internal ActiveID ActiveColorID { get; set; }
@@ -35,6 +36,7 @@ namespace DELTation.AAAARP.FrameData
 
         public TextureHandle GBufferAlbedo => CheckAndGetTextureHandle(ref _gbufferAlbedo);
         public TextureHandle GBufferNormals => CheckAndGetTextureHandle(ref _gbufferNormals);
+        public TextureHandle GBufferMasks => CheckAndGetTextureHandle(ref _gbufferMasks);
 
         public TextureHandle CameraHZBScaled => CheckAndGetTextureHandle(ref _cameraHzbScaled);
 
@@ -150,6 +152,20 @@ namespace DELTation.AAAARP.FrameData
 
                 _gbufferNormals = renderGraph.CreateTexture(desc);
             }
+
+            {
+                TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("GBuffer_Masks", cameraData.CameraTargetDescriptor);
+                desc.depthBufferBits = DepthBits.None;
+                desc.colorFormat = GraphicsFormat.R8G8B8A8_UNorm;
+                desc.filterMode = FilterMode.Bilinear;
+                desc.wrapMode = TextureWrapMode.Clamp;
+                desc.clearBuffer = true;
+                desc.clearColor = Color.clear;
+                desc.width = scaledCameraTargetViewportSize.x;
+                desc.height = scaledCameraTargetViewportSize.y;
+
+                _gbufferMasks = renderGraph.CreateTexture(desc);
+            }
         }
 
         private void ImportFinalTarget(RenderGraph renderGraph, AAAACameraData cameraData)
@@ -213,6 +229,7 @@ namespace DELTation.AAAARP.FrameData
 
             _gbufferAlbedo = default;
             _gbufferNormals = default;
+            _gbufferMasks = default;
 
             _cameraHzbScaled = default;
         }
@@ -277,8 +294,11 @@ namespace DELTation.AAAARP.FrameData
         public static class ShaderPropertyID
         {
             public static readonly int _VisibilityBuffer = Shader.PropertyToID(nameof(_VisibilityBuffer));
+            
             public static readonly int _GBuffer_Albedo = Shader.PropertyToID(nameof(_GBuffer_Albedo));
             public static readonly int _GBuffer_Normals = Shader.PropertyToID(nameof(_GBuffer_Normals));
+            public static readonly int _GBuffer_Masks = Shader.PropertyToID(nameof(_GBuffer_Masks));
+            
             public static readonly int _CameraDepth = Shader.PropertyToID(nameof(_CameraDepth));
         }
     }

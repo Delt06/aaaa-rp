@@ -16,3 +16,6 @@ MonoBehaviour:
   AlbedoColor: {r: 1, g: 1, b: 1, a: 1}
   Normals: {fileID: 2800000, guid: 6b0265e4bd87301478528d0095fe73d5, type: 3}
   NormalsStrength: 5
+  Masks: {fileID: 2800000, guid: f258c1787d1baae489ef069a92578760, type: 3}
+  Roughness: 1
+  Metallic: 1

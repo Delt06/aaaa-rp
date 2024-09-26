@@ -27,6 +27,7 @@ namespace DELTation.AAAARP.Debugging
         Depth,
         Albedo,
         Normals,
+        Masks,
     }
 
     [GenerateHLSL]

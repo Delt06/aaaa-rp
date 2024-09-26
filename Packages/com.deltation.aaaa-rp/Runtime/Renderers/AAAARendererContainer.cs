@@ -314,8 +314,13 @@ namespace DELTation.AAAARP.Renderers
             {
                 AlbedoColor = (Vector4) material.AlbedoColor,
                 AlbedoIndex = GetOrAllocateTexture(material.Albedo),
+
                 NormalsIndex = GetOrAllocateTexture(material.Normals),
                 NormalsStrength = material.NormalsStrength,
+
+                MasksIndex = GetOrAllocateTexture(material.Masks),
+                Roughness = material.Roughness,
+                Metallic = material.Metallic,
             };
             _materialData.Add(materialData);
             index = _materialData.Length - 1;

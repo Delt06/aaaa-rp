@@ -39,6 +39,9 @@ struct AAAAMaterialData
     uint AlbedoIndex;
     uint NormalsIndex;
     float NormalsStrength;
+    uint MasksIndex;
+    float Roughness;
+    float Metallic;
     uint Padding0;
 };
 

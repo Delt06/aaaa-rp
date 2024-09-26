@@ -100,10 +100,16 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                     normalWS = TransformTangentToWorld(normalTS, tangentToWorld, true);
                 }
 
+                const MaterialMasks materialMasks = SampleMasks(uv, materialData);
+
                 GBufferValue gbufferValue;
                 gbufferValue.albedo = albedo;
                 gbufferValue.normalWS = normalWS;
+                gbufferValue.roughness = materialMasks.roughness;
+                gbufferValue.metallic = materialMasks.metallic;
+
                 return PackGBufferOutput(gbufferValue);
+
             }
             ENDHLSL
         }

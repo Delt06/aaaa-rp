@@ -38,6 +38,7 @@ namespace DELTation.AAAARP.Passes.Debugging
 
             builder.UseTexture(resourceData.GBufferAlbedo, AccessFlags.Read);
             builder.UseTexture(resourceData.GBufferNormals, AccessFlags.Read);
+            builder.UseTexture(resourceData.GBufferMasks, AccessFlags.Read);
             builder.UseTexture(resourceData.CameraDepthBuffer, AccessFlags.Read);
             builder.SetRenderAttachment(resourceData.CameraColorBuffer, 0, AccessFlags.ReadWrite);
             builder.AllowGlobalStateModification(true);
