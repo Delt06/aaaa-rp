@@ -48,8 +48,13 @@ namespace DELTation.AAAARP.Passes.Debugging
 
             foreach (AAAAGPUCullingDebugData item in data)
             {
+                aggregateData.FrustumCulledInstances += item.FrustumCulledInstances;
+                aggregateData.FrustumCulledMeshlets += item.FrustumCulledMeshlets;
+                
                 aggregateData.OcclusionCulledInstances += item.OcclusionCulledInstances;
                 aggregateData.OcclusionCulledMeshlets += item.OcclusionCulledMeshlets;
+
+                aggregateData.ConeCulledMeshlets += item.ConeCulledMeshlets;
             }
 
             return aggregateData;

@@ -26,8 +26,11 @@
 // PackingRules = Exact
 struct AAAAGPUCullingDebugData
 {
+    uint FrustumCulledInstances;
+    uint FrustumCulledMeshlets;
     uint OcclusionCulledInstances;
     uint OcclusionCulledMeshlets;
+    uint ConeCulledMeshlets;
 };
 
 

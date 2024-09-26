@@ -9,8 +9,11 @@ namespace DELTation.AAAARP.Debugging
     {
         public const uint GPUCullingDebugBufferDimension = 16;
 
+        public uint FrustumCulledInstances;
+        public uint FrustumCulledMeshlets;
         public uint OcclusionCulledInstances;
         public uint OcclusionCulledMeshlets;
+        public uint ConeCulledMeshlets;
     }
 
     [GenerateHLSL]

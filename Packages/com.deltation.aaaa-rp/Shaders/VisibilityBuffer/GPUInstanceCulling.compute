@@ -45,25 +45,26 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     const AAAAInstanceData instanceData = PullInstanceData(instanceID);
 
-    const AABB   aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);
-    const AABB   aabbWS = TransformAABB(aabbOS, instanceData.ObjectToWorldMatrix);
-    const float4 instanceBoundingSphere = AABBToBoundingSphere(aabbWS);
+    const AABB             aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);
+    const AABB             aabbWS = TransformAABB(aabbOS, instanceData.ObjectToWorldMatrix);
+    const float4           boundingSphereWS = AABBToBoundingSphere(aabbWS);
+    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(aabbWS, _CameraViewProjection);
 
     UNITY_BRANCH
-    if (!FrustumVsSphereCulling(_CameraFrustumPlanes, instanceBoundingSphere))
+    if (!FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphereWS))
     {
         OcclusionCulling::MarkInvisibleThisFrame(instanceID);
+        GPUCullingDebug::OnCulled(boundingSquareSS, AAAAGPUCULLINGDEBUGGRANULARITY_INSTANCE, AAAAGPUCULLINGDEBUGTYPE_FRUSTUM);
         return;
     }
 
     #if defined(FALSE_NEGATIVE_PASS)
-    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(aabbWS, _CameraViewProjection);
 
     UNITY_BRANCH
     if (!OcclusionCulling::IsVisible(boundingSquareSS))
     {
         OcclusionCulling::MarkInvisibleThisFrame(instanceID);
-        GPUCullingDebug::OnCulled((boundingSquareSS.MinUV + boundingSquareSS.MaxUV) * 0.5f, AAAAGPUCULLINGDEBUGGRANULARITY_INSTANCE, AAAAGPUCULLINGDEBUGTYPE_OCCLUSION);
+        GPUCullingDebug::OnCulled(boundingSquareSS, AAAAGPUCULLINGDEBUGGRANULARITY_INSTANCE, AAAAGPUCULLINGDEBUGTYPE_OCCLUSION);
         return;
     }
 

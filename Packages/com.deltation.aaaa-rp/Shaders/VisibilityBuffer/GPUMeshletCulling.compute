@@ -31,32 +31,43 @@ RWByteAddressBuffer _DestinationMeshlets;
 
 bool Culling(const AAAAInstanceData instanceData, const AAAAMeshlet meshletData)
 {
-    const float4 boundingSphere = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
-
+    const float4           boundingSphere = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
+    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(boundingSphere, _CameraViewProjection);
 
     bool result = false;
 
     UNITY_BRANCH
-    if (FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphere) || !ConeCulling(_CameraPosition.xyz, instanceData, meshletData))
+    if (FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphere))
     {
-        #if defined(FALSE_NEGATIVE_PASS)
-        
-        const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(boundingSphere, _CameraViewProjection);
         UNITY_BRANCH
-        if (OcclusionCulling::IsVisible(boundingSquareSS))
+        if (ConeCulling(_CameraPosition.xyz, instanceData, meshletData))
         {
+            #if defined(FALSE_NEGATIVE_PASS)
+        
+            UNITY_BRANCH
+            if (OcclusionCulling::IsVisible(boundingSquareSS))
+            {
+                result = true;
+            }
+            else
+            {
+                GPUCullingDebug::OnCulled(boundingSquareSS, AAAAGPUCULLINGDEBUGGRANULARITY_MESHLET, AAAAGPUCULLINGDEBUGTYPE_OCCLUSION);
+            }
+        
+            #else
+
             result = true;
+
+            #endif
         }
         else
         {
-            GPUCullingDebug::OnCulled((boundingSquareSS.MinUV + boundingSquareSS.MaxUV) * 0.5f, AAAAGPUCULLINGDEBUGGRANULARITY_MESHLET, AAAAGPUCULLINGDEBUGTYPE_OCCLUSION);
+            GPUCullingDebug::OnCulled(boundingSquareSS, AAAAGPUCULLINGDEBUGGRANULARITY_MESHLET, AAAAGPUCULLINGDEBUGTYPE_CONE);
         }
-        
-        #else
-
-        result = true;
-
-        #endif
+    }
+    else
+    {
+        GPUCullingDebug::OnCulled(boundingSquareSS, AAAAGPUCULLINGDEBUGGRANULARITY_MESHLET, AAAAGPUCULLINGDEBUGTYPE_FRUSTUM);
     }
 
     return result;

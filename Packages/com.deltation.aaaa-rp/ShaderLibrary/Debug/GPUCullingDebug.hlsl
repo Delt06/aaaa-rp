@@ -4,6 +4,7 @@
 #pragma multi_compile_local _ DEBUG_GPU_CULLING
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/Debugging/AAAAGPUCullingDebugData.cs.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 
 #ifdef DEBUG_GPU_CULLING
 #ifdef GPU_CULLING_DEBUG_DATA_BUFFER_READONLY
@@ -34,8 +35,10 @@ struct GPUCullingDebug
             switch (cullingGranularity)
             {
             case AAAAGPUCULLINGDEBUGGRANULARITY_INSTANCE:
+                InterlockedAdd(_GPUCullingDebugDataBuffer[itemIndex].FrustumCulledInstances, 1);
                 break;
             case AAAAGPUCULLINGDEBUGGRANULARITY_MESHLET:
+                InterlockedAdd(_GPUCullingDebugDataBuffer[itemIndex].FrustumCulledMeshlets, 1);
                 break;
             default:
                 break;
@@ -60,6 +63,7 @@ struct GPUCullingDebug
             case AAAAGPUCULLINGDEBUGGRANULARITY_INSTANCE:
                 break;
             case AAAAGPUCULLINGDEBUGGRANULARITY_MESHLET:
+                InterlockedAdd(_GPUCullingDebugDataBuffer[itemIndex].ConeCulledMeshlets, 1);
                 break;
             default:
                 break;
@@ -69,6 +73,11 @@ struct GPUCullingDebug
             break;
         }
         #endif
+    }
+
+    static void OnCulled(const BoundingSquareSS boundingSquareSS, const uint cullingGranularity, const uint cullingType)
+    {
+        OnCulled((boundingSquareSS.MinUV + boundingSquareSS.MaxUV) * 0.5f, cullingGranularity, cullingType);
     }
     #endif
 };
