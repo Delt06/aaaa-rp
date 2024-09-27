@@ -1,4 +1,4 @@
-Shader "Hidden/AAAA/ConvolveDiffuseIrradiance"
+Shader "Hidden/AAAA/IBL/ConvolveDiffuseIrradiance"
 {
     HLSLINCLUDE
     #pragma target 2.0
@@ -19,6 +19,8 @@ Shader "Hidden/AAAA/ConvolveDiffuseIrradiance"
 
         Pass
         {
+            Name "Convolve Diffuse Irradiance"
+
             ZWrite Off
             ZTest Off
             ZClip Off

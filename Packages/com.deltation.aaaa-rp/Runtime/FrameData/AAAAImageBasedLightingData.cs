@@ -8,9 +8,12 @@ namespace DELTation.AAAARP.FrameData
 {
     public class AAAAImageBasedLightingData : ContextItem
     {
+        public TextureHandle BRDFLut;
+        public bool BRDFLutIsDirty;
+
         public TextureHandle DiffuseIrradiance;
-        public RenderTextureDescriptor DiffuseIrradianceDesc;
         public SphericalHarmonicsL2? DiffuseIrradianceAmbientProbe;
+        public RenderTextureDescriptor DiffuseIrradianceDesc;
 
         public void Init(AAAAImageBasedLightingSettings settings, RenderGraph renderGraph)
         {
@@ -26,6 +29,19 @@ namespace DELTation.AAAARP.FrameData
                 DiffuseIrradiance = renderGraph.CreateSharedTexture(AAAARenderingUtils.CreateTextureDesc(nameof(DiffuseIrradiance), DiffuseIrradianceDesc));
                 DiffuseIrradianceAmbientProbe = default;
             }
+
+            if (!BRDFLut.IsValid())
+            {
+                int resolution = (int) settings.BRDFLutResolution;
+                const int depthBufferBits = 0;
+                const int mipCount = 1;
+                var desc = new RenderTextureDescriptor(resolution, resolution, GraphicsFormat.R16G16_SFloat, depthBufferBits, mipCount)
+                {
+                    dimension = TextureDimension.Tex2D,
+                };
+                BRDFLut = renderGraph.CreateSharedTexture(AAAARenderingUtils.CreateTextureDesc(nameof(BRDFLut), desc));
+                BRDFLutIsDirty = true;
+            }
         }
 
         public override void Reset()
@@ -33,6 +49,9 @@ namespace DELTation.AAAARP.FrameData
             DiffuseIrradiance = TextureHandle.nullHandle;
             DiffuseIrradianceDesc = default;
             DiffuseIrradianceAmbientProbe = default;
+
+            BRDFLut = TextureHandle.nullHandle;
+            BRDFLutIsDirty = true;
         }
     }
 }

@@ -9,6 +9,7 @@ namespace DELTation.AAAARP
     public class AAAARenderer : AAAARendererBase
     {
         private readonly ConvolveDiffuseIrradiancePass _convolveDiffuseIrradiancePass;
+        private readonly BRDFIntegrationPass _brdfIntegrationPass;
         private readonly DeferredLightingPass _deferredLightingPass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferFalseNegativePass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferMainPass;
@@ -26,6 +27,7 @@ namespace DELTation.AAAARP
             AAAARenderPipelineDefaultTextures defaultTextures = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineDefaultTextures>();
 
             _convolveDiffuseIrradiancePass = new ConvolveDiffuseIrradiancePass(AAAARenderPassEvent.BeforeRendering, shaders);
+            _brdfIntegrationPass = new BRDFIntegrationPass(AAAARenderPassEvent.BeforeRendering, shaders);
             _setupLightingPass = new SetupLightingPass(AAAARenderPassEvent.BeforeRendering);
             _gpuCullingMainPass = new GPUCullingPass(GPUCullingPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders,
                 DebugHandler?.DisplaySettings
@@ -47,6 +49,7 @@ namespace DELTation.AAAARP
         protected override void Setup(RenderGraph renderGraph, ScriptableRenderContext context)
         {
             EnqueuePass(_convolveDiffuseIrradiancePass);
+            EnqueuePass(_brdfIntegrationPass);
             EnqueuePass(_setupLightingPass);
 
             Camera cullingCameraOverride = DebugHandler?.GetGPUCullingCameraOverride();
@@ -71,6 +74,7 @@ namespace DELTation.AAAARP
             base.Dispose(disposing);
 
             _convolveDiffuseIrradiancePass.Dispose();
+            _brdfIntegrationPass.Dispose();
             _gpuCullingMainPass.Dispose();
             _gpuCullingFalseNegativePass.Dispose();
         }
