@@ -34,6 +34,7 @@ namespace DELTation.AAAARP.Passes.IBL
                 return;
             }
 
+            passData.CullPass = false;
             imageBasedLightingData.DiffuseIrradianceAmbientProbe = ambientProbe;
 
             passData.Source = ReflectionProbe.defaultTexture;
