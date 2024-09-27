@@ -15,6 +15,10 @@ namespace DELTation.AAAARP.FrameData
         public SphericalHarmonicsL2? DiffuseIrradianceAmbientProbe;
         public RenderTextureDescriptor DiffuseIrradianceDesc;
 
+        public TextureHandle PreFilteredEnvironmentMap;
+        public RenderTextureDescriptor PreFilteredEnvironmentMapDesc;
+        public bool PreFilteredEnvironmentMapIsDirty;
+
         public void Init(AAAAImageBasedLightingSettings settings, RenderGraph renderGraph)
         {
             if (!DiffuseIrradiance.IsValid())
@@ -42,6 +46,25 @@ namespace DELTation.AAAARP.FrameData
                 BRDFLut = renderGraph.CreateSharedTexture(AAAARenderingUtils.CreateTextureDesc(nameof(BRDFLut), desc));
                 BRDFLutIsDirty = true;
             }
+
+            if (!PreFilteredEnvironmentMap.IsValid())
+            {
+                int resolution = (int) settings.PreFilteredEnvironmentMapResolution;
+                const int depthBufferBits = 0;
+                int mipCount = settings.PreFilteredEnvironmentMapMipCount;
+
+                PreFilteredEnvironmentMapDesc =
+                    new RenderTextureDescriptor(resolution, resolution, GraphicsFormat.R16G16B16A16_SFloat, depthBufferBits, mipCount)
+                    {
+                        dimension = TextureDimension.Cube,
+                        useMipMap = true,
+                        autoGenerateMips = false,
+                    };
+                PreFilteredEnvironmentMap =
+                    renderGraph.CreateSharedTexture(AAAARenderingUtils.CreateTextureDesc(nameof(PreFilteredEnvironmentMap), PreFilteredEnvironmentMapDesc));
+
+                PreFilteredEnvironmentMapIsDirty = true;
+            }
         }
 
         public override void Reset()
@@ -52,6 +75,9 @@ namespace DELTation.AAAARP.FrameData
 
             BRDFLut = TextureHandle.nullHandle;
             BRDFLutIsDirty = true;
+
+            PreFilteredEnvironmentMap = TextureHandle.nullHandle;
+            PreFilteredEnvironmentMapIsDirty = true;
         }
     }
 }

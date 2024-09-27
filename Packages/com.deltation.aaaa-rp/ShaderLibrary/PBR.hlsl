@@ -29,7 +29,10 @@ float3 ComputeLightingPBR(const SurfaceData surfaceData)
     brdfInput.irradiance = SampleDiffuseIrradiance(surfaceData.normalWS);
     brdfInput.ambientOcclusion = 1.0f;
 
-    const float3 lighting = ComputeBRDF(brdfInput) + ComputeBRDFAmbient(brdfInput);
+    const float3 direct = ComputeBRDF(brdfInput);
+    const float3 indirectDiffuse = ComputeBRDFIndirectDiffuse(brdfInput);
+    const float3 indirectSpecular = ComputeBRDFIndirectSpecular(brdfInput);
+    const float3 lighting = direct + aaaa_AmbientIntensity * (indirectDiffuse + indirectSpecular);
     return lighting;
 }
 

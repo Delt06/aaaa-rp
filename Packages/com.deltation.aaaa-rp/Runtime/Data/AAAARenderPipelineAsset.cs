@@ -28,7 +28,11 @@ namespace DELTation.AAAARP.Data
     public class AAAAImageBasedLightingSettings
     {
         public AAAATextureSize DiffuseIrradianceResolution = AAAATextureSize._128;
+
         public AAAATextureSize BRDFLutResolution = AAAATextureSize._128;
+
+        public AAAATextureSize PreFilteredEnvironmentMapResolution = AAAATextureSize._512;
+        [Range(1, 10)] public int PreFilteredEnvironmentMapMipCount = 5;
     }
 
     [CreateAssetMenu(menuName = "AAAA RP/AAAA Render Pipeline Asset")]

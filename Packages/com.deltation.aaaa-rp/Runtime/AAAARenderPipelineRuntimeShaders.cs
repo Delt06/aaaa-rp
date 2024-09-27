@@ -34,6 +34,10 @@ namespace DELTation.AAAARP
         private Shader _brdfIntegrationPS;
 
         [SerializeField]
+        [ResourcePath("Shaders/IBL/PreFilterEnvironment.shader")]
+        private Shader _preFilterEnvironmentPS;
+
+        [SerializeField]
         [ResourcePath("Shaders/VisibilityBuffer/VisibilityBuffer.shader")]
         private Shader _visibilityBufferPS;
 
@@ -100,6 +104,12 @@ namespace DELTation.AAAARP
         {
             get => _brdfIntegrationPS;
             set => this.SetValueAndNotify(ref _brdfIntegrationPS, value, nameof(_brdfIntegrationPS));
+        }
+
+        public Shader PreFilterEnvironmentPS
+        {
+            get => _preFilterEnvironmentPS;
+            set => this.SetValueAndNotify(ref _preFilterEnvironmentPS, value, nameof(_preFilterEnvironmentPS));
         }
 
         public Shader VisibilityBufferPS

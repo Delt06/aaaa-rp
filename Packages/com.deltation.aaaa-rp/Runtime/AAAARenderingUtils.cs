@@ -16,6 +16,7 @@ namespace DELTation.AAAARP
                 dimension = input.dimension,
                 slices = input.volumeDepth,
                 name = name,
+                useMipMap = input.useMipMap,
             };
 
         internal static Vector4 GetFinalBlitScaleBias(RTHandle source, RTHandle destination, AAAACameraData cameraData)

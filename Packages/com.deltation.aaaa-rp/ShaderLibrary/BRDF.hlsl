@@ -2,6 +2,7 @@
 #define AAAA_BRDF_INCLUDED
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
 
 struct BRDFInput
 {
@@ -70,43 +71,59 @@ float3 ComputeF0(const BRDFInput input)
 
 float3 ComputeBRDF(const BRDFInput input)
 {
-    float3 eyeWS = normalize(input.cameraPositionWS - input.positionWS);
-    float3 halfVectorWS = normalize(eyeWS + input.lightDirectionWS);
+    const float3 eyeWS = normalize(input.cameraPositionWS - input.positionWS);
+    const float3 halfVectorWS = normalize(eyeWS + input.lightDirectionWS);
 
-    float3 radiance = input.lightColor;
+    const float3 radiance = input.lightColor;
 
-    float3 F0 = ComputeF0(input);
-    float3 F = FresnelSchlick(max(dot(halfVectorWS, eyeWS), 0.0), F0);
+    const float3 F0 = ComputeF0(input);
+    const float3 F = FresnelSchlick(max(dot(halfVectorWS, eyeWS), 0.0), F0);
 
-    float NDF = DistributionGGX(input.normalWS, halfVectorWS, input.roughness);
-    float G = GeometrySmith(input.normalWS, eyeWS, input.lightDirectionWS, input.roughness);
+    const float NDF = DistributionGGX(input.normalWS, halfVectorWS, input.roughness);
+    const float G = GeometrySmith(input.normalWS, eyeWS, input.lightDirectionWS, input.roughness);
 
-    float3 numerator = NDF * G * F;
-    float  denominator = 4.0 * max(dot(input.normalWS, eyeWS), 0.0) * max(dot(input.normalWS, input.lightDirectionWS), 0.0) + 0.0001;
-    float3 specular = numerator / denominator;
+    const float3 numerator = NDF * G * F;
+    const float  denominator = 4.0 * max(dot(input.normalWS, eyeWS), 0.0) * max(dot(input.normalWS, input.lightDirectionWS), 0.0) + 0.0001;
+    const float3 specular = numerator / denominator;
 
-    float3 kS = F;
-    float3 kD = 1.0 - kS;
+    const float3 kS = F;
+    float3       kD = 1.0 - kS;
 
     kD *= 1.0 - input.metallic;
 
-    float NdotL = max(dot(input.normalWS, input.lightDirectionWS), 0.0);
+    const float NdotL = max(dot(input.normalWS, input.lightDirectionWS), 0.0);
 
     return (kD * input.diffuseColor / PI + specular) * radiance * NdotL;
 }
 
-float3 ComputeBRDFAmbient(const BRDFInput input)
+float3 ComputeBRDFIndirectDiffuse(const BRDFInput input)
 {
-    float3 eyeWS = normalize(input.cameraPositionWS - input.positionWS);
+    const float3 eyeWS = normalize(input.cameraPositionWS - input.positionWS);
 
-    float3 F0 = ComputeF0(input);
-    float3 F = FresnelSchlick(max(dot(input.normalWS, eyeWS), 0.0), F0, input.roughness);
-    float3 kS = F;
-    float3 kD = 1.0 - kS;
+    const float3 F0 = ComputeF0(input);
+    const float3 F = FresnelSchlick(max(dot(input.normalWS, eyeWS), 0.0), F0, input.roughness);
+    const float3 kS = F;
+    float3       kD = 1.0 - kS;
     kD *= 1.0 - input.metallic;
 
-    float3 diffuse = input.irradiance * input.diffuseColor;
+    const float3 diffuse = input.irradiance * input.diffuseColor;
     return (kD * diffuse) * input.ambientOcclusion;
+}
+
+float3 ComputeBRDFIndirectSpecular(const BRDFInput input)
+{
+    const float3 eyeWS = normalize(input.cameraPositionWS - input.positionWS);
+    const float3 reflectionWS = reflect(-eyeWS, input.normalWS);
+
+    const float3 F0 = ComputeF0(input);
+    const float  NdotI = max(dot(input.normalWS, eyeWS), 0.0);
+    const float3 F = FresnelSchlick(NdotI, F0, input.roughness);
+
+    // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/6.pbr/2.2.1.ibl_specular/2.2.1.pbr.fs
+    const float3 prefilteredColor = SamplePrefilteredEnvironment(reflectionWS, input.roughness);
+    const float2 brdf = SampleBRDFLut(NdotI, input.roughness);
+    const float3 specular = prefilteredColor * (F * brdf.x + brdf.y); // A channel stores fade amount
+    return specular * input.ambientOcclusion;
 }
 
 #endif // AAAA_BRDF_INCLUDED

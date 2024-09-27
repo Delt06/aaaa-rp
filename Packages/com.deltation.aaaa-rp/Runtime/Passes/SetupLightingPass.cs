@@ -27,15 +27,21 @@ namespace DELTation.AAAARP.Passes
             }
 
             passData.DiffuseIrradianceCubemap = builder.ReadTexture(imageBasedLightingData.DiffuseIrradiance);
+            passData.BRDFLut = builder.ReadTexture(imageBasedLightingData.BRDFLut);
+            passData.PreFilteredEnvironmentMap = builder.ReadTexture(imageBasedLightingData.PreFilteredEnvironmentMap);
+            passData.PreFilteredEnvironmentMapMaxLOD = imageBasedLightingData.PreFilteredEnvironmentMapDesc.mipCount - 1;
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
             context.cmd.SetGlobalVector(ShaderPropertyID._MainLight_Color, data.MainLightColor);
             context.cmd.SetGlobalVector(ShaderPropertyID._MainLight_Direction, data.MainLightDirection);
-            
+
             context.cmd.SetGlobalTexture(ShaderPropertyID.aaaa_DiffuseIrradianceCubemap, data.DiffuseIrradianceCubemap);
             context.cmd.SetGlobalFloat(ShaderPropertyID.aaaa_AmbientIntensity, RenderSettings.ambientIntensity);
+            context.cmd.SetGlobalTexture(ShaderPropertyID.aaaa_BRDFLut, data.BRDFLut);
+            context.cmd.SetGlobalTexture(ShaderPropertyID.aaaa_PreFilteredEnvironmentMap, data.PreFilteredEnvironmentMap);
+            context.cmd.SetGlobalFloat(ShaderPropertyID.aaaa_PreFilteredEnvironmentMap_MaxLOD, data.PreFilteredEnvironmentMapMaxLOD);
 
             var shCoefficients = new SHCoefficients(RenderSettings.ambientProbe);
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHAr, shCoefficients.SHAr);
@@ -49,10 +55,12 @@ namespace DELTation.AAAARP.Passes
 
         public class PassData : PassDataBase
         {
+            public TextureHandle BRDFLut;
+            public TextureHandle DiffuseIrradianceCubemap;
             public Vector4 MainLightColor;
             public Vector4 MainLightDirection;
-
-            public TextureHandle DiffuseIrradianceCubemap;
+            public TextureHandle PreFilteredEnvironmentMap;
+            public float PreFilteredEnvironmentMapMaxLOD;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -63,6 +71,9 @@ namespace DELTation.AAAARP.Passes
 
             public static readonly int aaaa_DiffuseIrradianceCubemap = Shader.PropertyToID(nameof(aaaa_DiffuseIrradianceCubemap));
             public static readonly int aaaa_AmbientIntensity = Shader.PropertyToID(nameof(aaaa_AmbientIntensity));
+            public static readonly int aaaa_BRDFLut = Shader.PropertyToID(nameof(aaaa_BRDFLut));
+            public static readonly int aaaa_PreFilteredEnvironmentMap = Shader.PropertyToID(nameof(aaaa_PreFilteredEnvironmentMap));
+            public static readonly int aaaa_PreFilteredEnvironmentMap_MaxLOD = Shader.PropertyToID(nameof(aaaa_PreFilteredEnvironmentMap_MaxLOD));
 
             public static readonly int aaaa_SHAr = Shader.PropertyToID(nameof(aaaa_SHAr));
             public static readonly int aaaa_SHAg = Shader.PropertyToID(nameof(aaaa_SHAg));

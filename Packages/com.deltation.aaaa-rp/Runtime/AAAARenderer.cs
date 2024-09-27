@@ -8,8 +8,8 @@ namespace DELTation.AAAARP
 {
     public class AAAARenderer : AAAARendererBase
     {
-        private readonly ConvolveDiffuseIrradiancePass _convolveDiffuseIrradiancePass;
         private readonly BRDFIntegrationPass _brdfIntegrationPass;
+        private readonly ConvolveDiffuseIrradiancePass _convolveDiffuseIrradiancePass;
         private readonly DeferredLightingPass _deferredLightingPass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferFalseNegativePass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferMainPass;
@@ -17,6 +17,7 @@ namespace DELTation.AAAARP
         private readonly GPUCullingPass _gpuCullingFalseNegativePass;
         private readonly GPUCullingPass _gpuCullingMainPass;
         private readonly HZBGenerationPass _hzbGenerationPass;
+        private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly SetupLightingPass _setupLightingPass;
         private readonly SkyboxPass _skyboxPass;
@@ -28,6 +29,7 @@ namespace DELTation.AAAARP
 
             _convolveDiffuseIrradiancePass = new ConvolveDiffuseIrradiancePass(AAAARenderPassEvent.BeforeRendering, shaders);
             _brdfIntegrationPass = new BRDFIntegrationPass(AAAARenderPassEvent.BeforeRendering, shaders);
+            _preFilterEnvironmentPass = new PreFilterEnvironmentPass(AAAARenderPassEvent.BeforeRendering, shaders);
             _setupLightingPass = new SetupLightingPass(AAAARenderPassEvent.BeforeRendering);
             _gpuCullingMainPass = new GPUCullingPass(GPUCullingPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders,
                 DebugHandler?.DisplaySettings
@@ -50,6 +52,8 @@ namespace DELTation.AAAARP
         {
             EnqueuePass(_convolveDiffuseIrradiancePass);
             EnqueuePass(_brdfIntegrationPass);
+            EnqueuePass(_preFilterEnvironmentPass);
+
             EnqueuePass(_setupLightingPass);
 
             Camera cullingCameraOverride = DebugHandler?.GetGPUCullingCameraOverride();
@@ -75,6 +79,8 @@ namespace DELTation.AAAARP
 
             _convolveDiffuseIrradiancePass.Dispose();
             _brdfIntegrationPass.Dispose();
+            _preFilterEnvironmentPass.Dispose();
+
             _gpuCullingMainPass.Dispose();
             _gpuCullingFalseNegativePass.Dispose();
         }

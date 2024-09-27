@@ -44,11 +44,11 @@ namespace DELTation.AAAARP.Passes.IBL
 
             passData.FinalDestination = builder.WriteTexture(imageBasedLightingData.DiffuseIrradiance);
 
-            RenderTextureDescriptor diffuseIrradianceDesc = imageBasedLightingData.DiffuseIrradianceDesc;
+            RenderTextureDescriptor destinationDesc = imageBasedLightingData.DiffuseIrradianceDesc;
 
             var sideDescriptor = new RenderTextureDescriptor(
-                diffuseIrradianceDesc.width, diffuseIrradianceDesc.height,
-                diffuseIrradianceDesc.graphicsFormat, diffuseIrradianceDesc.depthBufferBits
+                destinationDesc.width, destinationDesc.height,
+                destinationDesc.graphicsFormat, destinationDesc.depthBufferBits
             );
 
             for (int index = 0; index < passData.TempSides.Length; index++)
@@ -69,7 +69,7 @@ namespace DELTation.AAAARP.Passes.IBL
                 return;
             }
 
-            using (new ProfilingScope(Profiling.Convolve))
+            using (new ProfilingScope(context.cmd, Profiling.Convolve))
             {
                 ReadOnlySpan<CubemapUtils.SideOrientation> sideOrientations = CubemapUtils.GetSideOrientations();
 
@@ -91,7 +91,7 @@ namespace DELTation.AAAARP.Passes.IBL
                 }
             }
 
-            using (new ProfilingScope(Profiling.CopyToCubemap))
+            using (new ProfilingScope(context.cmd, Profiling.CopyToCubemap))
             {
                 for (int sideIndex = 0; sideIndex < CubemapUtils.SideCount; sideIndex++)
                 {

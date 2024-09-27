@@ -20,6 +20,11 @@ SAMPLER(sampleraaaa_DiffuseIrradianceCubemap);
 
 float aaaa_AmbientIntensity;
 
+TEXTURE2D(aaaa_BRDFLut);
+
+TEXTURECUBE(aaaa_PreFilteredEnvironmentMap);
+float aaaa_PreFilteredEnvironmentMap_MaxLOD;
+
 struct Light
 {
     float3 color;
@@ -50,7 +55,18 @@ float3 SampleSH_AAAA(const float3 normalWS)
 
 float3 SampleDiffuseIrradiance(const float3 normalWS)
 {
-    return SAMPLE_TEXTURECUBE(aaaa_DiffuseIrradianceCubemap, sampleraaaa_DiffuseIrradianceCubemap, normalWS).rgb * aaaa_AmbientIntensity;
+    return SAMPLE_TEXTURECUBE(aaaa_DiffuseIrradianceCubemap, sampleraaaa_DiffuseIrradianceCubemap, normalWS).rgb;
+}
+
+float2 SampleBRDFLut(const float NdotI, const float roughness)
+{
+    return SAMPLE_TEXTURE2D(aaaa_BRDFLut, sampler_LinearClamp, float2(NdotI, roughness)).rg;
+}
+
+float3 SamplePrefilteredEnvironment(const float3 reflectionWS, const float roughness)
+{
+    return SAMPLE_TEXTURECUBE_LOD(aaaa_PreFilteredEnvironmentMap, sampler_TrilinearClamp, reflectionWS,
+                                  roughness * aaaa_PreFilteredEnvironmentMap_MaxLOD).rgb;
 }
 
 #endif // AAAA_GBUFFER_INCLUDED
