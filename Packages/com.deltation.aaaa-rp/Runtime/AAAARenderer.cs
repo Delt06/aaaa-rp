@@ -1,4 +1,5 @@
 using DELTation.AAAARP.Passes;
+using DELTation.AAAARP.Passes.IBL;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -7,6 +8,7 @@ namespace DELTation.AAAARP
 {
     public class AAAARenderer : AAAARendererBase
     {
+        private readonly ConvolveDiffuseIrradiancePass _convolveDiffuseIrradiancePass;
         private readonly DeferredLightingPass _deferredLightingPass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferFalseNegativePass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferMainPass;
@@ -23,9 +25,14 @@ namespace DELTation.AAAARP
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
             AAAARenderPipelineDefaultTextures defaultTextures = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineDefaultTextures>();
 
+            _convolveDiffuseIrradiancePass = new ConvolveDiffuseIrradiancePass(AAAARenderPassEvent.BeforeRendering, shaders);
             _setupLightingPass = new SetupLightingPass(AAAARenderPassEvent.BeforeRendering);
-            _gpuCullingMainPass = new GPUCullingPass(GPUCullingPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders, DebugHandler?.DisplaySettings);
-            _gpuCullingFalseNegativePass = new GPUCullingPass(GPUCullingPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders, DebugHandler?.DisplaySettings);
+            _gpuCullingMainPass = new GPUCullingPass(GPUCullingPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders,
+                DebugHandler?.DisplaySettings
+            );
+            _gpuCullingFalseNegativePass = new GPUCullingPass(GPUCullingPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders,
+                DebugHandler?.DisplaySettings
+            );
             _hzbGenerationPass = new HZBGenerationPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
             _drawVisibilityBufferMainPass =
                 new DrawVisibilityBufferPass(DrawVisibilityBufferPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer);
@@ -39,6 +46,7 @@ namespace DELTation.AAAARP
 
         protected override void Setup(RenderGraph renderGraph, ScriptableRenderContext context)
         {
+            EnqueuePass(_convolveDiffuseIrradiancePass);
             EnqueuePass(_setupLightingPass);
 
             Camera cullingCameraOverride = DebugHandler?.GetGPUCullingCameraOverride();
@@ -61,6 +69,8 @@ namespace DELTation.AAAARP
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
+
+            _convolveDiffuseIrradiancePass.Dispose();
             _gpuCullingMainPass.Dispose();
             _gpuCullingFalseNegativePass.Dispose();
         }

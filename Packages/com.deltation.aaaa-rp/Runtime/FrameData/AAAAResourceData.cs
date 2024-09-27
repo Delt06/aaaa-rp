@@ -18,8 +18,8 @@ namespace DELTation.AAAARP.FrameData
         private TextureHandle _cameraScaledColorBuffer;
         private TextureHandle _cameraScaledDepthBuffer;
         private TextureHandle _gbufferAlbedo;
-        private TextureHandle _gbufferNormals;
         private TextureHandle _gbufferMasks;
+        private TextureHandle _gbufferNormals;
         private TextureHandle _visibilityBuffer;
 
         internal ActiveID ActiveColorID { get; set; }
@@ -56,15 +56,15 @@ namespace DELTation.AAAARP.FrameData
             }
         }
 
-        public void InitTextures(RenderGraph renderGraph, AAAACameraData cameraData)
+        public void InitTextures(RenderGraph renderGraph, AAAARenderingData renderingData, AAAACameraData cameraData)
         {
             ActiveColorID = ActiveID.Camera;
 
-            CreateTargets(renderGraph, cameraData);
+            CreateTargets(renderGraph, renderingData, cameraData);
             ImportFinalTarget(renderGraph, cameraData);
         }
 
-        private void CreateTargets(RenderGraph renderGraph, AAAACameraData cameraData)
+        private void CreateTargets(RenderGraph renderGraph, AAAARenderingData renderingData, AAAACameraData cameraData)
         {
             var scaledCameraTargetViewportSize = new int2(cameraData.ScaledWidth, cameraData.ScaledHeight);
 
@@ -294,11 +294,11 @@ namespace DELTation.AAAARP.FrameData
         public static class ShaderPropertyID
         {
             public static readonly int _VisibilityBuffer = Shader.PropertyToID(nameof(_VisibilityBuffer));
-            
+
             public static readonly int _GBuffer_Albedo = Shader.PropertyToID(nameof(_GBuffer_Albedo));
             public static readonly int _GBuffer_Normals = Shader.PropertyToID(nameof(_GBuffer_Normals));
             public static readonly int _GBuffer_Masks = Shader.PropertyToID(nameof(_GBuffer_Masks));
-            
+
             public static readonly int _CameraDepth = Shader.PropertyToID(nameof(_CameraDepth));
         }
     }

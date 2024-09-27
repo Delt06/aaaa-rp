@@ -26,10 +26,11 @@ float3 ComputeLightingPBR(const SurfaceData surfaceData)
     brdfInput.diffuseColor = surfaceData.albedo;
     brdfInput.metallic = surfaceData.metallic;
     brdfInput.roughness = surfaceData.roughness;
+    brdfInput.irradiance = SampleDiffuseIrradiance(surfaceData.normalWS);
+    brdfInput.ambientOcclusion = 1.0f;
 
-    const float3 diffuse = ComputeBRDF(brdfInput);
-    const float3 ambient = surfaceData.albedo * SampleSH_AAAA(surfaceData.normalWS);
-    return diffuse + ambient;
+    const float3 lighting = ComputeBRDF(brdfInput) + ComputeBRDFAmbient(brdfInput);
+    return lighting;
 }
 
 #endif // AAAA_GBUFFER_INCLUDED

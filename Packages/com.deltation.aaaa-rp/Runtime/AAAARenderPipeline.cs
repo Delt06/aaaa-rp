@@ -2,6 +2,7 @@
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Renderers;
+using DELTation.AAAARP.Utils;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -65,6 +66,7 @@ namespace DELTation.AAAARP
             AAAACameraData cameraData = CreateCameraData(frameData, camera, renderer);
             CreateResourceData(frameData, cameraData);
             CreateRendererListData(frameData);
+            CreateImageBasedLightingData(frameData);
 
             RenderSingleCameraImpl(context, renderer, cameraData);
         }
@@ -133,6 +135,7 @@ namespace DELTation.AAAARP
         {
             AAAARenderingData renderingData = frameData.GetOrCreate<AAAARenderingData>();
 
+            renderingData.PipelineAsset = _pipelineAsset;
             renderingData.RenderGraph = _renderGraph;
             renderingData.RendererContainer = _rendererContainer;
 
@@ -204,6 +207,13 @@ namespace DELTation.AAAARP
             AAAARendererListData rendererListData = frameData.GetOrCreate<AAAARendererListData>();
 
             return rendererListData;
+        }
+
+        private static AAAAImageBasedLightingData CreateImageBasedLightingData(ContextContainer frameData)
+        {
+            AAAAImageBasedLightingData imageBasedLightingData = frameData.GetOrCreate<AAAAImageBasedLightingData>();
+
+            return imageBasedLightingData;
         }
     }
 }

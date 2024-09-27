@@ -5,6 +5,18 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Data
 {
+    public enum AAAATextureSize
+    {
+        _16 = 16,
+        _32 = 32,
+        _64 = 64,
+        _128 = 128,
+        _256 = 256,
+        _512 = 512,
+        _1024 = 1024,
+        _2048 = 2048,
+    }
+
     [Serializable]
     public class AAAAMeshLODSettings
     {
@@ -12,13 +24,23 @@ namespace DELTation.AAAARP.Data
         public float ErrorThreshold = 50.0f;
     }
 
+    [Serializable]
+    public class AAAAImageBasedLightingSettings
+    {
+        public AAAATextureSize DiffuseIrradianceResolution = AAAATextureSize._128;
+    }
+
     [CreateAssetMenu(menuName = "AAAA RP/AAAA Render Pipeline Asset")]
     public sealed class AAAARenderPipelineAsset : RenderPipelineAsset<AAAARenderPipeline>, IRenderGraphEnabledRenderPipeline
     {
         [SerializeField]
         private AAAAMeshLODSettings _meshLODSettings = new();
+        [SerializeField]
+        private AAAAImageBasedLightingSettings _imageBasedLightingSettings;
 
         public AAAAMeshLODSettings MeshLODSettings => _meshLODSettings;
+
+        public AAAAImageBasedLightingSettings ImageBasedLightingSettings => _imageBasedLightingSettings;
 
         public override string renderPipelineShaderTag => AAAARenderPipeline.ShaderTagName;
 

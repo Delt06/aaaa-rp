@@ -69,6 +69,7 @@ MonoBehaviour:
         _coreBlitPS: {fileID: 4800000, guid: 29427fb26560f334787965313bbaaaee, type: 3}
         _coreBlitColorAndDepthPS: {fileID: 4800000, guid: f3e34a1023829b946bb27f0109b8979d, type: 3}
         _rawBufferClearCS: {fileID: 7200000, guid: c4cc0d4f293f45579f9814974078ec3c, type: 3}
+        _convolveDiffuseIrradiancePS: {fileID: 4800000, guid: cc6d77ecde894ad2908ed275fc186f38, type: 3}
         _visibilityBufferPS: {fileID: 4800000, guid: 89b5aa0e45f1487a94f39b19e45c0476, type: 3}
         _visibilityBufferResolvePS: {fileID: 4800000, guid: 74e09c082e1b480ea48da628903e7bed, type: 3}
         _gpuInstanceCullingCS: {fileID: 7200000, guid: e8115d32b85243a1bd6ccf611c0f8f67, type: 3}

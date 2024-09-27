@@ -13,6 +13,8 @@ struct BRDFInput
     float3 diffuseColor;
     float  metallic;
     float  roughness;
+    float3 irradiance;
+    float  ambientOcclusion;
 };
 
 float3 FresnelSchlick(const float cosTheta, const float3 f0)
@@ -60,7 +62,7 @@ float GeometrySmith(const float3 n, const float3 v, const float3 l, const float 
     return ggx1 * ggx2;
 }
 
-float3 ComputeF0(const  BRDFInput input)
+float3 ComputeF0(const BRDFInput input)
 {
     float3 F0 = 0.04;
     return lerp(F0, input.diffuseColor, input.metallic);
@@ -91,6 +93,20 @@ float3 ComputeBRDF(const BRDFInput input)
     float NdotL = max(dot(input.normalWS, input.lightDirectionWS), 0.0);
 
     return (kD * input.diffuseColor / PI + specular) * radiance * NdotL;
+}
+
+float3 ComputeBRDFAmbient(const BRDFInput input)
+{
+    float3 eyeWS = normalize(input.cameraPositionWS - input.positionWS);
+
+    float3 F0 = ComputeF0(input);
+    float3 F = FresnelSchlick(max(dot(input.normalWS, eyeWS), 0.0), F0, input.roughness);
+    float3 kS = F;
+    float3 kD = 1.0 - kS;
+    kD *= 1.0 - input.metallic;
+
+    float3 diffuse = input.irradiance * input.diffuseColor;
+    return (kD * diffuse) * input.ambientOcclusion;
 }
 
 #endif // AAAA_BRDF_INCLUDED

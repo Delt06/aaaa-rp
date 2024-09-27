@@ -15,6 +15,11 @@ float4 aaaa_SHBg;
 float4 aaaa_SHBb;
 float4 aaaa_SHC;
 
+TEXTURECUBE(aaaa_DiffuseIrradianceCubemap);
+SAMPLER(sampleraaaa_DiffuseIrradianceCubemap);
+
+float aaaa_AmbientIntensity;
+
 struct Light
 {
     float3 color;
@@ -29,7 +34,7 @@ Light GetMainLight()
     return light;
 }
 
-float3 SampleSH_AAAA(const float3 normalWs)
+float3 SampleSH_AAAA(const float3 normalWS)
 {
     real4 shCoefficients[7];
     shCoefficients[0] = aaaa_SHAr;
@@ -40,7 +45,12 @@ float3 SampleSH_AAAA(const float3 normalWs)
     shCoefficients[5] = aaaa_SHBb;
     shCoefficients[6] = aaaa_SHC;
 
-    return max(float3(0, 0, 0), SampleSH9(shCoefficients, normalWs));
+    return max(float3(0, 0, 0), SampleSH9(shCoefficients, normalWS));
+}
+
+float3 SampleDiffuseIrradiance(const float3 normalWS)
+{
+    return SAMPLE_TEXTURECUBE(aaaa_DiffuseIrradianceCubemap, sampleraaaa_DiffuseIrradianceCubemap, normalWS).rgb * aaaa_AmbientIntensity;
 }
 
 #endif // AAAA_GBUFFER_INCLUDED

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Passes;
+using DELTation.AAAARP.Utils;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;

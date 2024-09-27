@@ -24,6 +24,10 @@ namespace DELTation.AAAARP
         [SerializeField]
         [ResourcePath("Shaders/Utils/RawBufferClear.compute")]
         private ComputeShader _rawBufferClearCS;
+        
+        [SerializeField]
+        [ResourcePath("Shaders/IBL/ConvolveDiffuseIrradiance.shader")]
+        private Shader _convolveDiffuseIrradiancePS;
 
         [SerializeField]
         [ResourcePath("Shaders/VisibilityBuffer/VisibilityBuffer.shader")]
@@ -80,6 +84,12 @@ namespace DELTation.AAAARP
         {
             get => _rawBufferClearCS;
             set => this.SetValueAndNotify(ref _rawBufferClearCS, value, nameof(_rawBufferClearCS));
+        }
+
+        public Shader ConvolveDiffuseIrradiancePS
+        {
+            get => _convolveDiffuseIrradiancePS;
+            set => this.SetValueAndNotify(ref _convolveDiffuseIrradiancePS, value, nameof(_convolveDiffuseIrradiancePS));
         }
 
         public Shader VisibilityBufferPS

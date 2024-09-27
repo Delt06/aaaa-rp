@@ -15,6 +15,7 @@ namespace DELTation.AAAARP.Passes
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
+            AAAAImageBasedLightingData imageBasedLightingData = frameData.Get<AAAAImageBasedLightingData>();
 
             foreach (VisibleLight visibleLight in renderingData.CullingResults.visibleLights)
             {
@@ -24,12 +25,17 @@ namespace DELTation.AAAARP.Passes
                     passData.MainLightDirection = (visibleLight.localToWorldMatrix * Vector3.back).normalized;
                 }
             }
+
+            passData.DiffuseIrradianceCubemap = builder.ReadTexture(imageBasedLightingData.DiffuseIrradiance);
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
             context.cmd.SetGlobalVector(ShaderPropertyID._MainLight_Color, data.MainLightColor);
             context.cmd.SetGlobalVector(ShaderPropertyID._MainLight_Direction, data.MainLightDirection);
+            
+            context.cmd.SetGlobalTexture(ShaderPropertyID.aaaa_DiffuseIrradianceCubemap, data.DiffuseIrradianceCubemap);
+            context.cmd.SetGlobalFloat(ShaderPropertyID.aaaa_AmbientIntensity, RenderSettings.ambientIntensity);
 
             var shCoefficients = new SHCoefficients(RenderSettings.ambientProbe);
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHAr, shCoefficients.SHAr);
@@ -45,6 +51,8 @@ namespace DELTation.AAAARP.Passes
         {
             public Vector4 MainLightColor;
             public Vector4 MainLightDirection;
+
+            public TextureHandle DiffuseIrradianceCubemap;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -52,6 +60,9 @@ namespace DELTation.AAAARP.Passes
         {
             public static readonly int _MainLight_Color = Shader.PropertyToID(nameof(_MainLight_Color));
             public static readonly int _MainLight_Direction = Shader.PropertyToID(nameof(_MainLight_Direction));
+
+            public static readonly int aaaa_DiffuseIrradianceCubemap = Shader.PropertyToID(nameof(aaaa_DiffuseIrradianceCubemap));
+            public static readonly int aaaa_AmbientIntensity = Shader.PropertyToID(nameof(aaaa_AmbientIntensity));
 
             public static readonly int aaaa_SHAr = Shader.PropertyToID(nameof(aaaa_SHAr));
             public static readonly int aaaa_SHAg = Shader.PropertyToID(nameof(aaaa_SHAg));

@@ -14,3 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _meshLODSettings:
     ErrorThreshold: 100
+  _imageBasedLightingSettings:
+    DiffuseIrradianceResolution: 128
