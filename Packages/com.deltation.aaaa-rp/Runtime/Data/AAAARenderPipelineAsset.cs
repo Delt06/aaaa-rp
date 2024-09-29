@@ -18,6 +18,13 @@ namespace DELTation.AAAARP.Data
     }
 
     [Serializable]
+    public class AAAAImageQualitySettings
+    {
+        [Range(0.5f, 2.0f)]
+        public float RenderScale = 1.0f;
+    }
+
+    [Serializable]
     public class AAAAMeshLODSettings
     {
         [Min(0.0f)]
@@ -39,9 +46,13 @@ namespace DELTation.AAAARP.Data
     public sealed class AAAARenderPipelineAsset : RenderPipelineAsset<AAAARenderPipeline>, IRenderGraphEnabledRenderPipeline
     {
         [SerializeField]
+        private AAAAImageQualitySettings _imageQualitySettings = new();
+        [SerializeField]
         private AAAAMeshLODSettings _meshLODSettings = new();
         [SerializeField]
         private AAAAImageBasedLightingSettings _imageBasedLightingSettings;
+
+        public AAAAImageQualitySettings ImageQualitySettings => _imageQualitySettings;
 
         public AAAAMeshLODSettings MeshLODSettings => _meshLODSettings;
 

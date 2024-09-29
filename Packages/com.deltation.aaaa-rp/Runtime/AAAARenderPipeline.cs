@@ -62,8 +62,8 @@ namespace DELTation.AAAARP
         private void RenderSingleCamera(ScriptableRenderContext context, AAAARendererBase renderer, Camera camera)
         {
             ContextContainer frameData = renderer.FrameData;
-            CreateRenderingData(frameData);
-            AAAACameraData cameraData = CreateCameraData(frameData, camera, renderer);
+            AAAARenderingData renderingData = CreateRenderingData(frameData);
+            AAAACameraData cameraData = CreateCameraData(frameData, camera, renderer, renderingData);
             CreateResourceData(frameData, cameraData);
             CreateRendererListData(frameData);
             CreateImageBasedLightingData(frameData);
@@ -142,7 +142,7 @@ namespace DELTation.AAAARP
             return renderingData;
         }
 
-        private static AAAACameraData CreateCameraData(ContextContainer frameData, Camera camera, AAAARendererBase renderer)
+        private static AAAACameraData CreateCameraData(ContextContainer frameData, Camera camera, AAAARendererBase renderer, AAAARenderingData renderingData)
         {
             AAAACameraData cameraData = frameData.GetOrCreate<AAAACameraData>();
 
@@ -155,7 +155,7 @@ namespace DELTation.AAAARP
             cameraData.PixelRect = camera.pixelRect;
             cameraData.PixelWidth = camera.pixelWidth;
             cameraData.PixelHeight = camera.pixelHeight;
-            cameraData.RenderScale = 1.0f;
+            cameraData.RenderScale = camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.ImageQualitySettings.RenderScale : 1.0f;
             cameraData.AspectRatio = cameraData.PixelWidth / (float) cameraData.PixelHeight;
             cameraData.IsDefaultViewport = !(Mathf.Abs(cameraRect.x) > 0.0f || Mathf.Abs(cameraRect.y) > 0.0f ||
                                              Mathf.Abs(cameraRect.width) < 1.0f || Mathf.Abs(cameraRect.height) < 1.0f);
