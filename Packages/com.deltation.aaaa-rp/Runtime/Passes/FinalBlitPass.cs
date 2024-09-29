@@ -5,11 +5,9 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class FinalBlitPass : AAAARasterRenderPass<FinalBlitPass.PassData>
+    public sealed class FinalBlitPass : AAAARasterRenderPass<FinalBlitPass.PassData>
     {
         public FinalBlitPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
-
-        public override string Name => "FinalBlit";
 
         protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {

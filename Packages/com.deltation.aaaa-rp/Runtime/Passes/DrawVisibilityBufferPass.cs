@@ -7,7 +7,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class DrawVisibilityBufferPass : AAAARasterRenderPass<DrawVisibilityBufferPass.PassData>
+    public sealed class DrawVisibilityBufferPass : AAAARasterRenderPass<DrawVisibilityBufferPass.PassData>
     {
         public enum PassType
         {
@@ -20,7 +20,7 @@ namespace DELTation.AAAARP.Passes
         public DrawVisibilityBufferPass(PassType passType, AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
         {
             _passType = passType;
-            Name = "DrawVisibilityBuffer." + passType;
+            Name = AutoName + "." + passType;
         }
 
         public override string Name { get; }

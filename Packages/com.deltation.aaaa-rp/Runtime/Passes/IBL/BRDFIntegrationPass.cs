@@ -13,8 +13,6 @@ namespace DELTation.AAAARP.Passes.IBL
         public BRDFIntegrationPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent) =>
             _material = CoreUtils.CreateEngineMaterial(runtimeShaders.BRDFIntegrationPS);
 
-        public override string Name => "BRDFIntegration";
-
         public void Dispose()
         {
             CoreUtils.Destroy(_material);

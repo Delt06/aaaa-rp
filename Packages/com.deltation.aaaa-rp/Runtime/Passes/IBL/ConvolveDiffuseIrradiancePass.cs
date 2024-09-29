@@ -10,13 +10,13 @@ namespace DELTation.AAAARP.Passes.IBL
 {
     public class ConvolveDiffuseIrradiancePass : AAAARenderPass<ConvolveDiffuseIrradiancePass.PassData>, IDisposable
     {
+        private const string TempSideTextureName = nameof(AAAAImageBasedLightingData.DiffuseIrradiance) + "_TempSide";
+
         private readonly Material _material;
         private readonly MaterialPropertyBlock _propertyBlock = new();
 
         public ConvolveDiffuseIrradiancePass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent) =>
             _material = CoreUtils.CreateEngineMaterial(runtimeShaders.ConvolveDiffuseIrradiancePS);
-
-        public override string Name => "ConvolveDiffuseIrradiance";
 
         public void Dispose()
         {
@@ -56,7 +56,7 @@ namespace DELTation.AAAARP.Passes.IBL
                 passData.TempSides[index] = builder.CreateTransientTexture(new TextureDesc(sideDescriptor)
                     {
                         clearBuffer = false,
-                        name = "DiffuseIrradianceCubemapSide",
+                        name = TempSideTextureName,
                     }
                 );
             }

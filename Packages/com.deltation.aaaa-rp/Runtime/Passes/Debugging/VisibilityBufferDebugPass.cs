@@ -8,7 +8,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes.Debugging
 {
-    public class VisibilityBufferDebugPass : AAAARasterRenderPass<VisibilityBufferDebugPass.PassData>, IDisposable
+    public sealed class VisibilityBufferDebugPass : AAAARasterRenderPass<VisibilityBufferDebugPass.PassData>, IDisposable
     {
         private readonly AAAARenderPipelineDebugDisplaySettings _debugDisplaySettings;
         private readonly Material _material;
@@ -19,8 +19,6 @@ namespace DELTation.AAAARP.Passes.Debugging
             _material = CoreUtils.CreateEngineMaterial(shaders.VisibilityBufferDebugPS);
             _debugDisplaySettings = debugDisplaySettings;
         }
-
-        public override string Name => "VisibilityBufferDebug";
 
         public void Dispose()
         {

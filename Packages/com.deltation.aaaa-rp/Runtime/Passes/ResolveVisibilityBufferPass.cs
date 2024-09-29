@@ -6,14 +6,12 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class ResolveVisibilityBufferPass : AAAARasterRenderPass<ResolveVisibilityBufferPass.PassData>, IDisposable
+    public sealed class ResolveVisibilityBufferPass : AAAARasterRenderPass<ResolveVisibilityBufferPass.PassData>, IDisposable
     {
         private readonly Material _material;
 
         public ResolveVisibilityBufferPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
             _material = CoreUtils.CreateEngineMaterial(shaders.VisibilityBufferResolvePS);
-
-        public override string Name => "ResolveVisibilityBuffer";
 
         public void Dispose()
         {

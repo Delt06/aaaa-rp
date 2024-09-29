@@ -9,14 +9,12 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class HZBGenerationPass : AAAARenderPass<HZBGenerationPass.PassData>
+    public sealed class HZBGenerationPass : AAAARenderPass<HZBGenerationPass.PassData>
     {
         private readonly ComputeShader _hzbGenerationCS;
 
         public HZBGenerationPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
             _hzbGenerationCS = shaders.HZBGenerationCS;
-
-        public override string Name => "HZBGeneration";
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {

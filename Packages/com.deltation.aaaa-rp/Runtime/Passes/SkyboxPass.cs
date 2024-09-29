@@ -4,11 +4,9 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class SkyboxPass : AAAARasterRenderPass<SkyboxPass.PassData>
+    public sealed class SkyboxPass : AAAARasterRenderPass<SkyboxPass.PassData>
     {
         public SkyboxPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
-
-        public override string Name => "Skybox";
 
         protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {

@@ -6,11 +6,9 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class SetupLightingPass : AAAARenderPass<SetupLightingPass.PassData>
+    public sealed class SetupLightingPass : AAAARenderPass<SetupLightingPass.PassData>
     {
         public SetupLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
-
-        public override string Name => "SetupLighting";
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {

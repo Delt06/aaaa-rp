@@ -11,13 +11,13 @@ namespace DELTation.AAAARP.Passes.IBL
 {
     public class PreFilterEnvironmentPass : AAAARenderPass<PreFilterEnvironmentPass.PassData>, IDisposable
     {
+        private const string TempSideTextureName = nameof(AAAAImageBasedLightingData.PreFilteredEnvironmentMap) + "_TempSide";
+
         private readonly Material _material;
         private readonly MaterialPropertyBlock _propertyBlock = new();
 
         public PreFilterEnvironmentPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent) =>
             _material = CoreUtils.CreateEngineMaterial(runtimeShaders.PreFilterEnvironmentPS);
-
-        public override string Name => "PreFilterEnvironment";
 
         public void Dispose()
         {
@@ -62,7 +62,7 @@ namespace DELTation.AAAARP.Passes.IBL
                     passData.TempSides.Add(builder.CreateTransientTexture(new TextureDesc(sideDescriptor)
                             {
                                 clearBuffer = false,
-                                name = "PreFilteredEnvironmentMapCubemapSide",
+                                name = TempSideTextureName,
                             }
                         )
                     );

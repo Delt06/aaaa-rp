@@ -7,7 +7,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes.Debugging
 {
-    public class GPUCullingDebugSetupPass : AAAARenderPass<GPUCullingDebugSetupPass.PassData>
+    public sealed class GPUCullingDebugSetupPass : AAAARenderPass<GPUCullingDebugSetupPass.PassData>
     {
         private readonly AAAARenderPipelineRuntimeShaders _runtimeShaders;
 

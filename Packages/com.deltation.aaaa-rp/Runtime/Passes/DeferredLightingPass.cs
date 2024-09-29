@@ -6,14 +6,12 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public class DeferredLightingPass : AAAARasterRenderPass<DeferredLightingPass.PassData>, IDisposable
+    public sealed class DeferredLightingPass : AAAARasterRenderPass<DeferredLightingPass.PassData>, IDisposable
     {
         private readonly Material _material;
 
         public DeferredLightingPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
             _material = CoreUtils.CreateEngineMaterial(shaders.DeferredLightingPS);
-
-        public override string Name => "DeferredLighting";
 
         public void Dispose()
         {

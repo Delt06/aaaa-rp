@@ -52,7 +52,7 @@ namespace DELTation.AAAARP.Passes
             _instanceIndices = new NativeList<int>(Allocator.Persistent);
             _debugDisplaySettings = debugDisplaySettings;
 
-            Name = "GPUCulling";
+            Name = AutoName;
             if (_passType != PassType.Basic)
             {
                 Name += "." + _passType;

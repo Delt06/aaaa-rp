@@ -4,7 +4,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes.Debugging
 {
-    public class DebugSetupPass : AAAARenderPass<PassDataBase>
+    public sealed class DebugSetupPass : AAAARenderPass<PassDataBase>
     {
         public DebugSetupPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
 

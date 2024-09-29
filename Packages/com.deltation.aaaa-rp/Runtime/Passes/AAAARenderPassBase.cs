@@ -1,4 +1,6 @@
-﻿using UnityEngine.Rendering;
+﻿using System;
+using DELTation.AAAARP.Utils;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
@@ -7,19 +9,22 @@ namespace DELTation.AAAARP.Passes
 
     public abstract class AAAARenderPassBase : IRenderGraphRecorder
     {
+        private readonly Lazy<ProfilingSampler> _profilingSampler;
+
         protected AAAARenderPassBase(AAAARenderPassEvent renderPassEvent)
         {
             RenderPassEvent = renderPassEvent;
-
-            // ReSharper disable once VirtualMemberCallInConstructor
-            ProfilingSampler = new ProfilingSampler(Name);
+            AutoName = PassUtils.CreateAutoName(GetType());
+            _profilingSampler = new Lazy<ProfilingSampler>(() => new ProfilingSampler(Name));
         }
 
-        public abstract string Name { get; }
+        protected string AutoName { get; }
 
-        public AAAARenderPassEvent RenderPassEvent { get; set; }
+        public virtual string Name => AutoName;
 
-        public ProfilingSampler ProfilingSampler { get; }
+        public AAAARenderPassEvent RenderPassEvent { get; }
+
+        public ProfilingSampler ProfilingSampler => _profilingSampler.Value;
 
         public abstract void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData);
 

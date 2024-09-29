@@ -9,7 +9,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes.Debugging
 {
-    public class GBufferDebugPass : AAAARasterRenderPass<GBufferDebugPass.PassData>, IDisposable
+    public sealed class GBufferDebugPass : AAAARasterRenderPass<GBufferDebugPass.PassData>, IDisposable
     {
         private readonly AAAARenderPipelineDebugDisplaySettings _debugDisplaySettings;
         private readonly Material _material;
@@ -20,8 +20,6 @@ namespace DELTation.AAAARP.Passes.Debugging
             _material = CoreUtils.CreateEngineMaterial(shaders.GBufferDebugPS);
             _debugDisplaySettings = debugDisplaySettings;
         }
-
-        public override string Name => "GBufferDebug";
 
         public void Dispose()
         {
