@@ -30,8 +30,8 @@ namespace DELTation.AAAARP.Passes.Debugging
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
 
             builder.UseTexture(resourceData.VisibilityBuffer, AccessFlags.Read);
-            builder.SetRenderAttachment(resourceData.CameraColorBuffer, 0, AccessFlags.ReadWrite);
-            builder.SetRenderAttachmentDepth(resourceData.CameraDepthBuffer, AccessFlags.Read);
+            builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.ReadWrite);
+            builder.SetRenderAttachmentDepth(resourceData.CameraScaledDepthBuffer, AccessFlags.Read);
             builder.AllowGlobalStateModification(true);
         }
 

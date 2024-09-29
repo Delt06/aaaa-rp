@@ -26,7 +26,7 @@ namespace DELTation.AAAARP.Passes
             builder.SetRenderAttachment(resourceData.GBufferAlbedo, 0, AccessFlags.ReadWrite);
             builder.SetRenderAttachment(resourceData.GBufferNormals, 1, AccessFlags.ReadWrite);
             builder.SetRenderAttachment(resourceData.GBufferMasks, 2, AccessFlags.ReadWrite);
-            builder.SetRenderAttachmentDepth(resourceData.CameraDepthBuffer, AccessFlags.Read);
+            builder.SetRenderAttachmentDepth(resourceData.CameraScaledDepthBuffer, AccessFlags.Read);
 
             builder.SetGlobalTextureAfterPass(resourceData.GBufferAlbedo, AAAAResourceData.ShaderPropertyID._GBuffer_Albedo);
             builder.SetGlobalTextureAfterPass(resourceData.GBufferNormals, AAAAResourceData.ShaderPropertyID._GBuffer_Normals);

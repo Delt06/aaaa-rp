@@ -150,7 +150,7 @@ namespace DELTation.AAAARP
 
             passData.Renderer = this;
             passData.CameraData = FrameData.Get<AAAACameraData>();
-            passData.CameraTargetSizeCopy = new Vector2Int(passData.CameraData.CameraTargetDescriptor.width, passData.CameraData.CameraTargetDescriptor.height);
+            passData.ScaledCameraTargetSizeCopy = new Vector2Int(passData.CameraData.ScaledWidth, passData.CameraData.ScaledHeight);
             passData.IsTargetBackbuffer = isTargetBackbuffer;
 
             builder.AllowPassCulling(false);
@@ -160,7 +160,7 @@ namespace DELTation.AAAARP
                 {
                     bool yFlip = !SystemInfo.graphicsUVStartsAtTop || data.IsTargetBackbuffer;
                     context.cmd.SetupCameraProperties(data.CameraData.Camera);
-                    data.Renderer.SetPerCameraShaderVariables(context.cmd, data.CameraData, data.CameraTargetSizeCopy, !yFlip);
+                    data.Renderer.SetPerCameraShaderVariables(context.cmd, data.CameraData, data.ScaledCameraTargetSizeCopy, !yFlip);
                     data.Renderer.SetPerCameraClippingPlaneProperties(context.cmd, in data.CameraData, !yFlip);
 
 #if UNITY_EDITOR
@@ -369,14 +369,14 @@ namespace DELTation.AAAARP
             }
         }
 
-        public void BeginFrame(RenderGraph renderGraph, ScriptableRenderContext context)
+        public void BeginFrame(RenderGraph renderGraph, ScriptableRenderContext context, ContextContainer frameData)
         {
             _activeRenderPassQueue.Clear();
 
-            Setup(renderGraph, context);
+            Setup(renderGraph, context, frameData);
         }
 
-        protected abstract void Setup(RenderGraph renderGraph, ScriptableRenderContext context);
+        protected abstract void Setup(RenderGraph renderGraph, ScriptableRenderContext context, ContextContainer frameData);
 
         public void EndFrame()
         {
@@ -388,7 +388,7 @@ namespace DELTation.AAAARP
             public AAAACameraData CameraData;
 
             // The size of the camera target changes during the frame, so we must make a copy of it here to preserve its record-time value.
-            public Vector2Int CameraTargetSizeCopy;
+            public Vector2Int ScaledCameraTargetSizeCopy;
             public bool IsTargetBackbuffer;
             public AAAARendererBase Renderer;
         }

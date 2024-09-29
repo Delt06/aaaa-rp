@@ -27,7 +27,7 @@ namespace DELTation.AAAARP.Passes
             builder.UseTexture(resourceData.GBufferMasks, AccessFlags.Read);
             builder.UseTexture(resourceData.CameraScaledDepthBuffer, AccessFlags.Read);
 
-            builder.SetRenderAttachment(resourceData.CameraColorBuffer, 0, AccessFlags.WriteAll);
+            builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.WriteAll);
         }
 
         protected override void Render(PassData data, RasterGraphContext context)

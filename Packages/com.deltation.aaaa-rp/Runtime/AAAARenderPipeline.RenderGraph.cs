@@ -48,7 +48,7 @@ namespace DELTation.AAAARP
                 rendererListData.Init(renderingData, cameraData);
 
                 resourceData.BeginFrame();
-                renderer.BeginFrame(renderGraph, context);
+                renderer.BeginFrame(renderGraph, context, frameData);
                 RecordRenderGraph(renderGraph, context, renderer);
                 renderer.EndFrame();
                 resourceData.EndFrame();

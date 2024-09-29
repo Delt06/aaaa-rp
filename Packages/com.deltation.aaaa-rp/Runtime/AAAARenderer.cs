@@ -1,4 +1,7 @@
+using DELTation.AAAARP.Data;
+using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Passes;
+using DELTation.AAAARP.Passes.AntiAliasing;
 using DELTation.AAAARP.Passes.IBL;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -8,6 +11,7 @@ namespace DELTation.AAAARP
 {
     public class AAAARenderer : AAAARendererBase
     {
+        private readonly BilinearUpscalePass _bilinearUpscalePass;
         private readonly BRDFIntegrationPass _brdfIntegrationPass;
         private readonly ConvolveDiffuseIrradiancePass _convolveDiffuseIrradiancePass;
         private readonly DeferredLightingPass _deferredLightingPass;
@@ -17,15 +21,17 @@ namespace DELTation.AAAARP
         private readonly GPUCullingPass _gpuCullingFalseNegativePass;
         private readonly GPUCullingPass _gpuCullingMainPass;
         private readonly HZBGenerationPass _hzbGenerationPass;
+        private readonly AAAARenderPipelineAsset _pipelineAsset;
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly SetupLightingPass _setupLightingPass;
         private readonly SkyboxPass _skyboxPass;
+        private readonly SMAAPass _smaaPass;
 
         public AAAARenderer()
         {
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
-            AAAARenderPipelineDefaultTextures defaultTextures = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineDefaultTextures>();
+            AAAARenderPipelineRuntimeTextures textures = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeTextures>();
 
             _convolveDiffuseIrradiancePass = new ConvolveDiffuseIrradiancePass(AAAARenderPassEvent.BeforeRendering, shaders);
             _brdfIntegrationPass = new BRDFIntegrationPass(AAAARenderPassEvent.BeforeRendering, shaders);
@@ -45,11 +51,20 @@ namespace DELTation.AAAARP
             _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
+
+            {
+                const AAAARenderPassEvent antiAliasingEvent = AAAARenderPassEvent.BeforeRenderingPostProcessing;
+                _bilinearUpscalePass = new BilinearUpscalePass(antiAliasingEvent);
+                _smaaPass = new SMAAPass(antiAliasingEvent, shaders, textures);
+            }
+
             _finalBlitPass = new FinalBlitPass(AAAARenderPassEvent.AfterRendering);
         }
 
-        protected override void Setup(RenderGraph renderGraph, ScriptableRenderContext context)
+        protected override void Setup(RenderGraph renderGraph, ScriptableRenderContext context, ContextContainer frameData)
         {
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
+
             EnqueuePass(_convolveDiffuseIrradiancePass);
             EnqueuePass(_brdfIntegrationPass);
             EnqueuePass(_preFilterEnvironmentPass);
@@ -68,6 +83,11 @@ namespace DELTation.AAAARP
             EnqueuePass(_deferredLightingPass);
             EnqueuePass(_skyboxPass);
 
+            if (cameraData.AntiAliasingTechnique == AAAAAntiAliasingTechnique.SMAA)
+            {
+                EnqueuePass(_smaaPass);
+            }
+            EnqueuePass(_bilinearUpscalePass);
             EnqueuePass(_finalBlitPass);
 
             DebugHandler?.Setup(this, renderGraph, context);
@@ -83,6 +103,8 @@ namespace DELTation.AAAARP
 
             _gpuCullingMainPass.Dispose();
             _gpuCullingFalseNegativePass.Dispose();
+
+            _smaaPass.Dispose();
         }
     }
 }

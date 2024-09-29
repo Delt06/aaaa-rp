@@ -20,31 +20,28 @@ Shader "Hidden/AAAA/DeferredLighting"
         Pass
         {
             ZWrite Off
-            ZTest Greater
+            ZTest Always
             ZClip Off
             Cull Off
 
             HLSLPROGRAM
-            #pragma vertex OverrideVert
+            #pragma vertex Vert
             #pragma fragment Frag
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PBR.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
-            
-            Varyings OverrideVert(Attributes input)
-            {
-                Varyings output = Vert(input);
-
-                output.positionCS.z = UNITY_RAW_FAR_CLIP_VALUE * output.positionCS.w;
-
-                return output;
-            }
 
             float4 Frag(const Varyings IN) : SV_Target
             {
-                const GBufferValue gbuffer = SampleGBuffer(IN.texcoord);
                 const float deviceDepth = SampleDeviceDepth(IN.texcoord);
+                UNITY_BRANCH
+                if (deviceDepth == UNITY_RAW_FAR_CLIP_VALUE)
+                {
+                    return 0;
+                }
+
+                const GBufferValue gbuffer = SampleGBuffer(IN.texcoord);
 
                 SurfaceData surfaceData;
                 surfaceData.albedo = gbuffer.albedo;

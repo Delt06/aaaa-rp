@@ -47,7 +47,7 @@ namespace DELTation.AAAARP.Passes
             builder.SetRenderAttachmentDepth(resourceData.CameraScaledDepthBuffer, AccessFlags.ReadWrite);
 
             builder.SetGlobalTextureAfterPass(resourceData.VisibilityBuffer, AAAAResourceData.ShaderPropertyID._VisibilityBuffer);
-            builder.SetGlobalTextureAfterPass(resourceData.CameraDepthBuffer, AAAAResourceData.ShaderPropertyID._CameraDepth);
+            builder.SetGlobalTextureAfterPass(resourceData.CameraScaledDepthBuffer, AAAAResourceData.ShaderPropertyID._CameraDepth);
         }
 
         protected override void Render(PassData data, RasterGraphContext context)

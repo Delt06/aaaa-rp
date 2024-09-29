@@ -73,8 +73,13 @@ namespace DELTation.AAAARP
         [ResourcePath("Shaders/DeferredLighting.shader")]
         private Shader _deferredLightingPS;
 
+        [SerializeField]
         [ResourcePath("Shaders/VisibilityBuffer/HZBGeneration.compute")]
         private ComputeShader _hzbGenerationCS;
+
+        [SerializeField]
+        [ResourcePath("Shaders/AntiAliasing/SMAA.shader")]
+        private Shader _smaaPS;
 
         public Shader CoreBlitPS
         {
@@ -170,6 +175,12 @@ namespace DELTation.AAAARP
         {
             get => _deferredLightingPS;
             set => this.SetValueAndNotify(ref _deferredLightingPS, value, nameof(_deferredLightingPS));
+        }
+
+        public Shader SMAAPS
+        {
+            get => _smaaPS;
+            set => this.SetValueAndNotify(ref _smaaPS, value, nameof(_smaaPS));
         }
 
         public int version => _version;

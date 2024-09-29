@@ -32,7 +32,7 @@ namespace DELTation.AAAARP
 
             if (camera.targetTexture == null)
             {
-                desc = new RenderTextureDescriptor(cameraData.ScaledWidth, cameraData.ScaledHeight)
+                desc = new RenderTextureDescriptor(cameraData.PixelWidth, cameraData.PixelHeight)
                 {
                     graphicsFormat = MakeRenderTextureGraphicsFormat(isHdrEnabled, requestHDRColorBufferPrecision, needsAlpha),
                     depthBufferBits = 32,
@@ -44,8 +44,8 @@ namespace DELTation.AAAARP
             {
                 desc = camera.targetTexture.descriptor;
                 desc.msaaSamples = msaaSamples;
-                desc.width = cameraData.ScaledWidth;
-                desc.height = cameraData.ScaledHeight;
+                desc.width = cameraData.PixelWidth;
+                desc.height = cameraData.PixelHeight;
 
                 if (camera.cameraType == CameraType.SceneView && !isHdrEnabled)
                 {
@@ -95,6 +95,7 @@ namespace DELTation.AAAARP
             public static readonly int globalMipBias = Shader.PropertyToID("_GlobalMipBias");
 
             public static readonly int screenSize = Shader.PropertyToID("_ScreenSize");
+            public static readonly int scaledScreenSize = Shader.PropertyToID("_ScaledScreenSize");
             public static readonly int screenCoordScaleBias = Shader.PropertyToID("_ScreenCoordScaleBias");
             public static readonly int screenSizeOverride = Shader.PropertyToID("_ScreenSizeOverride");
 

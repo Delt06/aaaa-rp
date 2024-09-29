@@ -35,7 +35,7 @@ namespace DELTation.AAAARP.Passes.Debugging
 
             passData.Buffer = builder.UseBuffer(debugData.GPUCullingDebugBuffer, AccessFlags.Read);
 
-            builder.SetRenderAttachment(resourceData.CameraColorBuffer, 0, AccessFlags.ReadWrite);
+            builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.ReadWrite);
 
             builder.AllowGlobalStateModification(true);
 

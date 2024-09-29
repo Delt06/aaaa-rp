@@ -1,3 +1,4 @@
+using DELTation.AAAARP.Data;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -31,6 +32,8 @@ namespace DELTation.AAAARP.FrameData
         public Matrix4x4 ViewMatrix;
         public Vector3 WorldSpaceCameraPos;
 
+        public AAAAAntiAliasingTechnique AntiAliasingTechnique;
+
         public int ScaledWidth => Mathf.Max(1, (int) (Camera.pixelWidth * RenderScale));
         public int ScaledHeight => Mathf.Max(1, (int) (Camera.pixelHeight * RenderScale));
 
@@ -62,6 +65,8 @@ namespace DELTation.AAAARP.FrameData
             ViewMatrix = Matrix4x4.identity;
             JitterMatrix = Matrix4x4.identity;
             WorldSpaceCameraPos = default;
+            
+            AntiAliasingTechnique = default;
         }
 
         internal void SetViewProjectionAndJitterMatrix(Matrix4x4 viewMatrix, Matrix4x4 projectionMatrix)

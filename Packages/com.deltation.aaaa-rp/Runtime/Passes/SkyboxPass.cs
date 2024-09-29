@@ -17,8 +17,8 @@ namespace DELTation.AAAARP.Passes
 
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             builder.UseRendererList(rendererList);
-            builder.SetRenderAttachment(resourceData.CameraColorBuffer, 0, AccessFlags.ReadWrite);
-            builder.SetRenderAttachmentDepth(resourceData.CameraDepthBuffer, AccessFlags.ReadWrite);
+            builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.ReadWrite);
+            builder.SetRenderAttachmentDepth(resourceData.CameraScaledDepthBuffer, AccessFlags.ReadWrite);
         }
 
         protected override void Render(PassData data, RasterGraphContext context)

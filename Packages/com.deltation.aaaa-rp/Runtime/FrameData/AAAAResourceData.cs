@@ -56,6 +56,9 @@ namespace DELTation.AAAARP.FrameData
             }
         }
 
+        public TextureDesc CameraScaledColorDesc { get; private set; }
+        public TextureDesc CameraColorDesc { get; private set; }
+
         public void InitTextures(RenderGraph renderGraph, AAAARenderingData renderingData, AAAACameraData cameraData)
         {
             ActiveColorID = ActiveID.Camera;
@@ -70,23 +73,29 @@ namespace DELTation.AAAARP.FrameData
 
             {
                 TextureDesc cameraColorDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
+                cameraColorDesc.name = "CameraColor";
                 cameraColorDesc.depthBufferBits = DepthBits.None;
                 cameraColorDesc.filterMode = FilterMode.Bilinear;
                 cameraColorDesc.wrapMode = TextureWrapMode.Clamp;
                 cameraColorDesc.clearBuffer = cameraData.ClearColor;
                 cameraColorDesc.clearColor = cameraData.BackgroundColor;
+                CameraColorDesc = cameraColorDesc;
+                _cameraColorBuffer = renderGraph.CreateTexture(cameraColorDesc);
 
                 TextureDesc cameraDepthDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
+                cameraColorDesc.name = "CameraDepth";
                 cameraDepthDesc.colorFormat = GraphicsFormat.D24_UNorm_S8_UInt;
                 cameraDepthDesc.depthBufferBits = DepthBits.Depth32;
                 cameraDepthDesc.filterMode = FilterMode.Point;
                 cameraDepthDesc.wrapMode = TextureWrapMode.Clamp;
                 cameraDepthDesc.clearBuffer = cameraData.ClearDepth;
+                _cameraDepthBuffer = renderGraph.CreateTexture(cameraDepthDesc);
 
                 // Scaled color
                 cameraColorDesc.name = "CameraColor_Scaled";
                 cameraColorDesc.width = scaledCameraTargetViewportSize.x;
                 cameraColorDesc.height = scaledCameraTargetViewportSize.y;
+                CameraScaledColorDesc = cameraColorDesc;
                 _cameraScaledColorBuffer = renderGraph.CreateTexture(cameraColorDesc);
 
                 // Scaled depth
@@ -94,9 +103,6 @@ namespace DELTation.AAAARP.FrameData
                 cameraDepthDesc.width = scaledCameraTargetViewportSize.x;
                 cameraDepthDesc.height = scaledCameraTargetViewportSize.y;
                 _cameraScaledDepthBuffer = renderGraph.CreateTexture(cameraDepthDesc);
-
-                _cameraColorBuffer = _cameraScaledColorBuffer;
-                _cameraDepthBuffer = _cameraScaledDepthBuffer;
 
                 CameraScaledHZBInfo.Compute(new int2(cameraDepthDesc.width, cameraDepthDesc.height));
 
@@ -218,10 +224,14 @@ namespace DELTation.AAAARP.FrameData
 
         public override void Reset()
         {
-            _cameraScaledColorBuffer = default;
-            _cameraScaledDepthBuffer = default;
+            CameraColorDesc = default;
             _cameraColorBuffer = default;
             _cameraDepthBuffer = default;
+
+            CameraScaledColorDesc = default;
+            _cameraScaledColorBuffer = default;
+            _cameraScaledDepthBuffer = default;
+
             _cameraResolveColorBuffer = default;
             _cameraResolveDepthBuffer = default;
 
