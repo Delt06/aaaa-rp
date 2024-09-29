@@ -70,6 +70,21 @@ namespace DELTation.AAAARP.Data
         }
     }
 
+    [Serializable]
+    public class AAAAPostProcessingSettings
+    {
+        public enum ToneMappingProfile
+        {
+            Off = 0,
+            Neutral,
+            ACES,
+        }
+
+        public ToneMappingProfile ToneMapping = ToneMappingProfile.Off;
+
+        public bool AnyEnabled() => ToneMapping != ToneMappingProfile.Off;
+    }
+
     [CreateAssetMenu(menuName = "AAAA RP/AAAA Render Pipeline Asset")]
     public sealed class AAAARenderPipelineAsset : RenderPipelineAsset<AAAARenderPipeline>, IRenderGraphEnabledRenderPipeline
     {
@@ -79,12 +94,16 @@ namespace DELTation.AAAARP.Data
         private AAAAMeshLODSettings _meshLODSettings = new();
         [SerializeField]
         private AAAAImageBasedLightingSettings _imageBasedLightingSettings;
+        [SerializeField]
+        private AAAAPostProcessingSettings _postProcessingSettings = new();
 
         public AAAAImageQualitySettings ImageQualitySettings => _imageQualitySettings;
 
         public AAAAMeshLODSettings MeshLODSettings => _meshLODSettings;
 
         public AAAAImageBasedLightingSettings ImageBasedLightingSettings => _imageBasedLightingSettings;
+
+        public AAAAPostProcessingSettings PostProcessingSettings => _postProcessingSettings;
 
         public override string renderPipelineShaderTag => AAAARenderPipeline.ShaderTagName;
 

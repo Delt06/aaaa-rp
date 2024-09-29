@@ -6,6 +6,8 @@ namespace DELTation.AAAARP.FrameData
 {
     public class AAAACameraData : ContextItem
     {
+
+        public AAAAAntiAliasingTechnique AntiAliasingTechnique;
         public float AspectRatio;
         public Color BackgroundColor;
         public Camera Camera;
@@ -21,6 +23,7 @@ namespace DELTation.AAAARP.FrameData
         public int PixelHeight;
         public Rect PixelRect;
         public int PixelWidth;
+        public bool PostProcessingEnabled;
 
         public Matrix4x4 ProjectionMatrix;
         public AAAARendererBase Renderer;
@@ -31,8 +34,6 @@ namespace DELTation.AAAARP.FrameData
         public bool UseScreenCoordOverride;
         public Matrix4x4 ViewMatrix;
         public Vector3 WorldSpaceCameraPos;
-
-        public AAAAAntiAliasingTechnique AntiAliasingTechnique;
 
         public int ScaledWidth => Mathf.Max(1, (int) (Camera.pixelWidth * RenderScale));
         public int ScaledHeight => Mathf.Max(1, (int) (Camera.pixelHeight * RenderScale));
@@ -65,8 +66,9 @@ namespace DELTation.AAAARP.FrameData
             ViewMatrix = Matrix4x4.identity;
             JitterMatrix = Matrix4x4.identity;
             WorldSpaceCameraPos = default;
-            
+
             AntiAliasingTechnique = default;
+            PostProcessingEnabled = false;
         }
 
         internal void SetViewProjectionAndJitterMatrix(Matrix4x4 viewMatrix, Matrix4x4 projectionMatrix)

@@ -3,6 +3,7 @@ using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Passes;
 using DELTation.AAAARP.Passes.AntiAliasing;
 using DELTation.AAAARP.Passes.IBL;
+using DELTation.AAAARP.Passes.PostProcessing;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -27,6 +28,7 @@ namespace DELTation.AAAARP
         private readonly SetupLightingPass _setupLightingPass;
         private readonly SkyboxPass _skyboxPass;
         private readonly SMAAPass _smaaPass;
+        private readonly UberPostProcessingPass _uberPostProcessingPass;
 
         public AAAARenderer()
         {
@@ -52,11 +54,9 @@ namespace DELTation.AAAARP
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
 
-            {
-                const AAAARenderPassEvent antiAliasingEvent = AAAARenderPassEvent.BeforeRenderingPostProcessing;
-                _bilinearUpscalePass = new BilinearUpscalePass(antiAliasingEvent);
-                _smaaPass = new SMAAPass(antiAliasingEvent, shaders, textures);
-            }
+            _smaaPass = new SMAAPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders, textures);
+            _uberPostProcessingPass = new UberPostProcessingPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders);
+            _bilinearUpscalePass = new BilinearUpscalePass(AAAARenderPassEvent.AfterRenderingPostProcessing);
 
             _finalBlitPass = new FinalBlitPass(AAAARenderPassEvent.AfterRendering);
         }
@@ -87,6 +87,12 @@ namespace DELTation.AAAARP
             {
                 EnqueuePass(_smaaPass);
             }
+
+            if (cameraData.PostProcessingEnabled)
+            {
+                EnqueuePass(_uberPostProcessingPass);
+            }
+
             EnqueuePass(_bilinearUpscalePass);
             EnqueuePass(_finalBlitPass);
 
@@ -104,6 +110,7 @@ namespace DELTation.AAAARP
             _gpuCullingMainPass.Dispose();
             _gpuCullingFalseNegativePass.Dispose();
 
+            _uberPostProcessingPass.Dispose();
             _smaaPass.Dispose();
         }
     }

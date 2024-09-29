@@ -25,3 +25,5 @@ MonoBehaviour:
     PreFilteredEnvironmentMap:
       Resolution: 256
       MaxMipLevels: 5
+  _postProcessingSettings:
+    ToneMapping: 0

@@ -146,6 +146,8 @@ namespace DELTation.AAAARP
         {
             AAAACameraData cameraData = frameData.GetOrCreate<AAAACameraData>();
             AAAAImageQualitySettings imageQualitySettings = camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.ImageQualitySettings : null;
+            AAAAPostProcessingSettings postProcessingSettings =
+                camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.PostProcessingSettings : null;
 
             cameraData.Renderer = renderer;
             cameraData.Camera = camera;
@@ -201,6 +203,7 @@ namespace DELTation.AAAARP
             cameraData.WorldSpaceCameraPos = camera.transform.position;
 
             cameraData.AntiAliasingTechnique = imageQualitySettings?.AntiAliasing ?? AAAAAntiAliasingTechnique.Off;
+            cameraData.PostProcessingEnabled = postProcessingSettings?.AnyEnabled() ?? false;
 
             return cameraData;
         }

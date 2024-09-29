@@ -81,6 +81,10 @@ namespace DELTation.AAAARP
         [ResourcePath("Shaders/AntiAliasing/SMAA.shader")]
         private Shader _smaaPS;
 
+        [SerializeField]
+        [ResourcePath("Shaders/PostProcessing/Uber.shader")]
+        private Shader _uberPostProcessingPS;
+
         public Shader CoreBlitPS
         {
             get => _coreBlitPS;
@@ -181,6 +185,12 @@ namespace DELTation.AAAARP
         {
             get => _smaaPS;
             set => this.SetValueAndNotify(ref _smaaPS, value, nameof(_smaaPS));
+        }
+
+        public Shader UberPostProcessingPS
+        {
+            get => _uberPostProcessingPS;
+            set => this.SetValueAndNotify(ref _uberPostProcessingPS, value, nameof(_uberPostProcessingPS));
         }
 
         public int version => _version;

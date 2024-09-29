@@ -133,6 +133,7 @@ MonoBehaviour:
         _deferredLightingPS: {fileID: 4800000, guid: 0597c17db20e493b9ab3d9a2a42bb8d2, type: 3}
         _hzbGenerationCS: {fileID: 7200000, guid: 30e9b92e6a184f1fae128dee76e92eee, type: 3}
         _smaaPS: {fileID: 4800000, guid: b60243e7e3f846a19d2c60c7e14a5087, type: 3}
+        _uberPostProcessingPS: {fileID: 4800000, guid: df9caa481e86404e93faaddb9b82e3b3, type: 3}
     - rid: 3789630226082299968
       type: {class: AAAARenderPipelineDebugShaders, ns: DELTation.AAAARP, asm: DELTation.AAAARP.Runtime}
       data:
