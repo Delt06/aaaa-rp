@@ -19,5 +19,6 @@ MonoBehaviour:
   _imageBasedLightingSettings:
     DiffuseIrradianceResolution: 128
     BRDFLutResolution: 128
-    PreFilteredEnvironmentMapResolution: 512
-    PreFilteredEnvironmentMapMipCount: 5
+    PreFilteredEnvironmentMap:
+      Resolution: 256
+      MaxMipLevels: 5

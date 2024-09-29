@@ -38,8 +38,14 @@ namespace DELTation.AAAARP.Data
 
         public AAAATextureSize BRDFLutResolution = AAAATextureSize._128;
 
-        public AAAATextureSize PreFilteredEnvironmentMapResolution = AAAATextureSize._512;
-        [Range(1, 10)] public int PreFilteredEnvironmentMapMipCount = 5;
+        public PreFilteredEnvironmentMapSettings PreFilteredEnvironmentMap = new();
+
+        [Serializable]
+        public class PreFilteredEnvironmentMapSettings
+        {
+            public AAAATextureSize Resolution = AAAATextureSize._256;
+            [Range(2, 10)] public int MaxMipLevels = 5;
+        }
     }
 
     [CreateAssetMenu(menuName = "AAAA RP/AAAA Render Pipeline Asset")]

@@ -1,4 +1,5 @@
 ﻿using DELTation.AAAARP.Data;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -49,9 +50,13 @@ namespace DELTation.AAAARP.FrameData
 
             if (!PreFilteredEnvironmentMap.IsValid())
             {
-                int resolution = (int) settings.PreFilteredEnvironmentMapResolution;
+                AAAAImageBasedLightingSettings.PreFilteredEnvironmentMapSettings preFilteredEnvironmentMapSettings = settings.PreFilteredEnvironmentMap;
+                int resolution = (int) preFilteredEnvironmentMapSettings.Resolution;
                 const int depthBufferBits = 0;
-                int mipCount = settings.PreFilteredEnvironmentMapMipCount;
+                int mipCount = preFilteredEnvironmentMapSettings.MaxMipLevels;
+
+                int maxMipCountForResolution = (int) math.log2(resolution) + 1;
+                mipCount = math.min(mipCount, maxMipCountForResolution);
 
                 PreFilteredEnvironmentMapDesc =
                     new RenderTextureDescriptor(resolution, resolution, GraphicsFormat.R16G16B16A16_SFloat, depthBufferBits, mipCount)
