@@ -117,6 +117,7 @@ namespace DELTation.AAAARP
 
             _rendererContainer.Dispose();
             Blitter.Cleanup();
+            ConstantBuffer.ReleaseAll();
 
             base.Dispose(disposing);
 

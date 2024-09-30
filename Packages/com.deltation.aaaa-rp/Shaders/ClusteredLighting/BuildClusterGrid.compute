@@ -1,0 +1,68 @@
+#pragma kernel CS
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/Shaders/ClusteredLighting/Common.hlsl"
+
+#define THREAD_GROUP_SIZE BUILD_CLUSTER_GRID_THREAD_GROUP_SIZE
+
+float2 _TileSizeInPixels;
+
+RWStructuredBuffer<AAAAClusterBounds> _ClusterBounds;
+
+float3 ScreenCoordToViewSpace(const float4 pointNDC)
+{
+    float4 positionVS = mul(UNITY_MATRIX_I_P, pointNDC);
+    positionVS.xyz /= positionVS.w;
+    return positionVS.xyz;
+}
+
+
+float3 LineIntersectionToZPlane(float3 a, float3 b, float zDistance)
+{
+    //Because this is a Z based normal this is fixed
+    float3 normal = float3(0.0, 0.0, 1.0);
+
+    float3 ab = b - a;
+
+    // Computing the intersection length for the line and the plane
+    float t = (zDistance - dot(normal, a)) / dot(normal, ab);
+
+    // Computing the actual xyz position of the point along the line
+    float3 result = a + t * ab;
+
+    return result;
+}
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    const uint flatClusterIndex = dispatchThreadID.x;
+    UNITY_BRANCH
+    if (flatClusterIndex >= TOTAL_CLUSTERS)
+    {
+        return;
+    }
+
+    const uint3  clusterIndex = ClusteredLighting::UnflattenClusterIndex(flatClusterIndex);
+    const float4 minPointNDC = float4(ScreenCoordsToNDC(clusterIndex.xy * _TileSizeInPixels), UNITY_NEAR_CLIP_VALUE, 1.0f);
+    const float4 maxPointNDC = float4(ScreenCoordsToNDC(min(_ScreenSize.xy, (clusterIndex.xy + 1) * _TileSizeInPixels)), UNITY_NEAR_CLIP_VALUE, 1.0f);
+    const float3 minPointVS = ScreenCoordToViewSpace(minPointNDC);
+    const float3 maxPointVS = ScreenCoordToViewSpace(maxPointNDC);
+    const float  tileNear = ClusteredLighting::ClusterIndexToViewSpaceZ(clusterIndex.z);
+    const float  tileFar = ClusteredLighting::ClusterIndexToViewSpaceZ(clusterIndex.z + 1);
+
+    // We work in VS
+    const float3 eyePos = 0;
+    const float3 minPointNear = LineIntersectionToZPlane(eyePos, minPointVS, tileNear);
+    const float3 minPointFar = LineIntersectionToZPlane(eyePos, minPointVS, tileFar);
+    const float3 maxPointNear = LineIntersectionToZPlane(eyePos, maxPointVS, tileNear);
+    const float3 maxPointFar = LineIntersectionToZPlane(eyePos, maxPointVS, tileFar);
+
+    const float3 minPointAABB = min(min(minPointNear, minPointFar), min(maxPointNear, maxPointFar));
+    const float3 maxPointAABB = max(max(minPointNear, minPointFar), max(maxPointNear, maxPointFar));
+
+    AAAAClusterBounds clusterBounds;
+    clusterBounds.Min = float4(minPointAABB, 0.0);
+    clusterBounds.Max = float4(maxPointAABB, 0.0);
+    _ClusterBounds[flatClusterIndex] = clusterBounds;
+}

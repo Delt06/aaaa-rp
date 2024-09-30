@@ -2,6 +2,7 @@ using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Passes;
 using DELTation.AAAARP.Passes.AntiAliasing;
+using DELTation.AAAARP.Passes.ClusteredLighting;
 using DELTation.AAAARP.Passes.IBL;
 using DELTation.AAAARP.Passes.PostProcessing;
 using UnityEngine;
@@ -14,6 +15,7 @@ namespace DELTation.AAAARP
     {
         private readonly BilinearUpscalePass _bilinearUpscalePass;
         private readonly BRDFIntegrationPass _brdfIntegrationPass;
+        private readonly ClusteredLightingPass _clusteredLightingPass;
         private readonly ConvolveDiffuseIrradiancePass _convolveDiffuseIrradiancePass;
         private readonly DeferredLightingPass _deferredLightingPass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferFalseNegativePass;
@@ -51,6 +53,7 @@ namespace DELTation.AAAARP
             _drawVisibilityBufferFalseNegativePass =
                 new DrawVisibilityBufferPass(DrawVisibilityBufferPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer);
             _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
+            _clusteredLightingPass = new ClusteredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
 
@@ -80,6 +83,7 @@ namespace DELTation.AAAARP
             EnqueuePass(_drawVisibilityBufferFalseNegativePass);
             EnqueuePass(_resolveVisibilityBufferPass);
 
+            EnqueuePass(_clusteredLightingPass);
             EnqueuePass(_deferredLightingPass);
             EnqueuePass(_skyboxPass);
 

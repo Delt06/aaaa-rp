@@ -235,13 +235,18 @@ float3 TransformObjectToWorldDir(const float3 dirOS, const float4x4 objectToWorl
     return dirWS;
 }
 
-float2 ScreenCoordsToNDC(float4 screenCoords)
+float2 ScreenCoordsToNDC(const float2 screenCoords)
 {
     float2 ndc = screenCoords.xy * _ScreenSize.zw * 2 - 1;
     #ifdef UNITY_UV_STARTS_AT_TOP
     ndc.y *= -1;
     #endif
     return ndc;
+}
+
+float2 ScreenCoordsToNDC(const float4 screenCoords)
+{
+    return ScreenCoordsToNDC(screenCoords.xy);
 }
 
 #if defined(SHADER_API_PSSL) || defined(SHADER_API_METAL) || defined(SHADER_API_WEBGPU)

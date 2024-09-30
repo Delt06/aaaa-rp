@@ -70,6 +70,10 @@ namespace DELTation.AAAARP
         private ComputeShader _fixupMeshletIndirectDrawArgsCS;
 
         [SerializeField]
+        [ResourcePath("Shaders/ClusteredLighting/BuildClusterGrid.compute")]
+        private ComputeShader _buildClusterGridCS;
+
+        [SerializeField]
         [ResourcePath("Shaders/DeferredLighting.shader")]
         private Shader _deferredLightingPS;
 
@@ -173,6 +177,12 @@ namespace DELTation.AAAARP
         {
             get => _hzbGenerationCS;
             set => this.SetValueAndNotify(ref _hzbGenerationCS, value, nameof(_hzbGenerationCS));
+        }
+
+        public ComputeShader BuildClusterGridCS
+        {
+            get => _buildClusterGridCS;
+            set => this.SetValueAndNotify(ref _buildClusterGridCS, value, nameof(_buildClusterGridCS));
         }
 
         public Shader DeferredLightingPS
