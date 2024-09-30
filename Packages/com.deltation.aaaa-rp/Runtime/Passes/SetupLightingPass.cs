@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.Lighting;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -10,19 +11,49 @@ namespace DELTation.AAAARP.Passes
     {
         public SetupLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
 
-        protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
+        protected override unsafe void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAAImageBasedLightingData imageBasedLightingData = frameData.Get<AAAAImageBasedLightingData>();
+            AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
-            foreach (VisibleLight visibleLight in renderingData.CullingResults.visibleLights)
+            ref AAAALightingConstantBuffer lightingConstantBuffer = ref lightingData.LightingConstantBuffer;
+            lightingConstantBuffer.DirectionalLightCount = 0;
+
+            fixed (float* pDirectionalLightColorsFloat = lightingConstantBuffer.DirectionalLightColors)
             {
-                if (visibleLight.lightType == LightType.Directional)
+                var pDirectionalLightColors = (Vector4*) pDirectionalLightColorsFloat;
+
+                fixed (float* pDirectionalLightDirectionsFloat = lightingConstantBuffer.DirectionalLightDirections)
                 {
-                    passData.MainLightColor = visibleLight.finalColor;
-                    passData.MainLightDirection = (visibleLight.localToWorldMatrix * Vector3.back).normalized;
+                    var pDirectionalLightDirections = (Vector4*) pDirectionalLightDirectionsFloat;
+
+                    foreach (VisibleLight visibleLight in renderingData.CullingResults.visibleLights)
+                    {
+                        if (lightingConstantBuffer.DirectionalLightCount >= AAAALightingConstantBuffer.MaxDirectionalLights)
+                        {
+                            break;
+                        }
+
+                        if (visibleLight.lightType == LightType.Directional)
+                        {
+                            int index = lightingConstantBuffer.DirectionalLightCount++;
+                            pDirectionalLightColors[index] = visibleLight.finalColor;
+                            pDirectionalLightDirections[index] = (visibleLight.localToWorldMatrix * Vector3.back).normalized;
+                        }
+                    }
+
+                    if (lightingConstantBuffer.DirectionalLightCount == 0)
+                    {
+                        pDirectionalLightColors[0] = Vector4.zero;
+                        pDirectionalLightDirections[0] = Vector4.zero;
+                    }
                 }
             }
+
+            lightingData.AmbientIntensity = RenderSettings.ambientIntensity; 
+
+            passData.LightingData = lightingData;
 
             passData.DiffuseIrradianceCubemap = builder.ReadTexture(imageBasedLightingData.DiffuseIrradiance);
             passData.BRDFLut = builder.ReadTexture(imageBasedLightingData.BRDFLut);
@@ -32,11 +63,10 @@ namespace DELTation.AAAARP.Passes
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
-            context.cmd.SetGlobalVector(ShaderPropertyID._MainLight_Color, data.MainLightColor);
-            context.cmd.SetGlobalVector(ShaderPropertyID._MainLight_Direction, data.MainLightDirection);
+            ConstantBuffer.PushGlobal(context.cmd, data.LightingData.LightingConstantBuffer, ShaderPropertyID.LightingConstantBuffer);
 
             context.cmd.SetGlobalTexture(ShaderPropertyID.aaaa_DiffuseIrradianceCubemap, data.DiffuseIrradianceCubemap);
-            context.cmd.SetGlobalFloat(ShaderPropertyID.aaaa_AmbientIntensity, RenderSettings.ambientIntensity);
+            context.cmd.SetGlobalFloat(ShaderPropertyID.aaaa_AmbientIntensity, data.LightingData.AmbientIntensity);
             context.cmd.SetGlobalTexture(ShaderPropertyID.aaaa_BRDFLut, data.BRDFLut);
             context.cmd.SetGlobalTexture(ShaderPropertyID.aaaa_PreFilteredEnvironmentMap, data.PreFilteredEnvironmentMap);
             context.cmd.SetGlobalFloat(ShaderPropertyID.aaaa_PreFilteredEnvironmentMap_MaxLOD, data.PreFilteredEnvironmentMapMaxLOD);
@@ -55,8 +85,7 @@ namespace DELTation.AAAARP.Passes
         {
             public TextureHandle BRDFLut;
             public TextureHandle DiffuseIrradianceCubemap;
-            public Vector4 MainLightColor;
-            public Vector4 MainLightDirection;
+            public AAAALightingData LightingData;
             public TextureHandle PreFilteredEnvironmentMap;
             public float PreFilteredEnvironmentMapMaxLOD;
         }
@@ -64,8 +93,7 @@ namespace DELTation.AAAARP.Passes
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static class ShaderPropertyID
         {
-            public static readonly int _MainLight_Color = Shader.PropertyToID(nameof(_MainLight_Color));
-            public static readonly int _MainLight_Direction = Shader.PropertyToID(nameof(_MainLight_Direction));
+            public static readonly int LightingConstantBuffer = Shader.PropertyToID(nameof(AAAALightingConstantBuffer));
 
             public static readonly int aaaa_DiffuseIrradianceCubemap = Shader.PropertyToID(nameof(aaaa_DiffuseIrradianceCubemap));
             public static readonly int aaaa_AmbientIntensity = Shader.PropertyToID(nameof(aaaa_AmbientIntensity));

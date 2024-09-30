@@ -13,27 +13,31 @@ struct SurfaceData
     float3 positionWS;
 };
 
-float3 ComputeLightingPBR(const SurfaceData surfaceData)
+struct PBRLighting
 {
-    const Light mainLight = GetMainLight();
+    static float3 ComputeLightingDirect(const BRDFInput brdfInput)
+    {
+        return ComputeBRDF(brdfInput);
+    }
 
-    BRDFInput brdfInput;
-    brdfInput.normalWS = surfaceData.normalWS;
-    brdfInput.lightDirectionWS = mainLight.direction;
-    brdfInput.lightColor = mainLight.color;
-    brdfInput.positionWS = surfaceData.positionWS;
-    brdfInput.cameraPositionWS = GetCameraPositionWS();
-    brdfInput.diffuseColor = surfaceData.albedo;
-    brdfInput.metallic = surfaceData.metallic;
-    brdfInput.roughness = surfaceData.roughness;
-    brdfInput.irradiance = SampleDiffuseIrradiance(surfaceData.normalWS);
-    brdfInput.ambientOcclusion = 1.0f;
+    static float3 ComputeLightingIndirect(const SurfaceData surfaceData)
+    {
+        BRDFInput brdfInput;
+        brdfInput.normalWS = surfaceData.normalWS;
+        brdfInput.lightDirectionWS = 0;
+        brdfInput.lightColor = 0;
+        brdfInput.positionWS = surfaceData.positionWS;
+        brdfInput.cameraPositionWS = GetCameraPositionWS();
+        brdfInput.diffuseColor = surfaceData.albedo;
+        brdfInput.metallic = surfaceData.metallic;
+        brdfInput.roughness = surfaceData.roughness;
+        brdfInput.irradiance = SampleDiffuseIrradiance(surfaceData.normalWS);
+        brdfInput.ambientOcclusion = 1.0f;
 
-    const float3 direct = ComputeBRDF(brdfInput);
-    const float3 indirectDiffuse = ComputeBRDFIndirectDiffuse(brdfInput);
-    const float3 indirectSpecular = ComputeBRDFIndirectSpecular(brdfInput);
-    const float3 lighting = direct + aaaa_AmbientIntensity * (indirectDiffuse + indirectSpecular);
-    return lighting;
-}
+        const float3 indirectDiffuse = ComputeBRDFIndirectDiffuse(brdfInput);
+        const float3 indirectSpecular = ComputeBRDFIndirectSpecular(brdfInput);
+        return aaaa_AmbientIntensity * (indirectDiffuse + indirectSpecular);
+    }
+};
 
 #endif // AAAA_GBUFFER_INCLUDED

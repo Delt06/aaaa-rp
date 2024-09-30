@@ -3,9 +3,7 @@
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/AmbientProbe.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
-
-float4 _MainLight_Color;
-float4 _MainLight_Direction;
+#include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAALightingConstantBuffer.cs.hlsl"
 
 float4 aaaa_SHAr;
 float4 aaaa_SHAg;
@@ -31,12 +29,17 @@ struct Light
     float3 direction;
 };
 
-Light GetMainLight()
+Light GetDirectionalLight(const uint index)
 {
     Light light;
-    light.color = _MainLight_Color.rgb;
-    light.direction = _MainLight_Direction.xyz;
+    light.color = DirectionalLightColors[index].rgb;
+    light.direction = DirectionalLightDirections[index].xyz;
     return light;
+}
+
+uint GetDirectionalLightCount()
+{
+    return DirectionalLightCount;
 }
 
 float3 SampleSH_AAAA(const float3 normalWS)

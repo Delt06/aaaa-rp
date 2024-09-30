@@ -66,6 +66,7 @@ namespace DELTation.AAAARP
             AAAACameraData cameraData = CreateCameraData(frameData, camera, renderer, renderingData);
             CreateResourceData(frameData, cameraData);
             CreateRendererListData(frameData);
+            CreateLightingData(frameData);
             CreateImageBasedLightingData(frameData);
 
             RenderSingleCameraImpl(context, renderer, cameraData);
@@ -213,6 +214,13 @@ namespace DELTation.AAAARP
             AAAARendererListData rendererListData = frameData.GetOrCreate<AAAARendererListData>();
 
             return rendererListData;
+        }
+
+        private static AAAALightingData CreateLightingData(ContextContainer frameData)
+        {
+            AAAALightingData lightData = frameData.GetOrCreate<AAAALightingData>();
+
+            return lightData;
         }
 
         private static AAAAImageBasedLightingData CreateImageBasedLightingData(ContextContainer frameData)

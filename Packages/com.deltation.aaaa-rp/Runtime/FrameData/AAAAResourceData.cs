@@ -95,6 +95,8 @@ namespace DELTation.AAAARP.FrameData
                 cameraColorDesc.name = "CameraColor_Scaled";
                 cameraColorDesc.width = scaledCameraTargetViewportSize.x;
                 cameraColorDesc.height = scaledCameraTargetViewportSize.y;
+                cameraColorDesc.clearBuffer = true;
+                cameraColorDesc.clearColor = Color.clear;
                 CameraScaledColorDesc = cameraColorDesc;
                 _cameraScaledColorBuffer = renderGraph.CreateTexture(cameraColorDesc);
 
