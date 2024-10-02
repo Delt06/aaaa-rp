@@ -131,6 +131,7 @@ MonoBehaviour:
         _gpuMeshletCullingCS: {fileID: 7200000, guid: 5cdeb0c85e174a92812da534f0227a13, type: 3}
         _fixupMeshletIndirectDrawArgsCS: {fileID: 7200000, guid: e26fec44b1964f5d8159604fcfbcdbac, type: 3}
         _buildClusterGridCS: {fileID: 7200000, guid: e087e57e3a56485588ee6a186afc4e70, type: 3}
+        _clusterCullingCS: {fileID: 7200000, guid: 38bbe194146f48a8941bf74b2fac6adc, type: 3}
         _deferredLightingPS: {fileID: 4800000, guid: 0597c17db20e493b9ab3d9a2a42bb8d2, type: 3}
         _hzbGenerationCS: {fileID: 7200000, guid: 30e9b92e6a184f1fae128dee76e92eee, type: 3}
         _smaaPS: {fileID: 4800000, guid: b60243e7e3f846a19d2c60c7e14a5087, type: 3}

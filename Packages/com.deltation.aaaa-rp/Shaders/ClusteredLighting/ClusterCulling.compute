@@ -1,0 +1,99 @@
+#pragma kernel CS
+
+#include "Packages/com.deltation.aaaa-rp/Shaders/ClusteredLighting/Common.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PunctualLights.hlsl"
+
+#define THREAD_GROUP_SIZE CLUSTER_CULLING_THREAD_GROUP_SIZE
+
+StructuredBuffer<AAAAClusterBounds> _ClusterBounds;
+
+RWByteAddressBuffer _LightIndexCounter;
+RWByteAddressBuffer _LightIndexList;
+RWByteAddressBuffer _LightGrid;
+
+groupshared AAAAClusterBounds     g_CachedClusterBounds[THREAD_GROUP_SIZE];
+groupshared AAAAPunctualLightData g_CachedPunctualLights[THREAD_GROUP_SIZE];
+
+void LoadCachedData(const uint groupThreadID, const uint lightIndex, const uint flatClusterIndex)
+{
+    if (lightIndex < PunctualLightCount)
+    {
+        g_CachedPunctualLights[groupThreadID] = _PunctualLights[lightIndex];
+    }
+    else
+    {
+        g_CachedPunctualLights[groupThreadID] = (AAAAPunctualLightData)0;
+    }
+
+    g_CachedClusterBounds[groupThreadID] = _ClusterBounds[flatClusterIndex];
+}
+
+float ComputePointToAABBDistanceSq(const float3 pointVS, const AAAAClusterBounds clusterBoundsVS)
+{
+    float sqDist = 0.0;
+
+    UNITY_UNROLL
+    for (int i = 0; i < 3; ++i)
+    {
+        float v = pointVS[i];
+        if (v < clusterBoundsVS.Min[i])
+        {
+            sqDist += (clusterBoundsVS.Min[i] - v) * (clusterBoundsVS.Min[i] - v);
+        }
+        if (v > clusterBoundsVS.Max[i])
+        {
+            sqDist += (v - clusterBoundsVS.Max[i]) * (v - clusterBoundsVS.Max[i]);
+        }
+    }
+
+    return sqDist;
+}
+
+bool CheckPointLightVsClusterAABB(const uint cachedLightIndex, const uint cachedClusterIndex)
+{
+    const float  lightRadius = g_CachedPunctualLights[cachedLightIndex].Color_Radius.w;
+    const float3 lightCenterWS = g_CachedPunctualLights[cachedLightIndex].PositionWS.xyz;
+    const float3 lightCenterVS = mul(UNITY_MATRIX_V, float4(lightCenterWS, 1.0f)).xyz;
+    float        squaredDistance = ComputePointToAABBDistanceSq(lightCenterVS, g_CachedClusterBounds[cachedClusterIndex]);
+
+    return lightRadius > 0 && squaredDistance <= lightRadius * lightRadius;
+}
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupThreadID : SV_GroupThreadID)
+{
+    const uint flatClusterIndex = dispatchThreadID.x;
+    uint       visibleLightCount = 0;
+    uint       visibleLightIndices[THREAD_GROUP_SIZE];
+
+    const uint loadedLightIndex = groupThreadID.x;
+    LoadCachedData(groupThreadID.x, loadedLightIndex, flatClusterIndex);
+
+    GroupMemoryBarrierWithGroupSync();
+
+    const uint cachedClusterIndex = groupThreadID.x;
+
+    for (uint cachedLightIndex = 0; cachedLightIndex < THREAD_GROUP_SIZE; ++cachedLightIndex)
+    {
+        if (CheckPointLightVsClusterAABB(cachedLightIndex, cachedClusterIndex))
+        {
+            visibleLightIndices[visibleLightCount++] = cachedLightIndex;
+        }
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    uint indexListOffset;
+    _LightIndexCounter.InterlockedAdd(0, visibleLightCount, indexListOffset);
+
+    for (uint i = 0; i < visibleLightCount; ++i)
+    {
+        const uint indexListAddress = 4 * (indexListOffset + i);
+        _LightIndexList.Store(indexListAddress, visibleLightIndices[i]);
+    }
+
+    LightGridCell cell;
+    cell.offset = indexListOffset;
+    cell.count = visibleLightCount;
+    _LightGrid.Store(4 * flatClusterIndex, cell.Pack());
+}

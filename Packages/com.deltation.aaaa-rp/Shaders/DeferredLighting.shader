@@ -5,12 +5,14 @@ Shader "Hidden/AAAA/DeferredLighting"
     HLSLINCLUDE
     #pragma target 2.0
     #pragma editor_sync_compilation
+
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-    #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
-    #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PBR.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
+    #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
+    #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
+    #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PBR.hlsl"
 
     void InitializeSurfaceData(const GBufferValue gbuffer,
                                const Varyings     IN,
@@ -55,6 +57,8 @@ Shader "Hidden/AAAA/DeferredLighting"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
+            #pragma enable_d3d11_debug_symbols
+
             float4 Frag(const Varyings IN) : SV_Target
             {
                 const float        deviceDepth = SampleDeviceDepth(IN.texcoord);
@@ -75,7 +79,7 @@ Shader "Hidden/AAAA/DeferredLighting"
                 brdfInput.irradiance = 0;
                 brdfInput.ambientOcclusion = 1.0f;
 
-                    UNITY_UNROLL
+                UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
                 for (uint lightIndex = 0; lightIndex < lightCount; ++lightIndex)
                 {
                     const Light light = GetDirectionalLight(lightIndex);
@@ -83,6 +87,20 @@ Shader "Hidden/AAAA/DeferredLighting"
                     brdfInput.lightColor = light.color;
                     lighting += PBRLighting::ComputeLightingDirect(brdfInput);
                 }
+
+                const float         zVS = TransformWorldToView(surfaceData.positionWS).z;
+                const uint          flatClusterIndex = ClusteredLighting::NormalizedScreenUVToFlatClusterIndex(IN.texcoord, zVS);
+                const LightGridCell lightGridCell = ClusteredLighting::LoadCell(flatClusterIndex);
+
+                for (uint i = 0; i < lightGridCell.count; ++i)
+                {
+                    const uint  punctualLightIndex = ClusteredLighting::LoadLightIndex(lightGridCell, i);
+                    const Light light = GetPunctualLight(punctualLightIndex, surfaceData.positionWS);
+                    brdfInput.lightDirectionWS = light.direction;
+                    brdfInput.lightColor = light.color;
+                    lighting += light.distanceAttenuation * PBRLighting::ComputeLightingDirect(brdfInput);
+                }
+
 
                 return float4(lighting, 1);
             }

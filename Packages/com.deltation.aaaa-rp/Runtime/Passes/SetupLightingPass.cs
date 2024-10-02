@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
+using Unity.Collections;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -11,13 +13,36 @@ namespace DELTation.AAAARP.Passes
     {
         public SetupLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
 
-        protected override unsafe void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
+        protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAAImageBasedLightingData imageBasedLightingData = frameData.Get<AAAAImageBasedLightingData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
+            lightingData.Init(renderingData.RenderGraph, renderingData.PipelineAsset.LightingSettings);
 
             ref AAAALightingConstantBuffer lightingConstantBuffer = ref lightingData.LightingConstantBuffer;
+            var punctualLights = new NativeList<AAAAPunctualLightData>(renderingData.CullingResults.visibleLights.Length, Allocator.Temp);
+            FillLightsData(renderingData, ref lightingConstantBuffer, punctualLights);
+
+            passData.PunctualLightsBuffer = builder.WriteBuffer(lightingData.PunctualLightsBuffer);
+            passData.PunctualLights = punctualLights.AsArray();
+
+            lightingData.AmbientIntensity = RenderSettings.ambientIntensity;
+
+            passData.LightingData = lightingData;
+
+            passData.DiffuseIrradianceCubemap = builder.ReadTexture(imageBasedLightingData.DiffuseIrradiance);
+            passData.BRDFLut = builder.ReadTexture(imageBasedLightingData.BRDFLut);
+            passData.PreFilteredEnvironmentMap = builder.ReadTexture(imageBasedLightingData.PreFilteredEnvironmentMap);
+            passData.PreFilteredEnvironmentMapMaxLOD = imageBasedLightingData.PreFilteredEnvironmentMapDesc.mipCount - 1;
+
+            builder.AllowPassCulling(false);
+        }
+
+        private static unsafe void FillLightsData(AAAARenderingData renderingData, ref AAAALightingConstantBuffer lightingConstantBuffer,
+            NativeList<AAAAPunctualLightData> punctualLights)
+        {
+            int maxPunctualLights = renderingData.PipelineAsset.LightingSettings.MaxPunctualLights;
             lightingConstantBuffer.DirectionalLightCount = 0;
 
             fixed (float* pDirectionalLightColorsFloat = lightingConstantBuffer.DirectionalLightColors)
@@ -30,14 +55,21 @@ namespace DELTation.AAAARP.Passes
 
                     foreach (VisibleLight visibleLight in renderingData.CullingResults.visibleLights)
                     {
-                        if (lightingConstantBuffer.DirectionalLightCount >= AAAALightingConstantBuffer.MaxDirectionalLights)
+                        if (visibleLight.lightType == LightType.Point &&
+                            punctualLights.Length < maxPunctualLights)
                         {
-                            break;
+                            var punctualLightData = new AAAAPunctualLightData();
+                            punctualLightData.Color_Radius.xyz = ((float4) (Vector4) visibleLight.finalColor).xyz;
+                            punctualLightData.Color_Radius.w = visibleLight.range;
+                            punctualLightData.PositionWS.xyz = visibleLight.localToWorldMatrix.GetPosition();
+                            GetPunctualLightDistanceAttenuation(visibleLight.range, ref punctualLightData.Attenuations.x);
+                            punctualLights.Add(punctualLightData);
                         }
 
-                        if (visibleLight.lightType == LightType.Directional)
+                        if (visibleLight.lightType == LightType.Directional &&
+                            lightingConstantBuffer.DirectionalLightCount < AAAALightingConstantBuffer.MaxDirectionalLights)
                         {
-                            int index = lightingConstantBuffer.DirectionalLightCount++;
+                            uint index = lightingConstantBuffer.DirectionalLightCount++;
                             pDirectionalLightColors[index] = visibleLight.finalColor;
                             pDirectionalLightDirections[index] = (visibleLight.localToWorldMatrix * Vector3.back).normalized;
                         }
@@ -51,19 +83,27 @@ namespace DELTation.AAAARP.Passes
                 }
             }
 
-            lightingData.AmbientIntensity = RenderSettings.ambientIntensity; 
+            lightingConstantBuffer.PunctualLightCount = (uint) punctualLights.Length;
+        }
 
-            passData.LightingData = lightingData;
+        // https://github.com/Unity-Technologies/Graphics/blob/e42df452b62857a60944aed34f02efa1bda50018/Packages/com.unity.render-pipelines.universal/Runtime/UniversalRenderPipelineCore.cs#L1732
+        private static void GetPunctualLightDistanceAttenuation(float lightRange, ref float lightAttenuation)
+        {
+            float lightRangeSqr = lightRange * lightRange;
+            float fadeStartDistanceSqr = 0.8f * 0.8f * lightRangeSqr;
+            float fadeRangeSqr = fadeStartDistanceSqr - lightRangeSqr;
+            float lightRangeSqrOverFadeRangeSqr = -lightRangeSqr / fadeRangeSqr;
+            float oneOverLightRangeSqr = 1.0f / Mathf.Max(0.0001f, lightRangeSqr);
 
-            passData.DiffuseIrradianceCubemap = builder.ReadTexture(imageBasedLightingData.DiffuseIrradiance);
-            passData.BRDFLut = builder.ReadTexture(imageBasedLightingData.BRDFLut);
-            passData.PreFilteredEnvironmentMap = builder.ReadTexture(imageBasedLightingData.PreFilteredEnvironmentMap);
-            passData.PreFilteredEnvironmentMapMaxLOD = imageBasedLightingData.PreFilteredEnvironmentMapDesc.mipCount - 1;
+            lightAttenuation = oneOverLightRangeSqr;
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
             ConstantBuffer.PushGlobal(context.cmd, data.LightingData.LightingConstantBuffer, ShaderPropertyID.LightingConstantBuffer);
+
+            context.cmd.SetBufferData(data.PunctualLightsBuffer, data.PunctualLights);
+            context.cmd.SetGlobalBuffer(ShaderPropertyID._PunctualLights, data.PunctualLightsBuffer);
 
             context.cmd.SetGlobalTexture(ShaderPropertyID.aaaa_DiffuseIrradianceCubemap, data.DiffuseIrradianceCubemap);
             context.cmd.SetGlobalFloat(ShaderPropertyID.aaaa_AmbientIntensity, data.LightingData.AmbientIntensity);
@@ -88,12 +128,15 @@ namespace DELTation.AAAARP.Passes
             public AAAALightingData LightingData;
             public TextureHandle PreFilteredEnvironmentMap;
             public float PreFilteredEnvironmentMapMaxLOD;
+            public NativeArray<AAAAPunctualLightData> PunctualLights;
+            public BufferHandle PunctualLightsBuffer;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static class ShaderPropertyID
         {
             public static readonly int LightingConstantBuffer = Shader.PropertyToID(nameof(AAAALightingConstantBuffer));
+            public static readonly int _PunctualLights = Shader.PropertyToID(nameof(_PunctualLights));
 
             public static readonly int aaaa_DiffuseIrradianceCubemap = Shader.PropertyToID(nameof(aaaa_DiffuseIrradianceCubemap));
             public static readonly int aaaa_AmbientIntensity = Shader.PropertyToID(nameof(aaaa_AmbientIntensity));

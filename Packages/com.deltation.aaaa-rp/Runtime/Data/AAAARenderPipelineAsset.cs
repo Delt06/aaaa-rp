@@ -54,6 +54,15 @@ namespace DELTation.AAAARP.Data
     }
 
     [Serializable]
+    public class AAAALightingSettings
+    {
+        [Range(16, 1024 * 16)]
+        public int MaxPunctualLights = 1024;
+        [Range(4, 64)]
+        public int MaxPunctualLightsPerCluster = 16;
+    }
+
+    [Serializable]
     public class AAAAImageBasedLightingSettings
     {
         public AAAATextureSize DiffuseIrradianceResolution = AAAATextureSize._128;
@@ -93,13 +102,17 @@ namespace DELTation.AAAARP.Data
         [SerializeField]
         private AAAAMeshLODSettings _meshLODSettings = new();
         [SerializeField]
-        private AAAAImageBasedLightingSettings _imageBasedLightingSettings;
+        private AAAALightingSettings _lightingSettings = new();
+        [SerializeField]
+        private AAAAImageBasedLightingSettings _imageBasedLightingSettings = new();
         [SerializeField]
         private AAAAPostProcessingSettings _postProcessingSettings = new();
 
         public AAAAImageQualitySettings ImageQualitySettings => _imageQualitySettings;
 
         public AAAAMeshLODSettings MeshLODSettings => _meshLODSettings;
+
+        public AAAALightingSettings LightingSettings => _lightingSettings;
 
         public AAAAImageBasedLightingSettings ImageBasedLightingSettings => _imageBasedLightingSettings;
 

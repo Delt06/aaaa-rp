@@ -7,6 +7,7 @@ namespace DELTation.AAAARP.Passes.ClusteredLighting
     public static class AAAAClusteredLightingComputeShaders
     {
         public const int BuildClusterGridThreadGroupSize = 32;
+        public const int ClusterCullingThreadGroupSize = 32;
     }
 
     [GenerateHLSL(PackingRules.Exact, false, generateCBuffer: true)]

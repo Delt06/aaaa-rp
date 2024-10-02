@@ -4,6 +4,8 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/AmbientProbe.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAALightingConstantBuffer.cs.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/ClusteredLighting.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PunctualLights.hlsl"
 
 float4 aaaa_SHAr;
 float4 aaaa_SHAg;
@@ -27,6 +29,7 @@ struct Light
 {
     float3 color;
     float3 direction;
+    float distanceAttenuation;
 };
 
 Light GetDirectionalLight(const uint index)
@@ -34,12 +37,27 @@ Light GetDirectionalLight(const uint index)
     Light light;
     light.color = DirectionalLightColors[index].rgb;
     light.direction = DirectionalLightDirections[index].xyz;
+    light.distanceAttenuation = 1.0;
     return light;
 }
 
 uint GetDirectionalLightCount()
 {
     return DirectionalLightCount;
+}
+
+Light GetPunctualLight(const uint index, const float3 positionWS)
+{
+    const AAAAPunctualLightData punctualLightData = _PunctualLights[index];
+
+    const float3 offset = punctualLightData.PositionWS.xyz - positionWS;
+    const float distanceSqr = max(dot(offset, offset), HALF_MIN);
+    
+    Light light;
+    light.color = punctualLightData.Color_Radius.xyz;
+    light.direction = SafeNormalize(offset);
+    light.distanceAttenuation = DistanceAttenuation(distanceSqr, punctualLightData.Attenuations.x);
+    return light;
 }
 
 float3 SampleSH_AAAA(const float3 normalWS)

@@ -43,13 +43,13 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    const uint3  clusterIndex = ClusteredLighting::UnflattenClusterIndex(flatClusterIndex);
+    const uint3  clusterIndex = ClusteredLightingCommon::UnflattenClusterIndex(flatClusterIndex);
     const float4 minPointNDC = float4(ScreenCoordsToNDC(clusterIndex.xy * _TileSizeInPixels), UNITY_NEAR_CLIP_VALUE, 1.0f);
     const float4 maxPointNDC = float4(ScreenCoordsToNDC(min(_ScreenSize.xy, (clusterIndex.xy + 1) * _TileSizeInPixels)), UNITY_NEAR_CLIP_VALUE, 1.0f);
     const float3 minPointVS = ScreenCoordToViewSpace(minPointNDC);
     const float3 maxPointVS = ScreenCoordToViewSpace(maxPointNDC);
-    const float  tileNear = ClusteredLighting::ClusterIndexToViewSpaceZ(clusterIndex.z);
-    const float  tileFar = ClusteredLighting::ClusterIndexToViewSpaceZ(clusterIndex.z + 1);
+    const float  tileNear = ClusteredLightingCommon::ClusterIndexToViewSpaceZ(clusterIndex.z);
+    const float  tileFar = ClusteredLightingCommon::ClusterIndexToViewSpaceZ(clusterIndex.z + 1);
 
     // We work in VS
     const float3 eyePos = 0;

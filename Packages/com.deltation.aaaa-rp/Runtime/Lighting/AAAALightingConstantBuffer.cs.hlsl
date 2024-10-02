@@ -14,7 +14,8 @@
 CBUFFER_START(AAAALightingConstantBuffer)
     float4 DirectionalLightColors[4];
     float4 DirectionalLightDirections[4];
-    int DirectionalLightCount;
+    uint DirectionalLightCount;
+    uint PunctualLightCount;
 CBUFFER_END
 
 

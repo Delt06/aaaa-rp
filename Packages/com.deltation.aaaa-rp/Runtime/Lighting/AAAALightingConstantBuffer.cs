@@ -3,7 +3,7 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Lighting
 {
-    [GenerateHLSL(PackingRules.Exact, false, generateCBuffer = true)]
+    [GenerateHLSL(PackingRules.Exact, needAccessors = false, generateCBuffer = true)]
     public unsafe struct AAAALightingConstantBuffer
     {
         public const int MaxDirectionalLights = 4;
@@ -14,6 +14,7 @@ namespace DELTation.AAAARP.Lighting
         [HLSLArray(MaxDirectionalLights, typeof(Vector4))]
         public fixed float DirectionalLightDirections[MaxDirectionalLights * 4];
 
-        public int DirectionalLightCount;
+        public uint DirectionalLightCount;
+        public uint PunctualLightCount;
     }
 }

@@ -74,6 +74,10 @@ namespace DELTation.AAAARP
         private ComputeShader _buildClusterGridCS;
 
         [SerializeField]
+        [ResourcePath("Shaders/ClusteredLighting/ClusterCulling.compute")]
+        private ComputeShader _clusterCullingCS;
+
+        [SerializeField]
         [ResourcePath("Shaders/DeferredLighting.shader")]
         private Shader _deferredLightingPS;
 
@@ -183,6 +187,12 @@ namespace DELTation.AAAARP
         {
             get => _buildClusterGridCS;
             set => this.SetValueAndNotify(ref _buildClusterGridCS, value, nameof(_buildClusterGridCS));
+        }
+
+        public ComputeShader ClusterCullingCS
+        {
+            get => _clusterCullingCS;
+            set => this.SetValueAndNotify(ref _clusterCullingCS, value, nameof(_clusterCullingCS));
         }
 
         public Shader DeferredLightingPS

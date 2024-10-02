@@ -8,6 +8,7 @@
 // DELTation.AAAARP.Passes.ClusteredLighting.AAAAClusteredLightingComputeShaders:  static fields
 //
 #define BUILD_CLUSTER_GRID_THREAD_GROUP_SIZE (32)
+#define CLUSTER_CULLING_THREAD_GROUP_SIZE (32)
 
 //
 // DELTation.AAAARP.Passes.ClusteredLighting.AAAAClusteredLightingConstantBuffer:  static fields
