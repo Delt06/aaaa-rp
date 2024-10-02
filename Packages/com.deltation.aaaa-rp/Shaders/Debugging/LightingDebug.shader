@@ -19,7 +19,7 @@ Shader "Hidden/AAAA/LightingDebug"
             ZTest Off
             ZClip Off
             Cull Off
-            Blend One One
+            Blend SrcAlpha OneMinusSrcAlpha
             ColorMask RGB
 
             HLSLPROGRAM
@@ -48,13 +48,18 @@ Shader "Hidden/AAAA/LightingDebug"
                 float3(BRIGHT_COLOR, BRIGHT_COLOR, DIM_COLOR),
             };
 
-            #define OVERLAY_OPACITY 0.25f
+            #define OVERLAY_OPACITY 0.5f
 
             float3 LightCountHeatmap(float t)
             {
-                const float3 c0 = float3(0.0f, 0.0f, 1);
-                const float3 c1 = float3(1, 0.0f, 0.0f);
-                return lerp(c0, c1, t);
+                const float3 c0 = float3(0.0f, 0.0f, 1.0f);
+                const float3 c1 = float3(0.0f, 1.0f, 0.0f);
+                const float3 c2 = float3(1.0f, 0.0f, 0.0f);
+                if (t <= 0.5)
+                {
+                    return lerp(c0, c1, t / 0.5);
+                }
+                return lerp(c1, c2, t / 0.5 - 1);
             }
 
             float4 Frag(const Varyings IN) : SV_Target
@@ -97,7 +102,7 @@ Shader "Hidden/AAAA/LightingDebug"
                     }
                 }
 
-                return float4(OVERLAY_OPACITY * resultColor, 1);
+                return float4(resultColor, OVERLAY_OPACITY);
             }
             ENDHLSL
         }
