@@ -4,25 +4,6 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/Passes/ClusteredLighting/AAAAClusteredLightingShaderData.cs.hlsl"
 
-struct LightGridCell
-{
-    uint offset;
-    uint count;
-
-    uint Pack()
-    {
-        return (offset << 16) | (count & 0xFFFFu);
-    }
-
-    static LightGridCell Unpack(const uint cellPacked)
-    {
-        LightGridCell cell;
-        cell.offset = cellPacked >> 16;
-        cell.count = cellPacked & 0xFFFFu;
-        return cell;
-    }
-};
-
 struct ClusteredLightingCommon
 {
     static uint3 UnflattenClusterIndex(const uint flatClusterIndex)

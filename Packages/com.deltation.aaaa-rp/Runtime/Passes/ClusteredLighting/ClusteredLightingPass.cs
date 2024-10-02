@@ -29,7 +29,7 @@ namespace DELTation.AAAARP.Passes.ClusteredLighting
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAAClusteredLightingData clusteredLightingData = frameData.GetOrCreate<AAAAClusteredLightingData>();
-            clusteredLightingData.Init(renderingData.RenderGraph, renderingData.PipelineAsset.LightingSettings);
+            clusteredLightingData.Init(renderingData.RenderGraph);
 
             {
                 passData.LightGridBuffer = builder.WriteBuffer(clusteredLightingData.LightGridBuffer);

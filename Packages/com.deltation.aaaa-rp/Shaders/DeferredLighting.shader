@@ -86,9 +86,9 @@ Shader "Hidden/AAAA/DeferredLighting"
                     lighting += PBRLighting::ComputeLightingDirect(brdfInput);
                 }
 
-                const LightGridCell lightGridCell = ClusteredLighting::LoadCell(surfaceData.positionWS, IN.texcoord);
+                const AAAAClusteredLightingGridCell lightGridCell = ClusteredLighting::LoadCell(surfaceData.positionWS, IN.texcoord);
 
-                for (uint i = 0; i < lightGridCell.count; ++i)
+                for (uint i = 0; i < lightGridCell.Count; ++i)
                 {
                     const uint  punctualLightIndex = ClusteredLighting::LoadLightIndex(lightGridCell, i);
                     const Light light = GetPunctualLight(punctualLightIndex, surfaceData.positionWS);

@@ -80,13 +80,13 @@ Shader "Hidden/AAAA/LightingDebug"
                     }
                 case AAAALIGHTINGDEBUGMODE_DEFERRED_LIGHTS:
                     {
-                        const LightGridCell lightGridCell = ClusteredLighting::LoadCell(positionWS, screenUV);
+                        const AAAAClusteredLightingGridCell lightGridCell = ClusteredLighting::LoadCell(positionWS, screenUV);
 
-                        if (lightGridCell.count > 0)
+                        if (lightGridCell.Count > 0)
                         {
                             const float2 remap = _LightingDebugCountRemap;
-                            const float remappedLightCount = InverseLerpUnclamped(remap.x, remap.y,lightGridCell.count);
-                            resultColor = LightCountHeatmap(remappedLightCount);
+                            const float remappedLightCount = InverseLerpUnclamped(remap.x, remap.y,lightGridCell.Count);
+                            resultColor = LightCountHeatmap(saturate(remappedLightCount));
                         }
 
                         break;

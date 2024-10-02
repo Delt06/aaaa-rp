@@ -1,7 +1,8 @@
-﻿using DELTation.AAAARP.Data;
+﻿using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
+using static DELTation.AAAARP.Passes.ClusteredLighting.AAAAClusteredLightingConstantBuffer;
 
 namespace DELTation.AAAARP.Passes.ClusteredLighting
 {
@@ -10,12 +11,12 @@ namespace DELTation.AAAARP.Passes.ClusteredLighting
         public BufferHandle LightGridBuffer;
         public BufferHandle LightIndexListBuffer;
 
-        public void Init(RenderGraph renderGraph, AAAALightingSettings lightingSettings)
+        public void Init(RenderGraph renderGraph)
         {
-            const int totalClusters = AAAAClusteredLightingConstantBuffer.TotalClusters;
-
             {
-                var bufferDesc = new BufferDesc(totalClusters, sizeof(uint), GraphicsBuffer.Target.Raw)
+                var bufferDesc = new BufferDesc(
+                    TotalClusters, UnsafeUtility.SizeOf<AAAAClusteredLightingGridCell>(), GraphicsBuffer.Target.Raw
+                )
                 {
                     name = nameof(LightGridBuffer),
                 };
@@ -23,7 +24,9 @@ namespace DELTation.AAAARP.Passes.ClusteredLighting
             }
 
             {
-                var bufferDesc = new BufferDesc(totalClusters * lightingSettings.MaxPunctualLightsPerCluster, sizeof(uint), GraphicsBuffer.Target.Raw)
+                var bufferDesc = new BufferDesc(
+                    TotalClusters * MaxLightsPerCluster, sizeof(uint), GraphicsBuffer.Target.Structured
+                )
                 {
                     name = nameof(LightIndexListBuffer),
                 };

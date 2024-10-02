@@ -18,6 +18,15 @@ namespace DELTation.AAAARP.Passes.ClusteredLighting
         public const int ClustersZ = 24;
 
         public const int TotalClusters = ClustersX * ClustersY * ClustersZ;
+
+        public const int MaxLightsPerCluster = 128;
+    }
+
+    [GenerateHLSL(PackingRules.Exact, false)]
+    public struct AAAAClusteredLightingGridCell
+    {
+        public uint Offset;
+        public uint Count;
     }
 
     [GenerateHLSL(PackingRules.Exact, false)]

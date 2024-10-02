@@ -58,8 +58,6 @@ namespace DELTation.AAAARP.Data
     {
         [Range(16, 1024 * 16)]
         public int MaxPunctualLights = 1024;
-        [Range(4, 64)]
-        public int MaxPunctualLightsPerCluster = 16;
     }
 
     [Serializable]

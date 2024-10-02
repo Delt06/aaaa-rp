@@ -17,6 +17,7 @@
 #define CLUSTERS_Y (9)
 #define CLUSTERS_Z (24)
 #define TOTAL_CLUSTERS (3456)
+#define MAX_LIGHTS_PER_CLUSTER (128)
 
 // Generated from DELTation.AAAARP.Passes.ClusteredLighting.AAAAClusterBounds
 // PackingRules = Exact
@@ -24,6 +25,14 @@ struct AAAAClusterBounds
 {
     float4 Min;
     float4 Max;
+};
+
+// Generated from DELTation.AAAARP.Passes.ClusteredLighting.AAAAClusteredLightingGridCell
+// PackingRules = Exact
+struct AAAAClusteredLightingGridCell
+{
+    uint Offset;
+    uint Count;
 };
 
 

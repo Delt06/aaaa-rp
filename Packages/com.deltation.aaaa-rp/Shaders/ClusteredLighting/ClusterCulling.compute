@@ -7,25 +7,23 @@
 
 StructuredBuffer<AAAAClusterBounds> _ClusterBounds;
 
-RWByteAddressBuffer _LightIndexCounter;
-RWByteAddressBuffer _LightIndexList;
-RWByteAddressBuffer _LightGrid;
+RWByteAddressBuffer                               _LightIndexCounter;
+RWByteAddressBuffer                               _LightIndexList;
+RWStructuredBuffer<AAAAClusteredLightingGridCell> _LightGrid;
 
-groupshared AAAAClusterBounds     g_CachedClusterBounds[THREAD_GROUP_SIZE];
 groupshared AAAAPunctualLightData g_CachedPunctualLights[THREAD_GROUP_SIZE];
 
-void LoadCachedData(const uint groupThreadID, const uint lightIndex, const uint flatClusterIndex)
+void LoadCachedLights(const uint cachedLightIndex, const uint lightIndex)
 {
+    UNITY_BRANCH
     if (lightIndex < PunctualLightCount)
     {
-        g_CachedPunctualLights[groupThreadID] = _PunctualLights[lightIndex];
+        g_CachedPunctualLights[cachedLightIndex] = _PunctualLights[lightIndex];
     }
     else
     {
-        g_CachedPunctualLights[groupThreadID] = (AAAAPunctualLightData)0;
+        g_CachedPunctualLights[cachedLightIndex] = (AAAAPunctualLightData)0;
     }
-
-    g_CachedClusterBounds[groupThreadID] = _ClusterBounds[flatClusterIndex];
 }
 
 float ComputePointToAABBDistanceSq(const float3 pointVS, const AAAAClusterBounds clusterBoundsVS)
@@ -49,13 +47,12 @@ float ComputePointToAABBDistanceSq(const float3 pointVS, const AAAAClusterBounds
     return sqDist;
 }
 
-bool CheckPointLightVsClusterAABB(const uint cachedLightIndex, const uint cachedClusterIndex)
+bool CheckPointLightVsClusterAABB(const uint cachedLightIndex, const AAAAClusterBounds clusterBounds)
 {
     const float  lightRadius = g_CachedPunctualLights[cachedLightIndex].Color_Radius.w;
     const float3 lightCenterWS = g_CachedPunctualLights[cachedLightIndex].PositionWS.xyz;
     const float3 lightCenterVS = mul(UNITY_MATRIX_V, float4(lightCenterWS, 1.0f)).xyz;
-    float        squaredDistance = ComputePointToAABBDistanceSq(lightCenterVS, g_CachedClusterBounds[cachedClusterIndex]);
-
+    const float  squaredDistance = ComputePointToAABBDistanceSq(lightCenterVS, clusterBounds);
     return lightRadius > 0 && squaredDistance <= lightRadius * lightRadius;
 }
 
@@ -64,20 +61,25 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupThr
 {
     const uint flatClusterIndex = dispatchThreadID.x;
     uint       visibleLightCount = 0;
-    uint       visibleLightIndices[THREAD_GROUP_SIZE];
+    uint       visibleLightIndices[MAX_LIGHTS_PER_CLUSTER];
 
-    const uint loadedLightIndex = groupThreadID.x;
-    LoadCachedData(groupThreadID.x, loadedLightIndex, flatClusterIndex);
+    const AAAAClusterBounds clusterBounds = _ClusterBounds[flatClusterIndex];
 
     GroupMemoryBarrierWithGroupSync();
 
-    const uint cachedClusterIndex = groupThreadID.x;
-
-    for (uint cachedLightIndex = 0; cachedLightIndex < THREAD_GROUP_SIZE; ++cachedLightIndex)
+    for (uint baseLightIndex = 0; baseLightIndex < PunctualLightCount; baseLightIndex += THREAD_GROUP_SIZE)
     {
-        if (CheckPointLightVsClusterAABB(cachedLightIndex, cachedClusterIndex))
+        const uint loadedLightIndex = baseLightIndex + groupThreadID.x;
+        LoadCachedLights(groupThreadID.x, loadedLightIndex);
+
+        GroupMemoryBarrierWithGroupSync();
+
+        for (uint cachedLightIndex = 0; cachedLightIndex < THREAD_GROUP_SIZE; ++cachedLightIndex)
         {
-            visibleLightIndices[visibleLightCount++] = cachedLightIndex;
+            if (visibleLightCount < MAX_LIGHTS_PER_CLUSTER && CheckPointLightVsClusterAABB(cachedLightIndex, clusterBounds))
+            {
+                visibleLightIndices[visibleLightCount++] = baseLightIndex + cachedLightIndex;
+            }
         }
     }
 
@@ -92,8 +94,8 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupThr
         _LightIndexList.Store(indexListAddress, visibleLightIndices[i]);
     }
 
-    LightGridCell cell;
-    cell.offset = indexListOffset;
-    cell.count = visibleLightCount;
-    _LightGrid.Store(4 * flatClusterIndex, cell.Pack());
+    AAAAClusteredLightingGridCell cell;
+    cell.Offset = indexListOffset;
+    cell.Count = visibleLightCount;
+    _LightGrid[flatClusterIndex] = cell;
 }

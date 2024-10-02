@@ -4,8 +4,8 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PunctualLights.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Shaders/ClusteredLighting/Common.hlsl"
 
-ByteAddressBuffer _ClusteredLightGrid;
-ByteAddressBuffer _ClusteredLightIndexList;
+StructuredBuffer<AAAAClusteredLightingGridCell> _ClusteredLightGrid;
+ByteAddressBuffer                               _ClusteredLightIndexList;
 
 struct ClusteredLighting
 {
@@ -18,22 +18,21 @@ struct ClusteredLighting
         return ClusteredLightingCommon::FlattenClusterIndex(clusterIndex);
     }
 
-    static LightGridCell LoadCell(const uint flatClusterIndex)
+    static AAAAClusteredLightingGridCell LoadCell(const uint flatClusterIndex)
     {
-        const uint packedCell = _ClusteredLightGrid.Load(4 * flatClusterIndex);
-        return LightGridCell::Unpack(packedCell);
+        return _ClusteredLightGrid[flatClusterIndex];
     }
 
-    static LightGridCell LoadCell(const float3 positionWS, const float2 screenUV)
+    static AAAAClusteredLightingGridCell LoadCell(const float3 positionWS, const float2 screenUV)
     {
         const float zVS = TransformWorldToView(positionWS).z;
         const uint  flatClusterIndex = NormalizedScreenUVToFlatClusterIndex(screenUV, zVS);
         return LoadCell(flatClusterIndex);
     }
 
-    static uint LoadLightIndex(const LightGridCell lightGridCell, const uint localIndex)
+    static uint LoadLightIndex(const AAAAClusteredLightingGridCell lightGridCell, const uint localIndex)
     {
-        return _ClusteredLightIndexList.Load(4 * (lightGridCell.offset + localIndex));
+        return _ClusteredLightIndexList.Load(4 * (lightGridCell.Offset + localIndex));
     }
 };
 
