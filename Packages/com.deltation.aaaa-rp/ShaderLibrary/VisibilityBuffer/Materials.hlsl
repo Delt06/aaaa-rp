@@ -19,6 +19,13 @@ struct InterpolatedUV
     float2 uv;
     float2 ddx;
     float2 ddy;
+
+    void AddTilingOffset(const float4 tilingOffset)
+    {
+        uv = uv * tilingOffset.xy + tilingOffset.zw;
+        ddx *= tilingOffset.xy;
+        ddy *= tilingOffset.xy;
+    }
 };
 
 InterpolatedUV InterpolateUV(const BarycentricDerivatives barycentric, const AAAAMeshletVertex v0, const AAAAMeshletVertex v1,
@@ -44,7 +51,7 @@ float4 SampleAlbedo(const InterpolatedUV uv, const AAAAMaterialData materialData
     if (textureIndex != (uint)NO_TEXTURE_INDEX)
     {
         const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
-        textureAlbedo = SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearRepeat, uv.uv, uv.ddx, uv.ddy);
+        textureAlbedo = SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearRepeat_Aniso16, uv.uv, uv.ddx, uv.ddy);
     }
     else
     {
@@ -64,7 +71,7 @@ float3 SampleNormalTS(const InterpolatedUV uv, const AAAAMaterialData materialDa
     if (textureIndex != (uint)NO_TEXTURE_INDEX)
     {
         const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
-        const float4    packedNormal = SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearRepeat, uv.uv, uv.ddx, uv.ddy);
+        const float4    packedNormal = SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearRepeat_Aniso16, uv.uv, uv.ddx, uv.ddy);
         normalTS = UnpackNormalScale(packedNormal, materialData.NormalsStrength);
     }
     else
@@ -91,7 +98,7 @@ MaterialMasks SampleMasks(const InterpolatedUV uv, const AAAAMaterialData materi
     if (textureIndex != (uint)NO_TEXTURE_INDEX)
     {
         const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
-        const float4    packedMasks = SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearRepeat, uv.uv, uv.ddx, uv.ddy);
+        const float4    packedMasks = SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearRepeat_Aniso16, uv.uv, uv.ddx, uv.ddy);
         materialMasks.roughness = packedMasks.r;
         materialMasks.metallic = packedMasks.g;
     }

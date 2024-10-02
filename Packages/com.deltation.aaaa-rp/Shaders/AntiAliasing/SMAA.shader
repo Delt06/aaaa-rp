@@ -14,7 +14,7 @@ Shader "Hidden/AAAA/AntiAliasing/SMAA"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-    #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/GlobalSamplers.hlsl"
+    #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GlobalSamplers.hlsl"
 
     #define SMAA_RT_METRICS (_BlitTexture_TexelSize)
     #define SMAA_AREATEX_SELECT(s) s.rg

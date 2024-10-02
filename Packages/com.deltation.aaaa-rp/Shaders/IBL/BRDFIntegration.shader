@@ -7,7 +7,6 @@ Shader "Hidden/AAAA/IBL/BRDFIntegration"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-    #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/GlobalSamplers.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/IBL/Utils.hlsl"
     ENDHLSL
 

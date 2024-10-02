@@ -314,6 +314,7 @@ namespace DELTation.AAAARP.Renderers
             {
                 AlbedoColor = (Vector4) material.AlbedoColor,
                 AlbedoIndex = GetOrAllocateTexture(material.Albedo),
+                TextureTilingOffset = material.TextureTilingOffset,
 
                 NormalsIndex = GetOrAllocateTexture(material.Normals),
                 NormalsStrength = material.NormalsStrength,

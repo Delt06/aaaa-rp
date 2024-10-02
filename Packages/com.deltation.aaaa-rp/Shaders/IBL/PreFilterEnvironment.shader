@@ -8,7 +8,6 @@ Shader "Hidden/AAAA/IBL/PreFilterEnvironment"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/BRDF.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/IBL/Utils.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-    #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/GlobalSamplers.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
     ENDHLSL
 

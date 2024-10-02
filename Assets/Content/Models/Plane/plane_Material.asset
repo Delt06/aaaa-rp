@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d124dbe9abb4e0ba3228241f9483940, type: 3}
   m_Name: plane_Material
   m_EditorClassIdentifier: 
-  Albedo: {fileID: 0}
-  AlbedoColor: {r: 0.2392157, g: 0.1764706, b: 0.16470589, a: 1}
-  Normals: {fileID: 0}
-  NormalsStrength: 1
-  Masks: {fileID: 0}
-  Roughness: 0.9
-  Metallic: 0.1
+  Albedo: {fileID: 2800000, guid: 2d6e3f8fd7f1ff846bceaa217d0497f7, type: 3}
+  AlbedoColor: {r: 0.5587684, g: 0.6226415, b: 0.44348523, a: 1}
+  TextureTilingOffset: {x: 2.5, y: 2.5, z: 0, w: 0}
+  Normals: {fileID: 2800000, guid: ff9ba66bb34f36f469961d1c15dc1a52, type: 3}
+  NormalsStrength: 0.4
+  Masks: {fileID: 2800000, guid: 92affd9e3d99ddf4faceb70af9e574f0, type: 3}
+  Roughness: 1
+  Metallic: 0.85

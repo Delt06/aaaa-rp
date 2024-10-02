@@ -78,8 +78,9 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 const float2                 pixelNDC = ScreenCoordsToNDC(IN.positionCS);
                 const BarycentricDerivatives barycentric = CalculateFullBarycentric(positionCS[0], positionCS[1], positionCS[2], pixelNDC, _ScreenSize.zw);
 
-                const InterpolatedUV uv = InterpolateUV(barycentric, vertices[0], vertices[1], vertices[2]);
-                const float3 albedo = SampleAlbedo(uv, materialData).rgb;
+                InterpolatedUV interpolatedUV = InterpolateUV(barycentric, vertices[0], vertices[1], vertices[2]);
+                interpolatedUV.AddTilingOffset(materialData.TextureTilingOffset);
+                const float3 albedo = SampleAlbedo(interpolatedUV, materialData).rgb;
 
                 const float3 normalOS =
                     SafeNormalize(
@@ -96,11 +97,11 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                     const float3 bitangentWS = tangentWS.w * cross(normalWS, tangentWS.xyz);
 
                     const float3x3 tangentToWorld = float3x3(tangentWS.xyz, bitangentWS, normalWS);
-                    const float3   normalTS = SampleNormalTS(uv, materialData);
+                    const float3   normalTS = SampleNormalTS(interpolatedUV, materialData);
                     normalWS = TransformTangentToWorld(normalTS, tangentToWorld, true);
                 }
 
-                const MaterialMasks materialMasks = SampleMasks(uv, materialData);
+                const MaterialMasks materialMasks = SampleMasks(interpolatedUV, materialData);
 
                 GBufferValue gbufferValue;
                 gbufferValue.albedo = albedo;

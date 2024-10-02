@@ -7,7 +7,6 @@ Shader "Hidden/AAAA/PostProcessing/Uber"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-    #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/GlobalSamplers.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PostProcessing/ToneMapping.hlsl"
     ENDHLSL
 

@@ -36,13 +36,14 @@ struct AAAAInstanceData
 struct AAAAMaterialData
 {
     float4 AlbedoColor;
+    float4 TextureTilingOffset;
     uint AlbedoIndex;
     uint NormalsIndex;
     float NormalsStrength;
     uint MasksIndex;
     float Roughness;
     float Metallic;
-    uint Padding0;
+    uint2 Padding0;
 };
 
 // Generated from DELTation.AAAARP.AAAAMeshlet

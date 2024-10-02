@@ -6,7 +6,6 @@ Shader "Hidden/AAAA/IBL/ConvolveDiffuseIrradiance"
 
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-    #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/GlobalSamplers.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
     ENDHLSL
 

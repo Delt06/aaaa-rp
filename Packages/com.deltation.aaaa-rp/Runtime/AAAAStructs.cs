@@ -26,15 +26,16 @@ namespace DELTation.AAAARP
     public struct AAAAMaterialData
     {
         public float4 AlbedoColor;
+        public float4 TextureTilingOffset;
+
         public uint AlbedoIndex;
-        
         public uint NormalsIndex;
         public float NormalsStrength;
-        
         public uint MasksIndex;
+
         public float Roughness;
         public float Metallic;
-        public uint Padding0;
+        public uint2 Padding0;
 
         public const uint NoTextureIndex = uint.MaxValue;
     }
@@ -74,12 +75,12 @@ namespace DELTation.AAAARP
     {
         public float4 Bounds;
         public float4 ParentBounds;
-        
+
         public float ParentError;
         public float Error;
         public uint MeshletStartIndex;
         public uint MeshletCount;
-        
+
         public uint LevelIndex;
         public uint Padding0;
         public uint Padding1;
