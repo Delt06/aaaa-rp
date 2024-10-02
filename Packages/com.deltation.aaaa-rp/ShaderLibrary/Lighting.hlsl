@@ -29,7 +29,7 @@ struct Light
 {
     float3 color;
     float3 direction;
-    float distanceAttenuation;
+    float  distanceAttenuation;
 };
 
 Light GetDirectionalLight(const uint index)
@@ -51,12 +51,15 @@ Light GetPunctualLight(const uint index, const float3 positionWS)
     const AAAAPunctualLightData punctualLightData = _PunctualLights[index];
 
     const float3 offset = punctualLightData.PositionWS.xyz - positionWS;
-    const float distanceSqr = max(dot(offset, offset), HALF_MIN);
-    
+    const float  distanceSqr = max(dot(offset, offset), HALF_MIN);
+    const float3 lightDirection = offset / distanceSqr;
+    const float  distanceAttenuation = DistanceAttenuation(distanceSqr, punctualLightData.Attenuations.x);
+    const float  angleAttenuation = AngleAttenuation(punctualLightData.SpotDirection.xyz, lightDirection, punctualLightData.Attenuations.yz);
+
     Light light;
     light.color = punctualLightData.Color_Radius.xyz;
-    light.direction = SafeNormalize(offset);
-    light.distanceAttenuation = DistanceAttenuation(distanceSqr, punctualLightData.Attenuations.x);
+    light.direction = lightDirection;
+    light.distanceAttenuation = distanceAttenuation * angleAttenuation;
     return light;
 }
 

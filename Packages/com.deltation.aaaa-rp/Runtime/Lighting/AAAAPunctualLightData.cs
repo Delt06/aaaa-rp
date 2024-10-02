@@ -10,6 +10,7 @@ namespace DELTation.AAAARP.Lighting
     {
         public float4 Color_Radius;
         public float4 PositionWS;
+        public float4 SpotDirection;
         public float4 Attenuations;
     }
 }

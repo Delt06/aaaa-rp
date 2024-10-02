@@ -55,14 +55,11 @@ namespace DELTation.AAAARP.Passes
 
                     foreach (VisibleLight visibleLight in renderingData.CullingResults.visibleLights)
                     {
-                        if (visibleLight.lightType == LightType.Point &&
+
+                        if (visibleLight.lightType is LightType.Point or LightType.Spot &&
                             punctualLights.Length < maxPunctualLights)
                         {
-                            var punctualLightData = new AAAAPunctualLightData();
-                            punctualLightData.Color_Radius.xyz = ((float4) (Vector4) visibleLight.finalColor).xyz;
-                            punctualLightData.Color_Radius.w = visibleLight.range;
-                            punctualLightData.PositionWS.xyz = visibleLight.localToWorldMatrix.GetPosition();
-                            GetPunctualLightDistanceAttenuation(visibleLight.range, ref punctualLightData.Attenuations.x);
+                            AAAAPunctualLightData punctualLightData = ExtractPunctualLightData(visibleLight);
                             punctualLights.Add(punctualLightData);
                         }
 
@@ -86,16 +83,21 @@ namespace DELTation.AAAARP.Passes
             lightingConstantBuffer.PunctualLightCount = (uint) punctualLights.Length;
         }
 
-        // https://github.com/Unity-Technologies/Graphics/blob/e42df452b62857a60944aed34f02efa1bda50018/Packages/com.unity.render-pipelines.universal/Runtime/UniversalRenderPipelineCore.cs#L1732
-        private static void GetPunctualLightDistanceAttenuation(float lightRange, ref float lightAttenuation)
+        private static AAAAPunctualLightData ExtractPunctualLightData(VisibleLight visibleLight)
         {
-            float lightRangeSqr = lightRange * lightRange;
-            float fadeStartDistanceSqr = 0.8f * 0.8f * lightRangeSqr;
-            float fadeRangeSqr = fadeStartDistanceSqr - lightRangeSqr;
-            float lightRangeSqrOverFadeRangeSqr = -lightRangeSqr / fadeRangeSqr;
-            float oneOverLightRangeSqr = 1.0f / Mathf.Max(0.0001f, lightRangeSqr);
+            Matrix4x4 lightLocalToWorld = visibleLight.localToWorldMatrix;
+            var punctualLightData = new AAAAPunctualLightData();
 
-            lightAttenuation = oneOverLightRangeSqr;
+            punctualLightData.Color_Radius.xyz = ((float4) (Vector4) visibleLight.finalColor).xyz;
+            punctualLightData.Color_Radius.w = visibleLight.range;
+
+            punctualLightData.PositionWS.xyz = lightLocalToWorld.GetPosition();
+            punctualLightData.SpotDirection.xyz = visibleLight.lightType == LightType.Spot ? -((float4) lightLocalToWorld.GetColumn(2)).xyz : default;
+
+            AAAAPunctualLightUtils.GetPunctualLightDistanceAttenuation(visibleLight, out punctualLightData.Attenuations.x);
+            AAAAPunctualLightUtils.GetPunctualLightSpotAngleAttenuation(visibleLight, null, out punctualLightData.Attenuations.y, out punctualLightData.Attenuations.z);
+
+            return punctualLightData;
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
