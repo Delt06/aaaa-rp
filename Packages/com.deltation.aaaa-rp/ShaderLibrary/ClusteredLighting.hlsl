@@ -24,6 +24,13 @@ struct ClusteredLighting
         return LightGridCell::Unpack(packedCell);
     }
 
+    static LightGridCell LoadCell(const float3 positionWS, const float2 screenUV)
+    {
+        const float zVS = TransformWorldToView(positionWS).z;
+        const uint  flatClusterIndex = NormalizedScreenUVToFlatClusterIndex(screenUV, zVS);
+        return LoadCell(flatClusterIndex);
+    }
+
     static uint LoadLightIndex(const LightGridCell lightGridCell, const uint localIndex)
     {
         return _ClusteredLightIndexList.Load(4 * (lightGridCell.offset + localIndex));

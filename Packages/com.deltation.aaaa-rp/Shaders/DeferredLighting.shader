@@ -57,8 +57,6 @@ Shader "Hidden/AAAA/DeferredLighting"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
-            #pragma enable_d3d11_debug_symbols
-
             float4 Frag(const Varyings IN) : SV_Target
             {
                 const float        deviceDepth = SampleDeviceDepth(IN.texcoord);
@@ -88,9 +86,7 @@ Shader "Hidden/AAAA/DeferredLighting"
                     lighting += PBRLighting::ComputeLightingDirect(brdfInput);
                 }
 
-                const float         zVS = TransformWorldToView(surfaceData.positionWS).z;
-                const uint          flatClusterIndex = ClusteredLighting::NormalizedScreenUVToFlatClusterIndex(IN.texcoord, zVS);
-                const LightGridCell lightGridCell = ClusteredLighting::LoadCell(flatClusterIndex);
+                const LightGridCell lightGridCell = ClusteredLighting::LoadCell(surfaceData.positionWS, IN.texcoord);
 
                 for (uint i = 0; i < lightGridCell.count; ++i)
                 {

@@ -21,6 +21,8 @@ namespace DELTation.AAAARP.Debugging
         [CanBeNull]
         private readonly GPUCullingDebugViewPass _gpuCullingDebugViewPass;
         [CanBeNull]
+        private readonly LightingDebugPass _lightingDebugPass;
+        [CanBeNull]
         private readonly VisibilityBufferDebugPass _visibilityBufferDebugPass;
 
         public AAAADebugHandler()
@@ -31,6 +33,7 @@ namespace DELTation.AAAARP.Debugging
             {
                 _visibilityBufferDebugPass = new VisibilityBufferDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
                 _gBufferDebugPass = new GBufferDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
+                _lightingDebugPass = new LightingDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
 
                 if (GraphicsSettings.TryGetRenderPipelineSettings(out AAAARenderPipelineRuntimeShaders runtimeShaders))
                 {
@@ -48,6 +51,8 @@ namespace DELTation.AAAARP.Debugging
         public void Dispose()
         {
             _visibilityBufferDebugPass?.Dispose();
+            _gBufferDebugPass?.Dispose();
+            _lightingDebugPass?.Dispose();
         }
 
         [CanBeNull] public Camera GetGPUCullingCameraOverride()
@@ -83,6 +88,12 @@ namespace DELTation.AAAARP.Debugging
                 DisplaySettings.RenderingSettings.GBufferDebugMode != AAAAGBufferDebugMode.None)
             {
                 renderer.EnqueuePass(_gBufferDebugPass);
+            }
+
+            if (_lightingDebugPass != null &&
+                DisplaySettings.RenderingSettings.LightingDebugMode != AAAALightingDebugMode.None)
+            {
+                renderer.EnqueuePass(_lightingDebugPass);
             }
 
             if (_gpuCullingDebugSetupPass != null &&

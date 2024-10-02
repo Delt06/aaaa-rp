@@ -18,17 +18,27 @@ namespace DELTation.AAAARP
         private Shader _visibilityBufferDebugPS;
 
         [SerializeField]
-        [ResourcePath("Shaders/Debugging/GBufferDebug.shader")]
-        private Shader _gBufferDebugPS;
-        
-        [SerializeField]
         [ResourcePath("Shaders/Debugging/GPUCullingDebugView.shader")]
         private Shader _gpuCullingDebugViewPS;
+
+        [SerializeField]
+        [ResourcePath("Shaders/Debugging/GBufferDebug.shader")]
+        private Shader _gBufferDebugPS;
+
+        [SerializeField]
+        [ResourcePath("Shaders/Debugging/LightingDebug.shader")]
+        private Shader _lightingDebugPS;
 
         public Shader VisibilityBufferDebugPS
         {
             get => _visibilityBufferDebugPS;
             set => this.SetValueAndNotify(ref _visibilityBufferDebugPS, value, nameof(_visibilityBufferDebugPS));
+        }
+
+        public Shader GPUCullingDebugViewPS
+        {
+            get => _gpuCullingDebugViewPS;
+            set => this.SetValueAndNotify(ref _gpuCullingDebugViewPS, value, nameof(_gpuCullingDebugViewPS));
         }
 
         public Shader GBufferDebugPS
@@ -37,10 +47,10 @@ namespace DELTation.AAAARP
             set => this.SetValueAndNotify(ref _gBufferDebugPS, value, nameof(_gBufferDebugPS));
         }
 
-        public Shader GPUCullingDebugViewPS
+        public Shader LightingDebugPS
         {
-            get => _gpuCullingDebugViewPS;
-            set => this.SetValueAndNotify(ref _gpuCullingDebugViewPS, value, nameof(_gpuCullingDebugViewPS));
+            get => _lightingDebugPS;
+            set => this.SetValueAndNotify(ref _lightingDebugPS, value, nameof(_lightingDebugPS));
         }
 
         public int version => _version;

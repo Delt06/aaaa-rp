@@ -21,6 +21,15 @@ namespace DELTation.AAAARP.Debugging
     }
 
     [GenerateHLSL]
+    public enum AAAAGPUCullingDebugViewMode
+    {
+        None,
+        Frustum,
+        Occlusion,
+        Cone,
+    }
+
+    [GenerateHLSL]
     public enum AAAAGBufferDebugMode
     {
         None,
@@ -31,12 +40,11 @@ namespace DELTation.AAAARP.Debugging
     }
 
     [GenerateHLSL]
-    public enum AAAAGPUCullingDebugViewMode
+    public enum AAAALightingDebugMode
     {
         None,
-        Frustum,
-        Occlusion,
-        Cone,
+        ClusterZ,
+        DeferredLights,
     }
 
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData
@@ -45,7 +53,6 @@ namespace DELTation.AAAARP.Debugging
 
         public AAAADebugDisplaySettingsRendering(AAAADebugStats debugStats) => _debugStats = debugStats;
 
-        public bool AutoUpdateRenderers { get; private set; }
         public AAAAVisibilityBufferDebugMode VisibilityBufferDebugMode { get; private set; }
         public bool ForceCullingFromMainCamera { get; private set; }
         public bool DebugGPUCulling { get; private set; }
@@ -59,13 +66,16 @@ namespace DELTation.AAAARP.Debugging
         public AAAAGBufferDebugMode GBufferDebugMode { get; private set; }
         public Vector2 GBufferDebugDepthRemap { get; private set; } = new(0.1f, 50f);
 
-        public bool AreAnySettingsActive => AutoUpdateRenderers ||
-                                            GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
+        public AAAALightingDebugMode LightingDebugMode { get; private set; }
+        public Vector2 LightingDebugCountRemap { get; private set; } = new(1, 128);
+
+        public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
                                             ForceCullingFromMainCamera ||
                                             DebugGPUCulling ||
                                             GBufferDebugMode != AAAAGBufferDebugMode.None ||
                                             ForcedMeshLODNodeDepth >= 0 ||
-                                            MeshLODErrorThresholdBias != 0.0f;
+                                            MeshLODErrorThresholdBias != 0.0f ||
+                                            LightingDebugMode != AAAALightingDebugMode.None;
 
         public IDebugDisplaySettingsPanelDisposable CreatePanel() => new SettingsPanel(this, _debugStats);
 
@@ -89,42 +99,10 @@ namespace DELTation.AAAARP.Debugging
             public SettingsPanel(AAAADebugDisplaySettingsRendering data, AAAADebugStats stats)
                 : base(data)
             {
-                AddWidget(Renderers.WidgetFactory.CreateFoldout(this));
                 AddWidget(VisibilityBuffer.WidgetFactory.CreateFoldout(this));
                 AddWidget(GBuffer.WidgetFactory.CreateFoldout(this));
+                AddWidget(Lighting.WidgetFactory.CreateFoldout(this));
                 _stats = stats;
-            }
-
-            private static class Renderers
-            {
-                private static class Strings
-                {
-                    public static readonly DebugUI.Widget.NameAndTooltip AutoUpdateRenderers = new()
-                        { name = "Auto Update Renderers" };
-                }
-
-                public static class WidgetFactory
-                {
-                    public static DebugUI.Widget CreateFoldout(SettingsPanel panel) =>
-                        new DebugUI.Foldout
-                        {
-                            displayName = "Renderers",
-                            flags = DebugUI.Flags.FrequentlyUsed,
-                            isHeader = true,
-                            opened = true,
-                            children =
-                            {
-                                CreateAutoUpdateRenderers(panel),
-                            },
-                        };
-
-                    private static DebugUI.Widget CreateAutoUpdateRenderers(SettingsPanel panel) => new DebugUI.BoolField
-                    {
-                        nameAndTooltip = Strings.AutoUpdateRenderers,
-                        getter = () => panel.data.AutoUpdateRenderers,
-                        setter = value => panel.data.AutoUpdateRenderers = value,
-                    };
-                }
             }
 
             private static class VisibilityBuffer
@@ -302,6 +280,60 @@ namespace DELTation.AAAARP.Debugging
                         getter = () => panel.data.GBufferDebugDepthRemap,
                         setter = value => panel.data.GBufferDebugDepthRemap = value,
                         isHiddenCallback = () => panel.data.GBufferDebugMode != AAAAGBufferDebugMode.Depth,
+                        onValueChanged = (field, value) =>
+                        {
+                            Vector2 newValue = math.max(value, 0);
+                            if (value != newValue)
+                            {
+                                field.SetValue(newValue);
+                            }
+                        },
+                    };
+                }
+            }
+
+            private static class Lighting
+            {
+                private static class Strings
+                {
+                    public static readonly DebugUI.Widget.NameAndTooltip DebugMode = new()
+                        { name = "Debug Mode", tooltip = "The mode of lighting debug display." };
+                    public static readonly DebugUI.Widget.NameAndTooltip LightCountRemap = new()
+                        { name = "Light Count Remap" };
+                }
+
+                public static class WidgetFactory
+                {
+                    public static DebugUI.Widget CreateFoldout(SettingsPanel panel) =>
+                        new DebugUI.Foldout
+                        {
+                            displayName = "Lighting",
+                            flags = DebugUI.Flags.FrequentlyUsed,
+                            isHeader = true,
+                            opened = true,
+                            children =
+                            {
+                                CreateLightingDebugMode(panel),
+                                CreateLightCountRemap(panel),
+                            },
+                        };
+
+                    private static DebugUI.Widget CreateLightingDebugMode(SettingsPanel panel) => new DebugUI.EnumField
+                    {
+                        nameAndTooltip = Strings.DebugMode,
+                        autoEnum = typeof(AAAALightingDebugMode),
+                        getter = () => (int) panel.data.LightingDebugMode,
+                        setter = value => panel.data.LightingDebugMode = (AAAALightingDebugMode) value,
+                        getIndex = () => (int) panel.data.LightingDebugMode,
+                        setIndex = value => panel.data.LightingDebugMode = (AAAALightingDebugMode) value,
+                    };
+
+                    private static DebugUI.Widget CreateLightCountRemap(SettingsPanel panel) => new DebugUI.Vector2Field
+                    {
+                        nameAndTooltip = Strings.LightCountRemap,
+                        getter = () => panel.data.LightingDebugCountRemap,
+                        setter = value => panel.data.LightingDebugCountRemap = value,
+                        isHiddenCallback = () => panel.data.LightingDebugMode == AAAALightingDebugMode.None,
                         onValueChanged = (field, value) =>
                         {
                             Vector2 newValue = math.max(value, 0);

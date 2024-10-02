@@ -141,8 +141,9 @@ MonoBehaviour:
       data:
         _version: 0
         _visibilityBufferDebugPS: {fileID: 4800000, guid: 481682f92fd345ff9a8fb8d9ed920b98, type: 3}
-        _gBufferDebugPS: {fileID: 4800000, guid: d667ea4a980b4ae6bc5d4fbb99dfe007, type: 3}
         _gpuCullingDebugViewPS: {fileID: 4800000, guid: 732dd7d6dd8b401f9eef24b39da3f807, type: 3}
+        _gBufferDebugPS: {fileID: 4800000, guid: d667ea4a980b4ae6bc5d4fbb99dfe007, type: 3}
+        _lightingDebugPS: {fileID: 4800000, guid: 8a26e757c6ff4818947551b763fd6938, type: 3}
     - rid: 3789630226082299969
       type: {class: AAAARenderPipelineRuntimeTextures, ns: DELTation.AAAARP, asm: DELTation.AAAARP.Runtime}
       data:

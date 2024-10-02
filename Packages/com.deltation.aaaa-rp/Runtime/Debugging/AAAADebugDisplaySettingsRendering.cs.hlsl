@@ -22,6 +22,13 @@
 #define AAAAGPUCULLINGDEBUGVIEWMODE_CONE (3)
 
 //
+// DELTation.AAAARP.Debugging.AAAALightingDebugMode:  static fields
+//
+#define AAAALIGHTINGDEBUGMODE_NONE (0)
+#define AAAALIGHTINGDEBUGMODE_CLUSTER_Z (1)
+#define AAAALIGHTINGDEBUGMODE_DEFERRED_LIGHTS (2)
+
+//
 // DELTation.AAAARP.Debugging.AAAAVisibilityBufferDebugMode:  static fields
 //
 #define AAAAVISIBILITYBUFFERDEBUGMODE_NONE (0)
