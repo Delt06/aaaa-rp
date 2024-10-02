@@ -10,7 +10,7 @@ struct AAAAPunctualLightData
 {
     float4 Color_Radius;
     float4 PositionWS;
-    float4 SpotDirection;
+    float4 SpotDirection_Angle;
     float4 Attenuations;
 };
 

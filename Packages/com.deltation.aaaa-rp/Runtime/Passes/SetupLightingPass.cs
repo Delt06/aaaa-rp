@@ -92,10 +92,22 @@ namespace DELTation.AAAARP.Passes
             punctualLightData.Color_Radius.w = visibleLight.range;
 
             punctualLightData.PositionWS.xyz = lightLocalToWorld.GetPosition();
-            punctualLightData.SpotDirection.xyz = visibleLight.lightType == LightType.Spot ? -((float4) lightLocalToWorld.GetColumn(2)).xyz : default;
+            if (visibleLight.lightType == LightType.Spot)
+            {
+                punctualLightData.SpotDirection_Angle.xyz = -((float4) lightLocalToWorld.GetColumn(2)).xyz;
+                punctualLightData.SpotDirection_Angle.w = Mathf.Deg2Rad * visibleLight.spotAngle;
+            }
+            else
+            {
+                punctualLightData.SpotDirection_Angle = default;
+            }
 
-            AAAAPunctualLightUtils.GetPunctualLightDistanceAttenuation(visibleLight, out punctualLightData.Attenuations.x);
-            AAAAPunctualLightUtils.GetPunctualLightSpotAngleAttenuation(visibleLight, null, out punctualLightData.Attenuations.y, out punctualLightData.Attenuations.z);
+            AAAAPunctualLightUtils.GetPunctualLightDistanceAttenuation(visibleLight,
+                out punctualLightData.Attenuations.x
+            );
+            AAAAPunctualLightUtils.GetPunctualLightSpotAngleAttenuation(visibleLight, null, out punctualLightData.Attenuations.y,
+                out punctualLightData.Attenuations.z
+            );
 
             return punctualLightData;
         }

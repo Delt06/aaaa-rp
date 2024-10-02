@@ -1,6 +1,7 @@
 #pragma kernel CS
 
 #include "Packages/com.deltation.aaaa-rp/Shaders/ClusteredLighting/Common.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PunctualLights.hlsl"
 
 #define THREAD_GROUP_SIZE CLUSTER_CULLING_THREAD_GROUP_SIZE
@@ -26,6 +27,14 @@ void LoadCachedLights(const uint cachedLightIndex, const uint lightIndex)
     }
 }
 
+float4 ClusterBoundsToBoundingSphere(const AAAAClusterBounds clusterBounds)
+{
+    AABB aabb;
+    aabb.boundsMin = clusterBounds.Min.xyz;
+    aabb.boundsMax = clusterBounds.Max.xyz;
+    return AABBToBoundingSphere(aabb);
+}
+
 float ComputePointToAABBDistanceSq(const float3 pointVS, const AAAAClusterBounds clusterBoundsVS)
 {
     float sqDist = 0.0;
@@ -47,13 +56,45 @@ float ComputePointToAABBDistanceSq(const float3 pointVS, const AAAAClusterBounds
     return sqDist;
 }
 
-bool CheckPointLightVsClusterAABB(const uint cachedLightIndex, const AAAAClusterBounds clusterBounds)
+// https://bartwronski.com/2017/04/13/cull-that-cone/
+bool CheckSpotLightVSClusterBoundingSphere(const AAAAPunctualLightData punctualLightData, const float4 clusterBoundingSphere)
 {
-    const float  lightRadius = g_CachedPunctualLights[cachedLightIndex].Color_Radius.w;
-    const float3 lightCenterWS = g_CachedPunctualLights[cachedLightIndex].PositionWS.xyz;
-    const float3 lightCenterVS = mul(UNITY_MATRIX_V, float4(lightCenterWS, 1.0f)).xyz;
+    const float3 lightOriginVS = TransformWorldToView(punctualLightData.PositionWS.xyz);
+    const float3 lightDirectionVS = TransformWorldToViewDir(punctualLightData.SpotDirection_Angle.xyz, true);
+
+    const float  angle = punctualLightData.SpotDirection_Angle.w;
+    const float3 V = clusterBoundingSphere.xyz - lightOriginVS;
+    const float  VlenSq = dot(V, V);
+    const float  V1len = dot(V, -lightDirectionVS);
+    const float  distanceClosestPoint = cos(angle) * sqrt(VlenSq - V1len * V1len) - V1len * sin(angle);
+
+    const bool angleCull = distanceClosestPoint > clusterBoundingSphere.w;
+    const bool frontCull = V1len > clusterBoundingSphere.w + punctualLightData.Color_Radius.w;
+    const bool backCull = V1len < -clusterBoundingSphere.w;
+    return !(angleCull || frontCull || backCull);
+}
+
+bool CheckPointLightVsClusterAABB(const AAAAPunctualLightData punctualLightData, const AAAAClusterBounds clusterBounds)
+{
+    const float  lightRadius = punctualLightData.Color_Radius.w;
+    const float3 lightCenterWS = punctualLightData.PositionWS.xyz;
+    const float3 lightCenterVS = TransformWorldToView(lightCenterWS);
     const float  squaredDistance = ComputePointToAABBDistanceSq(lightCenterVS, clusterBounds);
     return lightRadius > 0 && squaredDistance <= lightRadius * lightRadius;
+}
+
+bool CheckLightVSCluster(const uint cachedLightIndex, const AAAAClusterBounds clusterBounds, const float4 clusterBoundingSphere)
+{
+    const AAAAPunctualLightData punctualLightData = g_CachedPunctualLights[cachedLightIndex];
+    bool                        isVisible = CheckPointLightVsClusterAABB(punctualLightData, clusterBounds);
+
+    UNITY_BRANCH
+    if (isVisible && punctualLightData.SpotDirection_Angle.w > 0.0f)
+    {
+        isVisible = CheckSpotLightVSClusterBoundingSphere(punctualLightData, clusterBoundingSphere);
+    }
+
+    return isVisible;
 }
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
@@ -64,6 +105,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupThr
     uint       visibleLightIndices[MAX_LIGHTS_PER_CLUSTER];
 
     const AAAAClusterBounds clusterBounds = _ClusterBounds[flatClusterIndex];
+    const float4            clusterBoundingSphere = ClusterBoundsToBoundingSphere(clusterBounds);
 
     GroupMemoryBarrierWithGroupSync();
 
@@ -76,7 +118,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupThr
 
         for (uint cachedLightIndex = 0; cachedLightIndex < THREAD_GROUP_SIZE; ++cachedLightIndex)
         {
-            if (visibleLightCount < MAX_LIGHTS_PER_CLUSTER && CheckPointLightVsClusterAABB(cachedLightIndex, clusterBounds))
+            if (visibleLightCount < MAX_LIGHTS_PER_CLUSTER && CheckLightVSCluster(cachedLightIndex, clusterBounds, clusterBoundingSphere))
             {
                 visibleLightIndices[visibleLightCount++] = baseLightIndex + cachedLightIndex;
             }
