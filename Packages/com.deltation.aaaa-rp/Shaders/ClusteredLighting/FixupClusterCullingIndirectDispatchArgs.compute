@@ -1,0 +1,22 @@
+#pragma kernel CS
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Compute/IndirectArgs.hlsl"
+#include "Packages/com.deltation.aaaa-rp/Shaders/ClusteredLighting/Common.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
+
+ByteAddressBuffer _ActiveClustersCount;
+
+RWByteAddressBuffer _IndirectArgs;
+
+[numthreads(1, 1, 1)]
+void CS()
+{
+    const uint activeClustersCount = _ActiveClustersCount.Load(0);
+    const uint threadGroupSize = CLUSTER_CULLING_THREAD_GROUP_SIZE;
+
+    IndirectDispatchArgs indirectDispatchArgs;
+    indirectDispatchArgs.ThreadGroupsX = AlignUp(activeClustersCount, threadGroupSize) / threadGroupSize;
+    indirectDispatchArgs.ThreadGroupsY = 1;
+    indirectDispatchArgs.ThreadGroupsZ = 1;
+    _IndirectArgs.Store3(0, IndirectArgs::PackDispatchArgs(indirectDispatchArgs));
+}

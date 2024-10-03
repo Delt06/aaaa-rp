@@ -6,6 +6,11 @@
 TEXTURE2D(_CameraDepth);
 SAMPLER(sampler_CameraDepth);
 
+float LoadDeviceDepth(const uint2 screenCoords)
+{
+    return LOAD_TEXTURE2D(_CameraDepth, screenCoords);
+}
+
 float SampleDeviceDepth(const float2 screenUV)
 {
     return SAMPLE_TEXTURE2D_LOD(_CameraDepth, sampler_CameraDepth, screenUV, 0).r;

@@ -1,0 +1,33 @@
+#pragma kernel CS
+
+#include "Packages/com.deltation.aaaa-rp/Shaders/ClusteredLighting/Common.hlsl"
+
+#define THREAD_GROUP_SIZE COMPACT_ACTIVE_CLUSTER_LIST_THREAD_GROUP_SIZE
+
+ByteAddressBuffer _ActiveClustersMask;
+
+RWByteAddressBuffer _ActiveClustersCount;
+RWByteAddressBuffer _ActiveClustersList;
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    const uint itemIndex = dispatchThreadID.x;
+    uint activeClustersMask = _ActiveClustersMask.Load(4 * itemIndex);
+    const uint baseClusterIndex = itemIndex * 32;
+
+    const uint activeClustersInBatch = countbits(activeClustersMask);
+
+    uint globalWriteOffset;
+    _ActiveClustersCount.InterlockedAdd(0, activeClustersInBatch, globalWriteOffset);
+
+    uint batchWriteOffset = 0;
+    while (activeClustersMask > 0)
+    {
+        const uint batchClusterIndex = firstbitlow(activeClustersMask);
+        _ActiveClustersList.Store(4 * (globalWriteOffset + batchWriteOffset), baseClusterIndex + batchClusterIndex);
+        ++batchWriteOffset;
+
+        activeClustersMask &= ~(1 << batchClusterIndex);
+    }
+}

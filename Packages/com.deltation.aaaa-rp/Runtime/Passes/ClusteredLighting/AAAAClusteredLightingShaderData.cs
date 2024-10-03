@@ -7,6 +7,8 @@ namespace DELTation.AAAARP.Passes.ClusteredLighting
     public static class AAAAClusteredLightingComputeShaders
     {
         public const int BuildClusterGridThreadGroupSize = 32;
+        public const int FindActiveClustersThreadGroupSize = 32;
+        public const int CompactActiveClusterListThreadGroupSize = 32;
         public const int ClusterCullingThreadGroupSize = 32;
     }
 

@@ -33,6 +33,15 @@ struct ClusteredLightingCommon
         const float zFar = _ProjectionParams.z;
         return uint(max(log2(-zVS / zNear) / log2(zFar / zNear), 0) * CLUSTERS_Z);
     }
+
+    static uint NormalizedScreenUVToFlatClusterIndex(const float2 screenUV, const float zVS)
+    {
+        uint3 clusterIndex;
+        clusterIndex.x = clamp(screenUV.x * CLUSTERS_X, 0, CLUSTERS_X - 1);
+        clusterIndex.y = clamp(screenUV.y * CLUSTERS_Y, 0, CLUSTERS_Y - 1);
+        clusterIndex.z = clamp(ViewSpaceZToClusterIndex(zVS), 0, CLUSTERS_Z - 1);
+        return FlattenClusterIndex(clusterIndex);
+    }
 };
 
 #endif // AAAA_CLUSTERED_LIGHTING_COMMON_INCLUDED

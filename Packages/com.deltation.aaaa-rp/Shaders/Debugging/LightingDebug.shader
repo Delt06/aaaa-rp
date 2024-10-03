@@ -77,7 +77,7 @@ Shader "Hidden/AAAA/LightingDebug"
                         if (deviceDepth != UNITY_RAW_FAR_CLIP_VALUE)
                         {
                             const float3 positionVS = TransformWorldToView(positionWS);
-                            const uint   flatClusterIndex = ClusteredLighting::NormalizedScreenUVToFlatClusterIndex(screenUV, positionVS.z);
+                            const uint   flatClusterIndex = ClusteredLightingCommon::NormalizedScreenUVToFlatClusterIndex(screenUV, positionVS.z);
                             const uint3  clusterIndex = ClusteredLightingCommon::UnflattenClusterIndex(flatClusterIndex);
                             resultColor = lightPool[clusterIndex.z % LIGHT_POOL_SIZE];
                         }

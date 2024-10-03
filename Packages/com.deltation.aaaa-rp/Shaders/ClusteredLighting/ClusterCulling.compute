@@ -7,6 +7,8 @@
 #define THREAD_GROUP_SIZE CLUSTER_CULLING_THREAD_GROUP_SIZE
 
 StructuredBuffer<AAAAClusterBounds> _ClusterBounds;
+ByteAddressBuffer                   _ActiveClustersCount;
+ByteAddressBuffer                   _ActiveClustersList;
 
 RWByteAddressBuffer                               _LightIndexCounter;
 RWByteAddressBuffer                               _LightIndexList;
@@ -100,9 +102,14 @@ bool CheckLightVSCluster(const uint cachedLightIndex, const AAAAClusterBounds cl
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupThreadID : SV_GroupThreadID)
 {
-    const uint flatClusterIndex = dispatchThreadID.x;
-    uint       visibleLightCount = 0;
-    uint       visibleLightIndices[MAX_LIGHTS_PER_CLUSTER];
+    // Don't do early exists to keep all threads alive until actually flushing the results.
+    const uint indexInList = dispatchThreadID.x;
+    const uint activeClustersCount = _ActiveClustersCount.Load(0);
+    const bool outOfActiveClustersListBounds = indexInList >= activeClustersCount;
+    const uint flatClusterIndex = _ActiveClustersList.Load(4 * min(indexInList, activeClustersCount - 1));
+
+    uint visibleLightCount = 0;
+    uint visibleLightIndices[MAX_LIGHTS_PER_CLUSTER];
 
     const AAAAClusterBounds clusterBounds = _ClusterBounds[flatClusterIndex];
     const float4            clusterBoundingSphere = ClusterBoundsToBoundingSphere(clusterBounds);
@@ -127,17 +134,21 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupThr
 
     GroupMemoryBarrierWithGroupSync();
 
-    uint indexListOffset;
-    _LightIndexCounter.InterlockedAdd(0, visibleLightCount, indexListOffset);
-
-    for (uint i = 0; i < visibleLightCount; ++i)
+    UNITY_BRANCH
+    if (!outOfActiveClustersListBounds)
     {
-        const uint indexListAddress = 4 * (indexListOffset + i);
-        _LightIndexList.Store(indexListAddress, visibleLightIndices[i]);
-    }
+        uint indexListOffset;
+        _LightIndexCounter.InterlockedAdd(0, visibleLightCount, indexListOffset);
 
-    AAAAClusteredLightingGridCell cell;
-    cell.Offset = indexListOffset;
-    cell.Count = visibleLightCount;
-    _LightGrid[flatClusterIndex] = cell;
+        for (uint i = 0; i < visibleLightCount; ++i)
+        {
+            const uint indexListAddress = 4 * (indexListOffset + i);
+            _LightIndexList.Store(indexListAddress, visibleLightIndices[i]);
+        }
+
+        AAAAClusteredLightingGridCell cell;
+        cell.Offset = indexListOffset;
+        cell.Count = visibleLightCount;
+        _LightGrid[flatClusterIndex] = cell;
+    }
 }

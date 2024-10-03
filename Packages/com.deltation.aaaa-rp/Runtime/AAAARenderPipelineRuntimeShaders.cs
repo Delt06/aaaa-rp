@@ -74,6 +74,18 @@ namespace DELTation.AAAARP
         private ComputeShader _buildClusterGridCS;
 
         [SerializeField]
+        [ResourcePath("Shaders/ClusteredLighting/FindActiveClusters.compute")]
+        private ComputeShader _findActiveClustersCS;
+
+        [SerializeField]
+        [ResourcePath("Shaders/ClusteredLighting/CompactActiveClusterList.compute")]
+        private ComputeShader _compactActiveClusterListCS;
+
+        [SerializeField]
+        [ResourcePath("Shaders/ClusteredLighting/FixupClusterCullingIndirectDispatchArgs.compute")]
+        private ComputeShader _fixupClusterCullingIndirectDispatchArgsCS;
+
+        [SerializeField]
         [ResourcePath("Shaders/ClusteredLighting/ClusterCulling.compute")]
         private ComputeShader _clusterCullingCS;
 
@@ -187,6 +199,24 @@ namespace DELTation.AAAARP
         {
             get => _buildClusterGridCS;
             set => this.SetValueAndNotify(ref _buildClusterGridCS, value, nameof(_buildClusterGridCS));
+        }
+
+        public ComputeShader FindActiveClustersCS
+        {
+            get => _findActiveClustersCS;
+            set => this.SetValueAndNotify(ref _findActiveClustersCS, value, nameof(_findActiveClustersCS));
+        }
+
+        public ComputeShader CompactActiveClusterListCS
+        {
+            get => _compactActiveClusterListCS;
+            set => this.SetValueAndNotify(ref _compactActiveClusterListCS, value, nameof(_compactActiveClusterListCS));
+        }
+
+        public ComputeShader FixupClusterCullingIndirectDispatchArgsCS
+        {
+            get => _fixupClusterCullingIndirectDispatchArgsCS;
+            set => this.SetValueAndNotify(ref _fixupClusterCullingIndirectDispatchArgsCS, value, nameof(_fixupClusterCullingIndirectDispatchArgsCS));
         }
 
         public ComputeShader ClusterCullingCS

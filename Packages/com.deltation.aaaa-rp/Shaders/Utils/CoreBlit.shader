@@ -20,15 +20,6 @@ Shader "Hidden/AAAA/CoreBlit"
             color = LinearToSRGB(color);
             #endif
 
-            #if defined(DEBUG_DISPLAY)
-            half4 debugColor = 0;
-            float2 uv = input.texcoord;
-            if (CanDebugOverrideOutputColor(color, uv, debugColor))
-            {
-                return debugColor;
-            }
-            #endif
-
             return color;
         }
     ENDHLSL

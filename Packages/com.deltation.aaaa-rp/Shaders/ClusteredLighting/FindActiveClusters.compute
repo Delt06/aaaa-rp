@@ -1,0 +1,38 @@
+#pragma kernel CS
+
+#include "Packages/com.deltation.aaaa-rp/Shaders/ClusteredLighting/Common.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
+
+#define THREAD_GROUP_SIZE FIND_ACTIVE_CLUSTERS_THREAD_GROUP_SIZE
+
+RWByteAddressBuffer _ActiveClustersMask;
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    const uint2 screenSize = _ScreenSize;
+    const uint2 screenCoords = uint2(dispatchThreadID.x % screenSize.x, dispatchThreadID.x / screenSize.x);
+    UNITY_BRANCH
+    if (any(screenCoords >= screenSize))
+    {
+        return;
+    }
+
+    const float2 screenUV = (screenCoords + 0.5) * _ScreenSize.zw;
+    const float  deviceDepth = LoadDeviceDepth(screenCoords);
+    const float3 positionWS = ComputeWorldSpacePosition(screenUV, deviceDepth, UNITY_MATRIX_I_VP);
+    const float  zVS = TransformWorldToView(positionWS).z;
+
+    const uint  flatFarClusterIndex = ClusteredLightingCommon::NormalizedScreenUVToFlatClusterIndex(screenUV, zVS);
+    const uint3 farClusterIndex = ClusteredLightingCommon::UnflattenClusterIndex(flatFarClusterIndex);
+
+    for (uint zIndex = 0; zIndex <= farClusterIndex.z; ++zIndex)
+    {
+        const uint3 clusterIndex = uint3(farClusterIndex.xy, zIndex);
+        const uint  flatClusterIndex = ClusteredLightingCommon::FlattenClusterIndex(clusterIndex);
+
+        const uint writeAddress = 4 * (flatClusterIndex / 32);
+        const uint mask = 1u << flatClusterIndex % 32;
+        _ActiveClustersMask.InterlockedOr(writeAddress, mask);
+    }
+}
