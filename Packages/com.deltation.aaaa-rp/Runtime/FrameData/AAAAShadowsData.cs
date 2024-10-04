@@ -67,13 +67,18 @@ namespace DELTation.AAAARP.FrameData
             if (shadowLights.Length > 0)
             {
                 Camera camera = cameraData.Camera;
-                float shadowDistance = math.min(camera.farClipPlane, shadowSettings.MaxDistance);
-                var cameraFrustumRays = new NativeArray<Ray>(4, Allocator.Temp)
+                float cameraNearPlane = camera.nearClipPlane;
+                float cameraFarPlane = camera.farClipPlane;
+                var cameraFrustumCorners = new NativeArray<float3>(8, Allocator.Temp)
                 {
-                    [0] = camera.ViewportPointToRay(new Vector3(0, 0)),
-                    [1] = camera.ViewportPointToRay(new Vector3(0, 1)),
-                    [2] = camera.ViewportPointToRay(new Vector3(1, 0)),
-                    [3] = camera.ViewportPointToRay(new Vector3(1, 1)),
+                    [0] = camera.ViewportToWorldPoint(new Vector3(0, 0, cameraNearPlane)),
+                    [1] = camera.ViewportToWorldPoint(new Vector3(0, 0, cameraFarPlane)),
+                    [2] = camera.ViewportToWorldPoint(new Vector3(0, 1, cameraNearPlane)),
+                    [3] = camera.ViewportToWorldPoint(new Vector3(0, 1, cameraFarPlane)),
+                    [4] = camera.ViewportToWorldPoint(new Vector3(1, 0, cameraNearPlane)),
+                    [5] = camera.ViewportToWorldPoint(new Vector3(1, 0, cameraFarPlane)),
+                    [6] = camera.ViewportToWorldPoint(new Vector3(1, 1, cameraNearPlane)),
+                    [7] = camera.ViewportToWorldPoint(new Vector3(1, 1, cameraFarPlane)),
                 };
 
                 for (int index = 0; index < shadowLights.Length; index++)
@@ -81,59 +86,30 @@ namespace DELTation.AAAARP.FrameData
                     ref ShadowLight shadowLight = ref shadowLights.ElementAtRef(index);
                     ref readonly VisibleLight visibleLight = ref visibleLights.ElementAtRefReadonly(shadowLight.VisibleLightIndex);
 
-                    float3 directionToLight = AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix);
-                    float3 lightViewCenter = camera.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0));
-                    float3 lightViewForward = -directionToLight;
-                    var lightViewRotation = Quaternion.LookRotation(lightViewForward);
-
-                    // Invert Z in view space
-                    Matrix4x4 lightMatrix = Matrix4x4.Scale(new Vector3(1, 1, -1)) * Matrix4x4.Rotate(Quaternion.Inverse(lightViewRotation)) *
-                                            Matrix4x4.Translate(-lightViewCenter);
-
-                    var cameraFrustumPointsLS = new NativeArray<float3>(cameraFrustumRays.Length * 2, Allocator.Temp);
-                    for (int i = 0; i < cameraFrustumRays.Length; i++)
-                    {
-                        Ray ray = cameraFrustumRays[i];
-
-                        cameraFrustumPointsLS[i * 2 + 0] = lightMatrix.MultiplyPoint(ray.origin);
-                        cameraFrustumPointsLS[i * 2 + 1] = lightMatrix.MultiplyPoint(ray.GetPoint(shadowDistance));
-                    }
-
-                    float3 cameraFrustumBoundsMinLS = float.PositiveInfinity;
-                    float3 cameraFrustumBoundsMaxLS = float.NegativeInfinity;
-
-                    foreach (float3 cameraFrustumPointLS in cameraFrustumPointsLS)
-                    {
-                        cameraFrustumBoundsMinLS = math.min(cameraFrustumBoundsMinLS, cameraFrustumPointLS);
-                        cameraFrustumBoundsMaxLS = math.max(cameraFrustumBoundsMaxLS, cameraFrustumPointLS);
-                    }
-
-                    float worldUnitsPerTexel = shadowDistance / ShadowMapResolution;
-                    cameraFrustumBoundsMinLS = math.floor(cameraFrustumBoundsMinLS / worldUnitsPerTexel) * worldUnitsPerTexel;
-                    cameraFrustumBoundsMaxLS = math.floor(cameraFrustumBoundsMaxLS / worldUnitsPerTexel) * worldUnitsPerTexel;
-
-                    var projectionMatrix = Matrix4x4.Ortho(cameraFrustumBoundsMinLS.x, cameraFrustumBoundsMaxLS.x, cameraFrustumBoundsMinLS.y,
-                        cameraFrustumBoundsMaxLS.y, cameraFrustumBoundsMinLS.z, shadowDistance
+                    float splitNear = 0.0f;
+                    float splitFar = math.min(cameraFarPlane, shadowSettings.MaxDistance);
+                    Quaternion lightRotation = visibleLight.localToWorldMatrix.rotation;
+                    AAAAShadowUtils.ComputeDirectionalLightShadowMatrices(cameraFrustumCorners, ShadowMapResolution, cameraFarPlane, splitNear, splitFar,
+                        lightRotation, out float4x4 lightView, out float4x4 lightProjection
                     );
 
-                    float3 cameraFrustumBoundsCenterLS = (cameraFrustumBoundsMinLS + cameraFrustumBoundsMaxLS) * 0.5f;
-                    Vector3 cameraPosition = lightMatrix.inverse.MultiplyPoint(math.float3(cameraFrustumBoundsCenterLS.xy, 0));
+                    Vector3 cameraPosition = visibleLight.localToWorldMatrix.GetPosition();
 
-                    Matrix4x4 viewProjectionMatrix = projectionMatrix * lightMatrix;
+                    Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
 
                     const bool renderIntoTexture = true;
                     shadowLight.CullingView = new GPUCullingPass.CullingViewParameters
                     {
-                        ViewProjectionMatrix = viewProjectionMatrix,
-                        GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(viewProjectionMatrix, renderIntoTexture),
+                        ViewProjectionMatrix = lightViewProjection,
+                        GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(lightViewProjection, renderIntoTexture),
                         CameraPosition = cameraPosition,
-                        CameraRight = lightViewRotation * Vector3.right,
-                        CameraUp = lightViewRotation * Vector3.up,
+                        CameraRight = lightRotation * Vector3.right,
+                        CameraUp = lightRotation * Vector3.up,
                         PixelSize = new Vector2(ShadowMapResolution, ShadowMapResolution),
                         IsPerspective = false,
                     };
-                    shadowLight.ViewMatrix = lightMatrix;
-                    shadowLight.GPUProjectionMatrix = GL.GetGPUProjectionMatrix(projectionMatrix, renderIntoTexture);
+                    shadowLight.ViewMatrix = lightView;
+                    shadowLight.GPUProjectionMatrix = GL.GetGPUProjectionMatrix(lightProjection, renderIntoTexture);
                     shadowLight.SlopeBias = AAAAShadowUtils.GetBaseShadowBias(false, 0.0f) * shadowSettings.SlopeBias;
                 }
             }

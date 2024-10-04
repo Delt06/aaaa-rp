@@ -23,7 +23,7 @@ MonoBehaviour:
     MaxPunctualLights: 1024
     Shadows:
       Resolution: 2048
-      MaxDistance: 50
+      MaxDistance: 35
       SlopeBias: 0.5
   _imageBasedLightingSettings:
     DiffuseIrradianceResolution: 128
