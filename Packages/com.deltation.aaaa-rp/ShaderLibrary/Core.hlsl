@@ -249,6 +249,11 @@ float2 ScreenCoordsToNDC(const float4 screenCoords)
     return ScreenCoordsToNDC(screenCoords.xy);
 }
 
+float3 GetViewForwardDir(const float4x4 viewMatrix)
+{
+    return -viewMatrix[2].xyz;
+}
+
 #if defined(SHADER_API_PSSL) || defined(SHADER_API_METAL) || defined(SHADER_API_WEBGPU)
 // TODO: globallycoherent is not supported on PS4, metal, or webgpu this shader may fail
 #define globallycoherent

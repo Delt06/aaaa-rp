@@ -111,6 +111,7 @@ namespace DELTation.AAAARP.Passes
                     CameraRight = cameraTransform.right,
                     CameraUp = cameraTransform.up,
                     PixelSize = new Vector2(cameraData.ScaledWidth, cameraData.ScaledHeight),
+                    IsPerspective = !camera.orthographic,
                 };
             }
 
@@ -345,7 +346,11 @@ namespace DELTation.AAAARP.Passes
 
                 context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraFrustumPlanes, data.FrustumPlanes);
                 context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraPosition, data.CullingView.CameraPosition);
-                context.cmd.SetComputeMatrixParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraViewProjection, data.CullingView.GPUViewProjectionMatrix
+                context.cmd.SetComputeMatrixParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraViewProjection,
+                    data.CullingView.GPUViewProjectionMatrix
+                );
+                context.cmd.SetComputeFloatParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraIsPerspective,
+                    data.CullingView.IsPerspective ? 1.0f : 0.0f
                 );
 
                 context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, kernelIndex,
@@ -394,6 +399,7 @@ namespace DELTation.AAAARP.Passes
             public Vector2 PixelSize;
             public Matrix4x4 ViewProjectionMatrix;
             public Matrix4x4 GPUViewProjectionMatrix;
+            public bool IsPerspective;
         }
 
         public class PassData : PassDataBase
@@ -498,6 +504,7 @@ namespace DELTation.AAAARP.Passes
                 public static int _CameraFrustumPlanes = Shader.PropertyToID(nameof(_CameraFrustumPlanes));
                 public static int _CameraPosition = Shader.PropertyToID(nameof(_CameraPosition));
                 public static int _CameraViewProjection = Shader.PropertyToID(nameof(_CameraViewProjection));
+                public static int _CameraIsPerspective = Shader.PropertyToID(nameof(_CameraIsPerspective));
 
                 public static int _SourceMeshletsCounter = Shader.PropertyToID(nameof(_SourceMeshletsCounter));
                 public static int _SourceMeshlets = Shader.PropertyToID(nameof(_SourceMeshlets));

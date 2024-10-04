@@ -24,6 +24,7 @@ float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4x4 _CameraViewProjection;
 float4x4 _CameraView;
 float4x4 _CameraViewInv;
+float    _CameraIsPerspective;
 
 ByteAddressBuffer _SourceMeshletsCounter;
 ByteAddressBuffer _SourceMeshlets;
@@ -41,8 +42,11 @@ bool Culling(const AAAAInstanceData instanceData, const AAAAMeshlet meshletData)
     UNITY_BRANCH
     if (FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphere))
     {
+        const float3 viewForwardDirWS = GetViewForwardDir(_CameraView);
+        const bool isPerspective = _CameraIsPerspective;
+
         UNITY_BRANCH
-        if (ConeCulling(_CameraPosition.xyz, instanceData, meshletData))
+        if (ConeCulling(_CameraPosition.xyz, viewForwardDirWS, isPerspective, instanceData, meshletData))
         {
             #if defined(FALSE_NEGATIVE_PASS)
         

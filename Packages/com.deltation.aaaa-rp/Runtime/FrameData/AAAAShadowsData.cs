@@ -108,6 +108,10 @@ namespace DELTation.AAAARP.FrameData
                         cameraFrustumBoundsMaxLS = math.max(cameraFrustumBoundsMaxLS, cameraFrustumPointLS);
                     }
 
+                    float worldUnitsPerTexel = shadowDistance / ShadowMapResolution;
+                    cameraFrustumBoundsMinLS = math.floor(cameraFrustumBoundsMinLS / worldUnitsPerTexel) * worldUnitsPerTexel;
+                    cameraFrustumBoundsMaxLS = math.floor(cameraFrustumBoundsMaxLS / worldUnitsPerTexel) * worldUnitsPerTexel;
+
                     var projectionMatrix = Matrix4x4.Ortho(cameraFrustumBoundsMinLS.x, cameraFrustumBoundsMaxLS.x, cameraFrustumBoundsMinLS.y,
                         cameraFrustumBoundsMaxLS.y, cameraFrustumBoundsMinLS.z, shadowDistance
                     );
@@ -126,6 +130,7 @@ namespace DELTation.AAAARP.FrameData
                         CameraRight = lightViewRotation * Vector3.right,
                         CameraUp = lightViewRotation * Vector3.up,
                         PixelSize = new Vector2(ShadowMapResolution, ShadowMapResolution),
+                        IsPerspective = false,
                     };
                     shadowLight.ViewMatrix = lightMatrix;
                     shadowLight.GPUProjectionMatrix = GL.GetGPUProjectionMatrix(projectionMatrix, renderIntoTexture);
