@@ -108,9 +108,8 @@ namespace DELTation.AAAARP.FrameData
                         cameraFrustumBoundsMaxLS = math.max(cameraFrustumBoundsMaxLS, cameraFrustumPointLS);
                     }
 
-                    float shadowNearPlane = visibleLight.light.shadowNearPlane;
                     var projectionMatrix = Matrix4x4.Ortho(cameraFrustumBoundsMinLS.x, cameraFrustumBoundsMaxLS.x, cameraFrustumBoundsMinLS.y,
-                        cameraFrustumBoundsMaxLS.y, shadowNearPlane, shadowDistance
+                        cameraFrustumBoundsMaxLS.y, cameraFrustumBoundsMinLS.z, shadowDistance
                     );
 
                     float3 cameraFrustumBoundsCenterLS = (cameraFrustumBoundsMinLS + cameraFrustumBoundsMaxLS) * 0.5f;
@@ -130,7 +129,7 @@ namespace DELTation.AAAARP.FrameData
                     };
                     shadowLight.ViewMatrix = lightMatrix;
                     shadowLight.GPUProjectionMatrix = GL.GetGPUProjectionMatrix(projectionMatrix, renderIntoTexture);
-                    shadowLight.SlopeBias = AAAALightingUtils.GetBaseShadowBias(false, 0.0f) * shadowSettings.SlopeBias;
+                    shadowLight.SlopeBias = AAAAShadowUtils.GetBaseShadowBias(false, 0.0f) * shadowSettings.SlopeBias;
                 }
             }
         }

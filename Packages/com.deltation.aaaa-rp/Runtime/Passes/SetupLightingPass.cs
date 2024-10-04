@@ -85,7 +85,7 @@ namespace DELTation.AAAARP.Passes
                                 {
                                     ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
                                     pDirectionLightShadowMatrices[index] =
-                                        AAAALightingUtils.GetWorldToShadowCoordsMatrix(shadowLight.CullingView.ViewProjectionMatrix);
+                                        AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLight.CullingView.ViewProjectionMatrix);
                                 }
                                 else
                                 {
