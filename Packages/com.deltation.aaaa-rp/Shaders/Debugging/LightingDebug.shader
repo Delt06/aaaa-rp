@@ -1,9 +1,9 @@
 Shader "Hidden/AAAA/LightingDebug"
 {
     HLSLINCLUDE
-        #pragma target 2.0
         #pragma editor_sync_compilation
-        
+
+        #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
         #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"

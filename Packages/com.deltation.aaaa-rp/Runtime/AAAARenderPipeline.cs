@@ -1,6 +1,7 @@
 ﻿using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.Lighting;
 using DELTation.AAAARP.Renderers;
 using DELTation.AAAARP.Utils;
 using UnityEngine;
@@ -14,6 +15,8 @@ namespace DELTation.AAAARP
     public sealed partial class AAAARenderPipeline : RenderPipeline
     {
         public const string ShaderTagName = "AAAAPipeline";
+        private static ShadowMapPool _shadowMapPool;
+        private readonly BindlessTextureContainer _bindlessTextureContainer;
         private readonly DebugDisplaySettingsUI _debugDisplaySettingsUI = new();
 
         private readonly AAAARenderPipelineAsset _pipelineAsset;
@@ -42,11 +45,14 @@ namespace DELTation.AAAARP
             RTHandles.Initialize(Screen.width, Screen.height);
             ShaderGlobalKeywords.InitializeShaderGlobalKeywords();
 
-            _rendererContainer = new AAAARendererContainer(pipelineAsset.MeshLODSettings, pipelineDebugDisplaySettings);
+            _bindlessTextureContainer = new BindlessTextureContainer();
+            _shadowMapPool = new ShadowMapPool(_bindlessTextureContainer);
+            _rendererContainer = new AAAARendererContainer(_bindlessTextureContainer, pipelineAsset.MeshLODSettings, pipelineDebugDisplaySettings);
         }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
         {
+            _shadowMapPool.Reset();
             _rendererContainer.PreRender(context);
 
             foreach (Camera camera in cameras)
@@ -117,6 +123,9 @@ namespace DELTation.AAAARP
 #endif
 
             _rendererContainer.Dispose();
+            _shadowMapPool.Dispose();
+            _bindlessTextureContainer.Dispose();
+
             Blitter.Cleanup();
             ConstantBuffer.ReleaseAll();
 
@@ -228,6 +237,8 @@ namespace DELTation.AAAARP
         private static AAAAShadowsData CreateShadowsData(ContextContainer frameData)
         {
             AAAAShadowsData shadowsData = frameData.GetOrCreate<AAAAShadowsData>();
+
+            shadowsData.ShadowMapPool = _shadowMapPool;
 
             return shadowsData;
         }

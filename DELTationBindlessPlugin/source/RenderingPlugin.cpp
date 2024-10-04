@@ -130,6 +130,25 @@ extern "C" int32_t UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API CreateSRVDescripto
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Format = pTexture->GetDesc().Format;
+
+    switch (srvDesc.Format)  // NOLINT(clang-diagnostic-switch-enum)
+    {
+    case DXGI_FORMAT_D16_UNORM:
+        srvDesc.Format = DXGI_FORMAT_R16_UNORM;
+        break;
+    case DXGI_FORMAT_D24_UNORM_S8_UINT:
+        srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        break;
+    case DXGI_FORMAT_D32_FLOAT:
+        srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+        break;
+    case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+        srvDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+        break;
+    default:
+        break;
+    }
+    
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Texture2D.MipLevels = -1;

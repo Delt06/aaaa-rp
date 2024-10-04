@@ -1,9 +1,9 @@
 Shader "Hidden/AAAA/IBL/PreFilterEnvironment"
 {
     HLSLINCLUDE
-    #pragma target 2.0
     #pragma editor_sync_compilation
 
+    #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/BRDF.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/IBL/Utils.hlsl"

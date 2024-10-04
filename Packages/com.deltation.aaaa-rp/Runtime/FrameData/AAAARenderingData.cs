@@ -1,5 +1,6 @@
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Renderers;
+using DELTation.AAAARP.Utils;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
@@ -7,10 +8,10 @@ namespace DELTation.AAAARP.FrameData
 {
     public class AAAARenderingData : ContextItem
     {
-        public AAAARenderPipelineAsset PipelineAsset;
         public CullingResults CullingResults;
-        public RenderGraph RenderGraph;
+        public AAAARenderPipelineAsset PipelineAsset;
         public AAAARendererContainer RendererContainer;
+        public RenderGraph RenderGraph;
 
         public override void Reset()
         {

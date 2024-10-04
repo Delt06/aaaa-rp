@@ -24,7 +24,8 @@ namespace DELTation.AAAARP.Renderers
             ShadowCaster = 1,
         }
 
-        private readonly BindlessTextureContainer _bindlessTextureContainer = new();
+        private readonly BindlessTextureContainer _bindlessTextureContainer;
+
         [CanBeNull]
         private readonly AAAARenderPipelineDebugDisplaySettings _debugDisplaySettings;
         private readonly Material _material;
@@ -46,8 +47,10 @@ namespace DELTation.AAAARP.Renderers
         private GraphicsBuffer _sharedVertexBuffer;
         private NativeList<AAAAMeshletVertex> _sharedVertices;
 
-        internal AAAARendererContainer(AAAAMeshLODSettings meshLODSettings, [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings)
+        internal AAAARendererContainer(BindlessTextureContainer bindlessTextureContainer, AAAAMeshLODSettings meshLODSettings,
+            [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings)
         {
+            _bindlessTextureContainer = bindlessTextureContainer;
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
 
             _meshLODSettings = meshLODSettings;
@@ -88,7 +91,6 @@ namespace DELTation.AAAARP.Renderers
 
         public void Dispose()
         {
-            _bindlessTextureContainer.Dispose();
             OcclusionCullingResources.Dispose();
             _objectTracker.Dispose();
 
@@ -237,7 +239,7 @@ namespace DELTation.AAAARP.Renderers
                 };
         }
 
-        public void Draw(CameraType cameraType, RasterCommandBuffer cmd, PassType passType)
+        public void Draw(CameraType cameraType, CommandBuffer cmd, PassType passType)
         {
             if (!ShouldDraw(cameraType))
             {

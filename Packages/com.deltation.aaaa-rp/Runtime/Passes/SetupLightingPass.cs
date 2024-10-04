@@ -18,21 +18,17 @@ namespace DELTation.AAAARP.Passes
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAAImageBasedLightingData imageBasedLightingData = frameData.Get<AAAAImageBasedLightingData>();
+            AAAAShadowsData shadowsData = frameData.Get<AAAAShadowsData>();
 
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
             lightingData.Init(renderingData.RenderGraph, renderingData.PipelineAsset.LightingSettings);
 
-            AAAAShadowsData shadowsData = frameData.Get<AAAAShadowsData>();
-
-            ref AAAALightingConstantBuffer lightingConstantBuffer = ref lightingData.LightingConstantBuffer;
             var punctualLights = new NativeList<AAAAPunctualLightData>(renderingData.CullingResults.visibleLights.Length, Allocator.Temp);
+            ref AAAALightingConstantBuffer lightingConstantBuffer = ref lightingData.LightingConstantBuffer;
             FillLightsData(renderingData, shadowsData, ref lightingConstantBuffer, punctualLights);
 
-            passData.PunctualLightsBuffer = builder.WriteBuffer(lightingData.PunctualLightsBuffer);
             passData.PunctualLights = punctualLights.AsArray();
-            passData.DirectionalLightShadowMapArray = shadowsData.ShadowLights.Length > 0
-                ? builder.ReadTexture(shadowsData.DirectionalLightShadowMapArray)
-                : TextureHandle.nullHandle;
+            passData.PunctualLightsBuffer = builder.WriteBuffer(lightingData.PunctualLightsBuffer);
 
             lightingData.AmbientIntensity = RenderSettings.ambientIntensity;
 
@@ -80,18 +76,19 @@ namespace DELTation.AAAARP.Passes
                                 lightingConstantBuffer.DirectionalLightCount < AAAALightingConstantBuffer.MaxDirectionalLights)
                             {
                                 uint index = lightingConstantBuffer.DirectionalLightCount++;
-                                Color color = visibleLight.finalColor;
+                                const int noShadowMapIndex = -1;
+                                int bindlessShadowMapIndex = noShadowMapIndex;
                                 if (shadowsData.VisibleToShadowLightMapping.TryGetValue(visibleLightIndex, out int shadowLightIndex))
                                 {
                                     ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
                                     pDirectionLightShadowMatrices[index] =
                                         AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLight.CullingView.ViewProjectionMatrix);
+
+                                    bindlessShadowMapIndex =
+                                        shadowsData.ShadowMapPool.GetBindlessSRVIndexOrDefault(shadowLight.ShadowMapAllocation, noShadowMapIndex);
                                 }
-                                else
-                                {
-                                    shadowLightIndex = -1;
-                                }
-                                pDirectionalLightColors[index] = math.float4(color.r, color.g, color.b, shadowLightIndex);
+                                Color color = visibleLight.finalColor;
+                                pDirectionalLightColors[index] = math.float4(color.r, color.g, color.b, bindlessShadowMapIndex);
                                 pDirectionalLightDirections[index] = math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix), 0);
                             }
                         }
@@ -102,8 +99,6 @@ namespace DELTation.AAAARP.Passes
                             pDirectionalLightDirections[0] = Vector4.zero;
                         }
                     }
-
-
                 }
             }
 
@@ -160,18 +155,12 @@ namespace DELTation.AAAARP.Passes
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBg, shCoefficients.SHBg);
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBb, shCoefficients.SHBb);
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHC, shCoefficients.SHC);
-
-            if (data.DirectionalLightShadowMapArray.IsValid())
-            {
-                context.cmd.SetGlobalTexture(ShaderPropertyID._DirectionalLightShadowMapArray, data.DirectionalLightShadowMapArray);
-            }
         }
 
         public class PassData : PassDataBase
         {
             public TextureHandle BRDFLut;
             public TextureHandle DiffuseIrradianceCubemap;
-            public TextureHandle DirectionalLightShadowMapArray;
             public AAAALightingData LightingData;
             public TextureHandle PreFilteredEnvironmentMap;
             public float PreFilteredEnvironmentMapMaxLOD;
@@ -198,8 +187,6 @@ namespace DELTation.AAAARP.Passes
             public static readonly int aaaa_SHBg = Shader.PropertyToID(nameof(aaaa_SHBg));
             public static readonly int aaaa_SHBb = Shader.PropertyToID(nameof(aaaa_SHBb));
             public static readonly int aaaa_SHC = Shader.PropertyToID(nameof(aaaa_SHC));
-
-            public static readonly int _DirectionalLightShadowMapArray = Shader.PropertyToID(nameof(_DirectionalLightShadowMapArray));
         }
     }
 }

@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using DELTation.AAAARP.Debugging;
 
 namespace DELTation.AAAARP.Passes.Shadows
 {
-    internal sealed class ShadowPassPool
+    internal sealed class ShadowPassPool : IDisposable
     {
         private const string NameTag = "Shadows";
 
@@ -19,6 +20,16 @@ namespace DELTation.AAAARP.Passes.Shadows
             _debugSettings = debugSettings;
             _shaders = shaders;
             _renderPassEvent = renderPassEvent;
+        }
+
+        public void Dispose()
+        {
+            foreach (PassSet set in _sets)
+            {
+                set.GPUCullingPass.Dispose();
+            }
+
+            _sets.Clear();
         }
 
         public PassSet RequestPassesBasic(int shadowLightIndex, GPUCullingPass.CullingViewParameters cullingViewParameters)

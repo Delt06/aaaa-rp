@@ -44,9 +44,7 @@ namespace DELTation.AAAARP
             renderGraph.BeginRecording(renderGraphParameters);
             {
                 renderingData.CullingResults = context.Cull(ref cullingParameters);
-                shadowsData.Init(renderingData.RenderGraph, renderingData.CullingResults,
-                    cameraData, renderingData.PipelineAsset.LightingSettings.Shadows
-                );
+                shadowsData.Init(renderingData.CullingResults, cameraData, renderingData.PipelineAsset.LightingSettings.Shadows);
 
                 renderer.ImportBackbuffer(cameraData);
                 resourceData.InitTextures(renderGraph, renderingData, cameraData);

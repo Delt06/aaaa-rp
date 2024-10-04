@@ -5,33 +5,21 @@ using DELTation.AAAARP.Passes;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
-using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.FrameData
 {
     public class AAAAShadowsData : ContextItem
     {
-        public TextureHandle DirectionalLightShadowMapArray { get; private set; }
-        public int ShadowMapResolution { get; private set; }
+        internal ShadowMapPool ShadowMapPool { get; set; }
+        public AAAATextureSize ShadowMapResolution { get; private set; }
         public NativeList<ShadowLight> ShadowLights { get; private set; }
         public NativeHashMap<int, int> VisibleToShadowLightMapping { get; private set; }
 
-        public void Init(RenderGraph renderGraph, in CullingResults cullingResults,
+        public void Init(in CullingResults cullingResults,
             AAAACameraData cameraData, AAAALightingSettings.ShadowSettings shadowSettings)
         {
-            ShadowMapResolution = (int) shadowSettings.Resolution;
-            {
-                TextureDesc textureDesc = AAAARenderingUtils.CreateTextureDesc(nameof(DirectionalLightShadowMapArray),
-                    new RenderTextureDescriptor(ShadowMapResolution, ShadowMapResolution, GraphicsFormat.None, GraphicsFormat.D24_UNorm)
-                );
-                textureDesc.clearBuffer = false;
-                textureDesc.dimension = TextureDimension.Tex2DArray;
-                textureDesc.slices = AAAALightingConstantBuffer.MaxDirectionalLights;
-                DirectionalLightShadowMapArray = renderGraph.CreateTexture(textureDesc);
-            }
-
+            ShadowMapResolution = shadowSettings.Resolution;
             ShadowLights = new NativeList<ShadowLight>(cullingResults.visibleLights.Length, Allocator.Temp);
             VisibleToShadowLightMapping = new NativeHashMap<int, int>(ShadowLights.Capacity, Allocator.Temp);
             CollectShadowLights(cullingResults, cameraData, shadowSettings, ShadowLights);
@@ -57,6 +45,7 @@ namespace DELTation.AAAARP.FrameData
                                 LightType = visibleLight.lightType,
                                 VisibleLightIndex = visibleLightIndex,
                                 NearPlaneOffset = light.shadowNearPlane,
+                                ShadowMapAllocation = ShadowMapPool.Allocate(ShadowMapResolution),
                             }
                         );
                         VisibleToShadowLightMapping.Add(visibleLightIndex, shadowLights.Length - 1);
@@ -89,7 +78,8 @@ namespace DELTation.AAAARP.FrameData
                     float splitNear = 0.0f;
                     float splitFar = math.min(cameraFarPlane, shadowSettings.MaxDistance);
                     Quaternion lightRotation = visibleLight.localToWorldMatrix.rotation;
-                    AAAAShadowUtils.ComputeDirectionalLightShadowMatrices(cameraFrustumCorners, ShadowMapResolution, cameraFarPlane, splitNear, splitFar,
+                    int shadowMapResolution = (int) ShadowMapResolution;
+                    AAAAShadowUtils.ComputeDirectionalLightShadowMatrices(cameraFrustumCorners, shadowMapResolution, cameraFarPlane, splitNear, splitFar,
                         lightRotation, out float4x4 lightView, out float4x4 lightProjection
                     );
 
@@ -105,7 +95,7 @@ namespace DELTation.AAAARP.FrameData
                         CameraPosition = cameraPosition,
                         CameraRight = lightRotation * Vector3.right,
                         CameraUp = lightRotation * Vector3.up,
-                        PixelSize = new Vector2(ShadowMapResolution, ShadowMapResolution),
+                        PixelSize = new Vector2(shadowMapResolution, shadowMapResolution),
                         IsPerspective = false,
                     };
                     shadowLight.ViewMatrix = lightView;
@@ -118,7 +108,6 @@ namespace DELTation.AAAARP.FrameData
         public override void Reset()
         {
             ShadowMapResolution = 0;
-            DirectionalLightShadowMapArray = TextureHandle.nullHandle;
             ShadowLights = default;
         }
 
@@ -131,6 +120,7 @@ namespace DELTation.AAAARP.FrameData
             public Matrix4x4 GPUProjectionMatrix;
             public GPUCullingPass.CullingViewParameters CullingView;
             public float SlopeBias;
+            internal ShadowMapPool.Allocation ShadowMapAllocation;
         }
     }
 }

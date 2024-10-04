@@ -10,4 +10,10 @@ Texture2D GetBindlessTexture2D(const uint index)
     return texture;
 }
 
+Texture2D<float> GetBindlessTexture2DFloat(const uint index)
+{
+    Texture2D<float> texture = ResourceDescriptorHeap[index];
+    return texture;
+}
+
 #endif // AAAA_BINDLESS_INCLUDED

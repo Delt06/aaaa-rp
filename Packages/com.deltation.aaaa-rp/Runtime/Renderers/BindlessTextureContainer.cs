@@ -4,6 +4,7 @@ using DELTation.AAAARP.BindlessPlugin.Runtime;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Assertions;
+using UnityEngine.Experimental.Rendering;
 using Object = UnityEngine.Object;
 
 namespace DELTation.AAAARP.Renderers
@@ -13,7 +14,7 @@ namespace DELTation.AAAARP.Renderers
         private const int InitialCapacity = 16;
 
         private readonly uint _heapNumDescriptors = BindlessPluginBindings.GetSRVDescriptorHeapCount();
-        private readonly List<Texture2D> _potentiallyDirtyTextures = new(InitialCapacity);
+        private readonly List<Texture> _potentiallyDirtyTextures = new(InitialCapacity);
         private NativeHashMap<int, BindlessTextureInfo> _bindlessTextureInfos = new(InitialCapacity, Allocator.Persistent);
         private uint _counter;
         private NativeList<int> _potentiallyDirtyDestroyedTexturesInstanceID = new(InitialCapacity, Allocator.Persistent);
@@ -60,7 +61,7 @@ namespace DELTation.AAAARP.Renderers
                         continue;
                     }
 
-                    Texture2D texture = _potentiallyDirtyTextures[i];
+                    Texture texture = _potentiallyDirtyTextures[i];
                     Assert.IsNotNull(texture);
 
                     if (texture.GetNativeTexturePtr() != bindlessTextureInfo.NativeTexturePtr)
@@ -89,9 +90,9 @@ namespace DELTation.AAAARP.Renderers
             }
         }
 
-        public uint GetOrCreateIndex(Texture2D texture, int instanceID)
+        public uint GetOrCreateIndex(Texture texture, int instanceID)
         {
-            Texture2D effectiveTexture = texture;
+            Texture effectiveTexture = texture;
 
             if (effectiveTexture == null)
             {
@@ -112,7 +113,7 @@ namespace DELTation.AAAARP.Renderers
             }
             else
             {
-                index = _heapNumDescriptors - 1 - _counter;
+                index = CurrentIndex();
                 ++_counter;
             }
 
@@ -125,6 +126,15 @@ namespace DELTation.AAAARP.Renderers
                 NativeTexturePtr = nativeTexturePtr,
             };
             return index;
+        }
+
+        private uint CurrentIndex() => _heapNumDescriptors - 1 - _counter;
+
+        public uint AllocateRange(uint count)
+        {
+            Assert.IsTrue(count > 0);
+            _counter += count;
+            return CurrentIndex() + 1;
         }
 
         private struct BindlessTextureInfo

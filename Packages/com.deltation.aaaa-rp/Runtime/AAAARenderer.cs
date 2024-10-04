@@ -30,7 +30,6 @@ namespace DELTation.AAAARP
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly SetupLightingPass _setupLightingPass;
-
         private readonly ShadowPassPool _shadowPassPool;
         private readonly SkyboxPass _skyboxPass;
         private readonly SMAAPass _smaaPass;
@@ -124,6 +123,8 @@ namespace DELTation.AAAARP
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
+
+            _shadowPassPool.Dispose();
 
             _convolveDiffuseIrradiancePass.Dispose();
             _brdfIntegrationPass.Dispose();

@@ -52,7 +52,7 @@ namespace DELTation.AAAARP.Passes
 
         protected override void Render(PassData data, RasterGraphContext context)
         {
-            data.RendererContainer.Draw(data.CameraType, context.cmd, AAAARendererContainer.PassType.Visibility);
+            data.RendererContainer.Draw(data.CameraType, context.cmd.m_WrappedCommandBuffer, AAAARendererContainer.PassType.Visibility);
             context.cmd.DrawRendererList(data.RendererListHandle);
         }
 
