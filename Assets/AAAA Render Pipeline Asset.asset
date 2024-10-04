@@ -22,8 +22,9 @@ MonoBehaviour:
   _lightingSettings:
     MaxPunctualLights: 1024
     Shadows:
-      Resolution: 1024
+      Resolution: 2048
       MaxDistance: 50
+      SlopeBias: 0.5
   _imageBasedLightingSettings:
     DiffuseIrradianceResolution: 128
     BRDFLutResolution: 128

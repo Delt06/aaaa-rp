@@ -68,6 +68,8 @@ namespace DELTation.AAAARP.Data
             public AAAATextureSize Resolution = AAAATextureSize._1024;
             [Min(1.0f)]
             public float MaxDistance = 100.0f;
+            [Range(0.0f, 1.0f)]
+            public float SlopeBias = 0.5f;
         }
     }
 

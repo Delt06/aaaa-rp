@@ -3,8 +3,9 @@ Shader "Hidden/AAAA/DeferredLighting"
     Properties {}
 
     HLSLINCLUDE
-    #pragma target 2.0
+    #pragma target 5.0
     #pragma editor_sync_compilation
+    #pragma enable_d3d11_debug_symbols
 
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
@@ -80,7 +81,7 @@ Shader "Hidden/AAAA/DeferredLighting"
                     UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
                 for (uint lightIndex = 0; lightIndex < lightCount; ++lightIndex)
                 {
-                    const Light light = GetDirectionalLight(lightIndex);
+                    const Light light = GetDirectionalLight(lightIndex, surfaceData.positionWS);
                     brdfInput.lightDirectionWS = light.direction;
                     brdfInput.lightColor = light.color;
                     lighting += light.shadowAttenuation * PBRLighting::ComputeLightingDirect(brdfInput);

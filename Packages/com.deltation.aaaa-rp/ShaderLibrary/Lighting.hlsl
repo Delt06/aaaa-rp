@@ -6,6 +6,7 @@
 #include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAALightingConstantBuffer.cs.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/ClusteredLighting.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PunctualLights.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows.hlsl"
 
 float4 aaaa_SHAr;
 float4 aaaa_SHAg;
@@ -33,7 +34,7 @@ struct Light
     float  shadowAttenuation;
 };
 
-Light GetDirectionalLight(const uint index)
+Light GetDirectionalLight(const uint index, const float3 positionWS)
 {
     Light light;
     light.color = DirectionalLightColors_ShadowMapIndex[index].rgb;
@@ -41,8 +42,18 @@ Light GetDirectionalLight(const uint index)
     light.distanceAttenuation = 1.0;
 
     const float shadowMapIndex = DirectionalLightColors_ShadowMapIndex[index].w;
-    // TODO: sample shadowmap
-    light.shadowAttenuation = 1.0;
+    UNITY_BRANCH
+    if (shadowMapIndex != -1)
+    {
+        const float4x4 worldToShadowCoords = DirectionalLightWorldToShadowCoordsMatrices[index];
+        const bool     isPerspective = false;
+        const float3   shadowCoords = TransformWorldToShadowCoords(positionWS, worldToShadowCoords, isPerspective);
+        light.shadowAttenuation = SampleDirectionalLightShadowMap(shadowCoords, shadowMapIndex);
+    }
+    else
+    {
+        light.shadowAttenuation = 1.0;
+    }
 
     return light;
 }

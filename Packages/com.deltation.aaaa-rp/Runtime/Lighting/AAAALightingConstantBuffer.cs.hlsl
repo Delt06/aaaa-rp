@@ -14,6 +14,7 @@
 CBUFFER_START(AAAALightingConstantBuffer)
     float4 DirectionalLightColors_ShadowMapIndex[4];
     float4 DirectionalLightDirections[4];
+    float4x4 DirectionalLightWorldToShadowCoordsMatrices[4];
     uint DirectionalLightCount;
     uint PunctualLightCount;
 CBUFFER_END
