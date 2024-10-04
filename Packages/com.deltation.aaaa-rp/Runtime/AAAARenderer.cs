@@ -1,3 +1,4 @@
+using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Passes;
@@ -5,6 +6,7 @@ using DELTation.AAAARP.Passes.AntiAliasing;
 using DELTation.AAAARP.Passes.ClusteredLighting;
 using DELTation.AAAARP.Passes.IBL;
 using DELTation.AAAARP.Passes.PostProcessing;
+using DELTation.AAAARP.Passes.Shadows;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -28,6 +30,8 @@ namespace DELTation.AAAARP
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly SetupLightingPass _setupLightingPass;
+
+        private readonly ShadowPassPool _shadowPassPool;
         private readonly SkyboxPass _skyboxPass;
         private readonly SMAAPass _smaaPass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
@@ -40,7 +44,10 @@ namespace DELTation.AAAARP
             _convolveDiffuseIrradiancePass = new ConvolveDiffuseIrradiancePass(AAAARenderPassEvent.BeforeRendering, shaders);
             _brdfIntegrationPass = new BRDFIntegrationPass(AAAARenderPassEvent.BeforeRendering, shaders);
             _preFilterEnvironmentPass = new PreFilterEnvironmentPass(AAAARenderPassEvent.BeforeRendering, shaders);
+
             _setupLightingPass = new SetupLightingPass(AAAARenderPassEvent.BeforeRendering);
+            _shadowPassPool = new ShadowPassPool(AAAARenderPassEvent.BeforeRendering, shaders, DebugHandler?.DisplaySettings);
+
             _gpuCullingMainPass = new GPUCullingPass(GPUCullingPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders,
                 DebugHandler?.DisplaySettings
             );
@@ -53,6 +60,7 @@ namespace DELTation.AAAARP
             _drawVisibilityBufferFalseNegativePass =
                 new DrawVisibilityBufferPass(DrawVisibilityBufferPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer);
             _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
+
             _clusteredLightingPass = new ClusteredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
@@ -66,12 +74,22 @@ namespace DELTation.AAAARP
 
         protected override void Setup(RenderGraph renderGraph, ScriptableRenderContext context, ContextContainer frameData)
         {
+            _shadowPassPool.Reset();
+
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
+            AAAAShadowsData shadowsData = frameData.Get<AAAAShadowsData>();
 
             EnqueuePass(_convolveDiffuseIrradiancePass);
             EnqueuePass(_brdfIntegrationPass);
             EnqueuePass(_preFilterEnvironmentPass);
 
+            for (int shadowLightIndex = 0; shadowLightIndex < shadowsData.ShadowLights.Length; shadowLightIndex++)
+            {
+                ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
+                ShadowPassPool.PassSet passSet = _shadowPassPool.RequestPassesBasic(shadowLightIndex, shadowLight.CullingView);
+                EnqueuePass(passSet.GPUCullingPass);
+                EnqueuePass(passSet.DrawShadowsPass);
+            }
             EnqueuePass(_setupLightingPass);
 
             Camera cullingCameraOverride = DebugHandler?.GetGPUCullingCameraOverride();

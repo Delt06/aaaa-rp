@@ -77,13 +77,13 @@ Shader "Hidden/AAAA/DeferredLighting"
                 brdfInput.irradiance = 0;
                 brdfInput.ambientOcclusion = 1.0f;
 
-                UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
+                    UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
                 for (uint lightIndex = 0; lightIndex < lightCount; ++lightIndex)
                 {
                     const Light light = GetDirectionalLight(lightIndex);
                     brdfInput.lightDirectionWS = light.direction;
                     brdfInput.lightColor = light.color;
-                    lighting += PBRLighting::ComputeLightingDirect(brdfInput);
+                    lighting += light.shadowAttenuation * PBRLighting::ComputeLightingDirect(brdfInput);
                 }
 
                 const AAAAClusteredLightingGridCell lightGridCell = ClusteredLighting::LoadCell(surfaceData.positionWS, IN.texcoord);

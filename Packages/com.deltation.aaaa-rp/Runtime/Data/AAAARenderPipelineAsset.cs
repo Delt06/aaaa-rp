@@ -15,6 +15,8 @@ namespace DELTation.AAAARP.Data
         _512 = 512,
         _1024 = 1024,
         _2048 = 2048,
+        _4096 = 4096,
+        _8192 = 8192,
     }
 
     public enum AAAAAntiAliasingTechnique
@@ -58,6 +60,15 @@ namespace DELTation.AAAARP.Data
     {
         [Range(16, 1024 * 16)]
         public int MaxPunctualLights = 1024;
+        public ShadowSettings Shadows = new();
+
+        [Serializable]
+        public class ShadowSettings
+        {
+            public AAAATextureSize Resolution = AAAATextureSize._1024;
+            [Min(1.0f)]
+            public float MaxDistance = 100.0f;
+        }
     }
 
     [Serializable]

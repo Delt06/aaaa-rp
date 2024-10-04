@@ -39,9 +39,14 @@ namespace DELTation.AAAARP
             AAAAImageBasedLightingData imageBasedLightingData = frameData.Get<AAAAImageBasedLightingData>();
             imageBasedLightingData.Init(renderingData.PipelineAsset.ImageBasedLightingSettings, renderGraph);
 
+            AAAAShadowsData shadowsData = frameData.Get<AAAAShadowsData>();
+
             renderGraph.BeginRecording(renderGraphParameters);
             {
                 renderingData.CullingResults = context.Cull(ref cullingParameters);
+                shadowsData.Init(renderingData.RenderGraph, renderingData.CullingResults,
+                    cameraData, renderingData.PipelineAsset.LightingSettings.Shadows
+                );
 
                 renderer.ImportBackbuffer(cameraData);
                 resourceData.InitTextures(renderGraph, renderingData, cameraData);

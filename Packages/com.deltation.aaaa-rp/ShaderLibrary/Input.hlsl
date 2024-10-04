@@ -32,20 +32,50 @@ float4 _ScreenSizeOverride;
 
 uint _EnableProbeVolumes;
 
+#ifndef UNITY_MATRIX_M
 #define UNITY_MATRIX_M     unity_ObjectToWorld
+#endif
+
+#ifndef UNITY_MATRIX_I_M
 #define UNITY_MATRIX_I_M   unity_WorldToObject
+#endif
+
+#ifndef UNITY_MATRIX_V
 #define UNITY_MATRIX_V     unity_MatrixV
+#endif
+
+#ifndef UNITY_MATRIX_I_V
 #define UNITY_MATRIX_I_V   unity_MatrixInvV
+#endif
+
+#ifndef UNITY_MATRIX_P
 #define UNITY_MATRIX_P     OptimizeProjectionMatrix(glstate_matrix_projection)
+#endif
+
+#ifndef UNITY_MATRIX_I_P
 #define UNITY_MATRIX_I_P   unity_MatrixInvP
+#endif
+
+#ifndef UNITY_MATRIX_VP
 #define UNITY_MATRIX_VP    unity_MatrixVP
+#endif
+
+#ifndef UNITY_MATRIX_I_VP
 #define UNITY_MATRIX_I_VP  unity_MatrixInvVP
+#endif
+
 #define UNITY_MATRIX_MV    mul(UNITY_MATRIX_V, UNITY_MATRIX_M)
 #define UNITY_MATRIX_T_MV  transpose(UNITY_MATRIX_MV)
 #define UNITY_MATRIX_IT_MV transpose(mul(UNITY_MATRIX_I_M, UNITY_MATRIX_I_V))
 #define UNITY_MATRIX_MVP   mul(UNITY_MATRIX_VP, UNITY_MATRIX_M)
+
+#ifndef UNITY_PREV_MATRIX_M
 #define UNITY_PREV_MATRIX_M   unity_MatrixPreviousM
+#endif
+
+#ifndef UNITY_PREV_MATRIX_I_M
 #define UNITY_PREV_MATRIX_I_M unity_MatrixPreviousMI
+#endif
 
 // Note: #include order is important here.
 // UnityInput.hlsl must be included before UnityInstancing.hlsl, so constant buffer

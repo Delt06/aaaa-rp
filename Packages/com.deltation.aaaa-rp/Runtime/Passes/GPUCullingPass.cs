@@ -9,7 +9,6 @@ using DELTation.AAAARP.Utils;
 using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
-using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -39,7 +38,7 @@ namespace DELTation.AAAARP.Passes
         private NativeList<int> _instanceIndices;
 
         public GPUCullingPass(PassType passType, AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders,
-            [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings) : base(renderPassEvent)
+            [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings, string nameTag = null) : base(renderPassEvent)
         {
             _passType = passType;
             _rawBufferClearCS = runtimeShaders.RawBufferClearCS;
@@ -53,6 +52,10 @@ namespace DELTation.AAAARP.Passes
             _debugDisplaySettings = debugDisplaySettings;
 
             Name = AutoName;
+            if (nameTag != null)
+            {
+                Name += "." + nameTag;
+            }
             if (_passType != PassType.Basic)
             {
                 Name += "." + _passType;
@@ -63,6 +66,7 @@ namespace DELTation.AAAARP.Passes
         public Camera CullingCameraOverride { get; set; }
 
         public override string Name { get; }
+        public CullingViewParameters? CullingViewParametersOverride { get; set; }
 
         public void Dispose()
         {
@@ -87,25 +91,36 @@ namespace DELTation.AAAARP.Passes
             }
 
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
-            Camera camera = CullingCameraOverride != null ? CullingCameraOverride : cameraData.Camera;
-            Transform cameraTransform = camera.transform;
-            Vector3 cameraPosition = cameraTransform.position;
-            passData.CameraPosition = new Vector4(cameraPosition.x, cameraPosition.y, cameraPosition.z, 1);
-            passData.CameraUp = cameraTransform.up;
-            passData.CameraRight = cameraTransform.right;
-            passData.ScreenSizePixels = new Vector2(cameraData.ScaledWidth, cameraData.ScaledHeight);
-            passData.CotHalfFov = 1.0f / math.tan(0.5f * Mathf.Deg2Rad * cameraData.Camera.fieldOfView);
-
             Plane[] frustumPlanes = TempCollections.Planes;
-            GeometryUtility.CalculateFrustumPlanes(camera, frustumPlanes);
+            if (CullingViewParametersOverride != null)
+            {
+                passData.CullingView = CullingViewParametersOverride.Value;
+            }
+            else
+            {
+                Camera camera = CullingCameraOverride != null ? CullingCameraOverride : cameraData.Camera;
+                Transform cameraTransform = camera.transform;
+                Vector3 cameraPosition = cameraTransform.position;
+
+                Matrix4x4 viewProjectionMatrix = camera.projectionMatrix * camera.worldToCameraMatrix;
+                passData.CullingView = new CullingViewParameters
+                {
+                    ViewProjectionMatrix = viewProjectionMatrix,
+                    GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(viewProjectionMatrix, true),
+                    CameraPosition = new Vector4(cameraPosition.x, cameraPosition.y, cameraPosition.z, 1),
+                    CameraRight = cameraTransform.right,
+                    CameraUp = cameraTransform.up,
+                    PixelSize = new Vector2(cameraData.ScaledWidth, cameraData.ScaledHeight),
+                };
+            }
+
+            GeometryUtility.CalculateFrustumPlanes(passData.CullingView.ViewProjectionMatrix, frustumPlanes);
 
             for (int i = 0; i < frustumPlanes.Length; i++)
             {
                 Plane frustumPlane = frustumPlanes[i];
                 passData.FrustumPlanes[i] = new Vector4(frustumPlane.normal.x, frustumPlane.normal.y, frustumPlane.normal.z, frustumPlane.distance);
             }
-
-            passData.CameraViewProjectionMatrix = GL.GetGPUProjectionMatrix(camera.projectionMatrix * camera.worldToCameraMatrix, true);
 
             passData.InstanceIndices = builder.CreateTransientBuffer(
                 new BufferDesc(_instanceIndices.Length, sizeof(uint), GraphicsBuffer.Target.Raw)
@@ -175,13 +190,8 @@ namespace DELTation.AAAARP.Passes
             if (_passType == PassType.FalseNegative)
             {
                 AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
-                passData.CameraDepth = builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
-                passData.CameraHZB = builder.ReadTexture(resourceData.CameraHZBScaled);
-            }
-            else
-            {
-                passData.CameraDepth = TextureHandle.nullHandle;
-                passData.CameraHZB = TextureHandle.nullHandle;
+                builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
+                builder.ReadTexture(resourceData.CameraHZBScaled);
             }
 
             passData.DebugDataBuffer = _debugDisplaySettings is { RenderingSettings: { DebugGPUCulling: true } }
@@ -230,7 +240,9 @@ namespace DELTation.AAAARP.Passes
                 );
 
                 context.cmd.SetComputeVectorArrayParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraFrustumPlanes, data.FrustumPlanes);
-                context.cmd.SetComputeMatrixParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraViewProjection, data.CameraViewProjectionMatrix);
+                context.cmd.SetComputeMatrixParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraViewProjection,
+                    data.CullingView.GPUViewProjectionMatrix
+                );
 
                 context.cmd.SetBufferData(data.InstanceIndices, _instanceIndices.AsArray());
                 context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
@@ -277,11 +289,12 @@ namespace DELTation.AAAARP.Passes
             {
                 const int kernelIndex = 0;
 
-                context.cmd.SetComputeMatrixParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraViewProjection, data.CameraViewProjectionMatrix);
-                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraPosition, data.CameraPosition);
-                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraUp, data.CameraUp);
-                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraRight, data.CameraRight);
-                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._ScreenSizePixels, data.ScreenSizePixels);
+                context.cmd.SetComputeMatrixParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraViewProjection, data.CullingView.GPUViewProjectionMatrix
+                );
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraPosition, data.CullingView.CameraPosition);
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraUp, data.CullingView.CameraUp);
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraRight, data.CullingView.CameraRight);
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._ScreenSizePixels, data.CullingView.PixelSize);
 
                 context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex,
                     ShaderID.MeshletListBuild._Jobs, data.MeshletListBuildJobsBuffer
@@ -331,8 +344,9 @@ namespace DELTation.AAAARP.Passes
                 );
 
                 context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraFrustumPlanes, data.FrustumPlanes);
-                context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraPosition, data.CameraPosition);
-                context.cmd.SetComputeMatrixParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraViewProjection, data.CameraViewProjectionMatrix);
+                context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraPosition, data.CullingView.CameraPosition);
+                context.cmd.SetComputeMatrixParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraViewProjection, data.CullingView.GPUViewProjectionMatrix
+                );
 
                 context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, kernelIndex,
                     ShaderID.MeshletCulling._SourceMeshletsCounter, data.InitialMeshletListCounterBuffer
@@ -372,18 +386,21 @@ namespace DELTation.AAAARP.Passes
             }
         }
 
+        public struct CullingViewParameters
+        {
+            public Vector3 CameraPosition;
+            public Vector3 CameraUp;
+            public Vector3 CameraRight;
+            public Vector2 PixelSize;
+            public Matrix4x4 ViewProjectionMatrix;
+            public Matrix4x4 GPUViewProjectionMatrix;
+        }
+
         public class PassData : PassDataBase
         {
             public readonly Vector4[] FrustumPlanes = new Vector4[6];
 
-            public TextureHandle CameraDepth;
-            public TextureHandle CameraHZB;
-
-            public Vector4 CameraPosition;
-            public Vector4 CameraRight;
-            public Vector4 CameraUp;
-            public Matrix4x4 CameraViewProjectionMatrix;
-            public float CotHalfFov;
+            public CullingViewParameters CullingView;
 
             public BufferHandle DebugDataBuffer;
 
@@ -405,8 +422,6 @@ namespace DELTation.AAAARP.Passes
 
             public BufferHandle OcclusionCullingInstanceVisibilityMask;
             public int OcclusionCullingInstanceVisibilityMaskCount;
-
-            public Vector2 ScreenSizePixels;
         }
 
         private static class Profiling

@@ -30,14 +30,20 @@ struct Light
     float3 color;
     float3 direction;
     float  distanceAttenuation;
+    float  shadowAttenuation;
 };
 
 Light GetDirectionalLight(const uint index)
 {
     Light light;
-    light.color = DirectionalLightColors[index].rgb;
+    light.color = DirectionalLightColors_ShadowMapIndex[index].rgb;
     light.direction = DirectionalLightDirections[index].xyz;
     light.distanceAttenuation = 1.0;
+
+    const float shadowMapIndex = DirectionalLightColors_ShadowMapIndex[index].w;
+    // TODO: sample shadowmap
+    light.shadowAttenuation = 1.0;
+
     return light;
 }
 
@@ -60,6 +66,7 @@ Light GetPunctualLight(const uint index, const float3 positionWS)
     light.color = punctualLightData.Color_Radius.xyz;
     light.direction = lightDirection;
     light.distanceAttenuation = distanceAttenuation * angleAttenuation;
+    light.shadowAttenuation = 1;
     return light;
 }
 

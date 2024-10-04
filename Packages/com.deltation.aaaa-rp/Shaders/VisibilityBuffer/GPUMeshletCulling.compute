@@ -22,6 +22,8 @@
 float4   _CameraPosition;
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4x4 _CameraViewProjection;
+float4x4 _CameraView;
+float4x4 _CameraViewInv;
 
 ByteAddressBuffer _SourceMeshletsCounter;
 ByteAddressBuffer _SourceMeshlets;

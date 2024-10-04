@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
 using Unity.Collections;
@@ -17,12 +18,15 @@ namespace DELTation.AAAARP.Passes
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAAImageBasedLightingData imageBasedLightingData = frameData.Get<AAAAImageBasedLightingData>();
+
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
             lightingData.Init(renderingData.RenderGraph, renderingData.PipelineAsset.LightingSettings);
 
+            AAAAShadowsData shadowsData = frameData.Get<AAAAShadowsData>();
+
             ref AAAALightingConstantBuffer lightingConstantBuffer = ref lightingData.LightingConstantBuffer;
             var punctualLights = new NativeList<AAAAPunctualLightData>(renderingData.CullingResults.visibleLights.Length, Allocator.Temp);
-            FillLightsData(renderingData, ref lightingConstantBuffer, punctualLights);
+            FillLightsData(renderingData, shadowsData, ref lightingConstantBuffer, punctualLights);
 
             passData.PunctualLightsBuffer = builder.WriteBuffer(lightingData.PunctualLightsBuffer);
             passData.PunctualLights = punctualLights.AsArray();
@@ -39,22 +43,24 @@ namespace DELTation.AAAARP.Passes
             builder.AllowPassCulling(false);
         }
 
-        private static unsafe void FillLightsData(AAAARenderingData renderingData, ref AAAALightingConstantBuffer lightingConstantBuffer,
+        private static unsafe void FillLightsData(AAAARenderingData renderingData, AAAAShadowsData shadowsData,
+            ref AAAALightingConstantBuffer lightingConstantBuffer,
             NativeList<AAAAPunctualLightData> punctualLights)
         {
             int maxPunctualLights = renderingData.PipelineAsset.LightingSettings.MaxPunctualLights;
             lightingConstantBuffer.DirectionalLightCount = 0;
 
-            fixed (float* pDirectionalLightColorsFloat = lightingConstantBuffer.DirectionalLightColors)
+            fixed (float* pDirectionalLightColorsFloat = lightingConstantBuffer.DirectionalLightColors_ShadowMapIndex)
             {
                 var pDirectionalLightColors = (Vector4*) pDirectionalLightColorsFloat;
 
                 fixed (float* pDirectionalLightDirectionsFloat = lightingConstantBuffer.DirectionalLightDirections)
                 {
-                    var pDirectionalLightDirections = (Vector4*) pDirectionalLightDirectionsFloat;
+                    var pDirectionalLightDirections = (float4*) pDirectionalLightDirectionsFloat;
 
-                    foreach (VisibleLight visibleLight in renderingData.CullingResults.visibleLights)
+                    for (int visibleLightIndex = 0; visibleLightIndex < renderingData.CullingResults.visibleLights.Length; visibleLightIndex++)
                     {
+                        ref readonly VisibleLight visibleLight = ref renderingData.CullingResults.visibleLights.ElementAtRefReadonly(visibleLightIndex);
 
                         if (visibleLight.lightType is LightType.Point or LightType.Spot &&
                             punctualLights.Length < maxPunctualLights)
@@ -67,8 +73,13 @@ namespace DELTation.AAAARP.Passes
                             lightingConstantBuffer.DirectionalLightCount < AAAALightingConstantBuffer.MaxDirectionalLights)
                         {
                             uint index = lightingConstantBuffer.DirectionalLightCount++;
-                            pDirectionalLightColors[index] = visibleLight.finalColor;
-                            pDirectionalLightDirections[index] = (visibleLight.localToWorldMatrix * Vector3.back).normalized;
+                            Color color = visibleLight.finalColor;
+                            if (!shadowsData.VisibleToShadowLightMapping.TryGetValue(visibleLightIndex, out int shadowMapIndex))
+                            {
+                                shadowMapIndex = -1;
+                            }
+                            pDirectionalLightColors[index] = math.float4(color.r, color.g, color.b, shadowMapIndex);
+                            pDirectionalLightDirections[index] = math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix), 0);
                         }
                     }
 
@@ -94,7 +105,7 @@ namespace DELTation.AAAARP.Passes
             punctualLightData.PositionWS.xyz = lightLocalToWorld.GetPosition();
             if (visibleLight.lightType == LightType.Spot)
             {
-                punctualLightData.SpotDirection_Angle.xyz = -((float4) lightLocalToWorld.GetColumn(2)).xyz;
+                punctualLightData.SpotDirection_Angle.xyz = AAAALightingUtils.ExtractDirection(lightLocalToWorld);
                 punctualLightData.SpotDirection_Angle.w = Mathf.Deg2Rad * visibleLight.spotAngle;
             }
             else

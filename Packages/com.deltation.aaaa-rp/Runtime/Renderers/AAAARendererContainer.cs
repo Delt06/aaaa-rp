@@ -18,6 +18,12 @@ namespace DELTation.AAAARP.Renderers
 {
     public class AAAARendererContainer : IDisposable
     {
+        public enum PassType
+        {
+            Visibility = 0,
+            ShadowCaster = 1,
+        }
+
         private readonly BindlessTextureContainer _bindlessTextureContainer = new();
         [CanBeNull]
         private readonly AAAARenderPipelineDebugDisplaySettings _debugDisplaySettings;
@@ -231,7 +237,7 @@ namespace DELTation.AAAARP.Renderers
                 };
         }
 
-        public void Draw(CameraType cameraType, RasterCommandBuffer cmd)
+        public void Draw(CameraType cameraType, RasterCommandBuffer cmd, PassType passType)
         {
             if (!ShouldDraw(cameraType))
             {
@@ -240,9 +246,8 @@ namespace DELTation.AAAARP.Renderers
 
             if (IndirectDrawArgsBuffer != null && InstanceDataBuffer.InstanceCount > 0)
             {
-                const int shaderPass = 0;
                 const int argsOffset = 0;
-                cmd.DrawProceduralIndirect(Matrix4x4.identity, _material, shaderPass, MeshTopology.Triangles, IndirectDrawArgsBuffer, argsOffset);
+                cmd.DrawProceduralIndirect(Matrix4x4.identity, _material, (int) passType, MeshTopology.Triangles, IndirectDrawArgsBuffer, argsOffset);
             }
         }
 

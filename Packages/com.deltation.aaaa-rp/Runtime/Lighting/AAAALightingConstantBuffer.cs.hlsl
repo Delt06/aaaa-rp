@@ -12,7 +12,7 @@
 // Generated from DELTation.AAAARP.Lighting.AAAALightingConstantBuffer
 // PackingRules = Exact
 CBUFFER_START(AAAALightingConstantBuffer)
-    float4 DirectionalLightColors[4];
+    float4 DirectionalLightColors_ShadowMapIndex[4];
     float4 DirectionalLightDirections[4];
     uint DirectionalLightCount;
     uint PunctualLightCount;
