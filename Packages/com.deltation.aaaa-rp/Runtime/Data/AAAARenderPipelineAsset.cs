@@ -66,6 +66,8 @@ namespace DELTation.AAAARP.Data
         public class ShadowSettings
         {
             public AAAATextureSize Resolution = AAAATextureSize._1024;
+            [Range(16, 512)]
+            public int MaxShadowLightSlices = 128;
             [Min(1.0f)]
             public float MaxDistance = 100.0f;
             [Range(0.0f, 1.0f)]

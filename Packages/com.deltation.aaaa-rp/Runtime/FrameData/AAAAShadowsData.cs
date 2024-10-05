@@ -3,26 +3,36 @@ using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Lighting;
 using DELTation.AAAARP.Passes;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.FrameData
 {
     public class AAAAShadowsData : ContextItem
     {
+        public BufferHandle ShadowLightSlicesBuffer;
         internal ShadowMapPool ShadowMapPool { get; set; }
         public AAAATextureSize ShadowMapResolution { get; private set; }
         public NativeList<ShadowLight> ShadowLights { get; private set; }
         public NativeHashMap<int, int> VisibleToShadowLightMapping { get; private set; }
 
-        public void Init(in CullingResults cullingResults,
-            AAAACameraData cameraData, AAAALightingSettings.ShadowSettings shadowSettings)
+        public void Init(AAAARenderingData renderingData, AAAACameraData cameraData, AAAALightingSettings.ShadowSettings shadowSettings)
         {
+            ref readonly CullingResults cullingResults = ref renderingData.CullingResults;
             ShadowMapResolution = shadowSettings.Resolution;
             ShadowLights = new NativeList<ShadowLight>(cullingResults.visibleLights.Length, Allocator.Temp);
             VisibleToShadowLightMapping = new NativeHashMap<int, int>(ShadowLights.Capacity, Allocator.Temp);
             CollectShadowLights(cullingResults, cameraData, shadowSettings, ShadowLights);
+
+            ShadowLightSlicesBuffer = renderingData.RenderGraph.CreateBuffer(
+                new BufferDesc(shadowSettings.MaxShadowLightSlices, UnsafeUtility.SizeOf<AAAAShadowLightSlice>(), GraphicsBuffer.Target.Structured)
+                {
+                    name = nameof(ShadowLightSlicesBuffer),
+                }
+            );
         }
 
         private void CollectShadowLights(in CullingResults cullingResults, AAAACameraData cameraData,
@@ -109,6 +119,7 @@ namespace DELTation.AAAARP.FrameData
         {
             ShadowMapResolution = 0;
             ShadowLights = default;
+            ShadowLightSlicesBuffer = BufferHandle.nullHandle;
         }
 
         public struct ShadowLight

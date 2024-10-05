@@ -37,22 +37,23 @@ struct Light
 Light GetDirectionalLight(const uint index, const float3 positionWS)
 {
     Light light;
-    light.color = DirectionalLightColors_ShadowMapIndex[index].rgb;
+    light.color = DirectionalLightColors[index].rgb;
     light.direction = DirectionalLightDirections[index].xyz;
     light.distanceAttenuation = 1.0;
+    light.shadowAttenuation = 1.0;
 
-    const float shadowMapIndex = DirectionalLightColors_ShadowMapIndex[index].w;
+    float2 shadowSliceRange = DirectionalLightShadowSliceRanges[index].xy;
+
     UNITY_BRANCH
-    if (shadowMapIndex != -1)
+    if (shadowSliceRange.y > 0)
     {
-        const float4x4 worldToShadowCoords = DirectionalLightWorldToShadowCoordsMatrices[index];
-        const bool     isPerspective = false;
-        const float3   shadowCoords = TransformWorldToShadowCoords(positionWS, worldToShadowCoords, isPerspective);
-        light.shadowAttenuation = SampleDirectionalLightShadowMap(shadowCoords, shadowMapIndex);
-    }
-    else
-    {
-        light.shadowAttenuation = 1.0;
+        const AAAAShadowLightSlice shadowLightSlice = _ShadowLightSlices[shadowSliceRange.x];
+        if (shadowLightSlice.BindlessShadowMapIndex != -1)
+        {
+            const bool   isPerspective = false;
+            const float3 shadowCoords = TransformWorldToShadowCoords(positionWS, shadowLightSlice.WorldToShadowCoords, isPerspective);
+            light.shadowAttenuation = SampleDirectionalLightShadowMap(shadowCoords, shadowLightSlice.BindlessShadowMapIndex);
+        }
     }
 
     return light;

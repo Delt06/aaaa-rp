@@ -3,6 +3,9 @@
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
+#include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAAShadowLightSlice.cs.hlsl"
+
+StructuredBuffer<AAAAShadowLightSlice> _ShadowLightSlices;
 
 float SampleDirectionalLightShadowMap(const float3 shadowCoords, const uint index)
 {

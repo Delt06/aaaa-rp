@@ -24,11 +24,15 @@ namespace DELTation.AAAARP.Passes
             lightingData.Init(renderingData.RenderGraph, renderingData.PipelineAsset.LightingSettings);
 
             var punctualLights = new NativeList<AAAAPunctualLightData>(renderingData.CullingResults.visibleLights.Length, Allocator.Temp);
+            var shadowLightSlices = new NativeList<AAAAShadowLightSlice>(shadowsData.ShadowLights.Length * 4, Allocator.Temp);
             ref AAAALightingConstantBuffer lightingConstantBuffer = ref lightingData.LightingConstantBuffer;
-            FillLightsData(renderingData, shadowsData, ref lightingConstantBuffer, punctualLights);
+            FillLightsData(renderingData, shadowsData, ref lightingConstantBuffer, punctualLights, shadowLightSlices);
 
             passData.PunctualLights = punctualLights.AsArray();
             passData.PunctualLightsBuffer = builder.WriteBuffer(lightingData.PunctualLightsBuffer);
+
+            passData.ShadowLightSlices = shadowLightSlices.AsArray();
+            passData.ShadowLightSlicesBuffer = builder.WriteBuffer(shadowsData.ShadowLightSlicesBuffer);
 
             lightingData.AmbientIntensity = RenderSettings.ambientIntensity;
 
@@ -44,12 +48,12 @@ namespace DELTation.AAAARP.Passes
 
         private static unsafe void FillLightsData(AAAARenderingData renderingData, AAAAShadowsData shadowsData,
             ref AAAALightingConstantBuffer lightingConstantBuffer,
-            NativeList<AAAAPunctualLightData> punctualLights)
+            NativeList<AAAAPunctualLightData> punctualLights, NativeList<AAAAShadowLightSlice> shadowLightSlices)
         {
             int maxPunctualLights = renderingData.PipelineAsset.LightingSettings.MaxPunctualLights;
             lightingConstantBuffer.DirectionalLightCount = 0;
 
-            fixed (float* pDirectionalLightColorsFloat = lightingConstantBuffer.DirectionalLightColors_ShadowMapIndex)
+            fixed (float* pDirectionalLightColorsFloat = lightingConstantBuffer.DirectionalLightColors)
             {
                 var pDirectionalLightColors = (Vector4*) pDirectionalLightColorsFloat;
 
@@ -57,9 +61,9 @@ namespace DELTation.AAAARP.Passes
                 {
                     var pDirectionalLightDirections = (float4*) pDirectionalLightDirectionsFloat;
 
-                    fixed (float* pDirectionLightShadowMatricesFloat = lightingConstantBuffer.DirectionalLightWorldToShadowCoordsMatrices)
+                    fixed (float* pDirectionalLightShadowSliceRangesFloat = lightingConstantBuffer.DirectionalLightShadowSliceRanges)
                     {
-                        var pDirectionLightShadowMatrices = (Matrix4x4*) pDirectionLightShadowMatricesFloat;
+                        var pDirectionalLightShadowSliceRanges = (Vector4*) pDirectionalLightShadowSliceRangesFloat;
 
                         for (int visibleLightIndex = 0; visibleLightIndex < renderingData.CullingResults.visibleLights.Length; visibleLightIndex++)
                         {
@@ -77,19 +81,26 @@ namespace DELTation.AAAARP.Passes
                             {
                                 uint index = lightingConstantBuffer.DirectionalLightCount++;
                                 const int noShadowMapIndex = -1;
-                                int bindlessShadowMapIndex = noShadowMapIndex;
+                                var shadowSliceRange = new Vector4(0, 0, 0, 0);
                                 if (shadowsData.VisibleToShadowLightMapping.TryGetValue(visibleLightIndex, out int shadowLightIndex))
                                 {
                                     ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
-                                    pDirectionLightShadowMatrices[index] =
-                                        AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLight.CullingView.ViewProjectionMatrix);
 
-                                    bindlessShadowMapIndex =
-                                        shadowsData.ShadowMapPool.GetBindlessSRVIndexOrDefault(shadowLight.ShadowMapAllocation, noShadowMapIndex);
+                                    shadowSliceRange.x = shadowLightSlices.Length;
+                                    shadowSliceRange.y = 1;
+                                    shadowLightSlices.Add(new AAAAShadowLightSlice
+                                        {
+                                            BoundingSphere = default,
+                                            WorldToShadowCoords = AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLight.CullingView.ViewProjectionMatrix),
+                                            BindlessShadowMapIndex =
+                                                shadowsData.ShadowMapPool.GetBindlessSRVIndexOrDefault(shadowLight.ShadowMapAllocation, noShadowMapIndex),
+                                        }
+                                    );
                                 }
                                 Color color = visibleLight.finalColor;
-                                pDirectionalLightColors[index] = math.float4(color.r, color.g, color.b, bindlessShadowMapIndex);
+                                pDirectionalLightColors[index] = color;
                                 pDirectionalLightDirections[index] = math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix), 0);
+                                pDirectionalLightShadowSliceRanges[index] = shadowSliceRange;
                             }
                         }
 
@@ -141,6 +152,9 @@ namespace DELTation.AAAARP.Passes
             context.cmd.SetBufferData(data.PunctualLightsBuffer, data.PunctualLights);
             context.cmd.SetGlobalBuffer(ShaderPropertyID._PunctualLights, data.PunctualLightsBuffer);
 
+            context.cmd.SetBufferData(data.ShadowLightSlicesBuffer, data.ShadowLightSlices);
+            context.cmd.SetGlobalBuffer(ShaderPropertyID._ShadowLightSlices, data.ShadowLightSlicesBuffer);
+
             context.cmd.SetGlobalTexture(ShaderPropertyID.aaaa_DiffuseIrradianceCubemap, data.DiffuseIrradianceCubemap);
             context.cmd.SetGlobalFloat(ShaderPropertyID.aaaa_AmbientIntensity, data.LightingData.AmbientIntensity);
             context.cmd.SetGlobalTexture(ShaderPropertyID.aaaa_BRDFLut, data.BRDFLut);
@@ -166,6 +180,8 @@ namespace DELTation.AAAARP.Passes
             public float PreFilteredEnvironmentMapMaxLOD;
             public NativeArray<AAAAPunctualLightData> PunctualLights;
             public BufferHandle PunctualLightsBuffer;
+            public NativeArray<AAAAShadowLightSlice> ShadowLightSlices;
+            public BufferHandle ShadowLightSlicesBuffer;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -173,6 +189,7 @@ namespace DELTation.AAAARP.Passes
         {
             public static readonly int LightingConstantBuffer = Shader.PropertyToID(nameof(AAAALightingConstantBuffer));
             public static readonly int _PunctualLights = Shader.PropertyToID(nameof(_PunctualLights));
+            public static readonly int _ShadowLightSlices = Shader.PropertyToID(nameof(_ShadowLightSlices));
 
             public static readonly int aaaa_DiffuseIrradianceCubemap = Shader.PropertyToID(nameof(aaaa_DiffuseIrradianceCubemap));
             public static readonly int aaaa_AmbientIntensity = Shader.PropertyToID(nameof(aaaa_AmbientIntensity));
