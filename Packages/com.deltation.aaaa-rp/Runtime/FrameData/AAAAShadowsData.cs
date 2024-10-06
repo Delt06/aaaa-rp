@@ -55,6 +55,7 @@ namespace DELTation.AAAARP.FrameData
                             {
                                 LightType = visibleLight.lightType,
                                 IsSoftShadow = lightShadowsType == LightShadows.Soft,
+                                ShadowStrength = light.shadowStrength,
                                 VisibleLightIndex = visibleLightIndex,
                                 NearPlaneOffset = light.shadowNearPlane,
                                 Splits = new NativeList<ShadowLightSplit>(4, Allocator.Temp),
@@ -167,6 +168,7 @@ namespace DELTation.AAAARP.FrameData
             public float NearPlaneOffset;
             public LightType LightType;
             public bool IsSoftShadow;
+            public float ShadowStrength;
             public float SlopeBias;
             public float2 FadeParams;
             public int Resolution;

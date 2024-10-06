@@ -3,6 +3,7 @@ using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -53,79 +54,73 @@ namespace DELTation.AAAARP.Passes
             int maxPunctualLights = renderingData.PipelineAsset.LightingSettings.MaxPunctualLights;
             lightingConstantBuffer.DirectionalLightCount = 0;
 
-            fixed (float* pDirectionalLightColorsFloat = lightingConstantBuffer.DirectionalLightColors)
+            fixed (AAAALightingConstantBuffer* pConstantBuffer = &lightingConstantBuffer)
             {
-                var pDirectionalLightColors = (Vector4*) pDirectionalLightColorsFloat;
-
-                fixed (float* pDirectionalLightDirectionsFloat = lightingConstantBuffer.DirectionalLightDirections_SoftShadow)
+                for (int visibleLightIndex = 0; visibleLightIndex < renderingData.CullingResults.visibleLights.Length; visibleLightIndex++)
                 {
-                    var pDirectionalLightDirections = (float4*) pDirectionalLightDirectionsFloat;
+                    ref readonly VisibleLight visibleLight = ref renderingData.CullingResults.visibleLights.ElementAtRefReadonly(visibleLightIndex);
 
-                    fixed (float* pDirectionalLightShadowSliceRangesFloat = lightingConstantBuffer.DirectionalLightShadowSliceRanges_ShadowFadeParams)
+                    if (visibleLight.lightType is LightType.Point or LightType.Spot &&
+                        punctualLights.Length < maxPunctualLights)
                     {
-                        var pDirectionalLightShadowSliceRangesFadeParams = (float4*) pDirectionalLightShadowSliceRangesFloat;
-
-                        for (int visibleLightIndex = 0; visibleLightIndex < renderingData.CullingResults.visibleLights.Length; visibleLightIndex++)
-                        {
-                            ref readonly VisibleLight visibleLight = ref renderingData.CullingResults.visibleLights.ElementAtRefReadonly(visibleLightIndex);
-
-                            if (visibleLight.lightType is LightType.Point or LightType.Spot &&
-                                punctualLights.Length < maxPunctualLights)
-                            {
-                                AAAAPunctualLightData punctualLightData = ExtractPunctualLightData(visibleLight);
-                                punctualLights.Add(punctualLightData);
-                            }
-
-                            if (visibleLight.lightType == LightType.Directional &&
-                                lightingConstantBuffer.DirectionalLightCount < AAAALightingConstantBuffer.MaxDirectionalLights)
-                            {
-                                uint index = lightingConstantBuffer.DirectionalLightCount++;
-                                const int noShadowMapIndex = -1;
-                                var shadowSliceRangeFadeParams = new float4(0, 0, 0, 0);
-                                bool isSoftShadow = false;
-                                if (shadowsData.VisibleToShadowLightMapping.TryGetValue(visibleLightIndex, out int shadowLightIndex))
-                                {
-                                    ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
-
-                                    shadowSliceRangeFadeParams.x = shadowLightSlices.Length;
-                                    shadowSliceRangeFadeParams.y = shadowLight.Splits.Length;
-                                    shadowSliceRangeFadeParams.zw = shadowLight.FadeParams;
-                                    isSoftShadow = shadowLight.IsSoftShadow;
-
-                                    foreach (AAAAShadowsData.ShadowLightSplit shadowLightSplit in shadowLight.Splits)
-                                    {
-                                        float2 resolution = shadowLightSplit.CullingView.PixelSize;
-                                        float4 boundingSphere = shadowLightSplit.CullingView.BoundingSphere;
-                                        shadowLightSlices.Add(new AAAAShadowLightSlice
-                                            {
-                                                BoundingSphere = math.float4(boundingSphere.xyz, boundingSphere.w * boundingSphere.w),
-                                                AtlasSize = math.float4(1.0f / resolution, resolution),
-                                                WorldToShadowCoords =
-                                                    AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLightSplit.CullingView.ViewProjectionMatrix),
-                                                BindlessShadowMapIndex =
-                                                    shadowsData.ShadowMapPool.GetBindlessSRVIndexOrDefault(shadowLightSplit.ShadowMapAllocation,
-                                                        noShadowMapIndex
-                                                    ),
-                                            }
-                                        );
-                                    }
-                                }
-
-                                Color color = visibleLight.finalColor;
-                                pDirectionalLightColors[index] = color;
-                                pDirectionalLightDirections[index] = math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix),
-                                    isSoftShadow ? 1.0f : 0.0f
-                                );
-                                pDirectionalLightShadowSliceRangesFadeParams[index] = shadowSliceRangeFadeParams;
-                            }
-                        }
-
-                        if (lightingConstantBuffer.DirectionalLightCount == 0)
-                        {
-                            pDirectionalLightColors[0] = Vector4.zero;
-                            pDirectionalLightDirections[0] = Vector4.zero;
-                        }
+                        AAAAPunctualLightData punctualLightData = ExtractPunctualLightData(visibleLight);
+                        punctualLights.Add(punctualLightData);
                     }
+
+                    if (visibleLight.lightType == LightType.Directional &&
+                        lightingConstantBuffer.DirectionalLightCount < AAAALightingConstantBuffer.MaxDirectionalLights)
+                    {
+                        int index = (int)lightingConstantBuffer.DirectionalLightCount++;
+                        const int noShadowMapIndex = -1;
+                        var shadowSliceRangeFadeParams = new float4(0, 0, 0, 0);
+                        bool isSoftShadow = false;
+                        float shadowStrength = 1.0f;
+                        if (shadowsData.VisibleToShadowLightMapping.TryGetValue(visibleLightIndex, out int shadowLightIndex))
+                        {
+                            ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
+
+                            shadowSliceRangeFadeParams.x = shadowLightSlices.Length;
+                            shadowSliceRangeFadeParams.y = shadowLight.Splits.Length;
+                            shadowSliceRangeFadeParams.zw = shadowLight.FadeParams;
+                            isSoftShadow = shadowLight.IsSoftShadow;
+                            shadowStrength = shadowLight.ShadowStrength;
+
+                            foreach (AAAAShadowsData.ShadowLightSplit shadowLightSplit in shadowLight.Splits)
+                            {
+                                float2 resolution = shadowLightSplit.CullingView.PixelSize;
+                                float4 boundingSphere = shadowLightSplit.CullingView.BoundingSphere;
+                                shadowLightSlices.Add(new AAAAShadowLightSlice
+                                    {
+                                        BoundingSphere = math.float4(boundingSphere.xyz, boundingSphere.w * boundingSphere.w),
+                                        AtlasSize = math.float4(1.0f / resolution, resolution),
+                                        WorldToShadowCoords =
+                                            AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLightSplit.CullingView.ViewProjectionMatrix),
+                                        BindlessShadowMapIndex =
+                                            shadowsData.ShadowMapPool.GetBindlessSRVIndexOrDefault(shadowLightSplit.ShadowMapAllocation,
+                                                noShadowMapIndex
+                                            ),
+                                    }
+                                );
+                            }
+                        }
+
+                        UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightColors, index) = 
+                            (Vector4)visibleLight.finalColor;
+                        UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightDirections, index) =
+                            math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix), 0.0f);
+                        UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightShadowSliceRanges_ShadowFadeParams, index) =
+                            shadowSliceRangeFadeParams;
+                        UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightShadowParams, index) =
+                            math.float4(isSoftShadow ? 1 : 0, shadowStrength, 0, 0);
+                    }
+                }
+
+                if (lightingConstantBuffer.DirectionalLightCount == 0)
+                {
+                    UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightColors, 0) = float4.zero;
+                    UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightDirections, 0) = float4.zero;
+                    UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightShadowSliceRanges_ShadowFadeParams, 0) = float4.zero;
+                    UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightShadowParams, 0) = float4.zero;
                 }
             }
 

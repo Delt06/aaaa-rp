@@ -98,8 +98,8 @@ float GetLightShadowFade(const float3 positionWS, const float2 shadowFadeParams)
     return saturate(distanceCamToPixel2 * shadowFadeParams.x + shadowFadeParams.y);
 }
 
-CascadedDirectionalLightShadowSample SampleCascadedDirectionalLightShadow(const float3 positionWS, const float2 sliceRange, const float2 fadeParams,
-                                                                          bool         isSoftShadow)
+CascadedDirectionalLightShadowSample SampleCascadedDirectionalLightShadow(const float3 positionWS, const float2  sliceRange, const float2 fadeParams,
+                                                                          const bool   isSoftShadow, const float shadowStrength = 1)
 {
     CascadedDirectionalLightShadowSample shadowAttenuationValue;
     shadowAttenuationValue.shadowFade = 0;
@@ -129,6 +129,7 @@ CascadedDirectionalLightShadowSample SampleCascadedDirectionalLightShadow(const 
                                                                                        selectedCascadeSlice.AtlasSize, shadowCoords, isSoftShadow);
 
             shadowAttenuationValue.shadowFade = GetLightShadowFade(positionWS, fadeParams);
+            shadowAttenuationValue.shadowAttenuation = lerp(1, shadowAttenuationValue.shadowAttenuation, shadowStrength);
             shadowAttenuationValue.shadowAttenuation = lerp(shadowAttenuationValue.shadowAttenuation, 1, shadowAttenuationValue.shadowFade);
         }
     }
