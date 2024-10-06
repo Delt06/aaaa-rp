@@ -44,7 +44,7 @@ Shader "Hidden/AAAA/PostProcessing/Uber"
             float4 Frag(const Varyings IN) : SV_Target
             {
                 const float4 source = SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, IN.texcoord.xy, 0);
-                float3       result = source;
+                float3       result = source.rgb;
 
                 ToneMap(result);
 

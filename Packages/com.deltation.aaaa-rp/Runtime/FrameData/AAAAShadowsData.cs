@@ -125,7 +125,8 @@ namespace DELTation.AAAARP.FrameData
                                     {
                                         ViewProjectionMatrix = lightViewProjection,
                                         GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(lightViewProjection, renderIntoTexture),
-                                        BoundingSphere = math.float4(cameraPosition, splitFar * splitFar),
+                                        BoundingSphere = math.float4(cameraPosition, splitFar),
+                                        BoundingSphereExclude = math.float4(cameraPosition, splitNear),
                                         CameraPosition = lightPosition,
                                         CameraRight = lightRight,
                                         CameraUp = lightUp,

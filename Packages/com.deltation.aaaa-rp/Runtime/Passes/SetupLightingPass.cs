@@ -95,9 +95,10 @@ namespace DELTation.AAAARP.Passes
                                     foreach (AAAAShadowsData.ShadowLightSplit shadowLightSplit in shadowLight.Splits)
                                     {
                                         float2 resolution = shadowLightSplit.CullingView.PixelSize;
+                                        float4 boundingSphere = shadowLightSplit.CullingView.BoundingSphere;
                                         shadowLightSlices.Add(new AAAAShadowLightSlice
                                             {
-                                                BoundingSphere = shadowLightSplit.CullingView.BoundingSphere,
+                                                BoundingSphere = math.float4(boundingSphere.xyz, boundingSphere.w * boundingSphere.w),
                                                 AtlasSize = math.float4(1.0f / resolution, resolution),
                                                 WorldToShadowCoords =
                                                     AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLightSplit.CullingView.ViewProjectionMatrix),
@@ -112,7 +113,9 @@ namespace DELTation.AAAARP.Passes
 
                                 Color color = visibleLight.finalColor;
                                 pDirectionalLightColors[index] = color;
-                                pDirectionalLightDirections[index] = math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix), isSoftShadow ? 1.0f : 0.0f);
+                                pDirectionalLightDirections[index] = math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix),
+                                    isSoftShadow ? 1.0f : 0.0f
+                                );
                                 pDirectionalLightShadowSliceRangesFadeParams[index] = shadowSliceRangeFadeParams;
                             }
                         }

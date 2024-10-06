@@ -145,6 +145,22 @@ bool FrustumVsSphereCulling(const float4 planes[PLANES_IN_FRUSTUM], const float4
     return min(min(dist01, dist23), dist45) + radius > 0;
 }
 
+bool SphereVsSphereCulling(const float4 boundingSphere1, const float4 boundingSphere2)
+{
+    const float radiusSum = boundingSphere1.w + boundingSphere2.w;
+    const float radiusSumSqr = radiusSum * radiusSum;
+    const float distanceSqr = Length2(boundingSphere1.xyz - boundingSphere2.xyz);
+    return distanceSqr <= radiusSumSqr;
+}
+
+bool SphereVsSphereCulling_Exclude(const float4 boundingSphere1, const float4 boundingSphere2)
+{
+    const float radiusDiff = max(0, boundingSphere1.w - boundingSphere2.w);
+    const float radiusSumSqr = radiusDiff * radiusDiff;
+    const float distanceSqr = Length2(boundingSphere1.xyz - boundingSphere2.xyz);
+    return distanceSqr >= radiusSumSqr;
+}
+
 struct BoundingSquareSS
 {
     float2 MinUV;
