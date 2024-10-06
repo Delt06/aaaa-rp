@@ -206,7 +206,7 @@ namespace DELTation.AAAARP.Passes
                 builder.ReadTexture(resourceData.CameraHZBScaled);
             }
 
-            passData.DebugDataBuffer = _debugDisplaySettings is { RenderingSettings: { DebugGPUCulling: true } }
+            passData.DebugDataBuffer = _debugDisplaySettings is { RenderingSettings: { DebugGPUCulling: true } } && CullingViewParametersOverride == null
                 ? builder.ReadBuffer(frameData.Get<AAAADebugData>().GPUCullingDebugBuffer)
                 : default;
         }
