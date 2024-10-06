@@ -45,9 +45,9 @@ namespace DELTation.AAAARP
             _convolveDiffuseIrradiancePass = new ConvolveDiffuseIrradiancePass(AAAARenderPassEvent.BeforeRendering, shaders);
             _brdfIntegrationPass = new BRDFIntegrationPass(AAAARenderPassEvent.BeforeRendering, shaders);
             _preFilterEnvironmentPass = new PreFilterEnvironmentPass(AAAARenderPassEvent.BeforeRendering, shaders);
-
-            _setupLightingPass = new SetupLightingPass(AAAARenderPassEvent.BeforeRendering);
-            _shadowPassPool = new ShadowPassPool(AAAARenderPassEvent.BeforeRendering, shaders, DebugHandler?.DisplaySettings);
+            
+            _shadowPassPool = new ShadowPassPool(AAAARenderPassEvent.BeforeRenderingShadows, shaders, DebugHandler?.DisplaySettings);
+            _setupLightingPass = new SetupLightingPass(AAAARenderPassEvent.AfterRenderingShadows);
 
             _gpuCullingMainPass = new GPUCullingPass(GPUCullingPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders,
                 DebugHandler?.DisplaySettings
