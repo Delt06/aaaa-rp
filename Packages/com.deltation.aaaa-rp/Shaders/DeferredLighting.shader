@@ -78,7 +78,7 @@ Shader "Hidden/AAAA/DeferredLighting"
                 brdfInput.irradiance = 0;
                 brdfInput.ambientOcclusion = 1.0f;
 
-                    UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
+                UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
                 for (uint lightIndex = 0; lightIndex < lightCount; ++lightIndex)
                 {
                     const Light light = GetDirectionalLight(lightIndex, surfaceData.positionWS);

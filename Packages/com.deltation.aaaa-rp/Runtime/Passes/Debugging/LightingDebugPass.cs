@@ -42,6 +42,9 @@ namespace DELTation.AAAARP.Passes.Debugging
             Vector2 remap = _debugDisplaySettings.RenderingSettings.LightingDebugCountRemap;
             context.cmd.SetGlobalVector(ShaderID._LightingDebugCountRemap, remap);
 
+            int lightIndex = _debugDisplaySettings.RenderingSettings.LightingDebugLightIndex;
+            context.cmd.SetGlobalFloat(ShaderID._LightIndex, lightIndex);
+
             var scaleBias = new Vector4(1, 1, 0, 0);
             const int pass = 0;
             Blitter.BlitTexture(context.cmd, scaleBias, _material, pass);
@@ -54,6 +57,7 @@ namespace DELTation.AAAARP.Passes.Debugging
         {
             public static int _LightingDebugMode = Shader.PropertyToID(nameof(_LightingDebugMode));
             public static int _LightingDebugCountRemap = Shader.PropertyToID(nameof(_LightingDebugCountRemap));
+            public static int _LightIndex = Shader.PropertyToID(nameof(_LightIndex));
         }
     }
 }

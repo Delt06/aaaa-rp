@@ -1,4 +1,5 @@
 using System.Text;
+using DELTation.AAAARP.Lighting;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -45,6 +46,7 @@ namespace DELTation.AAAARP.Debugging
         None,
         ClusterZ,
         DeferredLights,
+        DirectionalLightCascades,
     }
 
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData
@@ -68,6 +70,7 @@ namespace DELTation.AAAARP.Debugging
 
         public AAAALightingDebugMode LightingDebugMode { get; private set; }
         public Vector2 LightingDebugCountRemap { get; private set; } = new(1, 128);
+        public int LightingDebugLightIndex { get; private set; }
 
         public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
                                             ForceCullingFromMainCamera ||
@@ -298,8 +301,8 @@ namespace DELTation.AAAARP.Debugging
                 {
                     public static readonly DebugUI.Widget.NameAndTooltip DebugMode = new()
                         { name = "Debug Mode", tooltip = "The mode of lighting debug display." };
-                    public static readonly DebugUI.Widget.NameAndTooltip LightCountRemap = new()
-                        { name = "Light Count Remap" };
+                    public static readonly DebugUI.Widget.NameAndTooltip LightCountRemap = new() { name = "Light Count Remap" };
+                    public static readonly DebugUI.Widget.NameAndTooltip LightIndex = new() { name = "Light Index" };
                 }
 
                 public static class WidgetFactory
@@ -315,6 +318,7 @@ namespace DELTation.AAAARP.Debugging
                             {
                                 CreateLightingDebugMode(panel),
                                 CreateLightCountRemap(panel),
+                                CreateLightIndex(panel),
                             },
                         };
 
@@ -333,7 +337,7 @@ namespace DELTation.AAAARP.Debugging
                         nameAndTooltip = Strings.LightCountRemap,
                         getter = () => panel.data.LightingDebugCountRemap,
                         setter = value => panel.data.LightingDebugCountRemap = value,
-                        isHiddenCallback = () => panel.data.LightingDebugMode == AAAALightingDebugMode.None,
+                        isHiddenCallback = () => !(panel.data.LightingDebugMode is AAAALightingDebugMode.ClusterZ or AAAALightingDebugMode.DeferredLights),
                         onValueChanged = (field, value) =>
                         {
                             Vector2 newValue = math.max(value, 0);
@@ -342,6 +346,16 @@ namespace DELTation.AAAARP.Debugging
                                 field.SetValue(newValue);
                             }
                         },
+                    };
+
+                    private static DebugUI.Widget CreateLightIndex(SettingsPanel panel) => new DebugUI.IntField
+                    {
+                        nameAndTooltip = Strings.LightIndex,
+                        getter = () => panel.data.LightingDebugLightIndex,
+                        setter = value => panel.data.LightingDebugLightIndex = value,
+                        isHiddenCallback = () => panel.data.LightingDebugMode is not AAAALightingDebugMode.DirectionalLightCascades,
+                        min = () => 0,
+                        max = () => AAAALightingConstantBuffer.MaxDirectionalLights - 1,
                     };
                 }
             }

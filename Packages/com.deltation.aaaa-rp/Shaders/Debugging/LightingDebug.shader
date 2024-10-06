@@ -1,17 +1,20 @@
 Shader "Hidden/AAAA/LightingDebug"
 {
     HLSLINCLUDE
-        #pragma editor_sync_compilation
+    #pragma editor_sync_compilation
 
-        #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
-        #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
-        #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
-        #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+    #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
+    #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+    #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
+    #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
     ENDHLSL
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "AAAAPipeline" }
+        Tags
+        {
+            "RenderPipeline" = "AAAAPipeline"
+        }
 
         Pass
         {
@@ -31,8 +34,9 @@ Shader "Hidden/AAAA/LightingDebug"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
             #include "Packages/com.deltation.aaaa-rp/Runtime/Debugging/AAAADebugDisplaySettingsRendering.cs.hlsl"
 
-            uint _LightingDebugMode;
+            uint   _LightingDebugMode;
             float2 _LightingDebugCountRemap;
+            uint   _LightIndex;
 
             #define LIGHT_POOL_SIZE 6
 
@@ -90,8 +94,24 @@ Shader "Hidden/AAAA/LightingDebug"
                         if (lightGridCell.Count > 0)
                         {
                             const float2 remap = _LightingDebugCountRemap;
-                            const float remappedLightCount = InverseLerpUnclamped(remap.x, remap.y,lightGridCell.Count);
+                            const float  remappedLightCount = InverseLerpUnclamped(remap.x, remap.y, lightGridCell.Count);
                             resultColor = LightCountHeatmap(saturate(remappedLightCount));
+                        }
+
+                        break;
+                    }
+                case AAAALIGHTINGDEBUGMODE_DIRECTIONAL_LIGHT_CASCADES:
+                    {
+                        if (_LightIndex < DirectionalLightCount)
+                        {
+                            const float4 shadowSliceRange_shadowFadeParams = DirectionalLightShadowSliceRanges_ShadowFadeParams[_LightIndex];
+                            const CascadedDirectionalLightShadowSample shadowSample = SampleCascadedDirectionalLightShadow(
+                                positionWS, shadowSliceRange_shadowFadeParams.xy, shadowSliceRange_shadowFadeParams.zw);
+                            if (shadowSample.cascadeIndex != -1)
+                            {
+                                resultColor = lightPool[shadowSample.cascadeIndex % LIGHT_POOL_SIZE];
+                                resultColor = lerp(resultColor, 0, shadowSample.shadowFade);
+                            }
                         }
 
                         break;

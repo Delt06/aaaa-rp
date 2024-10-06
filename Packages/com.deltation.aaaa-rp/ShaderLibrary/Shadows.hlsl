@@ -7,6 +7,13 @@
 
 StructuredBuffer<AAAAShadowLightSlice> _ShadowLightSlices;
 
+struct CascadedDirectionalLightShadowSample
+{
+    float shadowAttenuation;
+    float shadowFade;
+    float cascadeIndex;
+};
+
 float SampleDirectionalLightShadowMap(const float3 shadowCoords, const uint index)
 {
     Texture2D<float> shadowMap = GetBindlessTexture2DFloat(index);
@@ -78,9 +85,43 @@ float ComputeCascadeIndex(const float3 positionWS, const CascadeSelectionParamet
 float GetLightShadowFade(const float3 positionWS, const float2 shadowFadeParams)
 {
     const float3 camToPixel = positionWS - _WorldSpaceCameraPos;
-    const float distanceCamToPixel2 = dot(camToPixel, camToPixel);
-
+    const float  distanceCamToPixel2 = dot(camToPixel, camToPixel);
     return saturate(distanceCamToPixel2 * shadowFadeParams.x + shadowFadeParams.y);
+}
+
+CascadedDirectionalLightShadowSample SampleCascadedDirectionalLightShadow(const float3 positionWS, const float2 sliceRange, const float2 fadeParams)
+{
+    CascadedDirectionalLightShadowSample shadowAttenuationValue;
+    shadowAttenuationValue.cascadeIndex = -1;
+    shadowAttenuationValue.shadowAttenuation = 1;
+
+    UNITY_BRANCH
+    if (sliceRange.y > 0)
+    {
+        AAAAShadowLightSlice cascadeSlices[4];
+        LoadCascadeShadowLightSlices(sliceRange, cascadeSlices);
+
+        CascadeSelectionParameters cascadeSelectionParameters;
+        cascadeSelectionParameters.Slices = cascadeSlices;
+        cascadeSelectionParameters.CascadeCount = sliceRange.y;
+        const float                selectedCascadeIndex = ComputeCascadeIndex(positionWS, cascadeSelectionParameters);
+        const AAAAShadowLightSlice selectedCascadeSlice = cascadeSlices[selectedCascadeIndex];
+
+        const int bindlessShadowMapIndex = selectedCascadeSlice.BindlessShadowMapIndex;
+        if (bindlessShadowMapIndex != -1)
+        {
+            shadowAttenuationValue.cascadeIndex = selectedCascadeIndex;
+
+            const bool   isPerspective = false;
+            const float3 shadowCoords = TransformWorldToShadowCoords(positionWS, selectedCascadeSlice.WorldToShadowCoords, isPerspective);
+            shadowAttenuationValue.shadowAttenuation = SampleDirectionalLightShadowMap(shadowCoords, NonUniformResourceIndex(bindlessShadowMapIndex));
+
+            shadowAttenuationValue.shadowFade = GetLightShadowFade(positionWS, fadeParams);
+            shadowAttenuationValue.shadowAttenuation = lerp(shadowAttenuationValue.shadowAttenuation, 1, shadowAttenuationValue.shadowFade);
+        }
+    }
+
+    return shadowAttenuationValue;
 }
 
 #endif // AAAA_SHADOWS_INCLUDED

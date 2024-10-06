@@ -40,34 +40,11 @@ Light GetDirectionalLight(const uint index, const float3 positionWS)
     light.color = DirectionalLightColors[index].rgb;
     light.direction = DirectionalLightDirections[index].xyz;
     light.distanceAttenuation = 1.0;
-    light.shadowAttenuation = 1.0;
 
-    const float2 shadowSliceRange = DirectionalLightShadowSliceRanges_ShadowFadeParams[index].xy;
-
-    UNITY_BRANCH
-    if (shadowSliceRange.y > 0)
-    {
-        AAAAShadowLightSlice cascadeSlices[4];
-        LoadCascadeShadowLightSlices(shadowSliceRange, cascadeSlices);
-
-        CascadeSelectionParameters cascadeSelectionParameters;
-        cascadeSelectionParameters.Slices = cascadeSlices;
-        cascadeSelectionParameters.CascadeCount = shadowSliceRange.y;
-        const float                selectedCascadeIndex = ComputeCascadeIndex(positionWS, cascadeSelectionParameters);
-        const AAAAShadowLightSlice selectedCascadeSlice = cascadeSlices[selectedCascadeIndex];
-
-        const int bindlessShadowMapIndex = selectedCascadeSlice.BindlessShadowMapIndex;
-        if (bindlessShadowMapIndex != -1)
-        {
-            const bool   isPerspective = false;
-            const float3 shadowCoords = TransformWorldToShadowCoords(positionWS, selectedCascadeSlice.WorldToShadowCoords, isPerspective);
-            light.shadowAttenuation = SampleDirectionalLightShadowMap(shadowCoords, NonUniformResourceIndex(bindlessShadowMapIndex));
-
-            const float2 fadeParams = DirectionalLightShadowSliceRanges_ShadowFadeParams[index].zw;
-            const float  shadowFade = GetLightShadowFade(positionWS, fadeParams);
-            light.shadowAttenuation = lerp(light.shadowAttenuation, 1, shadowFade);
-        }
-    }
+    const float4                               shadowSliceRange_shadowFadeParams = DirectionalLightShadowSliceRanges_ShadowFadeParams[index];
+    const CascadedDirectionalLightShadowSample shadowSample = SampleCascadedDirectionalLightShadow(
+        positionWS, shadowSliceRange_shadowFadeParams.xy, shadowSliceRange_shadowFadeParams.zw);
+    light.shadowAttenuation = shadowSample.shadowAttenuation;
 
     return light;
 }
