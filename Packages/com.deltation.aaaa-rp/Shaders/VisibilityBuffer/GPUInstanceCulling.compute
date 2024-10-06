@@ -15,9 +15,9 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/OcclusionCulling.hlsl"
 
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
-float4   _CameraBoundingSphere;
-float4   _CameraBoundingSphereExclude;
+float4   _CullingSphereLS;
 float4x4 _CameraViewProjection;
+float4x4 _CameraView;
 
 ByteAddressBuffer _InstanceIndices;
 uint              _InstanceIndicesCount;
@@ -54,8 +54,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     UNITY_BRANCH
     if (!FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphereWS) ||
-        !SphereVsSphereCulling(_CameraBoundingSphere, boundingSphereWS) ||
-        !SphereVsSphereCulling_Exclude(_CameraBoundingSphereExclude, boundingSphereWS))
+        !LightSphereCulling(_CullingSphereLS, _CameraView, boundingSphereWS))
     {
         OcclusionCulling::MarkInvisibleThisFrame(instanceID);
         GPUCullingDebug::OnCulled(boundingSquareSS, AAAAGPUCULLINGDEBUGGRANULARITY_INSTANCE, AAAAGPUCULLINGDEBUGTYPE_FRUSTUM);

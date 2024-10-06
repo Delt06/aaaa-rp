@@ -29,7 +29,7 @@ namespace DELTation.AAAARP.Passes.Shadows
             passData.SlopeBias = shadowLight.SlopeBias;
             passData.ShadowRenderingConstantBuffer = new AAAAShadowRenderingConstantBuffer
             {
-                ShadowViewMatrix = shadowLightSplit.ViewMatrix,
+                ShadowViewMatrix = shadowLightSplit.CullingView.ViewMatrix,
                 ShadowProjectionMatrix = shadowLightSplit.GPUProjectionMatrix,
                 ShadowViewProjection = shadowLightSplit.CullingView.GPUViewProjectionMatrix,
             };

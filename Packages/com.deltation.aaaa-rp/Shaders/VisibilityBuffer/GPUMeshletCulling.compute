@@ -19,10 +19,9 @@
 #define RW_OCCLUSION_CULLING_INSTANCE_VISIBILITY_MASK
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/OcclusionCulling.hlsl"
 
-float4   _CameraPosition;
 float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
-float4   _CameraBoundingSphere;
-float4   _CameraBoundingSphereExclude;
+float4   _CameraPosition;
+float4   _CullingSphereLS;
 float4x4 _CameraViewProjection;
 float4x4 _CameraView;
 float4x4 _CameraViewInv;
@@ -36,17 +35,16 @@ RWByteAddressBuffer _DestinationMeshlets;
 
 bool Culling(const AAAAInstanceData instanceData, const AAAAMeshlet meshletData)
 {
-    const float4           boundingSphere = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
-    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(boundingSphere, _CameraViewProjection);
+    const float4           boundingSphereWS = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
+    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(boundingSphereWS, _CameraViewProjection);
 
     bool result = false;
 
     UNITY_BRANCH
-    if (FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphere) &&
-        SphereVsSphereCulling(_CameraBoundingSphere, boundingSphere) &&
-        SphereVsSphereCulling_Exclude(_CameraBoundingSphereExclude, boundingSphere))
+    if (FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphereWS) &&
+        LightSphereCulling(_CullingSphereLS, _CameraView, boundingSphereWS))
     {
-        const float3 viewForwardDirWS = GetViewForwardDir(_CameraView);
+        const float3 viewForwardDirWS = -GetViewForwardDir(_CameraView);
         const bool   isPerspective = _CameraIsPerspective;
 
         UNITY_BRANCH

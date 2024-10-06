@@ -124,17 +124,16 @@ namespace DELTation.AAAARP.FrameData
                                     ShadowMapAllocation = ShadowMapPool.Allocate(shadowMapResolution),
                                     CullingView = new GPUCullingPass.CullingViewParameters
                                     {
+                                        ViewMatrix = lightView,
                                         ViewProjectionMatrix = lightViewProjection,
                                         GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(lightViewProjection, renderIntoTexture),
-                                        BoundingSphere = math.float4(cameraPosition, splitFar),
-                                        BoundingSphereExclude = math.float4(cameraPosition, splitNear),
+                                        BoundingSphereWS = math.float4(cameraPosition, splitFar),
                                         CameraPosition = lightPosition,
                                         CameraRight = lightRight,
                                         CameraUp = lightUp,
                                         PixelSize = new Vector2(shadowMapResolution, shadowMapResolution),
                                         IsPerspective = false,
                                     },
-                                    ViewMatrix = lightView,
                                     GPUProjectionMatrix = GL.GetGPUProjectionMatrix(lightProjection, renderIntoTexture),
                                 }
                             );
@@ -178,7 +177,6 @@ namespace DELTation.AAAARP.FrameData
 
         public struct ShadowLightSplit
         {
-            public Matrix4x4 ViewMatrix;
             public Matrix4x4 GPUProjectionMatrix;
             public GPUCullingPass.CullingViewParameters CullingView;
             internal ShadowMapPool.Allocation ShadowMapAllocation;

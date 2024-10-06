@@ -103,9 +103,11 @@ namespace DELTation.AAAARP.Passes
                 Transform cameraTransform = camera.transform;
                 Vector3 cameraPosition = cameraTransform.position;
 
-                Matrix4x4 viewProjectionMatrix = camera.projectionMatrix * camera.worldToCameraMatrix;
+                Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
+                Matrix4x4 viewProjectionMatrix = camera.projectionMatrix * viewMatrix;
                 passData.CullingView = new CullingViewParameters
                 {
+                    ViewMatrix = viewMatrix,
                     ViewProjectionMatrix = viewProjectionMatrix,
                     GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(viewProjectionMatrix, true),
                     CameraPosition = new Vector4(cameraPosition.x, cameraPosition.y, cameraPosition.z, 1),
@@ -113,8 +115,7 @@ namespace DELTation.AAAARP.Passes
                     CameraUp = cameraTransform.up,
                     PixelSize = new Vector2(cameraData.ScaledWidth, cameraData.ScaledHeight),
                     IsPerspective = !camera.orthographic,
-                    BoundingSphere = math.float4(0, 0, 0, float.PositiveInfinity),
-                    BoundingSphereExclude = math.float4(0, 0, 0, 0),
+                    BoundingSphereWS = math.float4(0, 0, 0, 0),
                 };
             }
 
@@ -124,6 +125,13 @@ namespace DELTation.AAAARP.Passes
             {
                 Plane frustumPlane = frustumPlanes[i];
                 passData.FrustumPlanes[i] = new Vector4(frustumPlane.normal.x, frustumPlane.normal.y, frustumPlane.normal.z, frustumPlane.distance);
+            }
+
+            passData.CullingSphereLS = float4.zero;
+            if (passData.CullingView.BoundingSphereWS.w > 0.0f)
+            {
+                passData.CullingSphereLS.xyz = math.transform(passData.CullingView.ViewMatrix, passData.CullingView.BoundingSphereWS.xyz);
+                passData.CullingSphereLS.w = passData.CullingView.BoundingSphereWS.w;
             }
 
             passData.InstanceIndices = builder.CreateTransientBuffer(
@@ -244,12 +252,12 @@ namespace DELTation.AAAARP.Passes
                 );
 
                 context.cmd.SetComputeVectorArrayParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraFrustumPlanes, data.FrustumPlanes);
-                context.cmd.SetComputeVectorParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraBoundingSphere, data.CullingView.BoundingSphere);
-                context.cmd.SetComputeVectorParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraBoundingSphereExclude,
-                    data.CullingView.BoundingSphereExclude
-                );
+                context.cmd.SetComputeVectorParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CullingSphereLS, data.CullingSphereLS);
                 context.cmd.SetComputeMatrixParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraViewProjection,
                     data.CullingView.GPUViewProjectionMatrix
+                );
+                context.cmd.SetComputeMatrixParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraView,
+                    data.CullingView.ViewMatrix
                 );
 
                 context.cmd.SetBufferData(data.InstanceIndices, _instanceIndices.AsArray());
@@ -352,13 +360,13 @@ namespace DELTation.AAAARP.Passes
                 );
 
                 context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraFrustumPlanes, data.FrustumPlanes);
-                context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraBoundingSphere, data.CullingView.BoundingSphere);
-                context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraBoundingSphereExclude,
-                    data.CullingView.BoundingSphereExclude
-                );
+                context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CullingSphereLS, data.CullingSphereLS);
                 context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraPosition, data.CullingView.CameraPosition);
                 context.cmd.SetComputeMatrixParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraViewProjection,
                     data.CullingView.GPUViewProjectionMatrix
+                );
+                context.cmd.SetComputeMatrixParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraView,
+                    data.CullingView.ViewMatrix
                 );
                 context.cmd.SetComputeFloatParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraIsPerspective,
                     data.CullingView.IsPerspective ? 1.0f : 0.0f
@@ -409,15 +417,16 @@ namespace DELTation.AAAARP.Passes
             public Vector3 CameraRight;
             public Vector2 PixelSize;
             public Matrix4x4 ViewProjectionMatrix;
+            public Matrix4x4 ViewMatrix;
             public Matrix4x4 GPUViewProjectionMatrix;
-            public float4 BoundingSphere;
-            public float4 BoundingSphereExclude;
+            public float4 BoundingSphereWS;
             public bool IsPerspective;
         }
 
         public class PassData : PassDataBase
         {
             public readonly Vector4[] FrustumPlanes = new Vector4[6];
+            public float4 CullingSphereLS;
 
             public CullingViewParameters CullingView;
 
@@ -477,9 +486,9 @@ namespace DELTation.AAAARP.Passes
             public static class GPUInstanceCulling
             {
                 public static int _CameraFrustumPlanes = Shader.PropertyToID(nameof(_CameraFrustumPlanes));
-                public static int _CameraBoundingSphere = Shader.PropertyToID(nameof(_CameraBoundingSphere));
-                public static int _CameraBoundingSphereExclude = Shader.PropertyToID(nameof(_CameraBoundingSphereExclude));
+                public static int _CullingSphereLS = Shader.PropertyToID(nameof(_CullingSphereLS));
                 public static int _CameraViewProjection = Shader.PropertyToID(nameof(_CameraViewProjection));
+                public static int _CameraView = Shader.PropertyToID(nameof(_CameraView));
 
                 public static int _InstanceIndices = Shader.PropertyToID(nameof(_InstanceIndices));
                 public static int _InstanceIndicesCount = Shader.PropertyToID(nameof(_InstanceIndicesCount));
@@ -517,10 +526,10 @@ namespace DELTation.AAAARP.Passes
             public static class MeshletCulling
             {
                 public static int _CameraFrustumPlanes = Shader.PropertyToID(nameof(_CameraFrustumPlanes));
-                public static int _CameraBoundingSphere = Shader.PropertyToID(nameof(_CameraBoundingSphere));
-                public static int _CameraBoundingSphereExclude = Shader.PropertyToID(nameof(_CameraBoundingSphereExclude));
+                public static int _CullingSphereLS = Shader.PropertyToID(nameof(_CullingSphereLS));
                 public static int _CameraPosition = Shader.PropertyToID(nameof(_CameraPosition));
                 public static int _CameraViewProjection = Shader.PropertyToID(nameof(_CameraViewProjection));
+                public static int _CameraView = Shader.PropertyToID(nameof(_CameraView));
                 public static int _CameraIsPerspective = Shader.PropertyToID(nameof(_CameraIsPerspective));
 
                 public static int _SourceMeshletsCounter = Shader.PropertyToID(nameof(_SourceMeshletsCounter));

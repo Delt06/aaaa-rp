@@ -70,7 +70,7 @@ namespace DELTation.AAAARP.Passes
                     if (visibleLight.lightType == LightType.Directional &&
                         lightingConstantBuffer.DirectionalLightCount < AAAALightingConstantBuffer.MaxDirectionalLights)
                     {
-                        int index = (int)lightingConstantBuffer.DirectionalLightCount++;
+                        int index = (int) lightingConstantBuffer.DirectionalLightCount++;
                         const int noShadowMapIndex = -1;
                         var shadowSliceRangeFadeParams = new float4(0, 0, 0, 0);
                         bool isSoftShadow = false;
@@ -88,7 +88,7 @@ namespace DELTation.AAAARP.Passes
                             foreach (AAAAShadowsData.ShadowLightSplit shadowLightSplit in shadowLight.Splits)
                             {
                                 float2 resolution = shadowLightSplit.CullingView.PixelSize;
-                                float4 boundingSphere = shadowLightSplit.CullingView.BoundingSphere;
+                                float4 boundingSphere = shadowLightSplit.CullingView.BoundingSphereWS;
                                 shadowLightSlices.Add(new AAAAShadowLightSlice
                                     {
                                         BoundingSphere = math.float4(boundingSphere.xyz, boundingSphere.w * boundingSphere.w),
@@ -104,8 +104,8 @@ namespace DELTation.AAAARP.Passes
                             }
                         }
 
-                        UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightColors, index) = 
-                            (Vector4)visibleLight.finalColor;
+                        UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightColors, index) =
+                            (Vector4) visibleLight.finalColor;
                         UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightDirections, index) =
                             math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix), 0.0f);
                         UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightShadowSliceRanges_ShadowFadeParams, index) =

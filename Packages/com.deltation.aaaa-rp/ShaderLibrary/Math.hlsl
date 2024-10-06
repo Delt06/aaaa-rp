@@ -148,17 +148,55 @@ bool FrustumVsSphereCulling(const float4 planes[PLANES_IN_FRUSTUM], const float4
 bool SphereVsSphereCulling(const float4 boundingSphere1, const float4 boundingSphere2)
 {
     const float radiusSum = boundingSphere1.w + boundingSphere2.w;
-    const float radiusSumSqr = radiusSum * radiusSum;
     const float distanceSqr = Length2(boundingSphere1.xyz - boundingSphere2.xyz);
-    return distanceSqr <= radiusSumSqr;
+    return distanceSqr <= radiusSum * radiusSum;
 }
 
-bool SphereVsSphereCulling_Exclude(const float4 boundingSphere1, const float4 boundingSphere2)
+bool DoLightSphereCulling(const float4 receiverBoundingSphereLS, const float4 casterBoundingSphereWS, const float3x3 worldToLightSpaceRotation)
 {
-    const float radiusDiff = max(0, boundingSphere1.w - boundingSphere2.w);
-    const float radiusSumSqr = radiusDiff * radiusDiff;
-    const float distanceSqr = Length2(boundingSphere1.xyz - boundingSphere2.xyz);
-    return distanceSqr >= radiusSumSqr;
+    // com.unity.render-pipelines.core/Runtime/GPUDriven/FrustumPlanes.cs
+    const float3 casterCenterLS = mul(worldToLightSpaceRotation, casterBoundingSphereWS.xyz);
+    const float  casterRadius = casterBoundingSphereWS.w;
+
+    const float3 receiverCenterLS = receiverBoundingSphereLS.xyz;
+    const float  receiverRadius = receiverBoundingSphereLS.w;
+    const float3 receiverToCasterLS = casterCenterLS - receiverCenterLS;
+
+    // compute the light space z coordinate where the caster sphere and receiver sphere just intersect
+    const float sphereIntersectionMaxDistance = casterRadius + receiverRadius;
+    const float zSqAtSphereIntersection = sphereIntersectionMaxDistance * sphereIntersectionMaxDistance - dot(receiverToCasterLS.xy, receiverToCasterLS.xy);
+
+    // if this is negative, the spheres do not overlap as circles in the XY plane, so cull the caster
+    UNITY_FLATTEN
+    if (zSqAtSphereIntersection < 0.0f)
+        return false;
+
+    // if the caster is outside the receiver sphere in the light direction, it cannot cast a shadow on it, so cull it
+    UNITY_FLATTEN
+    if (receiverToCasterLS.z > 0.0f && receiverToCasterLS.z * receiverToCasterLS.z > zSqAtSphereIntersection)
+        return false;
+
+    return true;
+}
+
+bool LightSphereCulling(const float4 cullingSphereLS, const float4x4 worldToLightMatrix, const float4 casterBoundingSphereWS)
+{
+    bool result;
+
+    UNITY_BRANCH
+    if (cullingSphereLS.w <= 0.0f)
+    {
+        result = true;
+    }
+    else
+    {
+        // result = true;
+        // ReSharper disable once CppRedundantCastExpression
+        const float3x3 worldToLightMatrix3X3 = (float3x3)worldToLightMatrix;
+        result = DoLightSphereCulling(cullingSphereLS, casterBoundingSphereWS, worldToLightMatrix3X3);
+    }
+
+    return result;
 }
 
 struct BoundingSquareSS
