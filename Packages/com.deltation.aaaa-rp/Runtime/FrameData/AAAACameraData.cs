@@ -6,7 +6,6 @@ namespace DELTation.AAAARP.FrameData
 {
     public class AAAACameraData : ContextItem
     {
-
         public AAAAAntiAliasingTechnique AntiAliasingTechnique;
         public float AspectRatio;
         public Color BackgroundColor;
@@ -15,6 +14,7 @@ namespace DELTation.AAAARP.FrameData
         public CameraType CameraType;
         public bool ClearColor;
         public bool ClearDepth;
+        public float FSRShaprness;
         public HDRColorBufferPrecision HDRColorBufferPrecision;
         public bool IsAlphaOutputEnabled;
         public bool IsDefaultViewport;
@@ -24,13 +24,13 @@ namespace DELTation.AAAARP.FrameData
         public Rect PixelRect;
         public int PixelWidth;
         public bool PostProcessingEnabled;
-
         public Matrix4x4 ProjectionMatrix;
         public AAAARendererBase Renderer;
         public float RenderScale;
         public Vector4 ScreenCoordScaleBias;
         public Vector4 ScreenSizeOverride;
         public RenderTexture TargetTexture;
+        public AAAAUpscalingTechnique UpscalingTechnique;
         public bool UseScreenCoordOverride;
         public Matrix4x4 ViewMatrix;
         public Vector3 WorldSpaceCameraPos;
@@ -68,6 +68,7 @@ namespace DELTation.AAAARP.FrameData
             WorldSpaceCameraPos = default;
 
             AntiAliasingTechnique = default;
+            UpscalingTechnique = default;
             PostProcessingEnabled = false;
         }
 

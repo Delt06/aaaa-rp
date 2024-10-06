@@ -1,0 +1,38 @@
+#pragma kernel mainCS
+
+#define FSR_EASU_F 1
+
+#include "FSRCommon.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GlobalSamplers.hlsl"
+
+Texture2D           _InputTexture;
+RWTexture2D<float4> _OutputTexture;
+
+AF4 FsrEasuRF(AF2 p)
+{
+    AF4 res = _InputTexture.GatherRed(sampler_LinearClamp, p, int2(0, 0));
+    return res;
+}
+
+AF4 FsrEasuGF(AF2 p)
+{
+    AF4 res = _InputTexture.GatherGreen(sampler_LinearClamp, p, int2(0, 0));
+    return res;
+}
+
+AF4 FsrEasuBF(AF2 p)
+{
+    AF4 res = _InputTexture.GatherBlue(sampler_LinearClamp, p, int2(0, 0));
+    return res;
+}
+
+void CurrFilter(int2 pos)
+{
+    AF3 c;
+    FsrEasuF(c, pos, Const0, Const1, Const2, Const3);
+    if (Sample.x == 1)
+    {
+        c *= c;
+    }
+    _OutputTexture[pos] = float4(c, 1);
+}

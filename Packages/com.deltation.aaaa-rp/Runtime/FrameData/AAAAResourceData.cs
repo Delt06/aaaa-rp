@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Meshlets;
 using Unity.Mathematics;
 using UnityEngine;
@@ -79,11 +80,13 @@ namespace DELTation.AAAARP.FrameData
                 cameraColorDesc.wrapMode = TextureWrapMode.Clamp;
                 cameraColorDesc.clearBuffer = cameraData.ClearColor;
                 cameraColorDesc.clearColor = cameraData.BackgroundColor;
-                CameraColorDesc = cameraColorDesc;
+                cameraColorDesc.enableRandomWrite = cameraData.UpscalingTechnique is AAAAUpscalingTechnique.FSR1;
                 _cameraColorBuffer = renderGraph.CreateTexture(cameraColorDesc);
+                CameraColorDesc = cameraColorDesc;
+                cameraColorDesc.enableRandomWrite = false;
 
                 TextureDesc cameraDepthDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
-                cameraColorDesc.name = "CameraDepth";
+                cameraDepthDesc.name = "CameraDepth";
                 cameraDepthDesc.colorFormat = GraphicsFormat.D24_UNorm_S8_UInt;
                 cameraDepthDesc.depthBufferBits = DepthBits.Depth32;
                 cameraDepthDesc.filterMode = FilterMode.Point;

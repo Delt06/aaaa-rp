@@ -1,0 +1,25 @@
+#pragma kernel mainCS
+
+#define FSR_RCAS_F
+
+#include "FSRCommon.hlsl"
+
+Texture2D           _InputTexture;
+RWTexture2D<float4> _OutputTexture;
+
+AF4 FsrRcasLoadF(ASU2 p) { return _InputTexture.Load(int3(ASU2(p), 0)); }
+
+void FsrRcasInputF(inout AF1 r, inout AF1 g, inout AF1 b)
+{
+}
+
+void CurrFilter(int2 pos)
+{
+    AF3 c;
+    FsrRcasF(c.r, c.g, c.b, pos, Const0);
+    if (Sample.x == 1)
+    {
+        c *= c;
+    }
+    _OutputTexture[pos] = float4(c, 1);
+}

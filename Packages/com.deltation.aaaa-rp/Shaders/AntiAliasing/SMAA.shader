@@ -29,7 +29,7 @@ Shader "Hidden/AAAA/AntiAliasing/SMAA"
     #define GAMMA_FOR_EDGE_DETECTION (1/2.2)
     #endif
     
-    #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/AntiAliasing/SMAA/SMAA.hlsl"
+    #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/ThirdParty/SMAA/SMAA.hlsl"
 
     // Non-temporal mode
     #define SUBSAMPLE_INDICES float4(0, 0, 0, 0)

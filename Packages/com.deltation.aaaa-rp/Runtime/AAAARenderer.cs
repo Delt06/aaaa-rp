@@ -1,3 +1,4 @@
+using System;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
@@ -23,6 +24,7 @@ namespace DELTation.AAAARP
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferFalseNegativePass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferMainPass;
         private readonly FinalBlitPass _finalBlitPass;
+        private readonly FSRPass _fsrPass;
         private readonly GPUCullingPass _gpuCullingFalseNegativePass;
         private readonly GPUCullingPass _gpuCullingMainPass;
         private readonly HZBGenerationPass _hzbGenerationPass;
@@ -66,7 +68,10 @@ namespace DELTation.AAAARP
 
             _smaaPass = new SMAAPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders, textures);
             _uberPostProcessingPass = new UberPostProcessingPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders);
-            _bilinearUpscalePass = new BilinearUpscalePass(AAAARenderPassEvent.AfterRenderingPostProcessing);
+
+            const AAAARenderPassEvent upscaleRenderPassEvent = AAAARenderPassEvent.AfterRenderingPostProcessing;
+            _bilinearUpscalePass = new BilinearUpscalePass(upscaleRenderPassEvent);
+            _fsrPass = new FSRPass(upscaleRenderPassEvent, shaders);
 
             _finalBlitPass = new FinalBlitPass(AAAARenderPassEvent.AfterRendering);
         }
@@ -118,7 +123,18 @@ namespace DELTation.AAAARP
                 EnqueuePass(_uberPostProcessingPass);
             }
 
-            EnqueuePass(_bilinearUpscalePass);
+            switch (cameraData.UpscalingTechnique)
+            {
+                case AAAAUpscalingTechnique.Off:
+                    EnqueuePass(_bilinearUpscalePass);
+                    break;
+                case AAAAUpscalingTechnique.FSR1:
+                    EnqueuePass(_fsrPass);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
             EnqueuePass(_finalBlitPass);
 
             DebugHandler?.Setup(this, renderGraph, context);

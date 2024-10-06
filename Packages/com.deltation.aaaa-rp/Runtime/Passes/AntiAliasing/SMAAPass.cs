@@ -23,7 +23,7 @@ namespace DELTation.AAAARP.Passes.AntiAliasing
         public SMAAPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders,
             AAAARenderPipelineRuntimeTextures runtimeTextures) : base(renderPassEvent)
         {
-            _material = CoreUtils.CreateEngineMaterial(shaders.SMAAPS);
+            _material = CoreUtils.CreateEngineMaterial(shaders.SmaaPS);
             _presetLowKeyword = new LocalKeyword(_material.shader, "SMAA_PRESET_LOW");
             _presetMediumKeyword = new LocalKeyword(_material.shader, "SMAA_PRESET_MEDIUM");
             _presetHighKeyword = new LocalKeyword(_material.shader, "SMAA_PRESET_HIGH");

@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
-namespace DELTation.AAAARP.Passes.AntiAliasing
+namespace DELTation.AAAARP.Passes.PostProcessing
 {
     public sealed class BilinearUpscalePass : AAAARasterRenderPass<BilinearUpscalePass.PassData>
     {

@@ -215,6 +215,12 @@ namespace DELTation.AAAARP
             cameraData.WorldSpaceCameraPos = camera.transform.position;
 
             cameraData.AntiAliasingTechnique = imageQualitySettings?.AntiAliasing ?? AAAAAntiAliasingTechnique.Off;
+            cameraData.UpscalingTechnique = imageQualitySettings?.Upscaling ?? AAAAUpscalingTechnique.Off;
+            if (cameraData.RenderScale >= 1.0f)
+            {
+                cameraData.UpscalingTechnique = AAAAUpscalingTechnique.Off;
+            }
+            cameraData.FSRShaprness = imageQualitySettings?.FSRSharpness ?? 0.0f;
             cameraData.PostProcessingEnabled = postProcessingSettings?.AnyEnabled() ?? false;
 
             return cameraData;

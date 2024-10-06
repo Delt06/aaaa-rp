@@ -17,6 +17,8 @@ MonoBehaviour:
     AntiAliasing: 1
     SMAA:
       Preset: 2
+    Upscaling: 1
+    FSRSharpness: 1
   _meshLODSettings:
     ErrorThreshold: 100
   _lightingSettings:

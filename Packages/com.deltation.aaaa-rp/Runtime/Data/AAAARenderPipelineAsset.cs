@@ -25,6 +25,12 @@ namespace DELTation.AAAARP.Data
         SMAA,
     }
 
+    public enum AAAAUpscalingTechnique
+    {
+        Off,
+        FSR1,
+    }
+
     [Serializable]
     public class AAAAImageQualitySettings
     {
@@ -36,10 +42,17 @@ namespace DELTation.AAAARP.Data
             Ultra,
         }
 
+        public const float MaxFSRSharpness = 2.0f;
+
         [Range(0.5f, 2.0f)]
         public float RenderScale = 1.0f;
+
         public AAAAAntiAliasingTechnique AntiAliasing;
         public SMAASettings SMAA = new();
+
+        public AAAAUpscalingTechnique Upscaling;
+        [Range(0.0f, MaxFSRSharpness)]
+        public float FSRSharpness = 1.0f;
 
         [Serializable]
         public class SMAASettings
