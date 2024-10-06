@@ -106,7 +106,7 @@ Shader "Hidden/AAAA/LightingDebug"
                         {
                             const float4 shadowSliceRange_shadowFadeParams = DirectionalLightShadowSliceRanges_ShadowFadeParams[_LightIndex];
                             const CascadedDirectionalLightShadowSample shadowSample = SampleCascadedDirectionalLightShadow(
-                                positionWS, shadowSliceRange_shadowFadeParams.xy, shadowSliceRange_shadowFadeParams.zw);
+                                positionWS, shadowSliceRange_shadowFadeParams.xy, shadowSliceRange_shadowFadeParams.zw, false);
                             if (shadowSample.cascadeIndex != -1)
                             {
                                 resultColor = lightPool[shadowSample.cascadeIndex % LIGHT_POOL_SIZE];

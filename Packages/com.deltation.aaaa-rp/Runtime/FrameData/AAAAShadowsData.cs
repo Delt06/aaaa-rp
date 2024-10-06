@@ -48,11 +48,13 @@ namespace DELTation.AAAARP.FrameData
                 if (visibleLight.lightType == LightType.Directional)
                 {
                     Light light = visibleLight.light;
-                    if (light.shadows != LightShadows.None)
+                    LightShadows lightShadowsType = light.shadows;
+                    if (lightShadowsType != LightShadows.None)
                     {
                         shadowLights.Add(new ShadowLight
                             {
                                 LightType = visibleLight.lightType,
+                                IsSoftShadow = lightShadowsType == LightShadows.Soft,
                                 VisibleLightIndex = visibleLightIndex,
                                 NearPlaneOffset = light.shadowNearPlane,
                                 Splits = new NativeList<ShadowLightSplit>(4, Allocator.Temp),
@@ -163,6 +165,7 @@ namespace DELTation.AAAARP.FrameData
             public int VisibleLightIndex;
             public float NearPlaneOffset;
             public LightType LightType;
+            public bool IsSoftShadow;
             public float SlopeBias;
             public float2 FadeParams;
             public int Resolution;

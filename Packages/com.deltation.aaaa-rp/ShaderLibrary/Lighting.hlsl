@@ -38,12 +38,13 @@ Light GetDirectionalLight(const uint index, const float3 positionWS)
 {
     Light light;
     light.color = DirectionalLightColors[index].rgb;
-    light.direction = DirectionalLightDirections[index].xyz;
+    light.direction = DirectionalLightDirections_SoftShadow[index].xyz;
     light.distanceAttenuation = 1.0;
 
+    const bool isSoftShadow = DirectionalLightDirections_SoftShadow[index].w;
     const float4                               shadowSliceRange_shadowFadeParams = DirectionalLightShadowSliceRanges_ShadowFadeParams[index];
     const CascadedDirectionalLightShadowSample shadowSample = SampleCascadedDirectionalLightShadow(
-        positionWS, shadowSliceRange_shadowFadeParams.xy, shadowSliceRange_shadowFadeParams.zw);
+        positionWS, shadowSliceRange_shadowFadeParams.xy, shadowSliceRange_shadowFadeParams.zw, isSoftShadow);
     light.shadowAttenuation = shadowSample.shadowAttenuation;
 
     return light;

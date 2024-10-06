@@ -57,7 +57,7 @@ namespace DELTation.AAAARP.Passes
             {
                 var pDirectionalLightColors = (Vector4*) pDirectionalLightColorsFloat;
 
-                fixed (float* pDirectionalLightDirectionsFloat = lightingConstantBuffer.DirectionalLightDirections)
+                fixed (float* pDirectionalLightDirectionsFloat = lightingConstantBuffer.DirectionalLightDirections_SoftShadow)
                 {
                     var pDirectionalLightDirections = (float4*) pDirectionalLightDirectionsFloat;
 
@@ -82,6 +82,7 @@ namespace DELTation.AAAARP.Passes
                                 uint index = lightingConstantBuffer.DirectionalLightCount++;
                                 const int noShadowMapIndex = -1;
                                 var shadowSliceRangeFadeParams = new float4(0, 0, 0, 0);
+                                bool isSoftShadow = false;
                                 if (shadowsData.VisibleToShadowLightMapping.TryGetValue(visibleLightIndex, out int shadowLightIndex))
                                 {
                                     ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
@@ -89,6 +90,7 @@ namespace DELTation.AAAARP.Passes
                                     shadowSliceRangeFadeParams.x = shadowLightSlices.Length;
                                     shadowSliceRangeFadeParams.y = shadowLight.Splits.Length;
                                     shadowSliceRangeFadeParams.zw = shadowLight.FadeParams;
+                                    isSoftShadow = shadowLight.IsSoftShadow;
 
                                     foreach (AAAAShadowsData.ShadowLightSplit shadowLightSplit in shadowLight.Splits)
                                     {
@@ -110,7 +112,7 @@ namespace DELTation.AAAARP.Passes
 
                                 Color color = visibleLight.finalColor;
                                 pDirectionalLightColors[index] = color;
-                                pDirectionalLightDirections[index] = math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix), 0);
+                                pDirectionalLightDirections[index] = math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix), isSoftShadow ? 1.0f : 0.0f);
                                 pDirectionalLightShadowSliceRangesFadeParams[index] = shadowSliceRangeFadeParams;
                             }
                         }
