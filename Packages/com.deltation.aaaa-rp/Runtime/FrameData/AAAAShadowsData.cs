@@ -55,7 +55,7 @@ namespace DELTation.AAAARP.FrameData
                                 LightType = visibleLight.lightType,
                                 VisibleLightIndex = visibleLightIndex,
                                 NearPlaneOffset = light.shadowNearPlane,
-                                ShadowMapAllocation = ShadowMapPool.Allocate(ShadowMapResolution),
+                                Splits = new NativeList<ShadowLightSplit>(4, Allocator.Temp),
                             }
                         );
                         VisibleToShadowLightMapping.Add(visibleLightIndex, shadowLights.Length - 1);
@@ -79,37 +79,65 @@ namespace DELTation.AAAARP.FrameData
                     [6] = camera.ViewportToWorldPoint(new Vector3(1, 1, cameraNearPlane)),
                     [7] = camera.ViewportToWorldPoint(new Vector3(1, 1, cameraFarPlane)),
                 };
+                float3 cameraPosition = camera.transform.position;
+                float shadowDistance = math.min(cameraFarPlane, shadowSettings.MaxDistance);
 
                 for (int index = 0; index < shadowLights.Length; index++)
                 {
                     ref ShadowLight shadowLight = ref shadowLights.ElementAtRef(index);
                     ref readonly VisibleLight visibleLight = ref visibleLights.ElementAtRefReadonly(shadowLight.VisibleLightIndex);
 
-                    float splitNear = 0.0f;
-                    float splitFar = math.min(cameraFarPlane, shadowSettings.MaxDistance);
                     Quaternion lightRotation = visibleLight.localToWorldMatrix.rotation;
                     int shadowMapResolution = (int) ShadowMapResolution;
-                    AAAAShadowUtils.ComputeDirectionalLightShadowMatrices(cameraFrustumCorners, shadowMapResolution, cameraFarPlane, splitNear, splitFar,
-                        lightRotation, out float4x4 lightView, out float4x4 lightProjection
-                    );
+                    Vector3 lightPosition = visibleLight.localToWorldMatrix.GetPosition();
+                    Vector3 lightRight = lightRotation * Vector3.right;
+                    Vector3 lightUp = lightRotation * Vector3.up;
 
-                    Vector3 cameraPosition = visibleLight.localToWorldMatrix.GetPosition();
-
-                    Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
-
-                    const bool renderIntoTexture = true;
-                    shadowLight.CullingView = new GPUCullingPass.CullingViewParameters
+                    if (shadowLight.LightType == LightType.Directional)
                     {
-                        ViewProjectionMatrix = lightViewProjection,
-                        GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(lightViewProjection, renderIntoTexture),
-                        CameraPosition = cameraPosition,
-                        CameraRight = lightRotation * Vector3.right,
-                        CameraUp = lightRotation * Vector3.up,
-                        PixelSize = new Vector2(shadowMapResolution, shadowMapResolution),
-                        IsPerspective = false,
-                    };
-                    shadowLight.ViewMatrix = lightView;
-                    shadowLight.GPUProjectionMatrix = GL.GetGPUProjectionMatrix(lightProjection, renderIntoTexture);
+                        var cascadeDistances = new Vector4(
+                            shadowSettings.DirectionalLightCascadeDistance1,
+                            shadowSettings.DirectionalLightCascadeDistance2,
+                            shadowSettings.DirectionalLightCascadeDistance3,
+                            1.0f
+                        );
+                        int cascadeCount = shadowSettings.DirectionalLightCascades;
+
+                        for (int cascadeIndex = 0; cascadeIndex < cascadeCount; cascadeIndex++)
+                        {
+                            float splitNear = cascadeIndex == 0 ? 0.0f : shadowDistance * cascadeDistances[cascadeIndex - 1];
+                            float splitFar = cascadeIndex == cascadeCount - 1 ? shadowDistance : shadowDistance * cascadeDistances[cascadeIndex];
+                            int splitResolution = math.max(1, shadowMapResolution >> cascadeIndex);
+
+                            AAAAShadowUtils.ComputeDirectionalLightShadowMatrices(
+                                cameraFrustumCorners, splitResolution, cameraFarPlane, 
+                                splitNear, splitFar,
+                                lightRotation, out float4x4 lightView, out float4x4 lightProjection
+                            );
+
+                            Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
+                            const bool renderIntoTexture = true;
+                            shadowLight.Splits.Add(new ShadowLightSplit
+                                {
+                                    ShadowMapAllocation = ShadowMapPool.Allocate(splitResolution),
+                                    CullingView = new GPUCullingPass.CullingViewParameters
+                                    {
+                                        ViewProjectionMatrix = lightViewProjection,
+                                        GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(lightViewProjection, renderIntoTexture),
+                                        BoundingSphere = math.float4(cameraPosition, splitFar * splitFar),
+                                        CameraPosition = lightPosition,
+                                        CameraRight = lightRight,
+                                        CameraUp = lightUp,
+                                        PixelSize = new Vector2(splitResolution, splitResolution),
+                                        IsPerspective = false,
+                                    },
+                                    ViewMatrix = lightView,
+                                    GPUProjectionMatrix = GL.GetGPUProjectionMatrix(lightProjection, renderIntoTexture),
+                                }
+                            );
+                        }
+                    }
+
                     shadowLight.SlopeBias = AAAAShadowUtils.GetBaseShadowBias(false, 0.0f) * shadowSettings.SlopeBias;
                 }
             }
@@ -127,10 +155,16 @@ namespace DELTation.AAAARP.FrameData
             public int VisibleLightIndex;
             public float NearPlaneOffset;
             public LightType LightType;
+            public float SlopeBias;
+
+            public NativeList<ShadowLightSplit> Splits;
+        }
+
+        public struct ShadowLightSplit
+        {
             public Matrix4x4 ViewMatrix;
             public Matrix4x4 GPUProjectionMatrix;
             public GPUCullingPass.CullingViewParameters CullingView;
-            public float SlopeBias;
             internal ShadowMapPool.Allocation ShadowMapAllocation;
         }
     }

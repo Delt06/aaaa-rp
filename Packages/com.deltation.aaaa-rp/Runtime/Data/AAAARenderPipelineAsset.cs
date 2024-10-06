@@ -70,6 +70,11 @@ namespace DELTation.AAAARP.Data
             public int MaxShadowLightSlices = 128;
             [Min(1.0f)]
             public float MaxDistance = 100.0f;
+            [Range(1, 4)]
+            public int DirectionalLightCascades = 4;
+            [Range(0.0f, 1.0f)] public float DirectionalLightCascadeDistance1 = 0.25f;
+            [Range(0.0f, 1.0f)] public float DirectionalLightCascadeDistance2 = 0.5f;
+            [Range(0.0f, 1.0f)] public float DirectionalLightCascadeDistance3 = 0.75f;
             [Range(0.0f, 1.0f)]
             public float SlopeBias = 0.5f;
         }

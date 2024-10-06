@@ -85,9 +85,13 @@ namespace DELTation.AAAARP
             for (int shadowLightIndex = 0; shadowLightIndex < shadowsData.ShadowLights.Length; shadowLightIndex++)
             {
                 ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
-                ShadowPassPool.PassSet passSet = _shadowPassPool.RequestPassesBasic(shadowLightIndex, shadowLight.CullingView);
-                EnqueuePass(passSet.GPUCullingPass);
-                EnqueuePass(passSet.DrawShadowsPass);
+                for (int splitIndex = 0; splitIndex < shadowLight.Splits.Length; splitIndex++)
+                {
+                    ref readonly AAAAShadowsData.ShadowLightSplit shadowLightSplit = ref shadowLight.Splits.ElementAtRef(splitIndex);
+                    ShadowPassPool.PassSet passSet = _shadowPassPool.RequestPassesBasic(shadowLightIndex, splitIndex, shadowLightSplit.CullingView);
+                    EnqueuePass(passSet.GPUCullingPass);
+                    EnqueuePass(passSet.DrawShadowsPass);
+                }
             }
             EnqueuePass(_setupLightingPass);
 

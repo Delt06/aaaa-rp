@@ -87,15 +87,22 @@ namespace DELTation.AAAARP.Passes
                                     ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
 
                                     shadowSliceRange.x = shadowLightSlices.Length;
-                                    shadowSliceRange.y = 1;
-                                    shadowLightSlices.Add(new AAAAShadowLightSlice
-                                        {
-                                            BoundingSphere = default,
-                                            WorldToShadowCoords = AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLight.CullingView.ViewProjectionMatrix),
-                                            BindlessShadowMapIndex =
-                                                shadowsData.ShadowMapPool.GetBindlessSRVIndexOrDefault(shadowLight.ShadowMapAllocation, noShadowMapIndex),
-                                        }
-                                    );
+                                    shadowSliceRange.y = shadowLight.Splits.Length;
+
+                                    foreach (AAAAShadowsData.ShadowLightSplit shadowLightSplit in shadowLight.Splits)
+                                    {
+                                        shadowLightSlices.Add(new AAAAShadowLightSlice
+                                            {
+                                                BoundingSphere = shadowLightSplit.CullingView.BoundingSphere,
+                                                WorldToShadowCoords =
+                                                    AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLightSplit.CullingView.ViewProjectionMatrix),
+                                                BindlessShadowMapIndex =
+                                                    shadowsData.ShadowMapPool.GetBindlessSRVIndexOrDefault(shadowLightSplit.ShadowMapAllocation,
+                                                        noShadowMapIndex
+                                                    ),
+                                            }
+                                        );
+                                    }
                                 }
                                 Color color = visibleLight.finalColor;
                                 pDirectionalLightColors[index] = color;

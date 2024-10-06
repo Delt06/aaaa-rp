@@ -47,12 +47,20 @@ Light GetDirectionalLight(const uint index, const float3 positionWS)
     UNITY_BRANCH
     if (shadowSliceRange.y > 0)
     {
-        const AAAAShadowLightSlice shadowLightSlice = _ShadowLightSlices[shadowSliceRange.x];
-        if (shadowLightSlice.BindlessShadowMapIndex != -1)
+        AAAAShadowLightSlice cascadeSlices[4];
+        LoadCascadeShadowLightSlices(shadowSliceRange, cascadeSlices);
+
+        CascadeSelectionParameters cascadeSelectionParameters;
+        cascadeSelectionParameters.Slices = cascadeSlices;
+        cascadeSelectionParameters.CascadeCount = shadowSliceRange.y;
+        const float                selectedCascadeIndex = ComputeCascadeIndex(positionWS, cascadeSelectionParameters);
+        const AAAAShadowLightSlice selectedCascadeSlice = cascadeSlices[selectedCascadeIndex];
+
+        if (selectedCascadeSlice.BindlessShadowMapIndex != -1)
         {
             const bool   isPerspective = false;
-            const float3 shadowCoords = TransformWorldToShadowCoords(positionWS, shadowLightSlice.WorldToShadowCoords, isPerspective);
-            light.shadowAttenuation = SampleDirectionalLightShadowMap(shadowCoords, shadowLightSlice.BindlessShadowMapIndex);
+            const float3 shadowCoords = TransformWorldToShadowCoords(positionWS, selectedCascadeSlice.WorldToShadowCoords, isPerspective);
+            light.shadowAttenuation = SampleDirectionalLightShadowMap(shadowCoords, NonUniformResourceIndex(selectedCascadeSlice.BindlessShadowMapIndex));
         }
     }
 

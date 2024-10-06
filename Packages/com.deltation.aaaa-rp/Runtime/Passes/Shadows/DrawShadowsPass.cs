@@ -14,6 +14,7 @@ namespace DELTation.AAAARP.Passes.Shadows
         public DrawShadowsPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
 
         public int ShadowLightIndex { get; set; }
+        public int SplitIndex { get; set; }
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
@@ -23,18 +24,19 @@ namespace DELTation.AAAARP.Passes.Shadows
 
             NativeList<AAAAShadowsData.ShadowLight> shadowLights = shadowsData.ShadowLights;
             ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowLights.ElementAtRef(ShadowLightIndex);
+            ref readonly AAAAShadowsData.ShadowLightSplit shadowLightSplit = ref shadowLight.Splits.ElementAtRef(SplitIndex);
 
             passData.SlopeBias = shadowLight.SlopeBias;
             passData.ShadowRenderingConstantBuffer = new AAAAShadowRenderingConstantBuffer
             {
-                ShadowViewMatrix = shadowLight.ViewMatrix,
-                ShadowProjectionMatrix = shadowLight.GPUProjectionMatrix,
-                ShadowViewProjection = shadowLight.CullingView.GPUViewProjectionMatrix,
+                ShadowViewMatrix = shadowLightSplit.ViewMatrix,
+                ShadowProjectionMatrix = shadowLightSplit.GPUProjectionMatrix,
+                ShadowViewProjection = shadowLightSplit.CullingView.GPUViewProjectionMatrix,
             };
             passData.RendererContainer = renderingData.RendererContainer;
             passData.CameraType = cameraData.CameraType;
 
-            RenderTexture shadowMap = shadowsData.ShadowMapPool.LookupRenderTexture(shadowLight.ShadowMapAllocation);
+            RenderTexture shadowMap = shadowsData.ShadowMapPool.LookupRenderTexture(shadowLightSplit.ShadowMapAllocation);
             passData.ShadowMap = shadowMap;
             builder.AllowPassCulling(false);
         }

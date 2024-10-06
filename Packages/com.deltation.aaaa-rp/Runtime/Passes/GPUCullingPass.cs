@@ -9,6 +9,7 @@ using DELTation.AAAARP.Utils;
 using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -399,6 +400,7 @@ namespace DELTation.AAAARP.Passes
             public Vector2 PixelSize;
             public Matrix4x4 ViewProjectionMatrix;
             public Matrix4x4 GPUViewProjectionMatrix;
+            public float4 BoundingSphere;
             public bool IsPerspective;
         }
 

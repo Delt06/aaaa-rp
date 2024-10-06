@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Renderers;
 using JetBrains.Annotations;
 using UnityEngine;
@@ -12,7 +11,7 @@ namespace DELTation.AAAARP.Lighting
     internal sealed class ShadowMapPool : IDisposable
     {
         private readonly BindlessTextureContainer _bindlessTextureContainer;
-        private readonly Dictionary<AAAATextureSize, PoolData> _resolutionPools = new();
+        private readonly Dictionary<int, PoolData> _resolutionPools = new();
 
         public ShadowMapPool(BindlessTextureContainer bindlessTextureContainer) => _bindlessTextureContainer = bindlessTextureContainer;
 
@@ -36,7 +35,7 @@ namespace DELTation.AAAARP.Lighting
             }
         }
 
-        public Allocation Allocate(AAAATextureSize resolution)
+        public Allocation Allocate(int resolution)
         {
             if (!_resolutionPools.TryGetValue(resolution, out PoolData poolData))
             {
@@ -47,11 +46,9 @@ namespace DELTation.AAAARP.Lighting
                 };
             }
 
-            int resolutionValue = (int) resolution;
-
             while (poolData.Offset >= poolData.RenderTextures.Count)
             {
-                var renderTexture = new RenderTexture(resolutionValue, resolutionValue, GraphicsFormat.None, GraphicsFormat.D32_SFloat, 1)
+                var renderTexture = new RenderTexture(resolution, resolution, GraphicsFormat.None, GraphicsFormat.D32_SFloat, 1)
                 {
                     hideFlags = HideFlags.HideAndDontSave,
                 };
@@ -85,7 +82,7 @@ namespace DELTation.AAAARP.Lighting
 
         public struct Allocation
         {
-            public AAAATextureSize Resolution;
+            public int Resolution;
             public int Index;
         }
 
