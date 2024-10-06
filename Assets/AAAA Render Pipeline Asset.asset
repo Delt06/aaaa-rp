@@ -24,11 +24,12 @@ MonoBehaviour:
     Shadows:
       Resolution: 2048
       MaxShadowLightSlices: 128
-      MaxDistance: 50
+      MaxDistance: 25
       DirectionalLightCascades: 4
-      DirectionalLightCascadeDistance1: 0.1
-      DirectionalLightCascadeDistance2: 0.2
-      DirectionalLightCascadeDistance3: 0.4
+      DirectionalLightCascadeDistance1: 0.239
+      DirectionalLightCascadeDistance2: 0.501
+      DirectionalLightCascadeDistance3: 0.795
+      ShadowFade: 0.2
       SlopeBias: 0.5
   _imageBasedLightingSettings:
     DiffuseIrradianceResolution: 128

@@ -42,7 +42,7 @@ Light GetDirectionalLight(const uint index, const float3 positionWS)
     light.distanceAttenuation = 1.0;
     light.shadowAttenuation = 1.0;
 
-    float2 shadowSliceRange = DirectionalLightShadowSliceRanges[index].xy;
+    const float2 shadowSliceRange = DirectionalLightShadowSliceRanges_ShadowFadeParams[index].xy;
 
     UNITY_BRANCH
     if (shadowSliceRange.y > 0)
@@ -56,11 +56,16 @@ Light GetDirectionalLight(const uint index, const float3 positionWS)
         const float                selectedCascadeIndex = ComputeCascadeIndex(positionWS, cascadeSelectionParameters);
         const AAAAShadowLightSlice selectedCascadeSlice = cascadeSlices[selectedCascadeIndex];
 
-        if (selectedCascadeSlice.BindlessShadowMapIndex != -1)
+        const int bindlessShadowMapIndex = selectedCascadeSlice.BindlessShadowMapIndex;
+        if (bindlessShadowMapIndex != -1)
         {
             const bool   isPerspective = false;
             const float3 shadowCoords = TransformWorldToShadowCoords(positionWS, selectedCascadeSlice.WorldToShadowCoords, isPerspective);
-            light.shadowAttenuation = SampleDirectionalLightShadowMap(shadowCoords, NonUniformResourceIndex(selectedCascadeSlice.BindlessShadowMapIndex));
+            light.shadowAttenuation = SampleDirectionalLightShadowMap(shadowCoords, NonUniformResourceIndex(bindlessShadowMapIndex));
+
+            const float2 fadeParams = DirectionalLightShadowSliceRanges_ShadowFadeParams[index].zw;
+            const float  shadowFade = GetLightShadowFade(positionWS, fadeParams);
+            light.shadowAttenuation = lerp(light.shadowAttenuation, 1, shadowFade);
         }
     }
 

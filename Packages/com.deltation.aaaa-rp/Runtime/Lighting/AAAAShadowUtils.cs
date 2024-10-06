@@ -124,5 +124,25 @@ namespace DELTation.AAAARP.Lighting
 
             return baseBias;
         }
+
+        public static void GetScaleAndBiasForLinearDistanceFade(float fadeDistance, float border, out float scale, out float bias)
+        {
+            // To avoid division from zero
+            // This values ensure that fade within cascade will be 0 and outside 1
+            if (border < 0.0001f)
+            {
+                const float multiplier = 1000f; // To avoid blending if difference is in fractions
+                scale = multiplier;
+                bias = -fadeDistance * multiplier;
+                return;
+            }
+
+            border = 1 - border;
+            border *= border;
+
+            float distanceFadeNear = border * fadeDistance;
+            scale = 1.0f / (fadeDistance - distanceFadeNear);
+            bias = -distanceFadeNear / (fadeDistance - distanceFadeNear);
+        }
     }
 }

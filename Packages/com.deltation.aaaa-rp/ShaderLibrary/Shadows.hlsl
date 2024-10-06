@@ -75,4 +75,12 @@ float ComputeCascadeIndex(const float3 positionWS, const CascadeSelectionParamet
     return min(4.0 - dot(weights, float4(4, 3, 2, 1)), parameters.CascadeCount - 1);
 }
 
+float GetLightShadowFade(const float3 positionWS, const float2 shadowFadeParams)
+{
+    const float3 camToPixel = positionWS - _WorldSpaceCameraPos;
+    const float distanceCamToPixel2 = dot(camToPixel, camToPixel);
+
+    return saturate(distanceCamToPixel2 * shadowFadeParams.x + shadowFadeParams.y);
+}
+
 #endif // AAAA_SHADOWS_INCLUDED

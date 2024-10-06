@@ -61,9 +61,9 @@ namespace DELTation.AAAARP.Passes
                 {
                     var pDirectionalLightDirections = (float4*) pDirectionalLightDirectionsFloat;
 
-                    fixed (float* pDirectionalLightShadowSliceRangesFloat = lightingConstantBuffer.DirectionalLightShadowSliceRanges)
+                    fixed (float* pDirectionalLightShadowSliceRangesFloat = lightingConstantBuffer.DirectionalLightShadowSliceRanges_ShadowFadeParams)
                     {
-                        var pDirectionalLightShadowSliceRanges = (Vector4*) pDirectionalLightShadowSliceRangesFloat;
+                        var pDirectionalLightShadowSliceRangesFadeParams = (float4*) pDirectionalLightShadowSliceRangesFloat;
 
                         for (int visibleLightIndex = 0; visibleLightIndex < renderingData.CullingResults.visibleLights.Length; visibleLightIndex++)
                         {
@@ -81,13 +81,14 @@ namespace DELTation.AAAARP.Passes
                             {
                                 uint index = lightingConstantBuffer.DirectionalLightCount++;
                                 const int noShadowMapIndex = -1;
-                                var shadowSliceRange = new Vector4(0, 0, 0, 0);
+                                var shadowSliceRangeFadeParams = new float4(0, 0, 0, 0);
                                 if (shadowsData.VisibleToShadowLightMapping.TryGetValue(visibleLightIndex, out int shadowLightIndex))
                                 {
                                     ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
 
-                                    shadowSliceRange.x = shadowLightSlices.Length;
-                                    shadowSliceRange.y = shadowLight.Splits.Length;
+                                    shadowSliceRangeFadeParams.x = shadowLightSlices.Length;
+                                    shadowSliceRangeFadeParams.y = shadowLight.Splits.Length;
+                                    shadowSliceRangeFadeParams.zw = shadowLight.FadeParams;
 
                                     foreach (AAAAShadowsData.ShadowLightSplit shadowLightSplit in shadowLight.Splits)
                                     {
@@ -104,10 +105,11 @@ namespace DELTation.AAAARP.Passes
                                         );
                                     }
                                 }
+                                
                                 Color color = visibleLight.finalColor;
                                 pDirectionalLightColors[index] = color;
                                 pDirectionalLightDirections[index] = math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix), 0);
-                                pDirectionalLightShadowSliceRanges[index] = shadowSliceRange;
+                                    pDirectionalLightShadowSliceRangesFadeParams[index] = shadowSliceRangeFadeParams;
                             }
                         }
 

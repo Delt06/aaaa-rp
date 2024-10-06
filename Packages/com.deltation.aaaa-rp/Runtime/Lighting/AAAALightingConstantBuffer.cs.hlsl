@@ -14,7 +14,7 @@
 CBUFFER_START(AAAALightingConstantBuffer)
     float4 DirectionalLightColors[4];
     float4 DirectionalLightDirections[4];
-    float4 DirectionalLightShadowSliceRanges[4];
+    float4 DirectionalLightShadowSliceRanges_ShadowFadeParams[4];
     uint DirectionalLightCount;
     uint PunctualLightCount;
 CBUFFER_END

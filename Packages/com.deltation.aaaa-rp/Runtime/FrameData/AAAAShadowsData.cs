@@ -107,10 +107,10 @@ namespace DELTation.AAAARP.FrameData
                         {
                             float splitNear = cascadeIndex == 0 ? 0.0f : shadowDistance * cascadeDistances[cascadeIndex - 1];
                             float splitFar = cascadeIndex == cascadeCount - 1 ? shadowDistance : shadowDistance * cascadeDistances[cascadeIndex];
-                            int splitResolution = math.max(1, shadowMapResolution >> cascadeIndex);
+                            int splitResolution = math.max(1, shadowMapResolution);
 
                             AAAAShadowUtils.ComputeDirectionalLightShadowMatrices(
-                                cameraFrustumCorners, splitResolution, cameraFarPlane, 
+                                cameraFrustumCorners, splitResolution, cameraFarPlane,
                                 splitNear, splitFar,
                                 lightRotation, out float4x4 lightView, out float4x4 lightProjection
                             );
@@ -136,6 +136,15 @@ namespace DELTation.AAAARP.FrameData
                                 }
                             );
                         }
+
+                        AAAAShadowUtils.GetScaleAndBiasForLinearDistanceFade(
+                            shadowDistance * shadowDistance, shadowSettings.ShadowFade, out float shadowFadeScale, out float shadowFadeBias
+                        );
+                        shadowLight.FadeParams = math.float2(shadowFadeScale, shadowFadeBias);
+                    }
+                    else
+                    {
+                        shadowLight.FadeParams = math.float2(0.0f, 0.0f);
                     }
 
                     shadowLight.SlopeBias = AAAAShadowUtils.GetBaseShadowBias(false, 0.0f) * shadowSettings.SlopeBias;
@@ -156,6 +165,7 @@ namespace DELTation.AAAARP.FrameData
             public float NearPlaneOffset;
             public LightType LightType;
             public float SlopeBias;
+            public float2 FadeParams;
 
             public NativeList<ShadowLightSplit> Splits;
         }

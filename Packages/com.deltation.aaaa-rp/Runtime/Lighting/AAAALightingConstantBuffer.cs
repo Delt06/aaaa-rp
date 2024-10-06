@@ -17,7 +17,7 @@ namespace DELTation.AAAARP.Lighting
         public fixed float DirectionalLightDirections[MaxDirectionalLights * 4];
         
         [HLSLArray(MaxDirectionalLights, typeof(Vector4))]
-        public fixed float DirectionalLightShadowSliceRanges[MaxDirectionalLights * 4];
+        public fixed float DirectionalLightShadowSliceRanges_ShadowFadeParams[MaxDirectionalLights * 4];
 
         public uint DirectionalLightCount;
         public uint PunctualLightCount;
