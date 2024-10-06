@@ -3,6 +3,7 @@
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows/PCF.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAAShadowLightSlice.cs.hlsl"
 
 StructuredBuffer<AAAAShadowLightSlice> _ShadowLightSlices;
@@ -14,10 +15,13 @@ struct CascadedDirectionalLightShadowSample
     float cascadeIndex;
 };
 
-float SampleDirectionalLightShadowMap(const float3 shadowCoords, const uint index)
+float SampleDirectionalLightShadowMap(const uint index, const float4 atlasSize, const float3 shadowCoords)
 {
-    Texture2D<float> shadowMap = GetBindlessTexture2DFloat(index);
-    return SAMPLE_TEXTURE2D_SHADOW(shadowMap, sampler_LinearClampCompare, shadowCoords);
+    const Texture2D<float> shadowMap = GetBindlessTexture2DFloat(index);
+    const SamplerComparisonState shadowMapSampler = sampler_LinearClampCompare;
+    return SampleShadow_PCF_Tent_5x5(atlasSize, shadowCoords, shadowMap, shadowMapSampler);
+    
+    // return SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowMapSampler, shadowCoords);
 }
 
 float3 TransformWorldToShadowCoords(const float3 positionWS, const float4x4 worldToShadowCoordsMatrix, const bool isPerspective)
@@ -92,6 +96,7 @@ float GetLightShadowFade(const float3 positionWS, const float2 shadowFadeParams)
 CascadedDirectionalLightShadowSample SampleCascadedDirectionalLightShadow(const float3 positionWS, const float2 sliceRange, const float2 fadeParams)
 {
     CascadedDirectionalLightShadowSample shadowAttenuationValue;
+    shadowAttenuationValue.shadowFade = 0;
     shadowAttenuationValue.cascadeIndex = -1;
     shadowAttenuationValue.shadowAttenuation = 1;
 
@@ -114,7 +119,7 @@ CascadedDirectionalLightShadowSample SampleCascadedDirectionalLightShadow(const 
 
             const bool   isPerspective = false;
             const float3 shadowCoords = TransformWorldToShadowCoords(positionWS, selectedCascadeSlice.WorldToShadowCoords, isPerspective);
-            shadowAttenuationValue.shadowAttenuation = SampleDirectionalLightShadowMap(shadowCoords, NonUniformResourceIndex(bindlessShadowMapIndex));
+            shadowAttenuationValue.shadowAttenuation = SampleDirectionalLightShadowMap(NonUniformResourceIndex(bindlessShadowMapIndex), selectedCascadeSlice.AtlasSize, shadowCoords);
 
             shadowAttenuationValue.shadowFade = GetLightShadowFade(positionWS, fadeParams);
             shadowAttenuationValue.shadowAttenuation = lerp(shadowAttenuationValue.shadowAttenuation, 1, shadowAttenuationValue.shadowFade);

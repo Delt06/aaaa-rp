@@ -10,6 +10,7 @@ struct AAAAShadowLightSlice
 {
     float4x4 WorldToShadowCoords;
     float4 BoundingSphere;
+    float4 AtlasSize;
     int BindlessShadowMapIndex;
     int Padding0;
     int Padding1;

@@ -8,7 +8,7 @@ namespace DELTation.AAAARP.Lighting
     {
         public float4x4 WorldToShadowCoords;
         public float4 BoundingSphere;
-
+        public float4 AtlasSize;
         public int BindlessShadowMapIndex;
         public int Padding0;
         public int Padding1;

@@ -107,10 +107,9 @@ namespace DELTation.AAAARP.FrameData
                         {
                             float splitNear = cascadeIndex == 0 ? 0.0f : shadowDistance * cascadeDistances[cascadeIndex - 1];
                             float splitFar = cascadeIndex == cascadeCount - 1 ? shadowDistance : shadowDistance * cascadeDistances[cascadeIndex];
-                            int splitResolution = math.max(1, shadowMapResolution);
 
                             AAAAShadowUtils.ComputeDirectionalLightShadowMatrices(
-                                cameraFrustumCorners, splitResolution, cameraFarPlane,
+                                cameraFrustumCorners, shadowMapResolution, cameraFarPlane,
                                 splitNear, splitFar,
                                 lightRotation, out float4x4 lightView, out float4x4 lightProjection
                             );
@@ -119,7 +118,7 @@ namespace DELTation.AAAARP.FrameData
                             const bool renderIntoTexture = true;
                             shadowLight.Splits.Add(new ShadowLightSplit
                                 {
-                                    ShadowMapAllocation = ShadowMapPool.Allocate(splitResolution),
+                                    ShadowMapAllocation = ShadowMapPool.Allocate(shadowMapResolution),
                                     CullingView = new GPUCullingPass.CullingViewParameters
                                     {
                                         ViewProjectionMatrix = lightViewProjection,
@@ -128,7 +127,7 @@ namespace DELTation.AAAARP.FrameData
                                         CameraPosition = lightPosition,
                                         CameraRight = lightRight,
                                         CameraUp = lightUp,
-                                        PixelSize = new Vector2(splitResolution, splitResolution),
+                                        PixelSize = new Vector2(shadowMapResolution, shadowMapResolution),
                                         IsPerspective = false,
                                     },
                                     ViewMatrix = lightView,
@@ -166,6 +165,7 @@ namespace DELTation.AAAARP.FrameData
             public LightType LightType;
             public float SlopeBias;
             public float2 FadeParams;
+            public int Resolution;
 
             public NativeList<ShadowLightSplit> Splits;
         }

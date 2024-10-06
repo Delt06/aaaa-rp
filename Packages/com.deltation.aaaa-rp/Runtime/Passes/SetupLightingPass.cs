@@ -92,9 +92,11 @@ namespace DELTation.AAAARP.Passes
 
                                     foreach (AAAAShadowsData.ShadowLightSplit shadowLightSplit in shadowLight.Splits)
                                     {
+                                        float2 resolution = shadowLightSplit.CullingView.PixelSize;
                                         shadowLightSlices.Add(new AAAAShadowLightSlice
                                             {
                                                 BoundingSphere = shadowLightSplit.CullingView.BoundingSphere,
+                                                AtlasSize = math.float4(1.0f / resolution, resolution),
                                                 WorldToShadowCoords =
                                                     AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLightSplit.CullingView.ViewProjectionMatrix),
                                                 BindlessShadowMapIndex =
@@ -105,11 +107,11 @@ namespace DELTation.AAAARP.Passes
                                         );
                                     }
                                 }
-                                
+
                                 Color color = visibleLight.finalColor;
                                 pDirectionalLightColors[index] = color;
                                 pDirectionalLightDirections[index] = math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix), 0);
-                                    pDirectionalLightShadowSliceRangesFadeParams[index] = shadowSliceRangeFadeParams;
+                                pDirectionalLightShadowSliceRangesFadeParams[index] = shadowSliceRangeFadeParams;
                             }
                         }
 
