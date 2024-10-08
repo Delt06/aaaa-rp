@@ -1,5 +1,4 @@
 ﻿using System;
-using DELTation.AAAARP.ShaderLibrary.ThirdParty.XeGTAO;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -78,6 +77,23 @@ namespace DELTation.AAAARP.Data
     [Serializable]
     public class AAAALightingSettings
     {
+
+        public enum XeGTAODenoisingLevel
+        {
+            Disabled = 0,
+            Sharp = 1,
+            Medium = 2,
+            Soft = 3,
+        }
+
+        public enum XeGTAOQualityLevel
+        {
+            Low,
+            Medium,
+            High,
+            Ultra,
+        }
+
         [Range(16, 1024 * 16)]
         public int MaxPunctualLights = 1024;
         public ShadowSettings Shadows = new();
@@ -109,18 +125,9 @@ namespace DELTation.AAAARP.Data
         {
             public XeGTAOQualityLevel QualityLevel = XeGTAOQualityLevel.High;
             public bool BentNormals;
-            [Range(0, 4)]
-            public int DenoisePasses = 1;
+            public XeGTAODenoisingLevel DenoisingLevel = XeGTAODenoisingLevel.Sharp;
             [Range(0.0f, 5.0f)]
             public float FinalValuePower = 1.0f;
-        }
-
-        public enum XeGTAOQualityLevel
-        {
-            Low,
-            Medium,
-            High,
-            Ultra,
         }
     }
 

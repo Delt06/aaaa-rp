@@ -78,7 +78,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             passData.Resolution = math.int2(cameraData.ScaledWidth, cameraData.ScaledHeight);
             passData.Settings = XeGTAO.GTAOSettings.Default;
             passData.Settings.QualityLevel = (int) xeGtaoSettings.QualityLevel;
-            passData.Settings.DenoisePasses = xeGtaoSettings.DenoisePasses;
+            passData.Settings.DenoisePasses = (int) xeGtaoSettings.DenoisingLevel;
             passData.Settings.FinalValuePower *= xeGtaoSettings.FinalValuePower;
 
             const bool rowMajor = false;
