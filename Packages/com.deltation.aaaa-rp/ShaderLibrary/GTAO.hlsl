@@ -10,6 +10,12 @@ Texture2D<uint> _GTAOTerm;
 
 struct GTAOUtils
 {
+    static float3 NormalVS_XeGTAOToUnity(float3 normalVS)
+    {
+        normalVS.yz *= -1;
+        return normalVS;
+    } 
+    
     static float4 R8G8B8A8_UNORM_to_FLOAT4(uint packedInput)
     {
         float4 unpackedOutput;
@@ -125,6 +131,7 @@ void SampleGTAO(const uint2 pixelCoords, const float3 normalWS, out float visibi
     const uint packedValue = LOAD_TEXTURE2D(_GTAOTerm, pixelCoords).r;
     #ifdef AAAA_GTAO_BENT_NORMALS
     DecodeVisibilityBentNormal(packedValue, visibility, bentNormalWS);
+    bentNormalWS = GTAOUtils::NormalVS_XeGTAOToUnity(bentNormalWS);
     bentNormalWS = TransformViewToWorldNormal(bentNormalWS, true);
     #else
     visibility = packedValue / 255.05;
