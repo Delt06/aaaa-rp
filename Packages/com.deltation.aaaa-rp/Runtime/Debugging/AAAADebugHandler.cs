@@ -1,6 +1,7 @@
 ﻿using System;
 using DELTation.AAAARP.Passes;
 using DELTation.AAAARP.Passes.Debugging;
+using DELTation.AAAARP.RenderPipelineResources;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;

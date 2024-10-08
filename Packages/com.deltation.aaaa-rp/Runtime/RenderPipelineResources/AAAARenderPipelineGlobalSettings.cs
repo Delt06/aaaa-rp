@@ -4,7 +4,7 @@ using DELTation.AAAARP.Data;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace DELTation.AAAARP
+namespace DELTation.AAAARP.RenderPipelineResources
 {
     [DisplayInfo(name = "AAAARP Global Settings Asset", order = CoreUtils.Sections.section4 + 2)]
     [SupportedOnRenderPipeline(typeof(AAAARenderPipelineAsset))]

@@ -3,6 +3,7 @@ using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
 using DELTation.AAAARP.Renderers;
+using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;

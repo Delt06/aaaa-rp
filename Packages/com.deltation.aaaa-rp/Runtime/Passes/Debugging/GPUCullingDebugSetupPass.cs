@@ -1,5 +1,6 @@
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine.Rendering;

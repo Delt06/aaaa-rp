@@ -2,6 +2,7 @@
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.ShaderLibrary.ThirdParty.XeGTAO;
 using Unity.Mathematics;
 using UnityEngine;
@@ -17,11 +18,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
         private readonly ComputeShader _mainPassCS;
         private readonly ComputeShader _prefilterDepthsCS;
 
-        public XeGTAOPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent)
+        public XeGTAOPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
         {
-            _prefilterDepthsCS = shaders.XeGtaoPrefilterDepthsCS;
-            _mainPassCS = shaders.XeGtaoMainPassCS;
-            _denoiseCS = shaders.XeGtaoDenoiseCS;
+            AAAAXeGtaoRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAAXeGtaoRuntimeShaders>();
+            _prefilterDepthsCS = shaders.PrefilterDepthsCS;
+            _mainPassCS = shaders.MainPassCS;
+            _denoiseCS = shaders.DenoiseCS;
         }
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)

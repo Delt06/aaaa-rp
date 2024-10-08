@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
 using UnityEngine;
 using UnityEngine.Rendering;

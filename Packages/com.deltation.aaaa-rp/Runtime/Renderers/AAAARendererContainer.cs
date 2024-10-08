@@ -7,6 +7,7 @@ using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.Materials;
 using DELTation.AAAARP.Meshlets;
+using DELTation.AAAARP.RenderPipelineResources;
 using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;

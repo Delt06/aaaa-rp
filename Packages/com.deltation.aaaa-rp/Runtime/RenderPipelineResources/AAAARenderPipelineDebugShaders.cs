@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Categorization;
 using UnityEngine.Rendering;
 
-namespace DELTation.AAAARP
+namespace DELTation.AAAARP.RenderPipelineResources
 {
     [Serializable]
     [SupportedOnRenderPipeline(typeof(AAAARenderPipelineAsset))]

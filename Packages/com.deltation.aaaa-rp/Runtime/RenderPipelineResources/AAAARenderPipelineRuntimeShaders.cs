@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Categorization;
 using UnityEngine.Rendering;
 
-namespace DELTation.AAAARP
+namespace DELTation.AAAARP.RenderPipelineResources
 {
     [Serializable]
     [SupportedOnRenderPipeline(typeof(AAAARenderPipelineAsset))]
@@ -100,18 +100,6 @@ namespace DELTation.AAAARP
         [SerializeField]
         [ResourcePath("Shaders/PostProcessing/FSR/RCAS.compute")]
         private ComputeShader _fsrRcasCS;
-
-        [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/XeGTAO/XeGTAO_PrefilterDepths16x16.compute")]
-        private ComputeShader _xeGtaoPrefilterDepthsCS;
-        
-        [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/XeGTAO/XeGTAO_MainPass.compute")]
-        private ComputeShader _xeGtaoMainPassCS;
-        
-        [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/XeGTAO/XeGTAO_Denoise.compute")]
-        private ComputeShader _xeGtaoDenoiseCS;
 
         public Shader CoreBlitPS
         {
@@ -243,24 +231,6 @@ namespace DELTation.AAAARP
         {
             get => _fsrRcasCS;
             set => this.SetValueAndNotify(ref _fsrRcasCS, value, nameof(_fsrRcasCS));
-        }
-
-        public ComputeShader XeGtaoPrefilterDepthsCS
-        {
-            get => _xeGtaoPrefilterDepthsCS;
-            set => this.SetValueAndNotify(ref _xeGtaoPrefilterDepthsCS, value, nameof(_xeGtaoPrefilterDepthsCS));
-        }
-
-        public ComputeShader XeGtaoMainPassCS
-        {
-            get => _xeGtaoMainPassCS;
-            set => this.SetValueAndNotify(ref _xeGtaoMainPassCS, value, nameof(_xeGtaoMainPassCS));
-        }
-
-        public ComputeShader XeGtaoDenoiseCS
-        {
-            get => _xeGtaoDenoiseCS;
-            set => this.SetValueAndNotify(ref _xeGtaoDenoiseCS, value, nameof(_xeGtaoDenoiseCS));
         }
 
         public int version => _version;

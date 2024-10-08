@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Shaders.PostProcessing.FSR;
 using Unity.Mathematics;
 using UnityEngine;

@@ -9,6 +9,7 @@ using DELTation.AAAARP.Passes.GlobalIllumination;
 using DELTation.AAAARP.Passes.IBL;
 using DELTation.AAAARP.Passes.PostProcessing;
 using DELTation.AAAARP.Passes.Shadows;
+using DELTation.AAAARP.RenderPipelineResources;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -66,7 +67,7 @@ namespace DELTation.AAAARP
 
             _clusteredLightingPass = new ClusteredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
-            _xeGTAOPass = new XeGTAOPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
+            _xeGTAOPass = new XeGTAOPass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
 
             _smaaPass = new SMAAPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders, textures);

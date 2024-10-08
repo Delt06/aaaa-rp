@@ -5,6 +5,7 @@ using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.Renderers;
+using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
 using JetBrains.Annotations;
 using Unity.Collections;

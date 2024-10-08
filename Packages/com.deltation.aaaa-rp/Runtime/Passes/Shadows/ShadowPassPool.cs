@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using DELTation.AAAARP.Debugging;
+using DELTation.AAAARP.RenderPipelineResources;
 
 namespace DELTation.AAAARP.Passes.Shadows
 {

@@ -2,6 +2,7 @@
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Meshlets;
+using DELTation.AAAARP.RenderPipelineResources;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
