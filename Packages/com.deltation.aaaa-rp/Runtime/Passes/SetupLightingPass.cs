@@ -15,8 +15,13 @@ namespace DELTation.AAAARP.Passes
     public sealed class SetupLightingPass : AAAARenderPass<SetupLightingPass.PassData>
     {
         private readonly GlobalKeyword _gtaoGlobalKeyword;
+        private readonly GlobalKeyword _gtaoBentNormalsGlobalKeyword;
 
-        public SetupLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) => _gtaoGlobalKeyword = GlobalKeyword.Create("AAAA_GTAO");
+        public SetupLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
+        {
+            _gtaoGlobalKeyword = GlobalKeyword.Create("AAAA_GTAO");
+            _gtaoBentNormalsGlobalKeyword = GlobalKeyword.Create("AAAA_GTAO_BENT_NORMALS");
+        }
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
@@ -48,6 +53,7 @@ namespace DELTation.AAAARP.Passes
             passData.PreFilteredEnvironmentMap = builder.ReadTexture(imageBasedLightingData.PreFilteredEnvironmentMap);
             passData.PreFilteredEnvironmentMapMaxLOD = imageBasedLightingData.PreFilteredEnvironmentMapDesc.mipCount - 1;
             passData.AmbientOcclusionTechnique = cameraData.AmbientOcclusionTechnique;
+            passData.XeGTAOBentNormals = renderingData.PipelineAsset.LightingSettings.GTAOSettings.BentNormals;
 
             builder.AllowPassCulling(false);
         }
@@ -186,7 +192,8 @@ namespace DELTation.AAAARP.Passes
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBb, shCoefficients.SHBb);
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHC, shCoefficients.SHC);
 
-            context.cmd.SetKeyword(_gtaoGlobalKeyword, data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO);
+            context.cmd.SetKeyword(_gtaoGlobalKeyword, data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO && !data.XeGTAOBentNormals);
+            context.cmd.SetKeyword(_gtaoBentNormalsGlobalKeyword, data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO && data.XeGTAOBentNormals);
         }
 
         public class PassData : PassDataBase
@@ -201,6 +208,7 @@ namespace DELTation.AAAARP.Passes
             public BufferHandle PunctualLightsBuffer;
             public NativeArray<AAAAShadowLightSlice> ShadowLightSlices;
             public BufferHandle ShadowLightSlicesBuffer;
+            public bool XeGTAOBentNormals;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]

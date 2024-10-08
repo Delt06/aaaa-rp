@@ -108,8 +108,11 @@ namespace DELTation.AAAARP.Data
         public class XeGTAOSettings
         {
             public XeGTAOQualityLevel QualityLevel = XeGTAOQualityLevel.High;
+            public bool BentNormals;
             [Range(0, 4)]
             public int DenoisePasses = 1;
+            [Range(0.0f, 10.0f)]
+            public float FinalValuePower = 2.2f;
         }
 
         public enum XeGTAOQualityLevel

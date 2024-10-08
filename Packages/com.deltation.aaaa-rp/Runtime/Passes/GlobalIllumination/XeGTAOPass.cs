@@ -29,6 +29,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
+            AAAALightingSettings.XeGTAOSettings xeGtaoSettings = renderingData.PipelineAsset.LightingSettings.GTAOSettings;
 
             passData.SrcRawDepth = builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
             builder.ReadTexture(resourceData.GBufferNormals);
@@ -38,7 +39,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
                 textureDesc.clearBuffer = false;
                 textureDesc.name = nameof(PassData.WorkingDepths);
                 textureDesc.enableRandomWrite = true;
-                textureDesc.colorFormat = GraphicsFormat.R16_SFloat;
+                textureDesc.colorFormat = GraphicsFormat.R32_SFloat;
 
                 for (int mipIndex = 0; mipIndex < XeGTAO.XE_GTAO_DEPTH_MIP_LEVELS; mipIndex++)
                 {
@@ -53,12 +54,14 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
                 }
             }
 
+            passData.OutputBentNormals = xeGtaoSettings.BentNormals;
+
             {
                 TextureDesc textureDesc = resourceData.CameraScaledColorDesc;
                 textureDesc.clearBuffer = false;
                 textureDesc.name = nameof(PassData.AOTerm);
                 textureDesc.enableRandomWrite = true;
-                textureDesc.colorFormat = GraphicsFormat.R8_UInt;
+                textureDesc.colorFormat = passData.OutputBentNormals ? GraphicsFormat.R32_UInt : GraphicsFormat.R8_UInt;
                 passData.AOTerm = builder.CreateTransientTexture(textureDesc);
                 textureDesc.name = nameof(PassData.AOTermPong);
                 passData.AOTermPong = builder.CreateTransientTexture(textureDesc);
@@ -72,12 +75,11 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
                 passData.Edges = builder.CreateTransientTexture(textureDesc);
             }
 
-
-            AAAALightingSettings.XeGTAOSettings xeGtaoSettings = renderingData.PipelineAsset.LightingSettings.GTAOSettings;
             passData.Resolution = math.int2(cameraData.ScaledWidth, cameraData.ScaledHeight);
             passData.Settings = XeGTAO.GTAOSettings.Default;
             passData.Settings.QualityLevel = (int) xeGtaoSettings.QualityLevel;
             passData.Settings.DenoisePasses = xeGtaoSettings.DenoisePasses;
+            passData.Settings.FinalValuePower = xeGtaoSettings.FinalValuePower;
 
             const bool rowMajor = false;
             const uint frameCounter = 0;
@@ -110,6 +112,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             }
 
             {
+                CoreUtils.SetKeyword(_mainPassCS, "XE_GTAO_COMPUTE_BENT_NORMALS", data.OutputBentNormals);
+
                 int kernelIndex = data.Settings.QualityLevel;
                 int threadGroupsX = AAAAMathUtils.AlignUp(data.Resolution.x, XeGTAO.XE_GTAO_NUMTHREADS_X) / XeGTAO.XE_GTAO_NUMTHREADS_X;
                 int threadGroupsY = AAAAMathUtils.AlignUp(data.Resolution.y, XeGTAO.XE_GTAO_NUMTHREADS_Y) / XeGTAO.XE_GTAO_NUMTHREADS_Y;
@@ -123,6 +127,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             }
 
             {
+                CoreUtils.SetKeyword(_denoiseCS, "XE_GTAO_COMPUTE_BENT_NORMALS", data.OutputBentNormals);
+
                 int passCount = math.max(1, data.Settings.DenoisePasses);
                 for (int passIndex = 0; passIndex < passCount; passIndex++)
                 {
@@ -152,6 +158,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             public TextureHandle Edges;
             public TextureHandle FinalAOTerm;
             public XeGTAO.GTAOConstantsCS GTAOConstants;
+            public bool OutputBentNormals;
             public int2 Resolution;
             public XeGTAO.GTAOSettings Settings;
             public TextureHandle SrcRawDepth;

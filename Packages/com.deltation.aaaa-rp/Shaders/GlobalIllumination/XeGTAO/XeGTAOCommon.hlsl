@@ -3,7 +3,11 @@
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GlobalSamplers.hlsl"
 
+#define XE_GTAO_FP32_DEPTHS 1
 #define XE_GTAO_USE_HALF_FLOAT_PRECISION 0
+#define XE_GTAO_DEFAULT_THIN_OBJECT_HEURISTIC 1
+#define XE_GTAO_USE_DEFAULT_CONSTANTS 1
+
 #define VA_SATURATE(x) saturate(x) 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/ThirdParty/XeGTAO/XeGTAO.h.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/ThirdParty/XeGTAO/XeGTAO.h.cs.hlsl"

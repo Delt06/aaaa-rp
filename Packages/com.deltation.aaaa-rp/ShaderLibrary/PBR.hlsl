@@ -12,6 +12,7 @@ struct SurfaceData
     float3 normalWS;
     float3 positionWS;
     float  aoVisibility;
+    float3 bentNormalWS;
 };
 
 struct PBRLighting
@@ -34,6 +35,7 @@ struct PBRLighting
         brdfInput.roughness = surfaceData.roughness;
         brdfInput.irradiance = SampleDiffuseIrradiance(surfaceData.normalWS);
         brdfInput.aoVisibility = surfaceData.aoVisibility;
+        brdfInput.bentNormalWS = surfaceData.bentNormalWS;
 
         const float3 indirectDiffuse = ComputeBRDFIndirectDiffuse(brdfInput);
         const float3 indirectSpecular = ComputeBRDFIndirectSpecular(brdfInput);

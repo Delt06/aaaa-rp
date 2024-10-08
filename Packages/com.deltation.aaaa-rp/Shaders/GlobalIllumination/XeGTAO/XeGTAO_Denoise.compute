@@ -1,6 +1,8 @@
 #pragma kernel CSDenoisePass
 #pragma kernel CSDenoiseLastPass
 
+#pragma multi_compile_local _ XE_GTAO_COMPUTE_BENT_NORMALS
+
 #include "XeGTAOCommon.hlsl"
 
 // input output textures for the third pass (XeGTAO_Denoise)

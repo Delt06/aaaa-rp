@@ -17,6 +17,7 @@ struct BRDFInput
     float  roughness;
     float3 irradiance;
     float  aoVisibility;
+    float3 bentNormalWS;
 };
 
 float3 FresnelSchlick(const float cosTheta, const float3 f0)
@@ -123,12 +124,12 @@ float3 ComputeBRDFIndirectSpecular(const BRDFInput input)
     const float3 F0 = ComputeF0(input);
     const float  NdotI = max(dot(input.normalWS, eyeWS), 0.0);
     const float3 F = FresnelSchlick(NdotI, F0, input.roughness);
-    const float  specularAO = SpecularAO_Lagarde(NdotI, input.aoVisibility, input.roughness);
+    const float  specularAO = ComputeSpecularAO(input.aoVisibility, input.bentNormalWS, reflectionWS, NdotI, input.roughness);
 
     // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/6.pbr/2.2.1.ibl_specular/2.2.1.pbr.fs
     const float3 prefilteredColor = SamplePrefilteredEnvironment(reflectionWS, input.roughness);
     const float2 brdf = SampleBRDFLut(NdotI, input.roughness);
-    float3 result = prefilteredColor * (F * brdf.x + brdf.y); // A channel stores fade amount
+    float3       result = prefilteredColor * (F * brdf.x + brdf.y); // A channel stores fade amount
     result *= SingleBounceAO(specularAO);
     MultiBounceSpecularAO(specularAO, input.diffuseColor, result);
     return result;

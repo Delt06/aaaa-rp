@@ -78,6 +78,7 @@ Shader "Hidden/AAAA/DeferredLighting"
                 brdfInput.roughness = surfaceData.roughness;
                 brdfInput.irradiance = 0;
                 brdfInput.aoVisibility = 1.0f;
+                brdfInput.bentNormalWS = surfaceData.normalWS;
 
                 UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
                 for (uint lightIndex = 0; lightIndex < lightCount; ++lightIndex)
@@ -99,7 +100,6 @@ Shader "Hidden/AAAA/DeferredLighting"
                     lighting += light.distanceAttenuation * PBRLighting::ComputeLightingDirect(brdfInput);
                 }
 
-
                 return float4(lighting, 1);
             }
             ENDHLSL
@@ -114,7 +114,7 @@ Shader "Hidden/AAAA/DeferredLighting"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
-            #pragma multi_compile_fragment _ AAAA_GTAO
+            #pragma multi_compile_fragment _ AAAA_GTAO AAAA_GTAO_BENT_NORMALS
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GTAO.hlsl"
 
@@ -124,7 +124,8 @@ Shader "Hidden/AAAA/DeferredLighting"
                 const GBufferValue gbuffer = SampleGBuffer(IN.texcoord);
                 SurfaceData        surfaceData;
                 InitializeSurfaceData(gbuffer, IN, deviceDepth, surfaceData);
-                surfaceData.aoVisibility = SampleGTAO(IN.positionCS.xy);
+
+                SampleGTAO(IN.positionCS.xy, surfaceData.normalWS, surfaceData.aoVisibility, surfaceData.bentNormalWS);
 
                 const float3 lighting = PBRLighting::ComputeLightingIndirect(surfaceData);
                 return float4(lighting, 1);

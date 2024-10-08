@@ -3,6 +3,8 @@
 #pragma kernel CSGTAOHigh
 #pragma kernel CSGTAOUltra
 
+#pragma multi_compile_local _ XE_GTAO_COMPUTE_BENT_NORMALS
+
 #include "XeGTAOCommon.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
 
