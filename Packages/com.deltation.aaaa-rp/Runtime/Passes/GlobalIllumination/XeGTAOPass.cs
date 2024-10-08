@@ -79,10 +79,11 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             passData.Settings = XeGTAO.GTAOSettings.Default;
             passData.Settings.QualityLevel = (int) xeGtaoSettings.QualityLevel;
             passData.Settings.DenoisePasses = xeGtaoSettings.DenoisePasses;
-            passData.Settings.FinalValuePower = xeGtaoSettings.FinalValuePower;
+            passData.Settings.FinalValuePower *= xeGtaoSettings.FinalValuePower;
 
             const bool rowMajor = false;
             const uint frameCounter = 0;
+
             // Unity view-space Z is negated.
             // Not sure why negative Y is necessary here
             var viewCorrectionMatrix = Matrix4x4.Scale(new Vector3(1, -1, -1));

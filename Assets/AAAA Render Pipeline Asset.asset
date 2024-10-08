@@ -33,6 +33,12 @@ MonoBehaviour:
       DirectionalLightCascadeDistance3: 0.795
       ShadowFade: 0.2
       SlopeBias: 0.5
+    AmbientOcclusion: 1
+    GTAOSettings:
+      QualityLevel: 3
+      BentNormals: 1
+      DenoisePasses: 1
+      FinalValuePower: 1
   _imageBasedLightingSettings:
     DiffuseIrradianceResolution: 128
     BRDFLutResolution: 128

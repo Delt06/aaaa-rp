@@ -111,8 +111,8 @@ namespace DELTation.AAAARP.Data
             public bool BentNormals;
             [Range(0, 4)]
             public int DenoisePasses = 1;
-            [Range(0.0f, 10.0f)]
-            public float FinalValuePower = 2.2f;
+            [Range(0.0f, 5.0f)]
+            public float FinalValuePower = 1.0f;
         }
 
         public enum XeGTAOQualityLevel
