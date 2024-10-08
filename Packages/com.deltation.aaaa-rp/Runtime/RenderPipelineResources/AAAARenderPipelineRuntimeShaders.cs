@@ -93,14 +93,6 @@ namespace DELTation.AAAARP.RenderPipelineResources
         [ResourcePath("Shaders/PostProcessing/Uber.shader")]
         private Shader _uberPostProcessingPS;
 
-        [SerializeField]
-        [ResourcePath("Shaders/PostProcessing/FSR/EASU.compute")]
-        private ComputeShader _fsrEasuCS;
-
-        [SerializeField]
-        [ResourcePath("Shaders/PostProcessing/FSR/RCAS.compute")]
-        private ComputeShader _fsrRcasCS;
-
         public Shader CoreBlitPS
         {
             get => _coreBlitPS;
@@ -219,18 +211,6 @@ namespace DELTation.AAAARP.RenderPipelineResources
         {
             get => _uberPostProcessingPS;
             set => this.SetValueAndNotify(ref _uberPostProcessingPS, value, nameof(_uberPostProcessingPS));
-        }
-
-        public ComputeShader FsrEasuCS
-        {
-            get => _fsrEasuCS;
-            set => this.SetValueAndNotify(ref _fsrEasuCS, value, nameof(_fsrEasuCS));
-        }
-
-        public ComputeShader FsrRcasCS
-        {
-            get => _fsrRcasCS;
-            set => this.SetValueAndNotify(ref _fsrRcasCS, value, nameof(_fsrRcasCS));
         }
 
         public int version => _version;

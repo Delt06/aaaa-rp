@@ -15,26 +15,27 @@ MonoBehaviour:
   _settings:
     m_SettingsList:
       m_List:
-      - rid: 3580532324172300347
-      - rid: 3580532324172300348
-      - rid: 3580532324172300349
-      - rid: 3580532324172300350
-      - rid: 3580532324172300351
-      - rid: 3580532324172300352
-      - rid: 3580532324172300353
-      - rid: 3580532324172300354
-      - rid: 3580532324172300355
-      - rid: 3580532324172300356
-      - rid: 3580532324172300357
-      - rid: 3580532324172300358
-      - rid: 3580532324172300359
-      - rid: 3580532324172300360
+      - rid: 3580532324172300366
+      - rid: 3580532324172300367
+      - rid: 3580532324172300368
+      - rid: 3580532324172300369
+      - rid: 3580532324172300370
+      - rid: 3580532324172300371
+      - rid: 3580532324172300372
+      - rid: 3580532324172300373
+      - rid: 3580532324172300374
+      - rid: 3580532324172300375
+      - rid: 3580532324172300376
+      - rid: 3580532324172300377
+      - rid: 3580532324172300378
+      - rid: 3580532324172300379
+      - rid: 3580532324172300380
     m_RuntimeSettings:
       m_List: []
   references:
     version: 2
     RefIds:
-    - rid: 3580532324172300347
+    - rid: 3580532324172300366
       type: {class: GPUResidentDrawerResources, ns: UnityEngine.Rendering, asm: Unity.RenderPipelines.GPUDriven.Runtime}
       data:
         m_Version: 0
@@ -47,27 +48,27 @@ MonoBehaviour:
         m_OcclusionCullingDebugKernels: {fileID: 7200000, guid: b23e766bcf50ca4438ef186b174557df, type: 3}
         m_DebugOcclusionTestPS: {fileID: 4800000, guid: d3f0849180c2d0944bc71060693df100, type: 3}
         m_DebugOccluderPS: {fileID: 4800000, guid: b3c92426a88625841ab15ca6a7917248, type: 3}
-    - rid: 3580532324172300348
+    - rid: 3580532324172300367
       type: {class: RenderGraphGlobalSettings, ns: UnityEngine.Rendering, asm: Unity.RenderPipelines.Core.Runtime}
       data:
         m_version: 0
         m_EnableCompilationCaching: 1
         m_EnableValidityChecks: 1
-    - rid: 3580532324172300349
+    - rid: 3580532324172300368
       type: {class: ProbeVolumeRuntimeResources, ns: UnityEngine.Rendering, asm: Unity.RenderPipelines.Core.Runtime}
       data:
         m_Version: 1
         probeVolumeBlendStatesCS: {fileID: 7200000, guid: a3f7b8c99de28a94684cb1daebeccf5d, type: 3}
         probeVolumeUploadDataCS: {fileID: 7200000, guid: 0951de5992461754fa73650732c4954c, type: 3}
         probeVolumeUploadDataL2CS: {fileID: 7200000, guid: 6196f34ed825db14b81fb3eb0ea8d931, type: 3}
-    - rid: 3580532324172300350
+    - rid: 3580532324172300369
       type: {class: IncludeAdditionalRPAssets, ns: UnityEngine.Rendering, asm: Unity.RenderPipelines.Core.Runtime}
       data:
         m_version: 0
         m_IncludeReferencedInScenes: 0
         m_IncludeAssetsByLabel: 0
         m_LabelToInclude: 
-    - rid: 3580532324172300351
+    - rid: 3580532324172300370
       type: {class: ProbeVolumeBakingResources, ns: UnityEngine.Rendering, asm: Unity.RenderPipelines.Core.Runtime}
       data:
         m_Version: 1
@@ -80,12 +81,12 @@ MonoBehaviour:
         skyOcclusionRT: {fileID: -5126288278712620388, guid: 5a2a534753fbdb44e96c3c78b5a6999d, type: 3}
         renderingLayerCS: {fileID: -6772857160820960102, guid: 94a070d33e408384bafc1dea4a565df9, type: 3}
         renderingLayerRT: {fileID: -5126288278712620388, guid: 94a070d33e408384bafc1dea4a565df9, type: 3}
-    - rid: 3580532324172300352
+    - rid: 3580532324172300371
       type: {class: RenderGraphUtilsResources, ns: UnityEngine.Rendering.RenderGraphModule.Util, asm: Unity.RenderPipelines.Core.Runtime}
       data:
         m_Version: 0
         m_CoreCopyPS: {fileID: 4800000, guid: 12dc59547ea167a4ab435097dd0f9add, type: 3}
-    - rid: 3580532324172300353
+    - rid: 3580532324172300372
       type: {class: ProbeVolumeDebugResources, ns: UnityEngine.Rendering, asm: Unity.RenderPipelines.Core.Runtime}
       data:
         m_Version: 1
@@ -95,26 +96,48 @@ MonoBehaviour:
         probeVolumeOffsetDebugShader: {fileID: 4800000, guid: db8bd7436dc2c5f4c92655307d198381, type: 3}
         probeSamplingDebugMesh: {fileID: -3555484719484374845, guid: 20be25aac4e22ee49a7db76fb3df6de2, type: 3}
         numbersDisplayTex: {fileID: 2800000, guid: 73fe53b428c5b3440b7e87ee830b608a, type: 3}
-    - rid: 3580532324172300354
+    - rid: 3580532324172300373
       type: {class: STP/RuntimeResources, ns: UnityEngine.Rendering, asm: Unity.RenderPipelines.Core.Runtime}
       data:
         m_setupCS: {fileID: 7200000, guid: 33be2e9a5506b2843bdb2bdff9cad5e1, type: 3}
         m_preTaaCS: {fileID: 7200000, guid: a679dba8ec4d9ce45884a270b0e22dda, type: 3}
         m_taaCS: {fileID: 7200000, guid: 3923900e2b41b5e47bc25bfdcbcdc9e6, type: 3}
-    - rid: 3580532324172300355
+    - rid: 3580532324172300374
       type: {class: ProbeVolumeGlobalSettings, ns: UnityEngine.Rendering, asm: Unity.RenderPipelines.Core.Runtime}
       data:
         m_Version: 1
         m_ProbeVolumeDisableStreamingAssets: 0
-    - rid: 3580532324172300356
+    - rid: 3580532324172300375
       type: {class: ShaderStrippingSetting, ns: UnityEngine.Rendering, asm: Unity.RenderPipelines.Core.Runtime}
       data:
         m_Version: 0
         m_ExportShaderVariants: 1
         m_ShaderVariantLogLevel: 0
         m_StripRuntimeDebugShaders: 1
-    - rid: 3580532324172300357
-      type: {class: AAAARenderPipelineRuntimeShaders, ns: DELTation.AAAARP, asm: DELTation.AAAARP.Runtime}
+    - rid: 3580532324172300376
+      type: {class: AAAAXeGtaoRuntimeShaders, ns: DELTation.AAAARP.RenderPipelineResources, asm: DELTation.AAAARP.Runtime}
+      data:
+        _version: 0
+        _prefilterDepthsCS: {fileID: 7200000, guid: 15da1c8b9f5e4acf8b5f11c6ec56371f, type: 3}
+        _mainPassCS: {fileID: 7200000, guid: fbe8e55273e54593875fdcc53110988f, type: 3}
+        _denoiseCS: {fileID: 7200000, guid: e56c425ec52e409eb7c1a516171416e6, type: 3}
+    - rid: 3580532324172300377
+      type: {class: AAAARenderPipelineDebugShaders, ns: DELTation.AAAARP.RenderPipelineResources, asm: DELTation.AAAARP.Runtime}
+      data:
+        _version: 0
+        _visibilityBufferDebugPS: {fileID: 4800000, guid: 481682f92fd345ff9a8fb8d9ed920b98, type: 3}
+        _gpuCullingDebugViewPS: {fileID: 4800000, guid: 732dd7d6dd8b401f9eef24b39da3f807, type: 3}
+        _gBufferDebugPS: {fileID: 4800000, guid: d667ea4a980b4ae6bc5d4fbb99dfe007, type: 3}
+        _lightingDebugPS: {fileID: 4800000, guid: 8a26e757c6ff4818947551b763fd6938, type: 3}
+    - rid: 3580532324172300378
+      type: {class: AAAARenderPipelineRuntimeTextures, ns: DELTation.AAAARP.RenderPipelineResources, asm: DELTation.AAAARP.Runtime}
+      data:
+        _version: 0
+        _uvTest: {fileID: 2800000, guid: a67b87284f0ff4b4b956be3d8fbce02b, type: 3}
+        _smaaSearchTex: {fileID: 2800000, guid: 95749ab7214629c4b885de5fdee64193, type: 3}
+        _smaaAreaTex: {fileID: 2800000, guid: 1d931cfd7e4862245ab21277abeac725, type: 3}
+    - rid: 3580532324172300379
+      type: {class: AAAARenderPipelineRuntimeShaders, ns: DELTation.AAAARP.RenderPipelineResources, asm: DELTation.AAAARP.Runtime}
       data:
         _version: 0
         _coreBlitPS: {fileID: 4800000, guid: 29427fb26560f334787965313bbaaaee, type: 3}
@@ -137,27 +160,9 @@ MonoBehaviour:
         _hzbGenerationCS: {fileID: 7200000, guid: 30e9b92e6a184f1fae128dee76e92eee, type: 3}
         _smaaPS: {fileID: 4800000, guid: b60243e7e3f846a19d2c60c7e14a5087, type: 3}
         _uberPostProcessingPS: {fileID: 4800000, guid: df9caa481e86404e93faaddb9b82e3b3, type: 3}
-        _fsrEasuCS: {fileID: 7200000, guid: 67cb1289448f479e84032e08a2e9bf73, type: 3}
-        _fsrRcasCS: {fileID: 7200000, guid: 4c33e0806c7d4db68d2d3d703310e2c3, type: 3}
-    - rid: 3580532324172300358
-      type: {class: AAAAXeGtaoRuntimeShaders, ns: DELTation.AAAARP, asm: DELTation.AAAARP.Runtime}
+    - rid: 3580532324172300380
+      type: {class: AAAAFsrRuntimeShaders, ns: DELTation.AAAARP.RenderPipelineResources, asm: DELTation.AAAARP.Runtime}
       data:
         _version: 0
-        _prefilterDepthsCS: {fileID: 7200000, guid: 15da1c8b9f5e4acf8b5f11c6ec56371f, type: 3}
-        _mainPassCS: {fileID: 7200000, guid: fbe8e55273e54593875fdcc53110988f, type: 3}
-        _denoiseCS: {fileID: 7200000, guid: e56c425ec52e409eb7c1a516171416e6, type: 3}
-    - rid: 3580532324172300359
-      type: {class: AAAARenderPipelineDebugShaders, ns: DELTation.AAAARP, asm: DELTation.AAAARP.Runtime}
-      data:
-        _version: 0
-        _visibilityBufferDebugPS: {fileID: 4800000, guid: 481682f92fd345ff9a8fb8d9ed920b98, type: 3}
-        _gpuCullingDebugViewPS: {fileID: 4800000, guid: 732dd7d6dd8b401f9eef24b39da3f807, type: 3}
-        _gBufferDebugPS: {fileID: 4800000, guid: d667ea4a980b4ae6bc5d4fbb99dfe007, type: 3}
-        _lightingDebugPS: {fileID: 4800000, guid: 8a26e757c6ff4818947551b763fd6938, type: 3}
-    - rid: 3580532324172300360
-      type: {class: AAAARenderPipelineRuntimeTextures, ns: DELTation.AAAARP, asm: DELTation.AAAARP.Runtime}
-      data:
-        _version: 0
-        _uvTest: {fileID: 2800000, guid: a67b87284f0ff4b4b956be3d8fbce02b, type: 3}
-        _smaaSearchTex: {fileID: 2800000, guid: 95749ab7214629c4b885de5fdee64193, type: 3}
-        _smaaAreaTex: {fileID: 2800000, guid: 1d931cfd7e4862245ab21277abeac725, type: 3}
+        _easuCS: {fileID: 7200000, guid: 67cb1289448f479e84032e08a2e9bf73, type: 3}
+        _rcasCS: {fileID: 7200000, guid: 4c33e0806c7d4db68d2d3d703310e2c3, type: 3}
