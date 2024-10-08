@@ -257,7 +257,8 @@ void XeGTAO_MainPass( const uint2 pixCoord, lpfloat sliceCount, lpfloat stepsPer
     const lpfloat pixRZ = valuesBR.z;
     const lpfloat pixBZ = valuesBR.x;
 
-    lpfloat4 edgesLRTB  = XeGTAO_CalculateEdges( (lpfloat)viewspaceZ, (lpfloat)pixLZ, (lpfloat)pixRZ, (lpfloat)pixTZ, (lpfloat)pixBZ );
+    // AAAA RP: negated the passed Z values. View-space Z in Unity is negative
+    lpfloat4 edgesLRTB  = XeGTAO_CalculateEdges( (lpfloat)-viewspaceZ, (lpfloat)-pixLZ, (lpfloat)-pixRZ, (lpfloat)-pixTZ, (lpfloat)-pixBZ );
     outWorkingEdges[pixCoord] = XeGTAO_PackEdges(edgesLRTB);
 
 	// Generating screen space normals in-place is faster than generating normals in a separate pass but requires
