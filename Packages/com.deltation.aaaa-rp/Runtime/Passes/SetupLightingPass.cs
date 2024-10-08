@@ -186,7 +186,7 @@ namespace DELTation.AAAARP.Passes
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBb, shCoefficients.SHBb);
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHC, shCoefficients.SHC);
 
-            context.cmd.SetKeyword(_gtaoGlobalKeyword, data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.GTAO);
+            context.cmd.SetKeyword(_gtaoGlobalKeyword, data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO);
         }
 
         public class PassData : PassDataBase

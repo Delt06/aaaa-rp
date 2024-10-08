@@ -35,7 +35,7 @@ namespace DELTation.AAAARP.Passes
             builder.UseTexture(resourceData.GBufferMasks, AccessFlags.Read);
             builder.UseTexture(resourceData.CameraScaledDepthBuffer, AccessFlags.Read);
             
-            if (cameraData.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.GTAO)
+            if (cameraData.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO)
             {
                 builder.UseTexture(lightingData.GTAOTerm, AccessFlags.Read);
             }

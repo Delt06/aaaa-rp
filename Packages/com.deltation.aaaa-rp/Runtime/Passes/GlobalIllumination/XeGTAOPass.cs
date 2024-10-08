@@ -1,4 +1,5 @@
 ﻿using DELTation.AAAARP.Core;
+using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.ShaderLibrary.ThirdParty.XeGTAO;
 using Unity.Mathematics;
@@ -72,8 +73,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             }
 
 
+            AAAALightingSettings.XeGTAOSettings xeGtaoSettings = renderingData.PipelineAsset.LightingSettings.GTAOSettings;
             passData.Resolution = math.int2(cameraData.ScaledWidth, cameraData.ScaledHeight);
-            passData.Settings = renderingData.PipelineAsset.LightingSettings.GTAOSettings;
+            passData.Settings = XeGTAO.GTAOSettings.Default;
+            passData.Settings.QualityLevel = (int) xeGtaoSettings.QualityLevel;
+            passData.Settings.DenoisePasses = xeGtaoSettings.DenoisePasses;
+
             const bool rowMajor = false;
             const uint frameCounter = 0;
             XeGTAO.GTAOSettings.GTAOUpdateConstants(ref passData.GTAOConstants, cameraData.ScaledWidth, cameraData.ScaledHeight, passData.Settings,
@@ -136,7 +141,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
                     (data.AOTerm, data.AOTermPong) = (data.AOTermPong, data.AOTerm);
                 }
             }
-            
+
             context.cmd.SetGlobalTexture("_GTAOTerm", data.FinalAOTerm);
         }
 
@@ -144,8 +149,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
         {
             public TextureHandle AOTerm;
             public TextureHandle AOTermPong;
-            public TextureHandle FinalAOTerm;
             public TextureHandle Edges;
+            public TextureHandle FinalAOTerm;
             public XeGTAO.GTAOConstantsCS GTAOConstants;
             public int2 Resolution;
             public XeGTAO.GTAOSettings Settings;

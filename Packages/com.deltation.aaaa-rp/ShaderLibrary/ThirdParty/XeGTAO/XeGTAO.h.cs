@@ -138,7 +138,6 @@ namespace DELTation.AAAARP.ShaderLibrary.ThirdParty.XeGTAO
 
                 float depthLinearizeMul =
                     rowMajor ? -pProjMatrix[3 * 4 + 2] : -pProjMatrix[3 + 2 * 4]; // float depthLinearizeMul = ( clipFar * clipNear ) / ( clipFar - clipNear );
-                depthLinearizeMul *= -1;
                 float depthLinearizeAdd =
                     rowMajor ? pProjMatrix[2 * 4 + 2] : pProjMatrix[2 + 2 * 4]; // float depthLinearizeAdd = clipFar / ( clipFar - clipNear );
 

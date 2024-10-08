@@ -35,7 +35,7 @@ namespace DELTation.AAAARP.Data
     public enum AAAAAmbientOcclusionTechnique
     {
         Off,
-        GTAO,
+        XeGTAO,
     }
 
     [Serializable]
@@ -82,6 +82,9 @@ namespace DELTation.AAAARP.Data
         public int MaxPunctualLights = 1024;
         public ShadowSettings Shadows = new();
 
+        public AAAAAmbientOcclusionTechnique AmbientOcclusion = AAAAAmbientOcclusionTechnique.XeGTAO;
+        public XeGTAOSettings GTAOSettings = new();
+
         [Serializable]
         public class ShadowSettings
         {
@@ -101,8 +104,21 @@ namespace DELTation.AAAARP.Data
             public float SlopeBias = 0.5f;
         }
 
-        public AAAAAmbientOcclusionTechnique AmbientOcclusion = AAAAAmbientOcclusionTechnique.GTAO;
-        public XeGTAO.GTAOSettings GTAOSettings = XeGTAO.GTAOSettings.Default; 
+        [Serializable]
+        public class XeGTAOSettings
+        {
+            public XeGTAOQualityLevel QualityLevel = XeGTAOQualityLevel.High;
+            [Range(0, 4)]
+            public int DenoisePasses = 1;
+        }
+
+        public enum XeGTAOQualityLevel
+        {
+            Low,
+            Medium,
+            High,
+            Ultra,
+        }
     }
 
     [Serializable]

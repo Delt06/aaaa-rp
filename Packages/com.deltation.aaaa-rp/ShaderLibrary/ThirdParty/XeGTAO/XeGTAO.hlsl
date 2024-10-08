@@ -576,7 +576,8 @@ void XeGTAO_MainPass( const uint2 pixCoord, lpfloat sliceCount, lpfloat stepsPer
 // weighted average depth filter
 lpfloat XeGTAO_DepthMIPFilter( lpfloat depth0, lpfloat depth1, lpfloat depth2, lpfloat depth3, const GTAOConstants consts )
 {
-    lpfloat maxDepth = max( max( depth0, depth1 ), max( depth2, depth3 ) );
+    // AAAA RP: max -> min. View-space Z in Unity is negative
+    lpfloat maxDepth = min( min( depth0, depth1 ), min( depth2, depth3 ) );
 
     const lpfloat depthRangeScaleFactor = 0.75; // found empirically :)
 #if XE_GTAO_USE_DEFAULT_CONSTANTS != 0
@@ -604,10 +605,11 @@ lpfloat XeGTAO_DepthMIPFilter( lpfloat depth0, lpfloat depth1, lpfloat depth2, l
 // is required to be non-linear (i.e. very large outdoors environments).
 lpfloat XeGTAO_ClampDepth( float depth )
 {
+    // AAAA RP: Changed clamp range [0; MAX_VALUE] -> [-MAX_VALUE; 0]. View-space Z in Unity is negative
 #ifdef XE_GTAO_USE_HALF_FLOAT_PRECISION
-    return (lpfloat)clamp( depth, 0.0, 65504.0 );
+    return (lpfloat)clamp( depth, -65504.0, 0.0 );
 #else
-    return clamp( depth, 0.0, 3.402823466e+38 );
+    return clamp( depth, -3.402823466e+38, 0.0);
 #endif
 }
 

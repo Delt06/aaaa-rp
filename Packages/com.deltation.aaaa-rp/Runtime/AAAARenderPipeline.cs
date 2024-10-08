@@ -160,7 +160,7 @@ namespace DELTation.AAAARP
             AAAAImageQualitySettings imageQualitySettings = camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.ImageQualitySettings : null;
             AAAAPostProcessingSettings postProcessingSettings =
                 camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.PostProcessingSettings : null;
-            var lightingSettings = camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.LightingSettings : null;
+            AAAALightingSettings lightingSettings = camera.cameraType is CameraType.Game or CameraType.SceneView ? renderingData.PipelineAsset.LightingSettings : null;
 
             cameraData.Renderer = renderer;
             cameraData.Camera = camera;
