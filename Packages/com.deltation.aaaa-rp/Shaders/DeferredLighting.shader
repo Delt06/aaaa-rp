@@ -114,7 +114,7 @@ Shader "Hidden/AAAA/DeferredLighting"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
-            #pragma multi_compile_fragment _ AAAA_GTAO AAAA_GTAO_BENT_NORMALS
+            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/GTAOPragma.hlsl"
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GTAO.hlsl"
 

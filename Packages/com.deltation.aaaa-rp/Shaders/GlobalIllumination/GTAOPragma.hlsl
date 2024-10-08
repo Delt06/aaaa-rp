@@ -1,0 +1,6 @@
+#ifndef AAAA_GTAO_PRAGMA_INCLUDED
+#define AAAA_GTAO_PRAGMA_INCLUDED
+
+#pragma multi_compile_fragment _ AAAA_GTAO AAAA_GTAO_BENT_NORMALS
+
+#endif // AAAA_GTAO_PRAGMA_INCLUDED

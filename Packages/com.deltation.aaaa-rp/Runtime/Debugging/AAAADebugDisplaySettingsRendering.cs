@@ -47,6 +47,8 @@ namespace DELTation.AAAARP.Debugging
         ClusterZ,
         DeferredLights,
         DirectionalLightCascades,
+        AmbientOcclusion,
+        BentNormals,
     }
 
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData

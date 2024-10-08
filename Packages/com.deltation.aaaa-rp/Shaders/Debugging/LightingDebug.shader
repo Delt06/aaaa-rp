@@ -29,9 +29,12 @@ Shader "Hidden/AAAA/LightingDebug"
             #pragma vertex Vert
             #pragma fragment Frag
 
+            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/GTAOPragma.hlsl"
+
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
+            #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GTAO.hlsl"
             #include "Packages/com.deltation.aaaa-rp/Runtime/Debugging/AAAADebugDisplaySettingsRendering.cs.hlsl"
 
             uint   _LightingDebugMode;
@@ -69,6 +72,7 @@ Shader "Hidden/AAAA/LightingDebug"
             float4 Frag(const Varyings IN) : SV_Target
             {
                 float3 resultColor = 0;
+                float  resultOpacity = OVERLAY_OPACITY;
 
                 const float  deviceDepth = SampleDeviceDepth(IN.texcoord);
                 const float3 positionWS = ComputeWorldSpacePosition(IN.texcoord, deviceDepth, UNITY_MATRIX_I_VP);
@@ -116,13 +120,24 @@ Shader "Hidden/AAAA/LightingDebug"
 
                         break;
                     }
+                case AAAALIGHTINGDEBUGMODE_AMBIENT_OCCLUSION:
+                case AAAALIGHTINGDEBUGMODE_BENT_NORMALS:
+                    {
+                        const float3 normalWS = 0;
+                        float        visibility = 0;
+                        float3       bentNormals;
+                        SampleGTAO(IN.positionCS.xy, normalWS, visibility, bentNormals);
+
+                        resultColor = _LightingDebugMode == AAAALIGHTINGDEBUGMODE_BENT_NORMALS ? bentNormals * 0.5 + 0.5 : visibility;
+                        resultOpacity = 1;
+                    }
                 default:
                     {
                         break;
                     }
                 }
 
-                return float4(resultColor, OVERLAY_OPACITY);
+                return float4(resultColor, resultOpacity);
             }
             ENDHLSL
         }

@@ -28,8 +28,15 @@ namespace DELTation.AAAARP.Passes.Debugging
         protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
+            AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
             builder.UseTexture(resourceData.CameraScaledDepthBuffer, AccessFlags.Read);
+
+            if (lightingData.GTAOTerm.IsValid())
+            {
+                builder.UseTexture(lightingData.GTAOTerm, AccessFlags.Read);
+            }
+            
             builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.ReadWrite);
             builder.AllowGlobalStateModification(true);
         }
