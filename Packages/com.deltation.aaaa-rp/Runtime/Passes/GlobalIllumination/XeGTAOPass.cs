@@ -83,8 +83,11 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
 
             const bool rowMajor = false;
             const uint frameCounter = 0;
+            // Unity view-space Z is negated.
+            // Not sure why negative Y is necessary here
+            var viewCorrectionMatrix = Matrix4x4.Scale(new Vector3(1, -1, -1));
             XeGTAO.GTAOSettings.GTAOUpdateConstants(ref passData.GTAOConstants, cameraData.ScaledWidth, cameraData.ScaledHeight, passData.Settings,
-                cameraData.GetGPUProjectionMatrixJittered(true), rowMajor, frameCounter
+                cameraData.GetGPUProjectionMatrixJittered(true) * viewCorrectionMatrix, rowMajor, frameCounter
             );
         }
 

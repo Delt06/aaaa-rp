@@ -21,7 +21,12 @@ lpfloat3 LoadNormal(int2 pos)
 {
     float3 normalWS = UnpackGBufferNormal(LOAD_TEXTURE2D_LOD(_GBuffer_Normals, pos, 0).xy);
     // ReSharper disable once CppRedundantCastExpression
-    return (lpfloat3)TransformWorldToViewNormal(normalWS, true);
+    float3 normalVS = (lpfloat3)TransformWorldToViewNormal(normalWS, true);
+    // AAAA RP: Unity's view-space Z is negated.
+    normalVS.z *= -1;
+    // AAAA RP: Had to flip this too, not sure why... 
+    normalVS.y *= -1;
+    return normalVS;
 }
 
 // Engine-specific screen & temporal noise loader
