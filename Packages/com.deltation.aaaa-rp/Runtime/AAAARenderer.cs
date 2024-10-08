@@ -38,7 +38,7 @@ namespace DELTation.AAAARP
         private readonly SkyboxPass _skyboxPass;
         private readonly SmaaPass _smaaPass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
-        private readonly XeGTAOPass _xeGTAOPass;
+        private readonly XeGtaoPass _xeGTAOPass;
 
         public AAAARenderer()
         {
@@ -48,7 +48,7 @@ namespace DELTation.AAAARP
             _convolveDiffuseIrradiancePass = new ConvolveDiffuseIrradiancePass(AAAARenderPassEvent.BeforeRendering, shaders);
             _brdfIntegrationPass = new BRDFIntegrationPass(AAAARenderPassEvent.BeforeRendering, shaders);
             _preFilterEnvironmentPass = new PreFilterEnvironmentPass(AAAARenderPassEvent.BeforeRendering, shaders);
-            
+
             _shadowPassPool = new ShadowPassPool(AAAARenderPassEvent.BeforeRenderingShadows, shaders, DebugHandler?.DisplaySettings);
             _setupLightingPass = new SetupLightingPass(AAAARenderPassEvent.AfterRenderingShadows);
 
@@ -67,7 +67,7 @@ namespace DELTation.AAAARP
 
             _clusteredLightingPass = new ClusteredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
-            _xeGTAOPass = new XeGTAOPass(AAAARenderPassEvent.AfterRenderingGbuffer);
+            _xeGTAOPass = new XeGtaoPass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
 
             _smaaPass = new SmaaPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders, textures);

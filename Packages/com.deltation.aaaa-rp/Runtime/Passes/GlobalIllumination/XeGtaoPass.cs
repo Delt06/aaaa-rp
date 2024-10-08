@@ -12,13 +12,13 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes.GlobalIllumination
 {
-    public class XeGTAOPass : AAAARenderPass<XeGTAOPass.PassData>
+    public class XeGtaoPass : AAAARenderPass<XeGtaoPass.PassData>
     {
         private readonly ComputeShader _denoiseCS;
         private readonly ComputeShader _mainPassCS;
         private readonly ComputeShader _prefilterDepthsCS;
 
-        public XeGTAOPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
+        public XeGtaoPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
         {
             AAAAXeGtaoRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAAXeGtaoRuntimeShaders>();
             _prefilterDepthsCS = shaders.PrefilterDepthsCS;
@@ -37,12 +37,19 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             passData.SrcRawDepth = builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
             builder.ReadTexture(resourceData.GBufferNormals);
 
+            int resolutionScale = (int) xeGtaoSettings.Resolution;
+            int2 renderResolution = math.int2(cameraData.ScaledWidth, cameraData.ScaledHeight);
+            passData.Resolution = math.max(1, renderResolution / resolutionScale);
+            passData.ResolutionScale = math.float4((float2) passData.Resolution / renderResolution, 0, 0);
+
             {
                 TextureDesc textureDesc = resourceData.CameraScaledColorDesc;
                 textureDesc.clearBuffer = false;
                 textureDesc.name = nameof(PassData.WorkingDepths);
                 textureDesc.enableRandomWrite = true;
                 textureDesc.colorFormat = GraphicsFormat.R32_SFloat;
+                textureDesc.width = passData.Resolution.x;
+                textureDesc.height = passData.Resolution.y;
 
                 for (int mipIndex = 0; mipIndex < XeGTAO.XE_GTAO_DEPTH_MIP_LEVELS; mipIndex++)
                 {
@@ -62,9 +69,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             {
                 TextureDesc textureDesc = resourceData.CameraScaledColorDesc;
                 textureDesc.clearBuffer = false;
-                textureDesc.name = nameof(PassData.AOTerm);
                 textureDesc.enableRandomWrite = true;
                 textureDesc.colorFormat = passData.OutputBentNormals ? GraphicsFormat.R32_UInt : GraphicsFormat.R8_UInt;
+                textureDesc.width = passData.Resolution.x;
+                textureDesc.height = passData.Resolution.y;
+
+                textureDesc.name = nameof(PassData.AOTerm);
                 passData.AOTerm = builder.CreateTransientTexture(textureDesc);
                 textureDesc.name = nameof(PassData.AOTermPong);
                 passData.AOTermPong = builder.CreateTransientTexture(textureDesc);
@@ -78,7 +88,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
                 passData.Edges = builder.CreateTransientTexture(textureDesc);
             }
 
-            passData.Resolution = math.int2(cameraData.ScaledWidth, cameraData.ScaledHeight);
             passData.Settings = XeGTAO.GTAOSettings.Default;
             passData.Settings.QualityLevel = (int) xeGtaoSettings.QualityLevel;
             passData.Settings.DenoisePasses = (int) xeGtaoSettings.DenoisingLevel;
@@ -90,7 +99,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             // Unity view-space Z is negated.
             // Not sure why negative Y is necessary here
             var viewCorrectionMatrix = Matrix4x4.Scale(new Vector3(1, -1, -1));
-            XeGTAO.GTAOSettings.GTAOUpdateConstants(ref passData.GTAOConstants, cameraData.ScaledWidth, cameraData.ScaledHeight, passData.Settings,
+            XeGTAO.GTAOSettings.GTAOUpdateConstants(ref passData.GTAOConstants, passData.Resolution.x, passData.Resolution.y, passData.Settings,
                 cameraData.GetGPUProjectionMatrixJittered(true) * viewCorrectionMatrix, rowMajor, frameCounter
             );
         }
@@ -161,6 +170,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             }
 
             context.cmd.SetGlobalTexture(ShaderIDs.Global._GTAOTerm, data.FinalAOTerm);
+            context.cmd.SetGlobalVector(ShaderIDs.Global._GTAOResolutionScale, data.ResolutionScale);
         }
 
         private static class Profiling
@@ -182,6 +192,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             public static class Global
             {
                 public static readonly int _GTAOTerm = Shader.PropertyToID(nameof(_GTAOTerm));
+                public static readonly int _GTAOResolutionScale = Shader.PropertyToID(nameof(_GTAOResolutionScale));
             }
 
             public static class PrefilterDepths
@@ -218,6 +229,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination
             public XeGTAO.GTAOConstantsCS GTAOConstants;
             public bool OutputBentNormals;
             public int2 Resolution;
+            public float4 ResolutionScale;
             public XeGTAO.GTAOSettings Settings;
             public TextureHandle SrcRawDepth;
             public TextureHandle[] WorkingDepths = new TextureHandle[XeGTAO.XE_GTAO_DEPTH_MIP_LEVELS];

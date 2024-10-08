@@ -2,6 +2,7 @@
 #define AAAA_GTAO_INCLUDED
 
 Texture2D<uint> _GTAOTerm;
+float4 _GTAOResolutionScale;
 
 #if defined(AAAA_GTAO) || defined(AAAA_GTAO_BENT_NORMALS)
 #define AAAA_GTAO_ANY 1
@@ -128,7 +129,7 @@ void SampleGTAO(const uint2 pixelCoords, const float3 normalWS, out float visibi
     bentNormalWS = normalWS;
 
     #ifdef AAAA_GTAO_ANY
-    const uint packedValue = LOAD_TEXTURE2D(_GTAOTerm, pixelCoords).r;
+    const uint packedValue = LOAD_TEXTURE2D(_GTAOTerm, pixelCoords * _GTAOResolutionScale.xy).r;
     #ifdef AAAA_GTAO_BENT_NORMALS
     DecodeVisibilityBentNormal(packedValue, visibility, bentNormalWS);
     bentNormalWS = GTAOUtils::NormalVS_XeGTAOToUnity(bentNormalWS);

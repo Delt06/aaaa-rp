@@ -35,6 +35,7 @@ MonoBehaviour:
       SlopeBias: 0.5
     AmbientOcclusion: 1
     GTAOSettings:
+      Resolution: 1
       QualityLevel: 3
       BentNormals: 1
       DenoisingLevel: 1

@@ -95,6 +95,13 @@ namespace DELTation.AAAARP.Data
             Ultra,
         }
 
+        public enum XeGTAOResolution
+        {
+            Full = 1,
+            Half = 2,
+            Quarter = 4,
+        }
+
         [Range(16, 1024 * 16)]
         public int MaxPunctualLights = 1024;
         public ShadowSettings Shadows = new();
@@ -124,6 +131,7 @@ namespace DELTation.AAAARP.Data
         [Serializable]
         public class XeGTAOSettings
         {
+            public XeGTAOResolution Resolution = XeGTAOResolution.Full;
             public XeGTAOQualityLevel QualityLevel = XeGTAOQualityLevel.High;
             public bool BentNormals;
             public XeGTAODenoisingLevel DenoisingLevel = XeGTAODenoisingLevel.Sharp;
