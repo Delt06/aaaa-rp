@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
+using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
 using Unity.Collections;
@@ -13,11 +14,14 @@ namespace DELTation.AAAARP.Passes
 {
     public sealed class SetupLightingPass : AAAARenderPass<SetupLightingPass.PassData>
     {
-        public SetupLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
+        private readonly GlobalKeyword _gtaoGlobalKeyword;
+
+        public SetupLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) => _gtaoGlobalKeyword = GlobalKeyword.Create("AAAA_GTAO");
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAAImageBasedLightingData imageBasedLightingData = frameData.Get<AAAAImageBasedLightingData>();
             AAAAShadowsData shadowsData = frameData.Get<AAAAShadowsData>();
 
@@ -43,6 +47,7 @@ namespace DELTation.AAAARP.Passes
             passData.BRDFLut = builder.ReadTexture(imageBasedLightingData.BRDFLut);
             passData.PreFilteredEnvironmentMap = builder.ReadTexture(imageBasedLightingData.PreFilteredEnvironmentMap);
             passData.PreFilteredEnvironmentMapMaxLOD = imageBasedLightingData.PreFilteredEnvironmentMapDesc.mipCount - 1;
+            passData.AmbientOcclusionTechnique = cameraData.AmbientOcclusionTechnique;
 
             builder.AllowPassCulling(false);
         }
@@ -180,10 +185,13 @@ namespace DELTation.AAAARP.Passes
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBg, shCoefficients.SHBg);
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBb, shCoefficients.SHBb);
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHC, shCoefficients.SHC);
+
+            context.cmd.SetKeyword(_gtaoGlobalKeyword, data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.GTAO);
         }
 
         public class PassData : PassDataBase
         {
+            public AAAAAmbientOcclusionTechnique AmbientOcclusionTechnique;
             public TextureHandle BRDFLut;
             public TextureHandle DiffuseIrradianceCubemap;
             public AAAALightingData LightingData;

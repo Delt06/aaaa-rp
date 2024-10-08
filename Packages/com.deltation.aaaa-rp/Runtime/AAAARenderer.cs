@@ -5,6 +5,7 @@ using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Passes;
 using DELTation.AAAARP.Passes.AntiAliasing;
 using DELTation.AAAARP.Passes.ClusteredLighting;
+using DELTation.AAAARP.Passes.GlobalIllumination;
 using DELTation.AAAARP.Passes.IBL;
 using DELTation.AAAARP.Passes.PostProcessing;
 using DELTation.AAAARP.Passes.Shadows;
@@ -36,6 +37,7 @@ namespace DELTation.AAAARP
         private readonly SkyboxPass _skyboxPass;
         private readonly SMAAPass _smaaPass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
+        private readonly XeGTAOPass _xeGTAOPass;
 
         public AAAARenderer()
         {
@@ -64,6 +66,7 @@ namespace DELTation.AAAARP
 
             _clusteredLightingPass = new ClusteredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
+            _xeGTAOPass = new XeGTAOPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
 
             _smaaPass = new SMAAPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders, textures);
@@ -110,6 +113,7 @@ namespace DELTation.AAAARP
             EnqueuePass(_resolveVisibilityBufferPass);
 
             EnqueuePass(_clusteredLightingPass);
+            EnqueuePass(_xeGTAOPass);
             EnqueuePass(_deferredLightingPass);
             EnqueuePass(_skyboxPass);
 

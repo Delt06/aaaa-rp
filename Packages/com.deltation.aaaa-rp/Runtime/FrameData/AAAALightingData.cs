@@ -10,6 +10,7 @@ namespace DELTation.AAAARP.FrameData
     public class AAAALightingData : ContextItem
     {
         public float AmbientIntensity;
+        public TextureHandle GTAOTerm;
         public AAAALightingConstantBuffer LightingConstantBuffer;
         public BufferHandle PunctualLightsBuffer;
 
@@ -24,6 +25,8 @@ namespace DELTation.AAAARP.FrameData
                 };
                 PunctualLightsBuffer = renderGraph.CreateBuffer(bufferDesc);
             }
+
+            GTAOTerm = TextureHandle.nullHandle;
         }
 
         public override void Reset()
@@ -31,6 +34,7 @@ namespace DELTation.AAAARP.FrameData
             AmbientIntensity = default;
             LightingConstantBuffer = default;
             PunctualLightsBuffer = BufferHandle.nullHandle;
+            GTAOTerm = TextureHandle.nullHandle;
         }
     }
 }

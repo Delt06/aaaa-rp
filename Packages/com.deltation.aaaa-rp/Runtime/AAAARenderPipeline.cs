@@ -160,6 +160,7 @@ namespace DELTation.AAAARP
             AAAAImageQualitySettings imageQualitySettings = camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.ImageQualitySettings : null;
             AAAAPostProcessingSettings postProcessingSettings =
                 camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.PostProcessingSettings : null;
+            var lightingSettings = camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.LightingSettings : null;
 
             cameraData.Renderer = renderer;
             cameraData.Camera = camera;
@@ -213,7 +214,7 @@ namespace DELTation.AAAARP
             Matrix4x4 projectionMatrix = camera.projectionMatrix;
             cameraData.SetViewProjectionAndJitterMatrix(camera.worldToCameraMatrix, projectionMatrix);
             cameraData.WorldSpaceCameraPos = camera.transform.position;
-
+            
             cameraData.AntiAliasingTechnique = imageQualitySettings?.AntiAliasing ?? AAAAAntiAliasingTechnique.Off;
             cameraData.UpscalingTechnique = imageQualitySettings?.Upscaling ?? AAAAUpscalingTechnique.Off;
             if (cameraData.RenderScale >= 1.0f)
@@ -222,6 +223,7 @@ namespace DELTation.AAAARP
             }
             cameraData.FSRShaprness = imageQualitySettings?.FSRSharpness ?? 0.0f;
             cameraData.PostProcessingEnabled = postProcessingSettings?.AnyEnabled() ?? false;
+            cameraData.AmbientOcclusionTechnique = lightingSettings?.AmbientOcclusion ?? AAAAAmbientOcclusionTechnique.Off;
 
             return cameraData;
         }

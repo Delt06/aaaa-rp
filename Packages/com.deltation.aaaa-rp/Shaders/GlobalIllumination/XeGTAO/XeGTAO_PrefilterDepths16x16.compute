@@ -1,0 +1,21 @@
+#pragma kernel CSPrefilterDepths16x16
+
+#include "XeGTAOCommon.hlsl"
+
+// input output textures for the first pass (XeGTAO_PrefilterDepths16x16)
+Texture2D<float>     g_srcRawDepth; // source depth buffer data (in NDC space in DirectX)
+RWTexture2D<lpfloat> g_outWorkingDepthMIP0 : register(u0); // output viewspace depth MIP (these are views into g_srcWorkingDepth MIP levels)
+RWTexture2D<lpfloat> g_outWorkingDepthMIP1 : register(u1); // output viewspace depth MIP (these are views into g_srcWorkingDepth MIP levels)
+RWTexture2D<lpfloat> g_outWorkingDepthMIP2 : register(u2); // output viewspace depth MIP (these are views into g_srcWorkingDepth MIP levels)
+RWTexture2D<lpfloat> g_outWorkingDepthMIP3 : register(u3); // output viewspace depth MIP (these are views into g_srcWorkingDepth MIP levels)
+RWTexture2D<lpfloat> g_outWorkingDepthMIP4 : register(u4); // output viewspace depth MIP (these are views into g_srcWorkingDepth MIP levels)
+
+// Engine-specific entry point for the first pass
+[numthreads(8, 8, 1)]
+// <- hard coded to 8x8; each thread computes 2x2 blocks so processing 16x16 block: Dispatch needs to be called with (width + 16-1) / 16, (height + 16-1) / 16
+void CSPrefilterDepths16x16(uint2 dispatchThreadID : SV_DispatchThreadID, uint2 groupThreadID : SV_GroupThreadID)
+{
+    const GTAOConstants gtaoConstants = LoadGTAOConstants();
+    XeGTAO_PrefilterDepths16x16(dispatchThreadID, groupThreadID, gtaoConstants, g_srcRawDepth, sampler_PointClamp, g_outWorkingDepthMIP0,
+                                g_outWorkingDepthMIP1, g_outWorkingDepthMIP2, g_outWorkingDepthMIP3, g_outWorkingDepthMIP4);
+}

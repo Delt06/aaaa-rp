@@ -1,0 +1,28 @@
+#pragma kernel CSDenoisePass
+#pragma kernel CSDenoiseLastPass
+
+#include "XeGTAOCommon.hlsl"
+
+// input output textures for the third pass (XeGTAO_Denoise)
+Texture2D<uint>    g_srcWorkingAOTerm : register( t0 ); // coming from previous pass
+Texture2D<lpfloat> g_srcWorkingEdges : register( t1 ); // coming from previous pass
+RWTexture2D<uint>  g_outFinalAOTerm : register( u0 ); // final AO term - just 'visibility' or 'visibility + bent normals'
+
+// Engine-specific entry point for the third pass
+[numthreads(XE_GTAO_NUMTHREADS_X, XE_GTAO_NUMTHREADS_Y, 1)]
+void CSDenoisePass(const uint2 dispatchThreadID : SV_DispatchThreadID)
+{
+    const GTAOConstants gtaoConstants = LoadGTAOConstants();
+    const uint2         pixCoordBase = dispatchThreadID * uint2(2, 1); // we're computing 2 horizontal pixels at a time (performance optimization)
+    // g_samplerPointClamp is a sampler with D3D12_FILTER_MIN_MAG_MIP_POINT filter and D3D12_TEXTURE_ADDRESS_MODE_CLAMP addressing mode
+    XeGTAO_Denoise(pixCoordBase, gtaoConstants, g_srcWorkingAOTerm, g_srcWorkingEdges, sampler_PointClamp, g_outFinalAOTerm, false);
+}
+
+[numthreads(XE_GTAO_NUMTHREADS_X, XE_GTAO_NUMTHREADS_Y, 1)]
+void CSDenoiseLastPass(const uint2 dispatchThreadID : SV_DispatchThreadID)
+{
+    const GTAOConstants gtaoConstants = LoadGTAOConstants();
+    const uint2         pixCoordBase = dispatchThreadID * uint2(2, 1); // we're computing 2 horizontal pixels at a time (performance optimization)
+    // g_samplerPointClamp is a sampler with D3D12_FILTER_MIN_MAG_MIP_POINT filter and D3D12_TEXTURE_ADDRESS_MODE_CLAMP addressing mode
+    XeGTAO_Denoise(pixCoordBase, gtaoConstants, g_srcWorkingAOTerm, g_srcWorkingEdges, sampler_PointClamp, g_outFinalAOTerm, true);
+}

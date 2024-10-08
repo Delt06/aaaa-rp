@@ -1,4 +1,5 @@
 using System;
+using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -21,6 +22,7 @@ namespace DELTation.AAAARP.Passes
         protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
             passData.ApplyDirect = lightingData.LightingConstantBuffer.DirectionalLightCount > 0;
@@ -32,6 +34,11 @@ namespace DELTation.AAAARP.Passes
             builder.UseTexture(resourceData.GBufferNormals, AccessFlags.Read);
             builder.UseTexture(resourceData.GBufferMasks, AccessFlags.Read);
             builder.UseTexture(resourceData.CameraScaledDepthBuffer, AccessFlags.Read);
+            
+            if (cameraData.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.GTAO)
+            {
+                builder.UseTexture(lightingData.GTAOTerm, AccessFlags.Read);
+            }
 
             builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.WriteAll);
         }

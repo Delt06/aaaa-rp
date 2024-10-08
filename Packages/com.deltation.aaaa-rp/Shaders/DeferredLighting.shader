@@ -25,6 +25,7 @@ Shader "Hidden/AAAA/DeferredLighting"
         surfaceData.metallic = gbuffer.metallic;
         surfaceData.normalWS = gbuffer.normalWS;
         surfaceData.positionWS = ComputeWorldSpacePosition(IN.texcoord, deviceDepth, UNITY_MATRIX_I_VP);
+        surfaceData.aoVisibility = 1.0;
     }
 
     Varyings OverrideVert(Attributes input)
@@ -76,7 +77,7 @@ Shader "Hidden/AAAA/DeferredLighting"
                 brdfInput.metallic = surfaceData.metallic;
                 brdfInput.roughness = surfaceData.roughness;
                 brdfInput.irradiance = 0;
-                brdfInput.ambientOcclusion = 1.0f;
+                brdfInput.aoVisibility = 1.0f;
 
                 UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
                 for (uint lightIndex = 0; lightIndex < lightCount; ++lightIndex)
@@ -113,12 +114,17 @@ Shader "Hidden/AAAA/DeferredLighting"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
+            #pragma multi_compile_fragment _ AAAA_GTAO
+
+            #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GTAO.hlsl"
+
             float4 Frag(const Varyings IN) : SV_Target
             {
                 const float        deviceDepth = SampleDeviceDepth(IN.texcoord);
                 const GBufferValue gbuffer = SampleGBuffer(IN.texcoord);
                 SurfaceData        surfaceData;
                 InitializeSurfaceData(gbuffer, IN, deviceDepth, surfaceData);
+                surfaceData.aoVisibility = SampleGTAO(IN.positionCS.xy);
 
                 const float3 lighting = PBRLighting::ComputeLightingIndirect(surfaceData);
                 return float4(lighting, 1);

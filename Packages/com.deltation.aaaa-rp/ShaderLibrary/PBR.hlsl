@@ -11,6 +11,7 @@ struct SurfaceData
     float  metallic;
     float3 normalWS;
     float3 positionWS;
+    float  aoVisibility;
 };
 
 struct PBRLighting
@@ -32,7 +33,7 @@ struct PBRLighting
         brdfInput.metallic = surfaceData.metallic;
         brdfInput.roughness = surfaceData.roughness;
         brdfInput.irradiance = SampleDiffuseIrradiance(surfaceData.normalWS);
-        brdfInput.ambientOcclusion = 1.0f;
+        brdfInput.aoVisibility = surfaceData.aoVisibility;
 
         const float3 indirectDiffuse = ComputeBRDFIndirectDiffuse(brdfInput);
         const float3 indirectSpecular = ComputeBRDFIndirectSpecular(brdfInput);

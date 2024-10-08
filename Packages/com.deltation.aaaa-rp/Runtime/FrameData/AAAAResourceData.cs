@@ -58,6 +58,7 @@ namespace DELTation.AAAARP.FrameData
         }
 
         public TextureDesc CameraScaledColorDesc { get; private set; }
+        public TextureDesc CameraScaledDepthDesc { get; private set; }
         public TextureDesc CameraColorDesc { get; private set; }
 
         public void InitTextures(RenderGraph renderGraph, AAAARenderingData renderingData, AAAACameraData cameraData)
@@ -92,6 +93,7 @@ namespace DELTation.AAAARP.FrameData
                 cameraDepthDesc.filterMode = FilterMode.Point;
                 cameraDepthDesc.wrapMode = TextureWrapMode.Clamp;
                 cameraDepthDesc.clearBuffer = cameraData.ClearDepth;
+                CameraScaledDepthDesc = cameraDepthDesc;
                 _cameraDepthBuffer = renderGraph.CreateTexture(cameraDepthDesc);
 
                 // Scaled color

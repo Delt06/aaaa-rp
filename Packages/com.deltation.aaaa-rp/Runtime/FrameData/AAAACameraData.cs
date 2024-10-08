@@ -6,6 +6,7 @@ namespace DELTation.AAAARP.FrameData
 {
     public class AAAACameraData : ContextItem
     {
+        public AAAAAmbientOcclusionTechnique AmbientOcclusionTechnique;
         public AAAAAntiAliasingTechnique AntiAliasingTechnique;
         public float AspectRatio;
         public Color BackgroundColor;
@@ -67,6 +68,7 @@ namespace DELTation.AAAARP.FrameData
             JitterMatrix = Matrix4x4.identity;
             WorldSpaceCameraPos = default;
 
+            AmbientOcclusionTechnique = default;
             AntiAliasingTechnique = default;
             UpscalingTechnique = default;
             PostProcessingEnabled = false;

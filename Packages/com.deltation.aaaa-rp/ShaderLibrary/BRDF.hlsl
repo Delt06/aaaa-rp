@@ -1,8 +1,9 @@
 #ifndef AAAA_BRDF_INCLUDED
 #define AAAA_BRDF_INCLUDED
 
-#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GTAO.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 
 struct BRDFInput
 {
@@ -15,7 +16,7 @@ struct BRDFInput
     float  metallic;
     float  roughness;
     float3 irradiance;
-    float  ambientOcclusion;
+    float  aoVisibility;
 };
 
 float3 FresnelSchlick(const float cosTheta, const float3 f0)
@@ -105,9 +106,13 @@ float3 ComputeBRDFIndirectDiffuse(const BRDFInput input)
     const float3 kS = F;
     float3       kD = 1.0 - kS;
     kD *= 1.0 - input.metallic;
+    const float diffuseAO = input.aoVisibility;
 
     const float3 diffuse = input.irradiance * input.diffuseColor;
-    return (kD * diffuse) * input.ambientOcclusion;
+    float3       result = (kD * diffuse);
+    result *= SingleBounceAO(diffuseAO);
+    MultiBounceAO(diffuseAO, input.diffuseColor, result);
+    return result;
 }
 
 float3 ComputeBRDFIndirectSpecular(const BRDFInput input)
@@ -118,12 +123,15 @@ float3 ComputeBRDFIndirectSpecular(const BRDFInput input)
     const float3 F0 = ComputeF0(input);
     const float  NdotI = max(dot(input.normalWS, eyeWS), 0.0);
     const float3 F = FresnelSchlick(NdotI, F0, input.roughness);
+    const float  specularAO = SpecularAO_Lagarde(NdotI, input.aoVisibility, input.roughness);
 
     // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/6.pbr/2.2.1.ibl_specular/2.2.1.pbr.fs
     const float3 prefilteredColor = SamplePrefilteredEnvironment(reflectionWS, input.roughness);
     const float2 brdf = SampleBRDFLut(NdotI, input.roughness);
-    const float3 specular = prefilteredColor * (F * brdf.x + brdf.y); // A channel stores fade amount
-    return specular * input.ambientOcclusion;
+    float3 result = prefilteredColor * (F * brdf.x + brdf.y); // A channel stores fade amount
+    result *= SingleBounceAO(specularAO);
+    MultiBounceSpecularAO(specularAO, input.diffuseColor, result);
+    return result;
 }
 
 #endif // AAAA_BRDF_INCLUDED

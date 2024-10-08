@@ -1,0 +1,84 @@
+#pragma kernel CSGTAOLow
+#pragma kernel CSGTAOMedium
+#pragma kernel CSGTAOHigh
+#pragma kernel CSGTAOUltra
+
+#include "XeGTAOCommon.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
+
+// input output textures for the second pass (XeGTAO_MainPass)
+Texture2D<lpfloat> g_srcWorkingDepth; // viewspace depth with MIPs, output by XeGTAO_PrefilterDepths16x16 and consumed by XeGTAO_MainPass
+// Texture2D<uint>          g_srcHilbertLUT; // hilbert lookup table  (if any)
+RWTexture2D<uint>        g_outWorkingAOTerm; // output AO term (includes bent normals if enabled - packed as R11G11B10 scaled by AO)
+RWTexture2D<unorm float> g_outWorkingEdges; // output depth-based edges used by the denoiser
+
+float4x4 _CameraViewMatrix;
+
+// Engine-specific normal map loader
+lpfloat3 LoadNormal(int2 pos)
+{
+    float3 normalWS = UnpackGBufferNormal(LOAD_TEXTURE2D_LOD(_GBuffer_Normals, pos, 0).xy);
+    // ReSharper disable once CppRedundantCastExpression
+    return (lpfloat3)TransformWorldToViewNormal(normalWS, true);
+}
+
+// Engine-specific screen & temporal noise loader
+lpfloat2 SpatioTemporalNoise(uint2 pixCoord, uint temporalIndex) // without TAA, temporalIndex is always 0
+{
+    float2 noise;
+    #if 1   // Hilbert curve driving R2 (see https://www.shadertoy.com/view/3tB3z3)
+    #ifdef XE_GTAO_HILBERT_LUT_AVAILABLE // load from lookup texture...
+    uint index = g_srcHilbertLUT.Load( uint3( pixCoord % 64, 0 ) ).x;
+    #else // ...or generate in-place?
+    uint index = HilbertIndex(pixCoord.x, pixCoord.y);
+    #endif
+    index += 288 * (temporalIndex % 64);
+    // why 288? tried out a few and that's the best so far (with XE_HILBERT_LEVEL 6U) - but there's probably better :)
+    // R2 sequence - see http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/
+    return lpfloat2(frac(0.5 + index * float2(0.75487766624669276005, 0.5698402909980532659114)));
+    #else   // Pseudo-random (fastest but looks bad - not a good choice)
+    uint baseHash = Hash32( pixCoord.x + (pixCoord.y << 15) );
+    baseHash = Hash32Combine( baseHash, temporalIndex );
+    return lpfloat2( Hash32ToFloat( baseHash ), Hash32ToFloat( Hash32( baseHash ) ) );
+    #endif
+}
+
+// Engine-specific entry point for the second pass
+[numthreads(XE_GTAO_NUMTHREADS_X, XE_GTAO_NUMTHREADS_Y, 1)]
+void CSGTAOLow(const uint2 pixCoord : SV_DispatchThreadID)
+{
+    const GTAOConstants gtaoConstants = LoadGTAOConstants();
+    // g_samplerPointClamp is a sampler with D3D12_FILTER_MIN_MAG_MIP_POINT filter and D3D12_TEXTURE_ADDRESS_MODE_CLAMP addressing mode
+    XeGTAO_MainPass(pixCoord, 1, 2, SpatioTemporalNoise(pixCoord, NoiseIndex), LoadNormal(pixCoord), gtaoConstants, g_srcWorkingDepth,
+                    sampler_PointClamp, g_outWorkingAOTerm, g_outWorkingEdges);
+}
+
+// Engine-specific entry point for the second pass
+[numthreads(XE_GTAO_NUMTHREADS_X, XE_GTAO_NUMTHREADS_Y, 1)]
+void CSGTAOMedium(const uint2 pixCoord : SV_DispatchThreadID)
+{
+    const GTAOConstants gtaoConstants = LoadGTAOConstants();
+    // g_samplerPointClamp is a sampler with D3D12_FILTER_MIN_MAG_MIP_POINT filter and D3D12_TEXTURE_ADDRESS_MODE_CLAMP addressing mode
+    XeGTAO_MainPass(pixCoord, 2, 2, SpatioTemporalNoise(pixCoord, NoiseIndex), LoadNormal(pixCoord), gtaoConstants, g_srcWorkingDepth,
+                    sampler_PointClamp, g_outWorkingAOTerm, g_outWorkingEdges);
+}
+
+// Engine-specific entry point for the second pass
+[numthreads(XE_GTAO_NUMTHREADS_X, XE_GTAO_NUMTHREADS_Y, 1)]
+void CSGTAOHigh(const uint2 pixCoord : SV_DispatchThreadID)
+{
+    const GTAOConstants gtaoConstants = LoadGTAOConstants();
+    // g_samplerPointClamp is a sampler with D3D12_FILTER_MIN_MAG_MIP_POINT filter and D3D12_TEXTURE_ADDRESS_MODE_CLAMP addressing mode
+    XeGTAO_MainPass(pixCoord, 3, 3, SpatioTemporalNoise(pixCoord, NoiseIndex), LoadNormal(pixCoord), gtaoConstants, g_srcWorkingDepth,
+                    sampler_PointClamp, g_outWorkingAOTerm, g_outWorkingEdges);
+}
+
+// Engine-specific entry point for the second pass
+[numthreads(XE_GTAO_NUMTHREADS_X, XE_GTAO_NUMTHREADS_Y, 1)]
+void CSGTAOUltra(const uint2 pixCoord : SV_DispatchThreadID)
+{
+    const GTAOConstants gtaoConstants = LoadGTAOConstants();
+    // g_samplerPointClamp is a sampler with D3D12_FILTER_MIN_MAG_MIP_POINT filter and D3D12_TEXTURE_ADDRESS_MODE_CLAMP addressing mode
+    XeGTAO_MainPass(pixCoord, 9, 3, SpatioTemporalNoise(pixCoord, NoiseIndex), LoadNormal(pixCoord), gtaoConstants, g_srcWorkingDepth,
+                    sampler_PointClamp, g_outWorkingAOTerm, g_outWorkingEdges);
+}

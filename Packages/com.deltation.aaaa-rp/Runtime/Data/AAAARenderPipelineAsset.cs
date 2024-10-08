@@ -1,4 +1,5 @@
 ﻿using System;
+using DELTation.AAAARP.ShaderLibrary.ThirdParty.XeGTAO;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -29,6 +30,12 @@ namespace DELTation.AAAARP.Data
     {
         Off,
         FSR1,
+    }
+
+    public enum AAAAAmbientOcclusionTechnique
+    {
+        Off,
+        GTAO,
     }
 
     [Serializable]
@@ -93,6 +100,9 @@ namespace DELTation.AAAARP.Data
             [Range(0.0f, 1.0f)]
             public float SlopeBias = 0.5f;
         }
+
+        public AAAAAmbientOcclusionTechnique AmbientOcclusion = AAAAAmbientOcclusionTechnique.GTAO;
+        public XeGTAO.GTAOSettings GTAOSettings = XeGTAO.GTAOSettings.Default; 
     }
 
     [Serializable]
