@@ -14,6 +14,9 @@ Texture2D<lpfloat> g_srcWorkingDepth; // viewspace depth with MIPs, output by Xe
 RWTexture2D<uint>        g_outWorkingAOTerm; // output AO term (includes bent normals if enabled - packed as R11G11B10 scaled by AO)
 RWTexture2D<unorm float> g_outWorkingEdges; // output depth-based edges used by the denoiser
 
+// No TAA, so we can hardcode this 
+#define NoiseIndex 0
+
 // Engine-specific normal map loader
 lpfloat3 LoadNormal(int2 pos, GTAOConstants gtaoConstants)
 {
