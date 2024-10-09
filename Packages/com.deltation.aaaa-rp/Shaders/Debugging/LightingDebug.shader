@@ -130,6 +130,7 @@ Shader "Hidden/AAAA/LightingDebug"
 
                         resultColor = _LightingDebugMode == AAAALIGHTINGDEBUGMODE_BENT_NORMALS ? bentNormals * 0.5 + 0.5 : visibility;
                         resultOpacity = 1;
+                        break;
                     }
                 default:
                     {
