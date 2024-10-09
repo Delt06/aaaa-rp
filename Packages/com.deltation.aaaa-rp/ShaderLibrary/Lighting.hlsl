@@ -29,16 +29,17 @@ float aaaa_PreFilteredEnvironmentMap_MaxLOD;
 struct Light
 {
     float3 color;
-    float3 direction;
+    float3 directionWS;
     float  distanceAttenuation;
     float  shadowAttenuation;
+    float shadowStrength;
 };
 
 Light GetDirectionalLight(const uint index, const float3 positionWS)
 {
     Light light;
     light.color = DirectionalLightColors[index].rgb;
-    light.direction = DirectionalLightDirections[index].xyz;
+    light.directionWS = DirectionalLightDirections[index].xyz;
     light.distanceAttenuation = 1.0;
 
     const float4                               shadowParams = DirectionalLightShadowParams[index];
@@ -48,6 +49,7 @@ Light GetDirectionalLight(const uint index, const float3 positionWS)
     const CascadedDirectionalLightShadowSample shadowSample = SampleCascadedDirectionalLightShadow(
         positionWS, shadowSliceRange_shadowFadeParams.xy, shadowSliceRange_shadowFadeParams.zw, isSoftShadow, shadowStrength);
     light.shadowAttenuation = shadowSample.shadowAttenuation;
+    light.shadowStrength = shadowStrength;
 
     return light;
 }
@@ -69,9 +71,10 @@ Light GetPunctualLight(const uint index, const float3 positionWS)
 
     Light light;
     light.color = punctualLightData.Color_Radius.xyz;
-    light.direction = lightDirection;
+    light.directionWS = lightDirection;
     light.distanceAttenuation = distanceAttenuation * angleAttenuation;
     light.shadowAttenuation = 1;
+    light.shadowStrength = 1;
     return light;
 }
 

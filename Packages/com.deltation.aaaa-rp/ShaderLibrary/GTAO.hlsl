@@ -9,7 +9,6 @@ float4          _GTAOResolutionScale;
 #if defined(AAAA_GTAO) || defined(AAAA_GTAO_BENT_NORMALS)
 #define AAAA_GTAO_ANY 1
 #define MULTI_BOUNCE_AMBIENT_OCCLUSION 1
-#define DIRECT_LIGHTING_AO_MICROSHADOWS 1
 #endif
 
 struct GTAOUtils
@@ -28,24 +27,6 @@ struct GTAOUtils
         unpackedOutput.z = (float)(((packedInput >> 16) & 0x000000ff)) / 255;
         unpackedOutput.w = (float)(packedInput >> 24) / 255;
         return unpackedOutput;
-    }
-
-    // a contact shadow approximation, totally not physically correct; a riff on "Chan 2018, "Material Advances in Call of Duty: WWII" and "The Technical Art of Uncharted 4" http://advances.realtimerendering.com/other/2016/naughty_dog/NaughtyDog_TechArt_Final.pdf (microshadowing)"
-    // TODO: figure it out with bent normals! see https://www.activision.com/cdn/research/siggraph_2018_opt.pdf
-    static float ComputeMicroShadowing(float NoL, float ao)
-    {
-        #if DIRECT_LIGHTING_AO_MICROSHADOWS
-        #if 0 // from the paper - different from Filament and looks wrong
-        float aperture = 2.0 * ao * ao;
-        return saturate( abs(NoL) + aperture - 1.0 );
-        #else // filament version
-        float aperture = rsqrt(1.0000001 - ao);
-        NoL += 0.1; // when using bent normals, avoids overshadowing - bent normals are just approximation anyhow
-        return saturate(NoL * aperture);
-        #endif
-        #else
-        return 1;
-        #endif
     }
 };
 

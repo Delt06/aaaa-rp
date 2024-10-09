@@ -8,8 +8,6 @@
 struct BRDFInput
 {
     float3 normalWS;
-    float3 lightDirectionWS;
-    float3 lightColor;
     float3 positionWS;
     float3 cameraPositionWS;
     float3 diffuseColor;
@@ -18,7 +16,6 @@ struct BRDFInput
     float3 irradiance;
     float  aoVisibility;
     float3 bentNormalWS;
-    float  shadowAttenuation;
 };
 
 float3 FresnelSchlick(const float cosTheta, const float3 f0)
@@ -72,21 +69,38 @@ float3 ComputeF0(const BRDFInput input)
     return lerp(F0, input.diffuseColor, input.metallic);
 }
 
-float3 ComputeBRDF(const BRDFInput input)
+// A contact shadow approximation, totally not physically correct; a riff on "Chan 2018, "Material Advances in Call of Duty: WWII" and "The Technical Art of Uncharted 4" http://advances.realtimerendering.com/other/2016/naughty_dog/NaughtyDog_TechArt_Final.pdf (microshadowing)"
+float ComputeMicroShadowing(const BRDFInput input, const Light light, float NdotL, const float ao)
+{
+    #ifdef AAAA_GTAO_BENT_NORMALS
+    NdotL = saturate(dot(input.bentNormalWS, light.directionWS));
+    #endif
+
+    #if 0 // from the paper  - different from Filament and looks wrong
+    float aperture = 2.0 * ao * ao;
+    return saturate(abs(NdotL) + aperture - 1.0);
+    #else // filament version
+    float aperture = rsqrt(1.0000001 - ao);
+    NdotL += 0.1; // when using bent normals, avoids overshadowing - bent normals are just approximation anyhow
+    return saturate(NdotL * aperture);
+    #endif
+}
+
+float3 ComputeBRDF(const BRDFInput input, const Light light)
 {
     const float3 eyeWS = normalize(input.cameraPositionWS - input.positionWS);
-    const float3 halfVectorWS = normalize(eyeWS + input.lightDirectionWS);
+    const float3 halfVectorWS = normalize(eyeWS + light.directionWS);
 
-    const float3 radiance = input.lightColor;
+    const float3 radiance = light.color;
 
     const float3 F0 = ComputeF0(input);
     const float3 F = FresnelSchlick(max(dot(halfVectorWS, eyeWS), 0.0), F0);
 
     const float NDF = DistributionGGX(input.normalWS, halfVectorWS, input.roughness);
-    const float G = GeometrySmith(input.normalWS, eyeWS, input.lightDirectionWS, input.roughness);
+    const float G = GeometrySmith(input.normalWS, eyeWS, light.directionWS, input.roughness);
 
     const float3 numerator = NDF * G * F;
-    const float  denominator = 4.0 * max(dot(input.normalWS, eyeWS), 0.0) * max(dot(input.normalWS, input.lightDirectionWS), 0.0) + 0.0001;
+    const float  denominator = 4.0 * max(dot(input.normalWS, eyeWS), 0.0) * max(dot(input.normalWS, light.directionWS), 0.0) + 0.0001;
     const float3 specular = numerator / denominator;
 
     const float3 kS = F;
@@ -94,13 +108,14 @@ float3 ComputeBRDF(const BRDFInput input)
 
     kD *= 1.0 - input.metallic;
 
-    const float NdotL = saturate(dot(input.normalWS, input.lightDirectionWS));
-    #ifdef AAAA_GTAO_BENT_NORMALS
-    const float bentNdotL = saturate(dot(input.bentNormalWS, input.lightDirectionWS));
-    #else
-    const float bentNdotL = NdotL;
+    const float NdotL = saturate(dot(input.normalWS, light.directionWS));
+    float       shadowAttenuation = light.shadowAttenuation;
+
+    #ifdef AAAA_DIRECT_LIGHTING_AO_MICROSHADOWS
+    float microShadowing = ComputeMicroShadowing(input, light, NdotL, input.aoVisibility);
+    microShadowing = lerp(1, microShadowing, light.shadowStrength);
+    shadowAttenuation = min(shadowAttenuation, microShadowing);
     #endif
-    const float shadowAttenuation = min(input.shadowAttenuation, GTAOUtils::ComputeMicroShadowing(bentNdotL, input.aoVisibility));
 
     return shadowAttenuation * (kD * input.diffuseColor / PI + specular) * radiance * NdotL;
 }

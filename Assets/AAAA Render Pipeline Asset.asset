@@ -37,8 +37,9 @@ MonoBehaviour:
     GTAOSettings:
       Resolution: 1
       QualityLevel: 3
-      BentNormals: 1
       DenoisingLevel: 1
+      BentNormals: 1
+      DirectLightingMicroshadows: 1
       FinalValuePower: 1
   _imageBasedLightingSettings:
     DiffuseIrradianceResolution: 128

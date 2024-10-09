@@ -17,17 +17,15 @@ struct SurfaceData
 
 struct PBRLighting
 {
-    static float3 ComputeLightingDirect(const BRDFInput brdfInput)
+    static float3 ComputeLightingDirect(const BRDFInput brdfInput, const Light light)
     {
-        return ComputeBRDF(brdfInput);
+        return ComputeBRDF(brdfInput, light);
     }
 
     static float3 ComputeLightingIndirect(const SurfaceData surfaceData)
     {
         BRDFInput brdfInput;
         brdfInput.normalWS = surfaceData.normalWS;
-        brdfInput.lightDirectionWS = 0;
-        brdfInput.lightColor = 0;
         brdfInput.positionWS = surfaceData.positionWS;
         brdfInput.cameraPositionWS = GetCameraPositionWS();
         brdfInput.diffuseColor = surfaceData.albedo;
@@ -36,7 +34,6 @@ struct PBRLighting
         brdfInput.irradiance = SampleDiffuseIrradiance(surfaceData.bentNormalWS);
         brdfInput.aoVisibility = surfaceData.aoVisibility;
         brdfInput.bentNormalWS = surfaceData.bentNormalWS;
-        brdfInput.shadowAttenuation = 1.0;
 
         const float3 indirectDiffuse = ComputeBRDFIndirectDiffuse(brdfInput);
         const float3 indirectSpecular = ComputeBRDFIndirectSpecular(brdfInput);

@@ -133,8 +133,9 @@ namespace DELTation.AAAARP.Data
         {
             public XeGTAOResolution Resolution = XeGTAOResolution.Full;
             public XeGTAOQualityLevel QualityLevel = XeGTAOQualityLevel.High;
-            public bool BentNormals;
             public XeGTAODenoisingLevel DenoisingLevel = XeGTAODenoisingLevel.Sharp;
+            public bool BentNormals;
+            public bool DirectLightingMicroshadows;
             [Range(0.0f, 5.0f)]
             public float FinalValuePower = 1.0f;
         }

@@ -19,9 +19,9 @@ Shader "Hidden/AAAA/DeferredLighting"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PBR.hlsl"
 
     void InitializeSurfaceData(const GBufferValue gbuffer,
-                           const Varyings         IN,
-                           const float            deviceDepth,
-                           out SurfaceData        surfaceData)
+                               const Varyings     IN,
+                               const float        deviceDepth,
+                               out SurfaceData    surfaceData)
     {
         surfaceData.albedo = gbuffer.albedo;
         surfaceData.roughness = gbuffer.roughness;
@@ -63,6 +63,8 @@ Shader "Hidden/AAAA/DeferredLighting"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
+            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/GTAODirectLightingPragma.hlsl"
+
             float4 Frag(const Varyings IN) : SV_Target
             {
                 const float        deviceDepth = SampleDeviceDepth(IN.texcoord);
@@ -81,17 +83,14 @@ Shader "Hidden/AAAA/DeferredLighting"
                 brdfInput.metallic = surfaceData.metallic;
                 brdfInput.roughness = surfaceData.roughness;
                 brdfInput.irradiance = 0;
-                brdfInput.aoVisibility = 1.0f;
+                brdfInput.aoVisibility = surfaceData.aoVisibility;
                 brdfInput.bentNormalWS = surfaceData.normalWS;
 
                 UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
                 for (uint lightIndex = 0; lightIndex < lightCount; ++lightIndex)
                 {
                     const Light light = GetDirectionalLight(lightIndex, surfaceData.positionWS);
-                    brdfInput.lightDirectionWS = light.direction;
-                    brdfInput.lightColor = light.color;
-                    brdfInput.shadowAttenuation = light.shadowAttenuation;
-                    lighting += PBRLighting::ComputeLightingDirect(brdfInput);
+                    lighting += PBRLighting::ComputeLightingDirect(brdfInput, light);
                 }
 
                 const AAAAClusteredLightingGridCell lightGridCell = ClusteredLighting::LoadCell(surfaceData.positionWS, IN.texcoord);
@@ -100,10 +99,7 @@ Shader "Hidden/AAAA/DeferredLighting"
                 {
                     const uint  punctualLightIndex = ClusteredLighting::LoadLightIndex(lightGridCell, i);
                     const Light light = GetPunctualLight(punctualLightIndex, surfaceData.positionWS);
-                    brdfInput.lightDirectionWS = light.direction;
-                    brdfInput.lightColor = light.color;
-                    brdfInput.shadowAttenuation = 1.0f;
-                    lighting += light.distanceAttenuation * PBRLighting::ComputeLightingDirect(brdfInput);
+                    lighting += light.distanceAttenuation * PBRLighting::ComputeLightingDirect(brdfInput, light);
                 }
 
                 return float4(lighting, 1);

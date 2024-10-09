@@ -14,14 +14,9 @@ namespace DELTation.AAAARP.Passes
 {
     public sealed class SetupLightingPass : AAAARenderPass<SetupLightingPass.PassData>
     {
-        private readonly GlobalKeyword _gtaoGlobalKeyword;
-        private readonly GlobalKeyword _gtaoBentNormalsGlobalKeyword;
+        private readonly GlobalKeywords _globalKeywords;
 
-        public SetupLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
-        {
-            _gtaoGlobalKeyword = GlobalKeyword.Create("AAAA_GTAO");
-            _gtaoBentNormalsGlobalKeyword = GlobalKeyword.Create("AAAA_GTAO_BENT_NORMALS");
-        }
+        public SetupLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) => _globalKeywords = GlobalKeywords.Create();
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
@@ -54,6 +49,7 @@ namespace DELTation.AAAARP.Passes
             passData.PreFilteredEnvironmentMapMaxLOD = imageBasedLightingData.PreFilteredEnvironmentMapDesc.mipCount - 1;
             passData.AmbientOcclusionTechnique = cameraData.AmbientOcclusionTechnique;
             passData.XeGTAOBentNormals = renderingData.PipelineAsset.LightingSettings.GTAOSettings.BentNormals;
+            passData.XeGTAODirectLightingMicroshadows = renderingData.PipelineAsset.LightingSettings.GTAOSettings.DirectLightingMicroshadows;
 
             builder.AllowPassCulling(false);
         }
@@ -192,8 +188,28 @@ namespace DELTation.AAAARP.Passes
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBb, shCoefficients.SHBb);
             context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHC, shCoefficients.SHC);
 
-            context.cmd.SetKeyword(_gtaoGlobalKeyword, data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO && !data.XeGTAOBentNormals);
-            context.cmd.SetKeyword(_gtaoBentNormalsGlobalKeyword, data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO && data.XeGTAOBentNormals);
+            context.cmd.SetKeyword(_globalKeywords.GTAO, data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO && !data.XeGTAOBentNormals);
+            context.cmd.SetKeyword(_globalKeywords.GTAOBentNormals,
+                data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO && data.XeGTAOBentNormals
+            );
+            context.cmd.SetKeyword(_globalKeywords.DirectLightingAOMicroshadows,
+                data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO && data.XeGTAODirectLightingMicroshadows
+            );
+        }
+
+        private struct GlobalKeywords
+        {
+            public GlobalKeyword DirectLightingAOMicroshadows;
+            public GlobalKeyword GTAO;
+            public GlobalKeyword GTAOBentNormals;
+
+            public static GlobalKeywords Create() =>
+                new()
+                {
+                    GTAO = GlobalKeyword.Create("AAAA_GTAO"),
+                    GTAOBentNormals = GlobalKeyword.Create("AAAA_GTAO_BENT_NORMALS"),
+                    DirectLightingAOMicroshadows = GlobalKeyword.Create("AAAA_DIRECT_LIGHTING_AO_MICROSHADOWS"),
+                };
         }
 
         public class PassData : PassDataBase
@@ -209,6 +225,7 @@ namespace DELTation.AAAARP.Passes
             public NativeArray<AAAAShadowLightSlice> ShadowLightSlices;
             public BufferHandle ShadowLightSlicesBuffer;
             public bool XeGTAOBentNormals;
+            public bool XeGTAODirectLightingMicroshadows;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
