@@ -7,25 +7,29 @@ Shader "Hidden/AAAA/DeferredLighting"
     #pragma editor_sync_compilation
 
     #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
+    #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/GTAOPragma.hlsl"
+
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
+    #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GTAO.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PBR.hlsl"
 
     void InitializeSurfaceData(const GBufferValue gbuffer,
-                               const Varyings     IN,
-                               const float        deviceDepth,
-                               out SurfaceData    surfaceData)
+                           const Varyings         IN,
+                           const float            deviceDepth,
+                           out SurfaceData        surfaceData)
     {
         surfaceData.albedo = gbuffer.albedo;
         surfaceData.roughness = gbuffer.roughness;
         surfaceData.metallic = gbuffer.metallic;
         surfaceData.normalWS = gbuffer.normalWS;
         surfaceData.positionWS = ComputeWorldSpacePosition(IN.texcoord, deviceDepth, UNITY_MATRIX_I_VP);
-        surfaceData.aoVisibility = 1.0;
+
+        SampleGTAO(IN.positionCS.xy, surfaceData.normalWS, surfaceData.aoVisibility, surfaceData.bentNormalWS);
     }
 
     Varyings OverrideVert(Attributes input)
@@ -86,7 +90,8 @@ Shader "Hidden/AAAA/DeferredLighting"
                     const Light light = GetDirectionalLight(lightIndex, surfaceData.positionWS);
                     brdfInput.lightDirectionWS = light.direction;
                     brdfInput.lightColor = light.color;
-                    lighting += light.shadowAttenuation * PBRLighting::ComputeLightingDirect(brdfInput);
+                    brdfInput.shadowAttenuation = light.shadowAttenuation;
+                    lighting += PBRLighting::ComputeLightingDirect(brdfInput);
                 }
 
                 const AAAAClusteredLightingGridCell lightGridCell = ClusteredLighting::LoadCell(surfaceData.positionWS, IN.texcoord);
@@ -97,6 +102,7 @@ Shader "Hidden/AAAA/DeferredLighting"
                     const Light light = GetPunctualLight(punctualLightIndex, surfaceData.positionWS);
                     brdfInput.lightDirectionWS = light.direction;
                     brdfInput.lightColor = light.color;
+                    brdfInput.shadowAttenuation = 1.0f;
                     lighting += light.distanceAttenuation * PBRLighting::ComputeLightingDirect(brdfInput);
                 }
 
@@ -114,18 +120,12 @@ Shader "Hidden/AAAA/DeferredLighting"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
-            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/GTAOPragma.hlsl"
-
-            #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GTAO.hlsl"
-
             float4 Frag(const Varyings IN) : SV_Target
             {
                 const float        deviceDepth = SampleDeviceDepth(IN.texcoord);
                 const GBufferValue gbuffer = SampleGBuffer(IN.texcoord);
                 SurfaceData        surfaceData;
                 InitializeSurfaceData(gbuffer, IN, deviceDepth, surfaceData);
-
-                SampleGTAO(IN.positionCS.xy, surfaceData.normalWS, surfaceData.aoVisibility, surfaceData.bentNormalWS);
 
                 const float3 lighting = PBRLighting::ComputeLightingIndirect(surfaceData);
                 return float4(lighting, 1);

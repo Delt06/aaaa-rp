@@ -33,9 +33,10 @@ struct PBRLighting
         brdfInput.diffuseColor = surfaceData.albedo;
         brdfInput.metallic = surfaceData.metallic;
         brdfInput.roughness = surfaceData.roughness;
-        brdfInput.irradiance = SampleDiffuseIrradiance(surfaceData.normalWS);
+        brdfInput.irradiance = SampleDiffuseIrradiance(surfaceData.bentNormalWS);
         brdfInput.aoVisibility = surfaceData.aoVisibility;
         brdfInput.bentNormalWS = surfaceData.bentNormalWS;
+        brdfInput.shadowAttenuation = 1.0;
 
         const float3 indirectDiffuse = ComputeBRDFIndirectDiffuse(brdfInput);
         const float3 indirectSpecular = ComputeBRDFIndirectSpecular(brdfInput);

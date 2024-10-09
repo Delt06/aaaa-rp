@@ -18,6 +18,7 @@ struct BRDFInput
     float3 irradiance;
     float  aoVisibility;
     float3 bentNormalWS;
+    float  shadowAttenuation;
 };
 
 float3 FresnelSchlick(const float cosTheta, const float3 f0)
@@ -93,9 +94,15 @@ float3 ComputeBRDF(const BRDFInput input)
 
     kD *= 1.0 - input.metallic;
 
-    const float NdotL = max(dot(input.normalWS, input.lightDirectionWS), 0.0);
+    const float NdotL = saturate(dot(input.normalWS, input.lightDirectionWS));
+    #ifdef AAAA_GTAO_BENT_NORMALS
+    const float bentNdotL = saturate(dot(input.bentNormalWS, input.lightDirectionWS));
+    #else
+    const float bentNdotL = NdotL;
+    #endif
+    const float shadowAttenuation = min(input.shadowAttenuation, GTAOUtils::ComputeMicroShadowing(bentNdotL, input.aoVisibility));
 
-    return (kD * input.diffuseColor / PI + specular) * radiance * NdotL;
+    return shadowAttenuation * (kD * input.diffuseColor / PI + specular) * radiance * NdotL;
 }
 
 float3 ComputeBRDFIndirectDiffuse(const BRDFInput input)
@@ -107,31 +114,29 @@ float3 ComputeBRDFIndirectDiffuse(const BRDFInput input)
     const float3 kS = F;
     float3       kD = 1.0 - kS;
     kD *= 1.0 - input.metallic;
-    const float diffuseAO = input.aoVisibility;
 
     const float3 diffuse = input.irradiance * input.diffuseColor;
     float3       result = (kD * diffuse);
-    result *= SingleBounceAO(diffuseAO);
-    MultiBounceAO(diffuseAO, input.diffuseColor, result);
+    result *= input.aoVisibility;
+
     return result;
 }
 
 float3 ComputeBRDFIndirectSpecular(const BRDFInput input)
 {
     const float3 eyeWS = normalize(input.cameraPositionWS - input.positionWS);
-    const float3 reflectionWS = reflect(-eyeWS, input.normalWS);
+    const float3 reflectionWS = reflect(-eyeWS, input.bentNormalWS);
 
     const float3 F0 = ComputeF0(input);
     const float  NdotI = max(dot(input.normalWS, eyeWS), 0.0);
     const float3 F = FresnelSchlick(NdotI, F0, input.roughness);
-    const float  specularAO = ComputeSpecularAO(input.aoVisibility, input.bentNormalWS, reflectionWS, NdotI, input.roughness);
 
     // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/6.pbr/2.2.1.ibl_specular/2.2.1.pbr.fs
     const float3 prefilteredColor = SamplePrefilteredEnvironment(reflectionWS, input.roughness);
     const float2 brdf = SampleBRDFLut(NdotI, input.roughness);
     float3       result = prefilteredColor * (F * brdf.x + brdf.y); // A channel stores fade amount
-    result *= SingleBounceAO(specularAO);
-    MultiBounceSpecularAO(specularAO, input.diffuseColor, result);
+    result *= input.aoVisibility;
+
     return result;
 }
 
