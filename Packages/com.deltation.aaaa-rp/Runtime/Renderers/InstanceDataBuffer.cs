@@ -16,6 +16,7 @@ namespace DELTation.AAAARP.Renderers
     internal sealed class InstanceDataBuffer : IDisposable
     {
         public const int Capacity = 128;
+        private readonly MaterialDataBuffer _materialDataBuffer;
 
         private readonly AAAARendererContainer _rendererContainer;
 
@@ -25,8 +26,9 @@ namespace DELTation.AAAARP.Renderers
         private bool _isDirty;
         private NativeHashMap<int, InstanceMetadata> _metadata;
 
-        public InstanceDataBuffer(AAAARendererContainer rendererContainer, Allocator allocator)
+        public InstanceDataBuffer(AAAARendererContainer rendererContainer, MaterialDataBuffer materialDataBuffer, Allocator allocator)
         {
+            _materialDataBuffer = materialDataBuffer;
             _rendererContainer = rendererContainer;
             _cpuBuffer = new NativeArray<AAAAInstanceData>(Capacity, allocator);
             _gpuBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, Capacity, UnsafeUtility.SizeOf<AAAAInstanceData>())
@@ -113,7 +115,7 @@ namespace DELTation.AAAARP.Renderers
                 instanceData.AABBMax = math.float4(mesh.Bounds.max, 0.0f);
                 instanceData.TopMeshLODStartIndex = (uint) _rendererContainer.GetOrAllocateMeshLODNodes(mesh);
                 instanceData.TotalMeshLODCount = (uint) mesh.MeshLODNodes.Length;
-                instanceData.MaterialIndex = (uint) _rendererContainer.GetOrAllocateMaterial(material);
+                instanceData.MaterialIndex = (uint) _materialDataBuffer.GetOrAllocateMaterial(material);
                 instanceData.MeshLODLevelCount = (uint) mesh.MeshLODLevelCount;
 
                 _rendererContainer.MaxMeshletListBuildJobCount += ComputeMeshletListBuildJobCount(instanceData);

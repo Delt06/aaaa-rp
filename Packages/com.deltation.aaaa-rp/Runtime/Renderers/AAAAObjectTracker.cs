@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using DELTation.AAAARP.Core.ObjectDispatching;
+using DELTation.AAAARP.Materials;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -11,21 +12,27 @@ namespace DELTation.AAAARP.Renderers
     internal class AAAAObjectTracker : IDisposable
     {
         private readonly AuthoringTracker _authoringTracker;
+        private readonly MaterialTracker _materialTracker;
         private readonly TextureTracker _textureTracker;
 
-        internal AAAAObjectTracker(InstanceDataBuffer instanceDataBuffer, BindlessTextureContainer bindlessTextureContainer)
+        internal AAAAObjectTracker(InstanceDataBuffer instanceDataBuffer, MaterialDataBuffer materialDataBuffer,
+            BindlessTextureContainer bindlessTextureContainer)
         {
             _authoringTracker = new AuthoringTracker(instanceDataBuffer, ObjectDispatcherService.TypeTrackingFlags.SceneObjects);
             ObjectDispatcherService.RegisterObjectTracker(_authoringTracker);
 
             _textureTracker = new TextureTracker(bindlessTextureContainer, ObjectDispatcherService.TypeTrackingFlags.Assets);
             ObjectDispatcherService.RegisterObjectTracker(_textureTracker);
+
+            _materialTracker = new MaterialTracker(materialDataBuffer, ObjectDispatcherService.TypeTrackingFlags.Assets);
+            ObjectDispatcherService.RegisterObjectTracker(_materialTracker);
         }
 
         public void Dispose()
         {
             ObjectDispatcherService.UnregisterObjectTracker(_authoringTracker);
             ObjectDispatcherService.UnregisterObjectTracker(_textureTracker);
+            ObjectDispatcherService.UnregisterObjectTracker(_materialTracker);
         }
 
         private class AuthoringTracker : ObjectTracker<AAAARendererAuthoring>, IObjectTransformTracker
@@ -63,6 +70,22 @@ namespace DELTation.AAAARP.Renderers
             {
                 _bindlessTextureContainer.AddPotentialDirtyTextureRange(changedID, changed);
                 _bindlessTextureContainer.AddPotentialDestroyedDirtyTextureRange(destroyedID);
+            }
+        }
+
+        private class MaterialTracker : ObjectTracker<AAAAMaterialAsset>
+        {
+            private readonly MaterialDataBuffer _materialDataBuffer;
+
+            public MaterialTracker(MaterialDataBuffer materialDataBuffer, ObjectDispatcherService.TypeTrackingFlags trackingFlags) : base(trackingFlags) =>
+                _materialDataBuffer = materialDataBuffer;
+
+            public override void ProcessData(List<Object> changed, NativeArray<int> changedID, NativeArray<int> destroyedID)
+            {
+                if (changed.Count > 0)
+                {
+                    _materialDataBuffer.OnMaterialAssetsChanged(changed, changedID);
+                }
             }
         }
     }

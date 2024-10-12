@@ -5,7 +5,6 @@ using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Core.ObjectDispatching;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Debugging;
-using DELTation.AAAARP.Materials;
 using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.RenderPipelineResources;
 using JetBrains.Annotations;
@@ -30,15 +29,13 @@ namespace DELTation.AAAARP.Renderers
         [CanBeNull]
         private readonly AAAARenderPipelineDebugDisplaySettings _debugDisplaySettings;
         private readonly Material _material;
-        private readonly Dictionary<AAAAMaterialAsset, int> _materialToIndex = new();
+        private readonly MaterialDataBuffer _materialDataBuffer;
         private readonly Dictionary<AAAAMeshletCollectionAsset, int> _meshletCollectionToTopMeshLODNodesStartIndex = new();
         private readonly AAAAMeshLODSettings _meshLODSettings;
 
         private readonly AAAAObjectTracker _objectTracker;
         private bool _isDirty;
 
-        private NativeList<AAAAMaterialData> _materialData;
-        private GraphicsBuffer _materialDataBuffer;
         private NativeList<AAAAMeshlet> _meshletData;
         private GraphicsBuffer _meshletsDataBuffer;
         private NativeList<AAAAMeshLODNode> _meshLODNodes;
@@ -56,15 +53,15 @@ namespace DELTation.AAAARP.Renderers
 
             _meshLODSettings = meshLODSettings;
             _debugDisplaySettings = debugDisplaySettings;
-            InstanceDataBuffer = new InstanceDataBuffer(this, Allocator.Persistent);
+            _materialDataBuffer = new MaterialDataBuffer(_bindlessTextureContainer, Allocator.Persistent);
+            InstanceDataBuffer = new InstanceDataBuffer(this, _materialDataBuffer, Allocator.Persistent);
             OcclusionCullingResources = new OcclusionCullingResources(shaders.RawBufferClearCS);
             _meshLODNodes = new NativeList<AAAAMeshLODNode>(Allocator.Persistent);
             _meshletData = new NativeList<AAAAMeshlet>(Allocator.Persistent);
-            _materialData = new NativeList<AAAAMaterialData>(Allocator.Persistent);
             _sharedVertices = new NativeList<AAAAMeshletVertex>(Allocator.Persistent);
             _sharedIndices = new NativeList<byte>(Allocator.Persistent);
 
-            _objectTracker = new AAAAObjectTracker(InstanceDataBuffer, _bindlessTextureContainer);
+            _objectTracker = new AAAAObjectTracker(InstanceDataBuffer, _materialDataBuffer, _bindlessTextureContainer);
 
             _material = CoreUtils.CreateEngineMaterial(shaders.VisibilityBufferPS);
 
@@ -105,12 +102,8 @@ namespace DELTation.AAAARP.Renderers
                 _meshletData.Dispose();
             }
 
-            InstanceDataBuffer.Dispose();
-
-            if (_materialData.IsCreated)
-            {
-                _materialData.Dispose();
-            }
+            InstanceDataBuffer?.Dispose();
+            _materialDataBuffer?.Dispose();
 
             if (_sharedVertices.IsCreated)
             {
@@ -127,8 +120,6 @@ namespace DELTation.AAAARP.Renderers
             _meshletsDataBuffer?.Dispose();
             _sharedVertexBuffer?.Dispose();
             _sharedIndexBuffer?.Dispose();
-            InstanceDataBuffer?.Dispose();
-            _materialDataBuffer?.Dispose();
             MeshletRenderRequestsBuffer?.Dispose();
         }
 
@@ -147,6 +138,7 @@ namespace DELTation.AAAARP.Renderers
             using (new ProfilingScope(cmd, Profiling.PreRender))
             {
                 InstanceDataBuffer.PreRender(cmd);
+                _materialDataBuffer.PreRender(cmd);
                 OcclusionCullingResources.PreRender(cmd);
 
                 cmd.SetGlobalBuffer(ShaderIDs._Meshlets, _meshletsDataBuffer);
@@ -155,7 +147,6 @@ namespace DELTation.AAAARP.Renderers
                 cmd.SetGlobalFloat(ShaderIDs._MeshLODErrorThreshold, GetMeshLODErrorThreshold());
                 cmd.SetGlobalBuffer(ShaderIDs._SharedVertexBuffer, _sharedVertexBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._SharedIndexBuffer, _sharedIndexBuffer);
-                cmd.SetGlobalBuffer(ShaderIDs._MaterialData, _materialDataBuffer);
                 cmd.SetGlobalBuffer(ShaderIDs._MeshletRenderRequests, MeshletRenderRequestsBuffer);
             }
 
@@ -195,15 +186,6 @@ namespace DELTation.AAAARP.Renderers
                 name = "MeshletsData",
             };
             _meshletsDataBuffer.SetData(_meshletData.AsArray());
-
-            _materialDataBuffer?.Dispose();
-            _materialDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
-                _materialData.Length, UnsafeUtility.SizeOf<AAAAMaterialData>()
-            )
-            {
-                name = "MaterialData",
-            };
-            _materialDataBuffer.SetData(_materialData.AsArray());
 
             _sharedVertexBuffer?.Dispose();
             _sharedVertexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
@@ -311,43 +293,6 @@ namespace DELTation.AAAARP.Renderers
             }
         }
 
-        internal int GetOrAllocateMaterial(AAAAMaterialAsset material)
-        {
-            if (_materialToIndex.TryGetValue(material, out int index))
-            {
-                return index;
-            }
-
-            var materialData = new AAAAMaterialData
-            {
-                AlbedoColor = (Vector4) material.AlbedoColor,
-                AlbedoIndex = GetOrAllocateTexture(material.Albedo),
-                TextureTilingOffset = material.TextureTilingOffset,
-
-                NormalsIndex = GetOrAllocateTexture(material.Normals),
-                NormalsStrength = material.NormalsStrength,
-
-                MasksIndex = GetOrAllocateTexture(material.Masks),
-                Roughness = material.Roughness,
-                Metallic = material.Metallic,
-            };
-            _materialData.Add(materialData);
-            index = _materialData.Length - 1;
-            _materialToIndex.Add(material, index);
-            _isDirty = true;
-            return index;
-        }
-
-        private uint GetOrAllocateTexture(Texture2D texture)
-        {
-            if (texture == null)
-            {
-                return AAAAMaterialData.NoTextureIndex;
-            }
-
-            return _bindlessTextureContainer.GetOrCreateIndex(texture, texture.GetInstanceID());
-        }
-
         private static class Profiling
         {
             public static readonly ProfilingSampler PreRender = new("Visibility Buffer Container: Pre Render");
@@ -363,7 +308,6 @@ namespace DELTation.AAAARP.Renderers
             public static readonly int _MeshLODErrorThreshold = Shader.PropertyToID(nameof(_MeshLODErrorThreshold));
             public static readonly int _SharedVertexBuffer = Shader.PropertyToID(nameof(_SharedVertexBuffer));
             public static readonly int _SharedIndexBuffer = Shader.PropertyToID(nameof(_SharedIndexBuffer));
-            public static readonly int _MaterialData = Shader.PropertyToID(nameof(_MaterialData));
             public static readonly int _MeshletRenderRequests = Shader.PropertyToID(nameof(_MeshletRenderRequests));
         }
     }
