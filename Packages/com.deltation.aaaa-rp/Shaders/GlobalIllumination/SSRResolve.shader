@@ -31,7 +31,7 @@ Shader "Hidden/AAAA/SSR/Resolve"
 
         Pass
         {
-            Name "Deferred Lighting: Direct"
+            Name "SSR Resolve: Resolve UV"
 
 
             HLSLPROGRAM
@@ -49,7 +49,28 @@ Shader "Hidden/AAAA/SSR/Resolve"
                     return 0;
                 }
 
-                return float4(SAMPLE_TEXTURE2D(_CameraColor, sampler_LinearClamp, traceValue).rgb, 0);
+                return float4(SAMPLE_TEXTURE2D(_CameraColor, sampler_LinearClamp, traceValue).rgb, 1);
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "SSR Resolve: Compose"
+
+            Blend One OneMinusSrcAlpha
+
+
+            HLSLPROGRAM
+            #pragma vertex OverrideVert
+            #pragma fragment Frag
+
+            TEXTURE2D(_SSRResolveResult);
+
+            float4 Frag(const Varyings IN) : SV_Target
+            {
+                float4 value = SAMPLE_TEXTURE2D(_SSRResolveResult, sampler_LinearClamp, IN.texcoord);
+                return value;
             }
             ENDHLSL
         }

@@ -4,6 +4,7 @@ using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
@@ -31,8 +32,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
 
             passData.TraceResult = builder.ReadTexture(lightingData.SSRTraceResult);
-            passData.Result = builder.CreateTransientTexture(AAAARenderingUtils.CreateTextureDesc("SSRResolveResult", new RenderTextureDescriptor(
-                        cameraData.ScaledWidth, cameraData.ScaledHeight, cameraData.CameraTargetDescriptor.colorFormat
+            passData.ResolveResult = builder.CreateTransientTexture(AAAARenderingUtils.CreateTextureDesc("SSRResolveResult", new RenderTextureDescriptor(
+                        cameraData.ScaledWidth, cameraData.ScaledHeight, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None
                     )
                 )
             );
@@ -43,14 +44,30 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
-            context.cmd.SetRenderTarget(data.Result);
+            using (new ProfilingScope(context.cmd, Profiling.ResolveUV))
+            {
+                context.cmd.SetRenderTarget(data.ResolveResult);
 
-            _propertyBlock.SetVector(ShaderID._BlitScaleBias, new Vector4(1, 1, 0, 0));
-            _propertyBlock.SetTexture(ShaderID._SSRTraceResult, data.TraceResult);
-            _propertyBlock.SetTexture(ShaderID._CameraColor, data.CameraColor);
+                _propertyBlock.Clear();
+                _propertyBlock.SetVector(ShaderID._BlitScaleBias, new Vector4(1, 1, 0, 0));
+                _propertyBlock.SetTexture(ShaderID._SSRTraceResult, data.TraceResult);
+                _propertyBlock.SetTexture(ShaderID._CameraColor, data.CameraColor);
 
-            const int shaderPass = 0;
-            AAAABlitter.BlitTriangle(context.cmd, _resolveMaterial, shaderPass, _propertyBlock);
+                const int shaderPass = 0;
+                AAAABlitter.BlitTriangle(context.cmd, _resolveMaterial, shaderPass, _propertyBlock);
+            }
+
+            using (new ProfilingScope(context.cmd, Profiling.Compose))
+            {
+                context.cmd.SetRenderTarget(data.CameraColor);
+
+                _propertyBlock.Clear();
+                _propertyBlock.SetVector(ShaderID._BlitScaleBias, new Vector4(1, 1, 0, 0));
+                _propertyBlock.SetTexture(ShaderID._SSRResolveResult, data.ResolveResult);
+
+                const int shaderPass = 1;
+                AAAABlitter.BlitTriangle(context.cmd, _resolveMaterial, shaderPass, _propertyBlock);
+            }
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -58,13 +75,20 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
         {
             public static readonly int _BlitScaleBias = Shader.PropertyToID("_BlitScaleBias");
             public static readonly int _SSRTraceResult = Shader.PropertyToID("_SSRTraceResult");
+            public static readonly int _SSRResolveResult = Shader.PropertyToID("_SSRResolveResult");
             public static readonly int _CameraColor = Shader.PropertyToID("_CameraColor");
+        }
+
+        private static class Profiling
+        {
+            public static readonly ProfilingSampler ResolveUV = new(nameof(ResolveUV));
+            public static readonly ProfilingSampler Compose = new(nameof(Compose));
         }
 
         public class PassData : PassDataBase
         {
             public TextureHandle CameraColor;
-            public TextureHandle Result;
+            public TextureHandle ResolveResult;
             public TextureHandle TraceResult;
         }
     }
