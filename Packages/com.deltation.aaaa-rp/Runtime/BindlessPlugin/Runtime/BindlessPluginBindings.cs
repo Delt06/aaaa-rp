@@ -17,5 +17,17 @@ namespace DELTation.AAAARP.BindlessPlugin.Runtime
 
         [DllImport(DLLName)]
         public static extern int CreateSRVDescriptor(IntPtr pTexture, uint index);
+
+        [DllImport(DLLName)]
+        public static extern uint IsPixLoaded();
+
+        [DllImport(DLLName)]
+        public static extern uint BeginPixCapture([MarshalAs(UnmanagedType.LPWStr)] string filename);
+        
+        [DllImport(DLLName)]
+        public static extern uint EndPixCapture();
+        
+        [DllImport(DLLName)]
+        public static extern void OpenPixCapture([MarshalAs(UnmanagedType.LPWStr)] string filename);
     }
 }

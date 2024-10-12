@@ -5,6 +5,7 @@ using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.ShaderLibrary.ThirdParty.XeGTAO;
 using Unity.Mathematics;
+using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;

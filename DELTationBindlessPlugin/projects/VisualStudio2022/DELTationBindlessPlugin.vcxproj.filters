@@ -27,6 +27,15 @@
     <ClInclude Include="..\..\source\gl3w\glcorearb.h">
       <Filter>gl3w</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\source\HookWrapper.h" />
+    <ClInclude Include="..\..\source\Unity\IUnityEventQueue.h" />
+    <ClInclude Include="..\..\source\Unity\IUnityGraphicsVulkan.h" />
+    <ClInclude Include="..\..\source\Unity\IUnityLog.h" />
+    <ClInclude Include="..\..\source\Unity\IUnityMemoryManager.h" />
+    <ClInclude Include="..\..\source\Unity\IUnityProfiler.h" />
+    <ClInclude Include="..\..\source\Unity\IUnityProfilerCallbacks.h" />
+    <ClInclude Include="..\..\source\Unity\IUnityRenderingExtensions.h" />
+    <ClInclude Include="..\..\source\Unity\IUnityShaderCompilerAccess.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\source\RenderAPI.cpp" />

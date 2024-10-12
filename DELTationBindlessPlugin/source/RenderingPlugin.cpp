@@ -6,6 +6,8 @@
 #include "HookWrapper.h"
 
 #include <MinHook.h>
+#define USE_PIX
+#include <pix3.h>
 
 #include <assert.h>
 #include <d3d12.h>
@@ -15,8 +17,97 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <shlobj.h>
+#include <strsafe.h>
 
 #include "Unity/IUnityGraphicsD3D12.h"
+#include "Unity/IUnityProfiler.h"
+
+static bool s_IsDevelopmentBuild = false;
+
+bool ShouldLoadWinPixDLL(int argc, LPWSTR* argv)
+{
+    for (int i = 0; i < argc; i++)
+    {
+        if (lstrcmpW(argv[i], L"-pix-capture") == 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static std::wstring GetLatestWinPixGpuCapturerPath()
+{
+    LPWSTR programFilesPath = nullptr;
+    SHGetKnownFolderPath(FOLDERID_ProgramFiles, KF_FLAG_DEFAULT, NULL, &programFilesPath);
+
+    std::wstring pixSearchPath = programFilesPath + std::wstring(L"\\Microsoft PIX\\*");
+
+    WIN32_FIND_DATAW findData;
+    bool foundPixInstallation = false;
+    wchar_t newestVersionFound[MAX_PATH];
+
+    HANDLE hFind = FindFirstFileW(pixSearchPath.c_str(), &findData);
+    if (hFind != INVALID_HANDLE_VALUE)
+    {
+        do 
+        {
+            if (((findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY) &&
+                 (findData.cFileName[0] != '.'))
+            {
+                if (!foundPixInstallation || wcscmp(newestVersionFound, findData.cFileName) <= 0)
+                {
+                    foundPixInstallation = true;
+                    StringCchCopyW(newestVersionFound, _countof(newestVersionFound), findData.cFileName);
+                }
+            }
+        } 
+        while (FindNextFileW(hFind, &findData) != 0);
+    }
+
+    FindClose(hFind);
+
+    if (!foundPixInstallation)
+    {
+        // TODO: Error, no PIX installation found
+    }
+
+    wchar_t output[MAX_PATH];
+    StringCchCopyW(output, pixSearchPath.length(), pixSearchPath.data());
+    StringCchCatW(output, MAX_PATH, &newestVersionFound[0]);
+    StringCchCatW(output, MAX_PATH, L"\\WinPixGpuCapturer.dll");
+
+    return &output[0];
+}
+
+extern "C" uint32_t UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API IsPixLoaded()
+{
+    return GetModuleHandleW(L"WinPixGpuCapturer.dll") != 0;
+}
+
+extern "C" uint32_t UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API BeginPixCapture(IN LPWSTR filePath)
+{
+    PIXCaptureParameters pixCaptureParameters = {};
+    pixCaptureParameters.GpuCaptureParameters.FileName = filePath;
+    return PIXBeginCapture(PIX_CAPTURE_GPU, &pixCaptureParameters);
+}
+
+extern "C" uint32_t UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API EndPixCapture()
+{
+    HRESULT result;
+    while ((result = PIXEndCapture(FALSE)) == E_PENDING)
+    {
+        // Keep running
+    }
+    return result;
+}
+
+extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API OpenPixCapture(IN LPWSTR filePath)
+{
+    PIXOpenCaptureInUI(filePath);
+}
 
 // --------------------------------------------------------------------------
 // UnitySetInterfaces
@@ -165,6 +256,33 @@ extern "C" void	UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
 	s_UnityInterfaces = unityInterfaces;
 	s_Log = s_UnityInterfaces->Get<IUnityLog>();
 	s_Graphics = s_UnityInterfaces->Get<IUnityGraphics>();
+    const auto pUnityProfiler = unityInterfaces->Get<IUnityProfiler>();
+    s_IsDevelopmentBuild = pUnityProfiler != nullptr ? pUnityProfiler->IsAvailable() : false;
+
+    const LPWSTR commandLine = GetCommandLineW();
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(commandLine, &argc);
+
+    if (s_IsDevelopmentBuild && ShouldLoadWinPixDLL(argc, argv)) 
+    {
+        // Check to see if a copy of WinPixGpuCapturer.dll has already been injected into the application.
+        // This may happen if the application is launched through the PIX UI. 
+        if (!IsPixLoaded())
+        {
+            LoadLibraryW(GetLatestWinPixGpuCapturerPath().c_str());
+            UNITY_LOG(s_Log, "Loaded WinPixGpuCapturer.dll.");
+
+            // Hide the overlay
+            PIXSetHUDOptions(PIX_HUD_SHOW_ON_NO_WINDOWS);
+        }
+        else
+        {
+            UNITY_LOG(s_Log, "WinPixGpuCapturer.dll is already loaded.");
+        }   
+    }
+
+    LocalFree(static_cast<void*>(argv));
+    
 	s_Graphics->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
 	
 #if SUPPORT_VULKAN

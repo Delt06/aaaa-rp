@@ -9,3 +9,7 @@ EXPORTS
    GetRenderEventFunc
    GetSRVDescriptorHeapCount
    CreateSRVDescriptor
+   IsPixLoaded
+   BeginPixCapture
+   EndPixCapture
+   OpenPixCapture
