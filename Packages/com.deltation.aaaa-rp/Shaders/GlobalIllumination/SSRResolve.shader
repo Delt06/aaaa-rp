@@ -47,7 +47,7 @@ Shader "Hidden/AAAA/SSR/Resolve"
                     return 0;
                 }
 
-                const float3 reflection = SAMPLE_TEXTURE2D(_CameraColor, sampler_LinearClamp, traceValue).rgb;
+                const float3 reflection = SAMPLE_TEXTURE2D(_CameraColor, sampler_LinearClamp, traceValue.xy).rgb;
                 return float4(reflection, traceValue.a);
             }
             ENDHLSL

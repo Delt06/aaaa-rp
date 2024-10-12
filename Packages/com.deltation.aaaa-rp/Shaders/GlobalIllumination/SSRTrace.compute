@@ -1,8 +1,8 @@
 #pragma kernel CS
 
-
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Depth.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraHZB.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/Passes/GlobalIllumination/SSR/SSRComputeShaders.cs.hlsl"
 
@@ -35,71 +35,141 @@ float2 NDCToPixelUV(const float2 ndc)
     return result;
 }
 
-#define MAX_REFLECTION_RAY_MARCH_STEP 0.01f
-#define NUM_RAY_MARCH_SAMPLES 256
+#define CELL_STEP_OFFSET 0.05
+
+void StepThroughCell(inout float3 raySampleSS, const float3 reflectionSS, const int mipLevel)
+{
+    // Size of current mip 
+    int2 mipSize = _CameraHZBMipRects[mipLevel].zw;
+
+    // UV converted to index in the mip
+    float2 mipCellIndex = raySampleSS.xy * float2(mipSize) ;
+
+    //
+    // Find the cell boundary UV based on the direction of the ray
+    // Take floor() or ceil() depending on the sign of RayDir.xy
+    //
+    float2 boundaryUV;
+    boundaryUV.x = reflectionSS.x > 0 ? ceil(mipCellIndex.x) / float(mipSize.x) : floor(mipCellIndex.x) / float(mipSize.x);
+    boundaryUV.y = reflectionSS.y > 0 ? ceil(mipCellIndex.y) / float(mipSize.y) : floor(mipCellIndex.y) / float(mipSize.y);
+
+    //
+    // We can now represent the cell boundary as being formed by the intersection of 
+    // two lines which can be represented by 
+    //
+    // x = BoundaryUV.x
+    // y = BoundaryUV.y
+    //
+    // Intersect the parametric equation of the Ray with each of these lines
+    //
+    float2 t;
+    t.x = (boundaryUV.x - raySampleSS.x) / reflectionSS.x;
+    t.y = (boundaryUV.y - raySampleSS.y) / reflectionSS.y;
+
+    // Pick the cell intersection that is closer, and march to that cell
+    if (abs(t.x) < abs(t.y))
+    {
+        raySampleSS += (t.x + CELL_STEP_OFFSET / mipSize.x) * reflectionSS;
+    }
+    else
+    {
+        raySampleSS += (t.y + CELL_STEP_OFFSET / mipSize.y) * reflectionSS;
+    }
+}
+
 #define NUM_BINARY_SEARCH_SAMPLES 16
 
-float3 BinarySearch(const float3 raySampleSS, float3 prevRaySampleSS)
+float3 BinarySearchHZB(const float3 raySampleSS, const float3 reflectionSS, const float startZBufferValue, const float mipLevel)
 {
-    float3 raySampleMinSS = prevRaySampleSS;
-    float3 raySampleMaxSS = raySampleSS;
-    float3 raySampleMidSS;
+    float  t = abs(raySampleSS.z - startZBufferValue) / reflectionSS.z;
+    float3 minRaySampleSS = raySampleSS - reflectionSS * t;
+    float3 maxRaySampleSS = raySampleSS;
+    float3 midRaySampleSS;
+
     for (int i = 0; i < NUM_BINARY_SEARCH_SAMPLES; i++)
     {
-        raySampleMidSS = lerp(raySampleMinSS, raySampleMaxSS, 0.5);
-        const float zBufferValue = SampleDeviceDepth(raySampleMidSS.xy).r;
+        midRaySampleSS = lerp(minRaySampleSS, maxRaySampleSS, 0.5);
+        const float2 pixelCoord = float2(raySampleSS.xy * _SSR_ScreenSize.xy);
+        const float  zBufferValue = CameraHZB::LoadClamp(pixelCoord, mipLevel);
 
-        if (GREATER_DEPTH(raySampleMidSS.z, zBufferValue))
+        if (GREATER_DEPTH(midRaySampleSS.z, zBufferValue))
         {
-            raySampleMaxSS = raySampleMidSS;
+            maxRaySampleSS = midRaySampleSS;
         }
         else
         {
-            raySampleMinSS = raySampleMidSS;
+            minRaySampleSS = midRaySampleSS;
         }
     }
 
-    return raySampleMidSS;
+    return midRaySampleSS;
 }
 
-#define ReflectionRayMarchStep MAX_REFLECTION_RAY_MARCH_STEP
 
 bool GetReflection(
-    float3     reflectionSS,
-    float3     positionSS,
-    out float2 result)
+    const float3 reflectionSS,
+    const float3 positionSS,
+    out float3   result)
 {
-    float3 prevRaySampleSS = positionSS;
     result = 0;
 
-    for (int rayStepIndex = 1; rayStepIndex <= NUM_RAY_MARCH_SAMPLES; rayStepIndex++)
+    float2 uvSamplingAttenuation = 0;
+    float3 raySampleSS = positionSS + reflectionSS * 0.001f;
+    int    mipLevel = 0;
+
+    int loop = 0;
+
+    UNITY_LOOP
+    while (mipLevel < _CameraHZBLevelCount && loop < 1024)
     {
-        float3      raySampleSS = (rayStepIndex * ReflectionRayMarchStep) * reflectionSS + positionSS;
-        const float zBufferValue = SampleDeviceDepth(raySampleSS.xy);
+        ++loop;
+        StepThroughCell(raySampleSS, reflectionSS, mipLevel);
 
-        if (zBufferValue == UNITY_RAW_FAR_CLIP_VALUE)
+        // Attenuate samples near screen edges.
+        const float uvEdge = 0.025f;
+        uvSamplingAttenuation = smoothstep(0.0, uvEdge, raySampleSS.xy) * (1 - smoothstep(1 - uvEdge, 1, raySampleSS.xy));
+
+        UNITY_BRANCH
+        if (any(uvSamplingAttenuation))
         {
-            // Hit skybox
-            return false;
+            const float2 pixelCoord = float2(raySampleSS.xy * _SSR_ScreenSize.xy);
+            const float  zBufferValue = CameraHZB::LoadClamp(pixelCoord, mipLevel);
+
+            UNITY_BRANCH
+            if (LESS_DEPTH(raySampleSS.z, zBufferValue))
+            {
+                ++mipLevel;
+                mipLevel = min(mipLevel, _CameraHZBLevelCount - 1);
+            }
+            else
+            {
+                if (mipLevel == 0)
+                {
+                    // if (zBufferValue == UNITY_RAW_FAR_CLIP_VALUE)
+                    // {
+                    //     return false;
+                    // }
+
+                    // raySampleSS = BinarySearchHZB(raySampleSS, reflectionSS, zBufferValue, mipLevel);
+                    result = float3(raySampleSS.xy, uvSamplingAttenuation.x * uvSamplingAttenuation.y);
+                    return true;
+                }
+
+                const float t = (raySampleSS.z - zBufferValue) / reflectionSS.z;
+                raySampleSS -= reflectionSS * t;
+
+                --mipLevel;
+            }
         }
-
-        if (any(raySampleSS.xy < 0) || any(raySampleSS.xy > 1))
+        else
         {
-            // Went past screen edges.
+            // Went past screen bounds.
             return false;
-        }
-
-        if (GREATER_DEPTH(raySampleSS.z, zBufferValue))
-        {
-            // Hit something
-            raySampleSS = BinarySearch(raySampleSS, prevRaySampleSS);
-            result = raySampleSS.xy;
-            return true;
         }
     }
 
-    // Could not converge
-    return false;
+    result = float3(raySampleSS.xy, uvSamplingAttenuation.x * uvSamplingAttenuation.y);
+    return true;
 }
 
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
@@ -110,7 +180,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     UNITY_BRANCH
     if (all((float2)pixelCoords < _SSR_ScreenSize.xy))
     {
-        const float2 pixelUV = pixelCoords.xy * _SSR_ScreenSize.zw;
+        const float2 pixelUV = (pixelCoords.xy + 0.5) * _SSR_ScreenSize.zw;
         const float2 positionNDC = PixelUVToNDC(pixelUV);
         const float  deviceZ = LoadDeviceDepth(pixelCoords);
 
@@ -145,29 +215,26 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
             const float3 reflectionSS = normalize(reflectionPointSS.xyz - positionSS.xyz);
 
-            float2     reflectionUV;
-            const bool hit = GetReflection(reflectionSS, positionSS.xyz, reflectionUV);
+            float3     reflectionUVAttenuation;
+            const bool hit = GetReflection(reflectionSS, positionSS.xyz, reflectionUVAttenuation);
             float      attenuation = cameraFacingReflectionAttenuation;
 
             if (hit)
             {
+                attenuation *= reflectionUVAttenuation.z;
+
                 // This will check the direction of the normal of the reflection sample with the
                 // direction of the reflection vector, and if they are pointing in the same direction,
                 // it will drown out those reflections since backward facing pixels are not available 
                 // for screen space reflection. Attenuate reflections for angles between 90 degrees 
                 // and 100 degrees, and drop all contribution beyond the (-100,100)  degree range
-                const float2 packedGBufferNormals = SAMPLE_TEXTURE2D_LOD(_GBuffer_Normals, sampler_LinearClamp, reflectionUV.xy, 0).xy;
+                const float2 packedGBufferNormals = SAMPLE_TEXTURE2D_LOD(_GBuffer_Normals, sampler_LinearClamp, reflectionUVAttenuation.xy, 0).xy;
                 const float3 reflectionNormalWS = UnpackGBufferNormal(packedGBufferNormals);
                 const float  directionBasedAttenuation = smoothstep(-0.17, 0.0, dot(reflectionNormalWS.xyz, -reflectionWS));
                 attenuation *= directionBasedAttenuation;
-
-                // Attenuate samples near screen edges.
-                const float  uvEdge = 0.025f;
-                const float2 uvSamplingAttenuation = smoothstep(0.0, uvEdge, reflectionUV) * (1 - smoothstep(1 - uvEdge, 1, reflectionUV));
-                attenuation *= uvSamplingAttenuation.x * uvSamplingAttenuation.y;
             }
 
-            _Result[pixelCoords] = hit ? float4(reflectionUV, 1, attenuation) : float4(0, 0, 0, 0);
+            _Result[pixelCoords] = hit ? float4(reflectionUVAttenuation.xy, 1, attenuation) : float4(0, 0, 0, 0);
         }
     }
 }

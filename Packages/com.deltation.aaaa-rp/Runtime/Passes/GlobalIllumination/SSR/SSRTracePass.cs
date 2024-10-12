@@ -46,6 +46,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             passData.CameraPosition = cameraData.Camera.transform.position;
 
             builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
+            builder.ReadTexture(resourceData.CameraHZBScaled);
             builder.ReadTexture(resourceData.GBufferNormals);
         }
 

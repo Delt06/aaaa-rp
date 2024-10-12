@@ -21,7 +21,25 @@ struct CameraHZB
 
         int2 mipCoord = pixelCoord.xy >> lod;
         int2 mipOffset = _CameraHZBMipRects[lod].xy;
-        return LOAD_TEXTURE2D(_CameraDepth, mipCoord + mipOffset).r;
+        return LOAD_TEXTURE2D(_CameraHZB, mipCoord + mipOffset).r;
+    }
+
+    static float LoadClamp(const int2 pixelCoord, const int lod)
+    {
+        float result;
+        
+        if (lod == 0)
+        {
+            result = LOAD_TEXTURE2D(_CameraDepth, clamp(pixelCoord, 0, _CameraHZBMipRects[0].zw - 1)).r;
+        }
+        else
+        {
+            int2 mipCoord = clamp(pixelCoord.xy >> lod, 0, _CameraHZBMipRects[lod].zw - 1);
+            int2 mipOffset = _CameraHZBMipRects[lod].xy;
+            result =  LOAD_TEXTURE2D(_CameraHZB, mipCoord + mipOffset).r;
+        }
+
+        return result;
     }
 
     static float LoadPadBorders(const int2 pixelCoord, const int lod)
