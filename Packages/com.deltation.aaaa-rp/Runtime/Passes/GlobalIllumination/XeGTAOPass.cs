@@ -13,13 +13,13 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes.GlobalIllumination
 {
-    public class XeGtaoPass : AAAARenderPass<XeGtaoPass.PassData>
+    public class XeGTAOPass : AAAARenderPass<XeGTAOPass.PassData>
     {
         private readonly ComputeShader _denoiseCS;
         private readonly ComputeShader _mainPassCS;
         private readonly ComputeShader _prefilterDepthsCS;
 
-        public XeGtaoPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
+        public XeGTAOPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
         {
             AAAAXeGtaoRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAAXeGtaoRuntimeShaders>();
             _prefilterDepthsCS = shaders.PrefilterDepthsCS;

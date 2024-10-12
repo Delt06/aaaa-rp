@@ -15,12 +15,12 @@ using AF2 = Unity.Mathematics.float2;
 
 namespace DELTation.AAAARP.Passes.PostProcessing
 {
-    public sealed class FsrPass : AAAARenderPass<FsrPass.PassData>
+    public sealed class FSRPass : AAAARenderPass<FSRPass.PassData>
     {
         private readonly ComputeShader _easuCS;
         private readonly ComputeShader _rcasCS;
 
-        public FsrPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
+        public FSRPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
         {
             AAAAFsrRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAAFsrRuntimeShaders>();
             _easuCS = shaders.EasuCS;

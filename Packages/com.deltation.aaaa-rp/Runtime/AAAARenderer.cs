@@ -26,7 +26,7 @@ namespace DELTation.AAAARP
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferFalseNegativePass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferMainPass;
         private readonly FinalBlitPass _finalBlitPass;
-        private readonly FsrPass _fsrPass;
+        private readonly FSRPass _fsrPass;
         private readonly GPUCullingPass _gpuCullingFalseNegativePass;
         private readonly HZBGenerationPass _gpuCullingHzbGenerationPass;
         private readonly GPUCullingPass _gpuCullingMainPass;
@@ -36,9 +36,10 @@ namespace DELTation.AAAARP
         private readonly SetupLightingPass _setupLightingPass;
         private readonly ShadowPassPool _shadowPassPool;
         private readonly SkyboxPass _skyboxPass;
-        private readonly SmaaPass _smaaPass;
+        private readonly SMAAPass _smaaPass;
+        private readonly HZBGenerationPass _ssrHzbGenerationPass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
-        private readonly XeGtaoPass _xeGTAOPass;
+        private readonly XeGTAOPass _xeGTAOPass;
 
         public AAAARenderer()
         {
@@ -66,17 +67,18 @@ namespace DELTation.AAAARP
                 new DrawVisibilityBufferPass(DrawVisibilityBufferPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer);
             _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
 
+            _ssrHzbGenerationPass = new HZBGenerationPass(AAAARenderPassEvent.AfterRenderingOpaques, HZBGenerationPass.Mode.Min, "SSR.", shaders);
             _clusteredLightingPass = new ClusteredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
-            _xeGTAOPass = new XeGtaoPass(AAAARenderPassEvent.AfterRenderingGbuffer);
+            _xeGTAOPass = new XeGTAOPass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
 
-            _smaaPass = new SmaaPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders, textures);
+            _smaaPass = new SMAAPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders, textures);
             _uberPostProcessingPass = new UberPostProcessingPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders);
 
             const AAAARenderPassEvent upscaleRenderPassEvent = AAAARenderPassEvent.AfterRenderingPostProcessing;
             _bilinearUpscalePass = new BilinearUpscalePass(upscaleRenderPassEvent);
-            _fsrPass = new FsrPass(upscaleRenderPassEvent);
+            _fsrPass = new FSRPass(upscaleRenderPassEvent);
 
             _finalBlitPass = new FinalBlitPass(AAAARenderPassEvent.AfterRendering);
         }
@@ -114,6 +116,7 @@ namespace DELTation.AAAARP
             EnqueuePass(_drawVisibilityBufferFalseNegativePass);
             EnqueuePass(_resolveVisibilityBufferPass);
 
+            EnqueuePass(_ssrHzbGenerationPass);
             EnqueuePass(_clusteredLightingPass);
             EnqueuePass(_xeGTAOPass);
             EnqueuePass(_deferredLightingPass);

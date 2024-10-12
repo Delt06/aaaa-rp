@@ -10,7 +10,7 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes.AntiAliasing
 {
-    public sealed class SmaaPass : AAAARenderPass<SmaaPass.PassData>, IDisposable
+    public sealed class SMAAPass : AAAARenderPass<SMAAPass.PassData>, IDisposable
     {
         private readonly Texture2D _areaTex;
         private readonly Material _material;
@@ -21,7 +21,7 @@ namespace DELTation.AAAARP.Passes.AntiAliasing
         private readonly MaterialPropertyBlock _propertyBlock = new();
         private readonly Texture2D _searchTex;
 
-        public SmaaPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders,
+        public SMAAPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders,
             AAAARenderPipelineRuntimeTextures runtimeTextures) : base(renderPassEvent)
         {
             _material = CoreUtils.CreateEngineMaterial(shaders.SmaaPS);

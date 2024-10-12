@@ -78,7 +78,7 @@ namespace DELTation.AAAARP.RenderPipelineResources
         private ComputeShader _clusterCullingCS;
 
         [SerializeField]
-        [ResourcePath("Shaders/DeferredLighting.shader")]
+        [ResourcePath("Shaders/Lighting/DeferredLighting.shader")]
         private Shader _deferredLightingPS;
 
         [SerializeField]
