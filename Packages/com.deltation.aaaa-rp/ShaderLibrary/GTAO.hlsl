@@ -49,6 +49,7 @@ void SampleGTAO(const uint2 pixelCoords, const float3 normalWS, out float visibi
     DecodeVisibilityBentNormal(packedValue, visibility, bentNormalWS);
     bentNormalWS = GTAOUtils::NormalVS_XeGTAOToUnity(bentNormalWS);
     bentNormalWS = TransformViewToWorldNormal(bentNormalWS, true);
+    bentNormalWS = normalize(lerp(bentNormalWS, normalWS, visibility * visibility));
     #else
     visibility = packedValue / 255.05;
     #endif
