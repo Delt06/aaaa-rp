@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,6 +16,7 @@ using UnityEditor.AssetImporters;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Rendering;
+using Debug = UnityEngine.Debug;
 
 namespace DELTation.AAAARP.Editor.Meshlets
 {
@@ -39,6 +41,9 @@ namespace DELTation.AAAARP.Editor.Meshlets
             {
                 return;
             }
+
+            var timer = new Stopwatch();
+            timer.Start();
 
             AAAAMeshletCollectionAsset meshletCollection = ScriptableObject.CreateInstance<AAAAMeshletCollectionAsset>();
             meshletCollection.Bounds = Mesh.bounds;
@@ -341,6 +346,9 @@ namespace DELTation.AAAARP.Editor.Meshlets
 
             ctx.AddObjectToAsset(nameof(AAAAMeshletCollectionAsset), meshletCollection);
             ctx.SetMainObject(meshletCollection);
+
+            timer.Stop();
+            Debug.Log($"Building meshlets for {ctx.assetPath} took {timer.ElapsedMilliseconds:F3} ms.", meshletCollection);
         }
 
         private void BuildLodGraph(NativeList<MeshLODNodeLevel> levels, Allocator allocator, NativeArray<float> vertexData, uint vertexPositionOffset,
