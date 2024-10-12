@@ -28,8 +28,8 @@ namespace DELTation.AAAARP
         private readonly FinalBlitPass _finalBlitPass;
         private readonly FsrPass _fsrPass;
         private readonly GPUCullingPass _gpuCullingFalseNegativePass;
+        private readonly HZBGenerationPass _gpuCullingHzbGenerationPass;
         private readonly GPUCullingPass _gpuCullingMainPass;
-        private readonly HZBGenerationPass _hzbGenerationPass;
         private readonly AAAARenderPipelineAsset _pipelineAsset;
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
@@ -58,7 +58,8 @@ namespace DELTation.AAAARP
             _gpuCullingFalseNegativePass = new GPUCullingPass(GPUCullingPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders,
                 DebugHandler?.DisplaySettings
             );
-            _hzbGenerationPass = new HZBGenerationPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
+            _gpuCullingHzbGenerationPass =
+                new HZBGenerationPass(AAAARenderPassEvent.BeforeRenderingGbuffer, HZBGenerationPass.Mode.Max, "GPUCulling.", shaders);
             _drawVisibilityBufferMainPass =
                 new DrawVisibilityBufferPass(DrawVisibilityBufferPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer);
             _drawVisibilityBufferFalseNegativePass =
@@ -108,7 +109,7 @@ namespace DELTation.AAAARP
             _gpuCullingMainPass.CullingCameraOverride = cullingCameraOverride;
             EnqueuePass(_gpuCullingMainPass);
             EnqueuePass(_drawVisibilityBufferMainPass);
-            EnqueuePass(_hzbGenerationPass);
+            EnqueuePass(_gpuCullingHzbGenerationPass);
             EnqueuePass(_gpuCullingFalseNegativePass);
             EnqueuePass(_drawVisibilityBufferFalseNegativePass);
             EnqueuePass(_resolveVisibilityBufferPass);

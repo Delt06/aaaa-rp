@@ -1,4 +1,5 @@
 #pragma multi_compile_local _ MIP_1
+#pragma multi_compile_local _ USE_MAX
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 
@@ -26,6 +27,12 @@ RW_TEXTURE2D(float, _HZB);
 #define SOURCE_TEXTURE _HZB
 #endif
 
+#ifdef USE_MAX
+#define COMBINE_DEPTHS(x, y) MAX_DEPTH(x, y)
+#else
+#define COMBINE_DEPTHS(x, y) MIN_DEPTH(x, y)
+#endif
+
 [numthreads(THREAD_GROUP_SIZE_X, THREAD_GROUP_SIZE_Y, 1)]
 void CS(uint3 dispatchThreadId : SV_DispatchThreadID)
 {
@@ -43,7 +50,7 @@ void CS(uint3 dispatchThreadId : SV_DispatchThreadID)
     const float  p11 = SOURCE_TEXTURE[min(srcPixelUL + uint2(1u, 1u), srcLimit)];
     const float4 depths = float4(p00, p10, p01, p11);
 
-    const float combinedDepth = MAX_DEPTH(MAX_DEPTH(depths.x, depths.y), MAX_DEPTH(depths.z, depths.w));
+    const float combinedDepth = COMBINE_DEPTHS(COMBINE_DEPTHS(depths.x, depths.y), COMBINE_DEPTHS(depths.z, depths.w));
 
     const uint2 uavSize = (uint2)_HZBTextureSize;
     const uint2 id = dstOffset + dispatchThreadId.xy;

@@ -12,10 +12,24 @@ namespace DELTation.AAAARP.Passes
 {
     public sealed class HZBGenerationPass : AAAARenderPass<HZBGenerationPass.PassData>
     {
-        private readonly ComputeShader _hzbGenerationCS;
+        public enum Mode
+        {
+            Min,
+            Max,
+        }
 
-        public HZBGenerationPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
+        private readonly ComputeShader _hzbGenerationCS;
+        private readonly Mode _mode;
+
+        public HZBGenerationPass(AAAARenderPassEvent renderPassEvent, Mode mode, string passNamePrefix, AAAARenderPipelineRuntimeShaders shaders) :
+            base(renderPassEvent)
+        {
             _hzbGenerationCS = shaders.HZBGenerationCS;
+            _mode = mode;
+            Name = passNamePrefix + AutoName;
+        }
+
+        public override string Name { get; }
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
@@ -24,6 +38,7 @@ namespace DELTation.AAAARP.Passes
             passData.CameraDepth = builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
             passData.HZB = builder.WriteTexture(resourceData.CameraHZBScaled);
             passData.HZBInfo = resourceData.CameraScaledHZBInfo;
+            passData.Mode = _mode;
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
@@ -38,6 +53,8 @@ namespace DELTation.AAAARP.Passes
             {
                 context.cmd.SetRenderTarget(data.HZB);
             }
+
+            CoreUtils.SetKeyword(context.cmd, cs, "USE_MAX", data.Mode == Mode.Max);
 
             for (int i = 1; i < data.HZBInfo.LevelCount; i++)
             {
@@ -86,6 +103,7 @@ namespace DELTation.AAAARP.Passes
             public TextureHandle CameraDepth;
             public TextureHandle HZB;
             public AAAAResourceData.HZBInfo HZBInfo;
+            public Mode Mode;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
