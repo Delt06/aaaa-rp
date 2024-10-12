@@ -38,18 +38,19 @@ Shader "Hidden/AAAA/SSR/Resolve"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
-            TYPED_TEXTURE2D(float2, _SSRTraceResult);
+            TEXTURE2D(_SSRTraceResult);
             TEXTURE2D(_CameraColor);
 
             float4 Frag(const Varyings IN) : SV_Target
             {
-                const float2 traceValue = SAMPLE_TEXTURE2D(_SSRTraceResult, sampler_LinearClamp, IN.texcoord).rg;
+                const float4 traceValue = SAMPLE_TEXTURE2D(_SSRTraceResult, sampler_LinearClamp, IN.texcoord);
                 if (all(traceValue == 0))
                 {
                     return 0;
                 }
 
-                return float4(SAMPLE_TEXTURE2D(_CameraColor, sampler_LinearClamp, traceValue).rgb, 1);
+                const float3 reflection = SAMPLE_TEXTURE2D(_CameraColor, sampler_LinearClamp, traceValue).rgb;
+                return float4(reflection * traceValue.a, traceValue.a);
             }
             ENDHLSL
         }
@@ -60,7 +61,6 @@ Shader "Hidden/AAAA/SSR/Resolve"
 
             Blend One OneMinusSrcAlpha
 
-
             HLSLPROGRAM
             #pragma vertex OverrideVert
             #pragma fragment Frag
@@ -69,8 +69,8 @@ Shader "Hidden/AAAA/SSR/Resolve"
 
             float4 Frag(const Varyings IN) : SV_Target
             {
-                float4 value = SAMPLE_TEXTURE2D(_SSRResolveResult, sampler_LinearClamp, IN.texcoord);
-                return value;
+                float4 ssrValue = SAMPLE_TEXTURE2D(_SSRResolveResult, sampler_LinearClamp, IN.texcoord);
+                return float4(ssrValue.rgb, ssrValue.a);
             }
             ENDHLSL
         }

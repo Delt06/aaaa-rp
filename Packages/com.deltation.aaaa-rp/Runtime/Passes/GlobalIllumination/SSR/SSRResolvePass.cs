@@ -38,6 +38,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
                 )
             );
             passData.CameraColor = builder.ReadTexture(resourceData.CameraScaledColorBuffer);
+            passData.CameraDepth = builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
 
             builder.AllowPassCulling(false);
         }
@@ -59,7 +60,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
 
             using (new ProfilingScope(context.cmd, Profiling.Compose))
             {
-                context.cmd.SetRenderTarget(data.CameraColor);
+                context.cmd.SetRenderTarget(data.CameraColor, data.CameraDepth);
 
                 _propertyBlock.Clear();
                 _propertyBlock.SetVector(ShaderID._BlitScaleBias, new Vector4(1, 1, 0, 0));
@@ -90,6 +91,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             public TextureHandle CameraColor;
             public TextureHandle ResolveResult;
             public TextureHandle TraceResult;
+            public TextureHandle CameraDepth;
         }
     }
 }

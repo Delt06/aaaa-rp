@@ -27,7 +27,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
 
             lightingData.SSRTraceResult = renderingData.RenderGraph.CreateTexture(
                 AAAARenderingUtils.CreateTextureDesc("SSRTraceResult",
-                    new RenderTextureDescriptor(cameraData.ScaledWidth, cameraData.ScaledHeight, GraphicsFormat.R16G16_UNorm, GraphicsFormat.None)
+                    new RenderTextureDescriptor(cameraData.ScaledWidth, cameraData.ScaledHeight, GraphicsFormat.R16G16B16A16_UNorm, GraphicsFormat.None)
                     {
                         enableRandomWrite = true,
                     }
