@@ -14,6 +14,7 @@ struct BRDFInput
     float  metallic;
     float  roughness;
     float3 irradiance;
+    float3 prefilteredEnvironment;
     float  aoVisibility;
     float3 bentNormalWS;
 };
@@ -120,10 +121,8 @@ float3 ComputeBRDF(const BRDFInput input, const Light light)
     return shadowAttenuation * (kD * input.diffuseColor / PI + specular) * radiance * NdotL;
 }
 
-float3 ComputeBRDFIndirectDiffuse(const BRDFInput input)
+float3 ComputeBRDFIndirectDiffuse(const BRDFInput input, const float3 eyeWS)
 {
-    const float3 eyeWS = normalize(input.cameraPositionWS - input.positionWS);
-
     const float3 F0 = ComputeF0(input);
     const float3 F = FresnelSchlick(max(dot(input.normalWS, eyeWS), 0.0), F0, input.roughness);
     const float3 kS = F;
@@ -137,19 +136,20 @@ float3 ComputeBRDFIndirectDiffuse(const BRDFInput input)
     return result;
 }
 
-float3 ComputeBRDFIndirectSpecular(const BRDFInput input)
+float3 ComputeBRDFReflectionVector(const float3 normalWS, const float3 eyeWS)
 {
-    const float3 eyeWS = normalize(input.cameraPositionWS - input.positionWS);
-    const float3 reflectionWS = reflect(-eyeWS, input.bentNormalWS);
+    return reflect(-eyeWS, normalWS);
+}
 
+float3 ComputeBRDFIndirectSpecular(const BRDFInput input, const float3 eyeWS)
+{
     const float3 F0 = ComputeF0(input);
     const float  NdotI = max(dot(input.normalWS, eyeWS), 0.0);
     const float3 F = FresnelSchlick(NdotI, F0, input.roughness);
 
     // https://github.com/JoeyDeVries/LearnOpenGL/blob/master/src/6.pbr/2.2.1.ibl_specular/2.2.1.pbr.fs
-    const float3 prefilteredColor = SamplePrefilteredEnvironment(reflectionWS, input.roughness);
     const float2 brdf = SampleBRDFLut(NdotI, input.roughness);
-    float3       result = prefilteredColor * (F * brdf.x + brdf.y); // A channel stores fade amount
+    float3       result = input.prefilteredEnvironment * (F * brdf.x + brdf.y); // A channel stores fade amount
     result *= input.aoVisibility;
 
     return result;

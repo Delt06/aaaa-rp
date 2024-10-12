@@ -35,8 +35,12 @@ struct PBRLighting
         brdfInput.aoVisibility = surfaceData.aoVisibility;
         brdfInput.bentNormalWS = surfaceData.bentNormalWS;
 
-        const float3 indirectDiffuse = ComputeBRDFIndirectDiffuse(brdfInput);
-        const float3 indirectSpecular = ComputeBRDFIndirectSpecular(brdfInput);
+        const float3 eyeWS = normalize(brdfInput.cameraPositionWS - surfaceData.positionWS);
+        const float3 reflectionWS = ComputeBRDFReflectionVector(surfaceData.bentNormalWS, eyeWS);
+        brdfInput.prefilteredEnvironment = SamplePrefilteredEnvironment(reflectionWS, surfaceData.roughness);
+
+        const float3 indirectDiffuse = ComputeBRDFIndirectDiffuse(brdfInput, eyeWS);
+        const float3 indirectSpecular = ComputeBRDFIndirectSpecular(brdfInput, eyeWS);
         return aaaa_AmbientIntensity * (indirectDiffuse + indirectSpecular);
     }
 };

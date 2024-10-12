@@ -33,7 +33,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
 
             passData.TraceResult = builder.ReadTexture(lightingData.SSRTraceResult);
             passData.ResolveResult = builder.CreateTransientTexture(AAAARenderingUtils.CreateTextureDesc("SSRResolveResult", new RenderTextureDescriptor(
-                        cameraData.ScaledWidth, cameraData.ScaledHeight, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None
+                        cameraData.ScaledWidth, cameraData.ScaledHeight, GraphicsFormat.R8G8B8A8_SRGB, GraphicsFormat.None
                     )
                 )
             );
