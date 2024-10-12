@@ -13,6 +13,7 @@ namespace DELTation.AAAARP.FrameData
         public TextureHandle GTAOTerm;
         public AAAALightingConstantBuffer LightingConstantBuffer;
         public BufferHandle PunctualLightsBuffer;
+        public TextureHandle SSRTraceResult;
 
         public void Init(RenderGraph renderGraph, AAAALightingSettings lightingSettings)
         {
@@ -27,6 +28,7 @@ namespace DELTation.AAAARP.FrameData
             }
 
             GTAOTerm = TextureHandle.nullHandle;
+            SSRTraceResult = TextureHandle.nullHandle;
         }
 
         public override void Reset()
@@ -35,6 +37,7 @@ namespace DELTation.AAAARP.FrameData
             LightingConstantBuffer = default;
             PunctualLightsBuffer = BufferHandle.nullHandle;
             GTAOTerm = TextureHandle.nullHandle;
+            SSRTraceResult = TextureHandle.nullHandle;
         }
     }
 }

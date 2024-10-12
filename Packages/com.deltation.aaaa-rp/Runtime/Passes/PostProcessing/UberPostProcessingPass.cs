@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
+using DELTation.AAAARP.Utils;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -55,7 +56,7 @@ namespace DELTation.AAAARP.Passes.PostProcessing
             context.cmd.SetKeyword(_material, _toneMapACESKeyword, data.ToneMappingProfile == AAAAPostProcessingSettings.ToneMappingProfile.ACES);
 
             const int shaderPass = 0;
-            context.cmd.DrawProcedural(Matrix4x4.identity, _material, shaderPass, MeshTopology.Triangles, 3, 1, _propertyBlock);
+            AAAABlitter.BlitTriangle(context.cmd, _material, shaderPass, _propertyBlock);
 
             context.cmd.CopyTexture(data.TempTarget, data.CameraColor);
         }

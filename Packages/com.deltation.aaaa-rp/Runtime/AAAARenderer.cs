@@ -6,6 +6,8 @@ using DELTation.AAAARP.Passes;
 using DELTation.AAAARP.Passes.AntiAliasing;
 using DELTation.AAAARP.Passes.ClusteredLighting;
 using DELTation.AAAARP.Passes.GlobalIllumination;
+using DELTation.AAAARP.Passes.GlobalIllumination.AO;
+using DELTation.AAAARP.Passes.GlobalIllumination.SSR;
 using DELTation.AAAARP.Passes.IBL;
 using DELTation.AAAARP.Passes.PostProcessing;
 using DELTation.AAAARP.Passes.Shadows;
@@ -38,6 +40,8 @@ namespace DELTation.AAAARP
         private readonly SkyboxPass _skyboxPass;
         private readonly SMAAPass _smaaPass;
         private readonly HZBGenerationPass _ssrHzbGenerationPass;
+        private readonly SSRTracePass _ssrTracePass;
+        private readonly SSRResolvePass _ssrResolvePass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
         private readonly XeGTAOPass _xeGTAOPass;
 
@@ -67,7 +71,10 @@ namespace DELTation.AAAARP
                 new DrawVisibilityBufferPass(DrawVisibilityBufferPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer);
             _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
 
-            _ssrHzbGenerationPass = new HZBGenerationPass(AAAARenderPassEvent.AfterRenderingOpaques, HZBGenerationPass.Mode.Min, "SSR.", shaders);
+            _ssrHzbGenerationPass = new HZBGenerationPass(AAAARenderPassEvent.AfterRenderingGbuffer, HZBGenerationPass.Mode.Min, "SSR.", shaders);
+            _ssrTracePass = new SSRTracePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
+            _ssrResolvePass = new SSRResolvePass(AAAARenderPassEvent.AfterRenderingTransparents, shaders);
+
             _clusteredLightingPass = new ClusteredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _xeGTAOPass = new XeGTAOPass(AAAARenderPassEvent.AfterRenderingGbuffer);
@@ -117,6 +124,9 @@ namespace DELTation.AAAARP
             EnqueuePass(_resolveVisibilityBufferPass);
 
             EnqueuePass(_ssrHzbGenerationPass);
+            EnqueuePass(_ssrTracePass);
+            EnqueuePass(_ssrResolvePass);
+
             EnqueuePass(_clusteredLightingPass);
             EnqueuePass(_xeGTAOPass);
             EnqueuePass(_deferredLightingPass);

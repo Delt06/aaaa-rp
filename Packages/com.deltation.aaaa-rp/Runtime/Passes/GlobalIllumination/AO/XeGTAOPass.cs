@@ -5,13 +5,12 @@ using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.ShaderLibrary.ThirdParty.XeGTAO;
 using Unity.Mathematics;
-using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
-namespace DELTation.AAAARP.Passes.GlobalIllumination
+namespace DELTation.AAAARP.Passes.GlobalIllumination.AO
 {
     public class XeGTAOPass : AAAARenderPass<XeGTAOPass.PassData>
     {

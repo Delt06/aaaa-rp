@@ -17,6 +17,7 @@ namespace DELTation.AAAARP
                 slices = input.volumeDepth,
                 name = name,
                 useMipMap = input.useMipMap,
+                enableRandomWrite = input.enableRandomWrite,
             };
 
         internal static Vector4 GetFinalBlitScaleBias(RTHandle source, RTHandle destination, AAAACameraData cameraData)

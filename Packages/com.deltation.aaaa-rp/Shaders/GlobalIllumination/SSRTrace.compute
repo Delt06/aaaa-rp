@@ -1,0 +1,133 @@
+#pragma kernel CS
+
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Depth.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
+#include "Packages/com.deltation.aaaa-rp/Runtime/Passes/GlobalIllumination/SSR/SSRComputeShaders.cs.hlsl"
+
+#define THREAD_GROUP_SIZE TRACE_THREAD_GROUP_SIZE
+
+float4x4 _SSR_ViewProjMatrix;
+float4x4 _SSR_InvViewProjMatrix;
+float4   _SSR_CameraPosition;
+float4   _SSR_ScreenSize;
+
+#pragma enable_d3d11_debug_symbols
+
+RWTexture2D<float2> _Result;
+
+float2 PixelUVToNDC(const float2 pixelUV)
+{
+    float2 result = pixelUV;
+    result = result * 2 - 1;
+    #ifdef UNITY_UV_STARTS_AT_TOP
+    result.y *= -1;
+    #endif
+    return result;
+}
+
+float2 NDCToPixelUV(const float2 ndc)
+{
+    float2 result = ndc;
+    #ifdef UNITY_UV_STARTS_AT_TOP
+    result.y *= -1;
+    #endif
+    result = result * 0.5 + 0.5;
+    return result;
+}
+
+#define MAX_REFLECTION_RAY_MARCH_STEP 0.005f
+#define NUM_RAY_MARCH_SAMPLES 256
+#define NUM_BINARY_SEARCH_SAMPLES 32
+
+float3 BinarySearch(const float3 raySampleSS, float3 prevRaySampleSS)
+{
+    float3 raySampleMinSS = prevRaySampleSS;
+    float3 raySampleMaxSS = raySampleSS;
+    float3 raySampleMidSS;
+    for (int i = 0; i < NUM_BINARY_SEARCH_SAMPLES; i++)
+    {
+        raySampleMidSS = lerp(raySampleMinSS, raySampleMaxSS, 0.5);
+        const float zBufferValue = SampleDeviceDepth(raySampleMidSS.xy).r;
+
+        if (GREATER_DEPTH(raySampleMidSS.z, zBufferValue))
+        {
+            raySampleMaxSS = raySampleMidSS;
+        }
+        else
+        {
+            raySampleMinSS = raySampleMidSS;
+        }
+    }
+
+    return raySampleMidSS;
+}
+
+#define ReflectionRayMarchStep MAX_REFLECTION_RAY_MARCH_STEP
+
+bool GetReflection(
+    float3     reflectionSS,
+    float3     positionSS,
+    out float2 result)
+{
+    float3 prevRaySampleSS = positionSS;
+    result = 0;
+
+    for (int rayStepIndex = 1; rayStepIndex <= NUM_RAY_MARCH_SAMPLES; rayStepIndex++)
+    {
+        float3      raySampleSS = (rayStepIndex * ReflectionRayMarchStep) * reflectionSS + positionSS;
+        const float zBufferValue = SampleDeviceDepth(raySampleSS.xy);
+
+        if (zBufferValue == UNITY_RAW_FAR_CLIP_VALUE)
+        {
+            // Hit skybox
+            return false;
+        }
+
+        if (GREATER_DEPTH(raySampleSS.z, zBufferValue))
+        {
+            // Hit something
+            raySampleSS = BinarySearch(raySampleSS, prevRaySampleSS);
+            result = raySampleSS.xy;
+            return true;
+        }
+    }
+
+    // Could not converge
+    return false;
+}
+
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    const uint2 pixelCoords = dispatchThreadID.xy;
+
+    UNITY_BRANCH
+    if (all((float2)pixelCoords < _SSR_ScreenSize.xy))
+    {
+        const float2 pixelUV = pixelCoords.xy * _SSR_ScreenSize.zw;
+        const float2 positionNDC = PixelUVToNDC(pixelUV);
+        const float  deviceZ = LoadDeviceDepth(pixelCoords);
+
+        float4 positionWS = mul(_SSR_InvViewProjMatrix, float4(positionNDC, deviceZ, 1));
+        positionWS /= positionWS.w;
+
+        const float3 eyeWS = normalize(positionWS.xyz - _SSR_CameraPosition.xyz);
+        const float3 normalWS = UnpackGBufferNormal(LOAD_TEXTURE2D(_GBuffer_Normals, pixelCoords).xy);
+
+        const float4 positionSS = float4(pixelUV, deviceZ, 1.0f);
+        const float3 reflectionWS = reflect(eyeWS, normalWS);
+        const float3 reflectionPointWS = 10.0f * reflectionWS + positionWS.xyz;
+
+        float4 reflectionPointSS = mul(_SSR_ViewProjMatrix, float4(reflectionPointWS, 1));
+        reflectionPointSS /= reflectionPointSS.w;
+        reflectionPointSS.xy = NDCToPixelUV(reflectionPointSS.xy);
+
+        const float3 reflectionSS = normalize(reflectionPointSS.xyz - positionSS.xyz);
+
+        float2     reflectionUV;
+        const bool hit = GetReflection(reflectionSS, positionSS.xyz, reflectionUV);
+        _Result[pixelCoords] = hit ? float2(reflectionUV) : float2(0, 0);
+    }
+}

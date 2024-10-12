@@ -54,9 +54,11 @@ namespace DELTation.AAAARP.Data
         [Range(0.5f, 2.0f)]
         public float RenderScale = 1.0f;
 
+        [EnumButtons]
         public AAAAAntiAliasingTechnique AntiAliasing;
         public SMAASettings SMAA = new();
 
+        [EnumButtons]
         public AAAAUpscalingTechnique Upscaling;
         [Range(0.0f, MaxFSRSharpness)]
         public float FSRSharpness = 1.0f;
@@ -106,6 +108,7 @@ namespace DELTation.AAAARP.Data
         public int MaxPunctualLights = 1024;
         public ShadowSettings Shadows = new();
 
+        [EnumButtons]
         public AAAAAmbientOcclusionTechnique AmbientOcclusion = AAAAAmbientOcclusionTechnique.XeGTAO;
         public XeGTAOSettings GTAOSettings = new();
 

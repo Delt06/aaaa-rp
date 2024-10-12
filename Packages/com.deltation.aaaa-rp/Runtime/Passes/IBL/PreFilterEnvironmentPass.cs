@@ -102,7 +102,7 @@ namespace DELTation.AAAARP.Passes.IBL
 
                         Material material = data.Material;
                         const int shaderPass = 0;
-                        context.cmd.DrawProcedural(Matrix4x4.identity, material, shaderPass, MeshTopology.Triangles, 3, 1, _propertyBlock);
+                        AAAABlitter.BlitTriangle(context.cmd, material, shaderPass, _propertyBlock);
                     }
                 }
             }

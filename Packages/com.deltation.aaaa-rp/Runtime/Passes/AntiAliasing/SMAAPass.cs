@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
+using DELTation.AAAARP.Utils;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -108,7 +109,7 @@ namespace DELTation.AAAARP.Passes.AntiAliasing
                 _propertyBlock.SetTexture(ShaderIDs._BlitTexture, data.ColorBuffer);
 
                 const int edgeDetectionPass = 0;
-                CustomBlitWithPropertyBlock(context.cmd, edgeDetectionPass);
+                AAAABlitter.BlitTriangle(context.cmd, _material, edgeDetectionPass, _propertyBlock);
             }
 
             using (new ProfilingScope(context.cmd, Profiling.BlendingWeightsCalculation))
@@ -120,7 +121,7 @@ namespace DELTation.AAAARP.Passes.AntiAliasing
                 _propertyBlock.SetTexture(ShaderIDs._SearchTex, _searchTex);
 
                 const int blendingWeightsCalculationPass = 1;
-                CustomBlitWithPropertyBlock(context.cmd, blendingWeightsCalculationPass);
+                AAAABlitter.BlitTriangle(context.cmd, _material, blendingWeightsCalculationPass, _propertyBlock);
             }
 
             using (new ProfilingScope(context.cmd, Profiling.NeighborhoodBlending))
@@ -130,18 +131,13 @@ namespace DELTation.AAAARP.Passes.AntiAliasing
                 _propertyBlock.SetTexture(ShaderIDs._BlendTex, data.Weights);
 
                 const int neighborhoodBlendingPass = 2;
-                CustomBlitWithPropertyBlock(context.cmd, neighborhoodBlendingPass);
+                AAAABlitter.BlitTriangle(context.cmd, _material, neighborhoodBlendingPass, _propertyBlock);
             }
 
             using (new ProfilingScope(context.cmd, Profiling.CopyToColorBuffer))
             {
                 context.cmd.CopyTexture(data.Target, data.ColorBuffer);
             }
-        }
-
-        private void CustomBlitWithPropertyBlock(CommandBuffer cmd, int passIndex)
-        {
-            cmd.DrawProcedural(Matrix4x4.identity, _material, passIndex, MeshTopology.Triangles, 3, 1, _propertyBlock);
         }
 
         public class PassData : PassDataBase
