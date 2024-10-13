@@ -43,7 +43,7 @@ void StepThroughCell(inout float3 raySampleSS, const float3 reflectionSS, const 
     int2 mipSize = _CameraHZBMipRects[mipLevel].zw;
 
     // UV converted to index in the mip
-    float2 mipCellIndex = raySampleSS.xy * float2(mipSize) ;
+    float2 mipCellIndex = raySampleSS.xy * float2(mipSize);
 
     //
     // Find the cell boundary UV based on the direction of the ray
@@ -172,6 +172,104 @@ bool GetReflection(
     return true;
 }
 
+float2 Cell(float2 ray, float2 cellCount)
+{
+    return floor(ray.xy * cellCount);
+}
+
+float2 CellCount(float level)
+{
+    return _ScreenSize.xy / (level == 0.0 ? 1.0 : exp2(level));
+    // return (uint)_ScreenSize.xy >> (uint)level;
+}
+
+float3 IntersectCellBoundary(float3 pos, float3 dir, float2 cellID, float2 cellCount, float2 crossStep, float2 crossOffset)
+{
+    float2 cellSize = 1.0 / cellCount;
+    float2 planes = cellID / cellCount + cellSize * crossStep;
+
+    float2 solutions = (planes - pos.xy) / dir.xy;
+    float3 intersectionPos = pos + dir * min(solutions.x, solutions.y);
+
+    intersectionPos.xy += (solutions.x < solutions.y) ? float2(crossOffset.x, 0.0) : float2(0.0, crossOffset.y);
+
+    return intersectionPos;
+}
+
+bool CrossedCellBoundary(float2 cellID0, float2 cellID1)
+{
+    return (int)cellID0.x != (int)cellID1.x || (int)cellID0.y != (int)cellID1.y;
+}
+
+float MinimumDepthPlane(float2 ray, float level, float2 cell_count)
+{
+    return CameraHZB::LoadClamp(ray * cell_count, level);
+}
+
+#define HIZ_START_LEVEL 0
+#define HIZ_MAX_LEVEL (_CameraHZBLevelCount - 1)
+#define HIZ_STOP_LEVEL 0
+#define MAX_ITERATIONS 512
+
+float3 hi_z_trace(const float3 p, const float3 v, out uint iterations)
+{
+    float  level = HIZ_START_LEVEL;
+    float3 v_z = v / v.z;
+    float2 hi_z_size = CellCount(level);
+    float3 ray = p;
+
+    float2 cross_step = float2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0);
+    float2 cross_offset = cross_step * 0.00001;
+    cross_step = saturate(cross_step);
+
+    float2 ray_cell = Cell(ray.xy, hi_z_size.xy);
+    ray = IntersectCellBoundary(ray, v, ray_cell, hi_z_size, cross_step, cross_offset);
+
+    iterations = 0;
+    while (level >= HIZ_STOP_LEVEL && iterations < MAX_ITERATIONS)
+    {
+        // get the cell number of the current ray
+        float2 current_cell_count = CellCount(level);
+        float2 old_cell_id = Cell(ray.xy, current_cell_count);
+
+        // get the minimum depth plane in which the current ray resides
+        float min_z = MinimumDepthPlane(ray.xy, level, current_cell_count);
+
+        // intersect only if ray depth is below the minimum depth plane
+        float3 tmp_ray = ray;
+        if (GREATER_DEPTH(0, v.z))
+        {
+            float min_minus_ray = min_z - ray.z;
+            tmp_ray = GREATER_DEPTH(min_minus_ray, 0) ? ray + v_z * min_minus_ray : tmp_ray;
+            float2 new_cell_id = Cell(tmp_ray.xy, current_cell_count);
+            if (CrossedCellBoundary(old_cell_id, new_cell_id))
+            {
+                tmp_ray = IntersectCellBoundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset);
+                level = min(HIZ_MAX_LEVEL, level + 2.0f);
+            }
+            else
+            {
+                if (level == 1 && abs(min_minus_ray) > 0.0001)
+                {
+                    tmp_ray = IntersectCellBoundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset);
+                    level = 2;
+                }
+            }
+        }
+        else if (LESS_DEPTH(ray.z, min_z))
+        {
+            tmp_ray = IntersectCellBoundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset);
+            level = min(HIZ_MAX_LEVEL, level + 2.0f);
+        }
+
+        ray.xyz = tmp_ray.xyz;
+        --level;
+
+        ++iterations;
+    }
+    return ray;
+}
+
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
@@ -180,7 +278,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     UNITY_BRANCH
     if (all((float2)pixelCoords < _SSR_ScreenSize.xy))
     {
-        const float2 pixelUV = (pixelCoords.xy + 0.5) * _SSR_ScreenSize.zw;
+        const float2 pixelUV = (pixelCoords.xy) * _SSR_ScreenSize.zw;
         const float2 positionNDC = PixelUVToNDC(pixelUV);
         const float  deviceZ = LoadDeviceDepth(pixelCoords);
 
@@ -215,26 +313,52 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
             const float3 reflectionSS = normalize(reflectionPointSS.xyz - positionSS.xyz);
 
-            float3     reflectionUVAttenuation;
-            const bool hit = GetReflection(reflectionSS, positionSS.xyz, reflectionUVAttenuation);
-            float      attenuation = cameraFacingReflectionAttenuation;
+            // const bool hit = GetReflection(reflectionSS, positionSS.xyz, reflectionUVAttenuation);
+            float  attenuation = cameraFacingReflectionAttenuation;
+            uint   iterations;
+            float3 hit = hi_z_trace(positionSS.xyz + reflectionSS * 0.01f, reflectionSS, iterations);
 
-            if (hit)
+            UNITY_BRANCH
+            if (SampleDeviceDepth(hit.xy) == UNITY_RAW_FAR_CLIP_VALUE)
             {
-                attenuation *= reflectionUVAttenuation.z;
-
+                attenuation = 0;
+            }
+            else
+            {
                 // This will check the direction of the normal of the reflection sample with the
                 // direction of the reflection vector, and if they are pointing in the same direction,
                 // it will drown out those reflections since backward facing pixels are not available 
                 // for screen space reflection. Attenuate reflections for angles between 90 degrees 
                 // and 100 degrees, and drop all contribution beyond the (-100,100)  degree range
-                const float2 packedGBufferNormals = SAMPLE_TEXTURE2D_LOD(_GBuffer_Normals, sampler_LinearClamp, reflectionUVAttenuation.xy, 0).xy;
+                const float2 packedGBufferNormals = SAMPLE_TEXTURE2D_LOD(_GBuffer_Normals, sampler_LinearClamp, hit.xy, 0).xy;
                 const float3 reflectionNormalWS = UnpackGBufferNormal(packedGBufferNormals);
                 const float  directionBasedAttenuation = smoothstep(-0.17, 0.0, dot(reflectionNormalWS.xyz, -reflectionWS));
                 attenuation *= directionBasedAttenuation;
+
+                // Attenuate samples near screen edges.
+                const float  uvEdge = 0.025f;
+                const float2 uvSamplingAttenuation = smoothstep(0.0, uvEdge, hit.xy) * (1 - smoothstep(1 - uvEdge, 1, hit.xy));
+                attenuation *= uvSamplingAttenuation.x * uvSamplingAttenuation.y;
             }
 
-            _Result[pixelCoords] = hit ? float4(reflectionUVAttenuation.xy, 1, attenuation) : float4(0, 0, 0, 0);
+            _Result[pixelCoords] = float4(hit.xy, 0, attenuation);
+
+            // if (hit)
+            // {
+            //     attenuation *= reflectionUVAttenuation.z;
+            //
+            //     // This will check the direction of the normal of the reflection sample with the
+            //     // direction of the reflection vector, and if they are pointing in the same direction,
+            //     // it will drown out those reflections since backward facing pixels are not available 
+            //     // for screen space reflection. Attenuate reflections for angles between 90 degrees 
+            //     // and 100 degrees, and drop all contribution beyond the (-100,100)  degree range
+            //     const float2 packedGBufferNormals = SAMPLE_TEXTURE2D_LOD(_GBuffer_Normals, sampler_LinearClamp, reflectionUVAttenuation.xy, 0).xy;
+            //     const float3 reflectionNormalWS = UnpackGBufferNormal(packedGBufferNormals);
+            //     const float  directionBasedAttenuation = smoothstep(-0.17, 0.0, dot(reflectionNormalWS.xyz, -reflectionWS));
+            //     attenuation *= directionBasedAttenuation;
+            // }
+            //
+            // _Result[pixelCoords] = hit ? float4(reflectionUVAttenuation.xy, 1, attenuation) : float4(0, 0, 0, 0);
         }
     }
 }
