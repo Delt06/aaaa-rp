@@ -71,6 +71,9 @@ namespace DELTation.AAAARP.Passes
                 data.HZBDstOffset[2] = 0;
                 data.HZBDstOffset[3] = 0;
 
+                context.cmd.SetComputeVectorParam(cs, ShaderID.HZBGeneration._DimensionsRatio,
+                    new Vector4((float)srcRect.z / destRect.z, (float)srcRect.w / destRect.z, 0.0f, 0.0f)
+                );
                 context.cmd.SetComputeIntParams(cs, ShaderID.HZBGeneration._SrcOffsetAndLimit, data.HZBSrcOffset);
                 context.cmd.SetComputeIntParams(cs, ShaderID.HZBGeneration._DstOffset, data.HZBDstOffset);
                 int2 textureSize = data.HZBInfo.TextureSize;
@@ -116,6 +119,7 @@ namespace DELTation.AAAARP.Passes
             public static class HZBGeneration
             {
                 public static readonly int _HZBTextureSize = Shader.PropertyToID(nameof(_HZBTextureSize));
+                public static readonly int _DimensionsRatio = Shader.PropertyToID(nameof(_DimensionsRatio));
                 public static readonly int _SrcOffsetAndLimit = Shader.PropertyToID(nameof(_SrcOffsetAndLimit));
                 public static readonly int _DstOffset = Shader.PropertyToID(nameof(_DstOffset));
 

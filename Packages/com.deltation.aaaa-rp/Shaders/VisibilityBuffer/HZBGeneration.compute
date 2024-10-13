@@ -12,6 +12,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Depth.hlsl"
 
 float2 _HZBTextureSize;
+float4 _DimensionsRatio;
 uint4  _SrcOffsetAndLimit; // {x, y, w - 1, h - 1}
 uint4  _DstOffset; // {x, y, 0, 0}
 
@@ -44,13 +45,42 @@ void CS(uint3 dispatchThreadId : SV_DispatchThreadID)
     // Upper-left pixel coordinate of quad that this thread will read
     const uint2 srcPixelUL = srcOffset + (dispatchThreadId.xy << 1);
 
-    const float  p00 = SOURCE_TEXTURE[min(srcPixelUL + uint2(0u, 0u), srcLimit)];
-    const float  p10 = SOURCE_TEXTURE[min(srcPixelUL + uint2(1u, 0u), srcLimit)];
-    const float  p01 = SOURCE_TEXTURE[min(srcPixelUL + uint2(0u, 1u), srcLimit)];
-    const float  p11 = SOURCE_TEXTURE[min(srcPixelUL + uint2(1u, 1u), srcLimit)];
-    const float4 depths = float4(p00, p10, p01, p11);
+    float4 depths;
+    depths.x = SOURCE_TEXTURE[min(srcPixelUL + uint2(0u, 0u), srcLimit)];
+    depths.y = SOURCE_TEXTURE[min(srcPixelUL + uint2(1u, 0u), srcLimit)];
+    depths.z = SOURCE_TEXTURE[min(srcPixelUL + uint2(0u, 1u), srcLimit)];
+    depths.w = SOURCE_TEXTURE[min(srcPixelUL + uint2(1u, 1u), srcLimit)];
 
-    const float combinedDepth = COMBINE_DEPTHS(COMBINE_DEPTHS(depths.x, depths.y), COMBINE_DEPTHS(depths.z, depths.w));
+    float combinedDepth = COMBINE_DEPTHS(COMBINE_DEPTHS(depths.x, depths.y), COMBINE_DEPTHS(depths.z, depths.w));
+
+    // https://sugulee.wordpress.com/2021/01/19/screen-space-reflections-implementation-and-optimization-part-2-hi-z-tracing-method/
+    // More correct HZB construction, take into account odd dimensions
+    const float2 dimensionsRatio = _DimensionsRatio.xy;
+    const bool   needExtraSampleX = dimensionsRatio.x > 2;
+    const bool   needExtraSampleY = dimensionsRatio.y > 2;
+
+    if (needExtraSampleX)
+    {
+        float2 extraSamples;
+        extraSamples.x = SOURCE_TEXTURE[min(srcPixelUL + uint2(2u, 0u), srcLimit)];
+        extraSamples.y = SOURCE_TEXTURE[min(srcPixelUL + uint2(2u, 1u), srcLimit)];
+        combinedDepth = COMBINE_DEPTHS(combinedDepth, COMBINE_DEPTHS(extraSamples.x, extraSamples.y));
+    }
+
+    if (needExtraSampleY)
+    {
+        float2 extraSamples;
+        extraSamples.x = SOURCE_TEXTURE[min(srcPixelUL + uint2(0u, 2u), srcLimit)];
+        extraSamples.y = SOURCE_TEXTURE[min(srcPixelUL + uint2(1u, 2u), srcLimit)];
+        combinedDepth = COMBINE_DEPTHS(combinedDepth, COMBINE_DEPTHS(extraSamples.x, extraSamples.y));
+    }
+
+    if (needExtraSampleX && needExtraSampleY)
+    {
+        float extraSample;
+        extraSample.x = SOURCE_TEXTURE[min(srcPixelUL + uint2(2u, 2u), srcLimit)];
+        combinedDepth = COMBINE_DEPTHS(combinedDepth, extraSample);
+    }
 
     const uint2 uavSize = (uint2)_HZBTextureSize;
     const uint2 id = dstOffset + dispatchThreadId.xy;
