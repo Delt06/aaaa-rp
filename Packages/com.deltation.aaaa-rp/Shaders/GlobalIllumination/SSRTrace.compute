@@ -35,48 +35,6 @@ float2 NDCToPixelUV(const float2 ndc)
     return result;
 }
 
-#define CELL_STEP_OFFSET 0.05
-
-void StepThroughCell(inout float3 raySampleSS, const float3 reflectionSS, const int mipLevel)
-{
-    // Size of current mip 
-    int2 mipSize = _CameraHZBMipRects[mipLevel].zw;
-
-    // UV converted to index in the mip
-    float2 mipCellIndex = raySampleSS.xy * float2(mipSize);
-
-    //
-    // Find the cell boundary UV based on the direction of the ray
-    // Take floor() or ceil() depending on the sign of RayDir.xy
-    //
-    float2 boundaryUV;
-    boundaryUV.x = reflectionSS.x > 0 ? ceil(mipCellIndex.x) / float(mipSize.x) : floor(mipCellIndex.x) / float(mipSize.x);
-    boundaryUV.y = reflectionSS.y > 0 ? ceil(mipCellIndex.y) / float(mipSize.y) : floor(mipCellIndex.y) / float(mipSize.y);
-
-    //
-    // We can now represent the cell boundary as being formed by the intersection of 
-    // two lines which can be represented by 
-    //
-    // x = BoundaryUV.x
-    // y = BoundaryUV.y
-    //
-    // Intersect the parametric equation of the Ray with each of these lines
-    //
-    float2 t;
-    t.x = (boundaryUV.x - raySampleSS.x) / reflectionSS.x;
-    t.y = (boundaryUV.y - raySampleSS.y) / reflectionSS.y;
-
-    // Pick the cell intersection that is closer, and march to that cell
-    if (abs(t.x) < abs(t.y))
-    {
-        raySampleSS += (t.x + CELL_STEP_OFFSET / mipSize.x) * reflectionSS;
-    }
-    else
-    {
-        raySampleSS += (t.y + CELL_STEP_OFFSET / mipSize.y) * reflectionSS;
-    }
-}
-
 #define NUM_BINARY_SEARCH_SAMPLES 16
 
 float3 BinarySearchHZB(const float3 raySampleSS, const float3 reflectionSS, const float startZBufferValue, const float mipLevel)
@@ -105,169 +63,107 @@ float3 BinarySearchHZB(const float3 raySampleSS, const float3 reflectionSS, cons
     return midRaySampleSS;
 }
 
+#define MAX_ITERATIONS 64
 
-bool GetReflection(
-    const float3 reflectionSS,
-    const float3 positionSS,
-    out float3   result)
+float2 GetCellCount(int mipLevel)
 {
-    result = 0;
+    return _CameraHZBMipRects[mipLevel].zw;
+}
 
-    float2 uvSamplingAttenuation = 0;
-    float3 raySampleSS = positionSS + reflectionSS * 0.001f;
-    int    mipLevel = 0;
+float2 GetCell(float2 pos, float2 cellCount)
+{
+    return float2(floor(pos * cellCount));
+}
 
-    int loop = 0;
+float3 IntersectDepthPlane(float3 o, float3 d, float z)
+{
+    return o + d * z;
+}
 
-    UNITY_LOOP
-    while (mipLevel < _CameraHZBLevelCount && loop < 1024)
+float3 IntersectCellBoundary(float3 o, float3 d, float2 cell, float2 cell_count, float2 crossStep, float2 crossOffset)
+{
+
+    float2 index = cell + crossStep;
+    float2 boundary = index / cell_count;
+    boundary += crossOffset;
+
+    float2 delta = boundary - o.xy;
+    delta /= d.xy;
+    float t = min(delta.x, delta.y);
+
+    float3 intersection = IntersectDepthPlane(o, d, t);
+
+    return intersection;
+}
+
+float GetMinimumDepthPlane(float2 p, int mipLevel)
+{
+    return CameraHZB::LoadClamp(p * _ScreenSize.xy, mipLevel);
+}
+
+#define MAX_THICKNESS 0.0002
+
+bool CrossedCellBoundary(float2 oldCellIndex, float2 newCellIndex)
+{
+    return (oldCellIndex.x != newCellIndex.x) || (oldCellIndex.y != newCellIndex.y);
+}
+
+float FindIntersection_HiZ(float3     samplePosInTS,
+                           float3     vReflDirInTS,
+                           float      maxTraceDistance,
+                           out float3 intersection)
+{
+    const int maxLevel = _CameraHZBLevelCount - 1;
+
+    float2 crossStep = float2(vReflDirInTS.x >= 0 ? 1 : -1, vReflDirInTS.y >= 0 ? 1 : -1);
+    float2 crossOffset = crossStep * _SSR_ScreenSize.zw / 128;
+    crossStep = saturate(crossStep);
+
+    float3 ray = samplePosInTS.xyz;
+    float  minZ = ray.z;
+    float  maxZ = ray.z + vReflDirInTS.z * maxTraceDistance;
+    float  deltaZ = (maxZ - minZ);
+
+    float3 o = ray;
+    float3 d = vReflDirInTS * maxTraceDistance;
+
+    int    startLevel = 0;
+    int    stopLevel = 0;
+    float2 startCellCount = GetCellCount(startLevel);
+
+    float2 rayCell = GetCell(ray.xy, startCellCount);
+    ray = IntersectCellBoundary(o, d, rayCell, startCellCount, crossStep, crossOffset * 64);
+
+    int   level = startLevel;
+    uint  iter = 0;
+    bool  isBackwardRay = LESS_DEPTH(vReflDirInTS.z, 0);
+    float rayDir = isBackwardRay ? -1 : 1;
+
+    while (level >= stopLevel && LEQUAL_DEPTH(ray.z*rayDir, maxZ*rayDir) && iter < MAX_ITERATIONS)
     {
-        ++loop;
-        StepThroughCell(raySampleSS, reflectionSS, mipLevel);
+        const float2 cellCount = GetCellCount(level);
+        const float2 oldCellIdx = GetCell(ray.xy, cellCount);
 
-        // Attenuate samples near screen edges.
-        const float uvEdge = 0.025f;
-        uvSamplingAttenuation = smoothstep(0.0, uvEdge, raySampleSS.xy) * (1 - smoothstep(1 - uvEdge, 1, raySampleSS.xy));
+        float  cell_minZ = GetMinimumDepthPlane((oldCellIdx + 0.5f) / cellCount, level);
+        float3 tmpRay = (GREATER_DEPTH(cell_minZ, ray.z) && !isBackwardRay) ? IntersectDepthPlane(o, d, (cell_minZ - minZ) / deltaZ) : ray;
 
-        UNITY_BRANCH
-        if (any(uvSamplingAttenuation))
-        {
-            const float2 pixelCoord = float2(raySampleSS.xy * _SSR_ScreenSize.xy);
-            const float  zBufferValue = CameraHZB::LoadClamp(pixelCoord, mipLevel);
+        const float2 newCellIdx = GetCell(tmpRay.xy, cellCount);
 
-            UNITY_BRANCH
-            if (LESS_DEPTH(raySampleSS.z, zBufferValue))
-            {
-                ++mipLevel;
-                mipLevel = min(mipLevel, _CameraHZBLevelCount - 1);
-            }
-            else
-            {
-                if (mipLevel == 0)
-                {
-                    // if (zBufferValue == UNITY_RAW_FAR_CLIP_VALUE)
-                    // {
-                    //     return false;
-                    // }
+        float thickness = level == 0 ? abs(ray.z - cell_minZ) : 0;
+        bool  crossed = (isBackwardRay && GREATER_DEPTH(cell_minZ, ray.z)) || (LESS_DEPTH(thickness, MAX_THICKNESS)) || CrossedCellBoundary(
+            oldCellIdx, newCellIdx);
+        ray = crossed ? IntersectCellBoundary(o, d, oldCellIdx, cellCount, crossStep, crossOffset) : tmpRay;
+        level = crossed ? min((float)maxLevel, level + 1.0f) : level - 1;
 
-                    // raySampleSS = BinarySearchHZB(raySampleSS, reflectionSS, zBufferValue, mipLevel);
-                    result = float3(raySampleSS.xy, uvSamplingAttenuation.x * uvSamplingAttenuation.y);
-                    return true;
-                }
-
-                const float t = (raySampleSS.z - zBufferValue) / reflectionSS.z;
-                raySampleSS -= reflectionSS * t;
-
-                --mipLevel;
-            }
-        }
-        else
-        {
-            // Went past screen bounds.
-            return false;
-        }
+        ++iter;
     }
 
-    result = float3(raySampleSS.xy, uvSamplingAttenuation.x * uvSamplingAttenuation.y);
-    return true;
-}
+    bool intersected = (level < stopLevel);
+    intersection = ray;
 
-float2 Cell(float2 ray, float2 cellCount)
-{
-    return floor(ray.xy * cellCount);
-}
+    float intensity = intersected ? 1 : 0;
 
-float2 CellCount(float level)
-{
-    return _ScreenSize.xy / (level == 0.0 ? 1.0 : exp2(level));
-    // return (uint)_ScreenSize.xy >> (uint)level;
-}
-
-float3 IntersectCellBoundary(float3 pos, float3 dir, float2 cellID, float2 cellCount, float2 crossStep, float2 crossOffset)
-{
-    float2 cellSize = 1.0 / cellCount;
-    float2 planes = cellID / cellCount + cellSize * crossStep;
-
-    float2 solutions = (planes - pos.xy) / dir.xy;
-    float3 intersectionPos = pos + dir * min(solutions.x, solutions.y);
-
-    intersectionPos.xy += (solutions.x < solutions.y) ? float2(crossOffset.x, 0.0) : float2(0.0, crossOffset.y);
-
-    return intersectionPos;
-}
-
-bool CrossedCellBoundary(float2 cellID0, float2 cellID1)
-{
-    return (int)cellID0.x != (int)cellID1.x || (int)cellID0.y != (int)cellID1.y;
-}
-
-float MinimumDepthPlane(float2 ray, float level, float2 cell_count)
-{
-    return CameraHZB::LoadClamp(ray * cell_count, level);
-}
-
-#define HIZ_START_LEVEL 0
-#define HIZ_MAX_LEVEL (_CameraHZBLevelCount - 1)
-#define HIZ_STOP_LEVEL 0
-#define MAX_ITERATIONS 512
-
-float3 hi_z_trace(const float3 p, const float3 v, out uint iterations)
-{
-    float  level = HIZ_START_LEVEL;
-    float3 v_z = v / v.z;
-    float2 hi_z_size = CellCount(level);
-    float3 ray = p;
-
-    float2 cross_step = float2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0);
-    float2 cross_offset = cross_step * 0.00001;
-    cross_step = saturate(cross_step);
-
-    float2 ray_cell = Cell(ray.xy, hi_z_size.xy);
-    ray = IntersectCellBoundary(ray, v, ray_cell, hi_z_size, cross_step, cross_offset);
-
-    iterations = 0;
-    while (level >= HIZ_STOP_LEVEL && iterations < MAX_ITERATIONS)
-    {
-        // get the cell number of the current ray
-        float2 current_cell_count = CellCount(level);
-        float2 old_cell_id = Cell(ray.xy, current_cell_count);
-
-        // get the minimum depth plane in which the current ray resides
-        float min_z = MinimumDepthPlane(ray.xy, level, current_cell_count);
-
-        // intersect only if ray depth is below the minimum depth plane
-        float3 tmp_ray = ray;
-        if (GREATER_DEPTH(0, v.z))
-        {
-            float min_minus_ray = min_z - ray.z;
-            tmp_ray = GREATER_DEPTH(min_minus_ray, 0) ? ray + v_z * min_minus_ray : tmp_ray;
-            float2 new_cell_id = Cell(tmp_ray.xy, current_cell_count);
-            if (CrossedCellBoundary(old_cell_id, new_cell_id))
-            {
-                tmp_ray = IntersectCellBoundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset);
-                level = min(HIZ_MAX_LEVEL, level + 2.0f);
-            }
-            else
-            {
-                if (level == 1 && abs(min_minus_ray) > 0.0001)
-                {
-                    tmp_ray = IntersectCellBoundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset);
-                    level = 2;
-                }
-            }
-        }
-        else if (LESS_DEPTH(ray.z, min_z))
-        {
-            tmp_ray = IntersectCellBoundary(ray, v, old_cell_id, current_cell_count, cross_step, cross_offset);
-            level = min(HIZ_MAX_LEVEL, level + 2.0f);
-        }
-
-        ray.xyz = tmp_ray.xyz;
-        --level;
-
-        ++iterations;
-    }
-    return ray;
+    return intensity;
 }
 
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
@@ -316,10 +212,16 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
             // const bool hit = GetReflection(reflectionSS, positionSS.xyz, reflectionUVAttenuation);
             float  attenuation = cameraFacingReflectionAttenuation;
             uint   iterations;
-            float3 hit = hi_z_trace(positionSS.xyz + reflectionSS * 0.01f, reflectionSS, iterations);
+            float3 hit;
+            float  intensity = FindIntersection_HiZ(positionSS.xyz + reflectionSS * 0.01f, reflectionSS, 1.0f, hit);
+            // float3 hit = hi_z_trace(positionSS.xyz + reflectionSS * 0.01f, reflectionSS, iterations);
+
+            attenuation *= intensity;
+
+            const float hitDeviceDepth = SampleDeviceDepth(hit.xy);
 
             UNITY_BRANCH
-            if (SampleDeviceDepth(hit.xy) == UNITY_RAW_FAR_CLIP_VALUE)
+            if (hitDeviceDepth == UNITY_RAW_FAR_CLIP_VALUE)
             {
                 attenuation = 0;
             }
