@@ -49,6 +49,7 @@ namespace DELTation.AAAARP
         private readonly SSRTracePass _ssrTracePass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
         private readonly XeGTAOPass _xeGTAOPass;
+        private readonly ColorHistoryPass _colorHistoryPass;
 
         public AAAARenderer(AAAARenderPipelineAsset pipelineAsset)
         {
@@ -92,6 +93,7 @@ namespace DELTation.AAAARP
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _xeGTAOPass = new XeGTAOPass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
+            _colorHistoryPass = new ColorHistoryPass(AAAARenderPassEvent.AfterRenderingTransparents);
 
             _smaaPass = new SMAAPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders, textures);
             _uberPostProcessingPass = new UberPostProcessingPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders);
@@ -158,6 +160,8 @@ namespace DELTation.AAAARP
 
                 EnqueuePass(_deferredReflectionsComposePass);
             }
+
+            EnqueuePass(_colorHistoryPass);
 
             if (cameraData.AntiAliasingTechnique == AAAAAntiAliasingTechnique.SMAA)
             {

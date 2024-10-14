@@ -43,7 +43,9 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             passData.ResolveResultPong = builder.CreateTransientTexture(resolveResultDesc);
             passData.ResolveResultTexelSize = 1.0f / (float2) traceResultSize;
 
-            passData.CameraColor = builder.ReadTexture(resourceData.CameraScaledColorBuffer);
+            passData.CameraColor = builder.ReadTexture(
+                resourceData.CameraColorHistoryIsValid ? resourceData.CameraScaledColorHistoryBuffer : resourceData.CameraScaledColorBuffer
+            );
 
             AAAALightingSettings.SSRSettings ssrSettings = renderingData.PipelineAsset.LightingSettings.SSR;
             passData.BlurSmooth = ssrSettings.BlurSmooth;

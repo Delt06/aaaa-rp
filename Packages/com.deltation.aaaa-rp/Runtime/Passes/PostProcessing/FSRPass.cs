@@ -37,7 +37,7 @@ namespace DELTation.AAAARP.Passes.PostProcessing
             passData.Output = builder.WriteTexture(resourceData.CameraColorBuffer);
             passData.OutputResolution = math.int2(cameraData.PixelWidth, cameraData.PixelHeight);
             passData.HDR = cameraData.IsHdrEnabled;
-            passData.Sharpness = cameraData.FSRShaprness;
+            passData.Sharpness = cameraData.FSRSharpness;
             passData.UseRCAS = passData.Sharpness > 0.0f;
 
             if (passData.UseRCAS)

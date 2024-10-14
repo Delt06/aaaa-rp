@@ -35,6 +35,7 @@ namespace DELTation.AAAARP
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAARendererListData rendererListData = frameData.Get<AAAARendererListData>();
+            resourceData.InitSharedTextures(renderingData.RenderGraph, cameraData);
 
             AAAAImageBasedLightingData imageBasedLightingData = frameData.Get<AAAAImageBasedLightingData>();
             imageBasedLightingData.Init(renderingData.PipelineAsset.ImageBasedLightingSettings, renderGraph);
@@ -47,7 +48,7 @@ namespace DELTation.AAAARP
                 shadowsData.Init(renderingData, cameraData, renderingData.PipelineAsset.LightingSettings.Shadows);
 
                 renderer.ImportBackbuffer(cameraData);
-                resourceData.InitTextures(renderGraph, renderingData, cameraData);
+                resourceData.InitTextures(renderGraph, cameraData);
                 rendererListData.Init(renderingData, cameraData);
 
                 resourceData.BeginFrame();

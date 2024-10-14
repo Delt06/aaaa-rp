@@ -17,6 +17,7 @@ namespace DELTation.AAAARP.FrameData
         private TextureHandle _cameraResolveColorBuffer;
         private TextureHandle _cameraResolveDepthBuffer;
         private TextureHandle _cameraScaledColorBuffer;
+        private TextureHandle _cameraScaledColorBufferHistory;
         private TextureHandle _cameraScaledDepthBuffer;
         private TextureHandle _gbufferAlbedo;
         private TextureHandle _gbufferMasks;
@@ -32,6 +33,9 @@ namespace DELTation.AAAARP.FrameData
         public TextureHandle CameraDepthBuffer => CheckAndGetTextureHandle(ref _cameraDepthBuffer);
         public TextureHandle CameraResolveColorBuffer => CheckAndGetTextureHandle(ref _cameraResolveColorBuffer);
         public TextureHandle CameraResolveDepthBuffer => CheckAndGetTextureHandle(ref _cameraResolveDepthBuffer);
+        public TextureHandle CameraScaledColorHistoryBuffer => CheckAndGetTextureHandle(ref _cameraScaledColorBufferHistory);
+        public TextureDesc CameraScaledColorHistoryDesc { get; private set; }
+        public bool CameraColorHistoryIsValid { get; set; }
 
         public TextureHandle VisibilityBuffer => CheckAndGetTextureHandle(ref _visibilityBuffer);
 
@@ -61,15 +65,43 @@ namespace DELTation.AAAARP.FrameData
         public TextureDesc CameraScaledDepthDesc { get; private set; }
         public TextureDesc CameraColorDesc { get; private set; }
 
-        public void InitTextures(RenderGraph renderGraph, AAAARenderingData renderingData, AAAACameraData cameraData)
+        public void InitTextures(RenderGraph renderGraph, AAAACameraData cameraData)
         {
             ActiveColorID = ActiveID.Camera;
 
-            CreateTargets(renderGraph, renderingData, cameraData);
+            CreateTargets(renderGraph, cameraData);
             ImportFinalTarget(renderGraph, cameraData);
         }
 
-        private void CreateTargets(RenderGraph renderGraph, AAAARenderingData renderingData, AAAACameraData cameraData)
+        public void InitSharedTextures(RenderGraph renderGraph, AAAACameraData cameraData)
+        {
+            {
+                var size = new int2(cameraData.ScaledWidth, cameraData.ScaledHeight);
+                RenderTextureDescriptor cameraTargetDescriptor = cameraData.CameraTargetDescriptor;
+                TextureDesc currentDesc = CameraScaledColorHistoryDesc;
+
+                if (currentDesc.width != size.x ||
+                    currentDesc.height != size.y ||
+                    cameraTargetDescriptor.graphicsFormat != currentDesc.colorFormat)
+                {
+
+
+                    TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("CameraColor_Scaled_History", cameraTargetDescriptor);
+                    desc.depthBufferBits = DepthBits.None;
+                    desc.filterMode = FilterMode.Bilinear;
+                    desc.wrapMode = TextureWrapMode.Clamp;
+                    desc.clearBuffer = cameraData.ClearColor;
+                    desc.clearColor = cameraData.BackgroundColor;
+                    desc.width = size.x;
+                    desc.height = size.y;
+                    CameraScaledColorHistoryDesc = desc;
+                    _cameraScaledColorBufferHistory = renderGraph.CreateSharedTexture(desc);
+                    CameraColorHistoryIsValid = false;
+                }
+            }
+        }
+
+        private void CreateTargets(RenderGraph renderGraph, AAAACameraData cameraData)
         {
             var scaledCameraTargetViewportSize = new int2(cameraData.ScaledWidth, cameraData.ScaledHeight);
 
@@ -241,6 +273,9 @@ namespace DELTation.AAAARP.FrameData
 
             _cameraResolveColorBuffer = default;
             _cameraResolveDepthBuffer = default;
+            CameraScaledColorHistoryDesc = default;
+            _cameraScaledColorBufferHistory = default;
+            CameraColorHistoryIsValid = false;
 
             _visibilityBuffer = default;
 

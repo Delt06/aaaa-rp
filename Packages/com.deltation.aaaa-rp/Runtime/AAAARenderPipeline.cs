@@ -223,7 +223,7 @@ namespace DELTation.AAAARP
             {
                 cameraData.UpscalingTechnique = AAAAUpscalingTechnique.Off;
             }
-            cameraData.FSRShaprness = imageQualitySettings?.FSRSharpness ?? 0.0f;
+            cameraData.FSRSharpness = imageQualitySettings?.FSRSharpness ?? 0.0f;
             cameraData.PostProcessingEnabled = postProcessingSettings?.AnyEnabled() ?? false;
             cameraData.AmbientOcclusionTechnique = lightingSettings?.AmbientOcclusion ?? AAAAAmbientOcclusionTechnique.Off;
 

@@ -15,7 +15,7 @@ namespace DELTation.AAAARP.FrameData
         public CameraType CameraType;
         public bool ClearColor;
         public bool ClearDepth;
-        public float FSRShaprness;
+        public float FSRSharpness;
         public HDRColorBufferPrecision HDRColorBufferPrecision;
         public bool IsAlphaOutputEnabled;
         public bool IsDefaultViewport;
