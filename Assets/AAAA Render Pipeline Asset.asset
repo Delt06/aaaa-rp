@@ -46,7 +46,7 @@ MonoBehaviour:
       Resolution: 1
       BlurSmooth: 0.5
       BlurRough: 2.5
-      MaxThickness: 0.5
+      MaxThickness: 0.015
   _imageBasedLightingSettings:
     DiffuseIrradianceResolution: 128
     BRDFLutResolution: 128
