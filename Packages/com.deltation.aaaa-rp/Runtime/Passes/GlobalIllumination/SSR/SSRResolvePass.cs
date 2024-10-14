@@ -1,8 +1,6 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
-using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
 using Unity.Mathematics;
 using UnityEngine;
@@ -12,22 +10,16 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
 {
-    public class SSRResolvePass : AAAARenderPass<SSRResolvePass.PassData>, IDisposable
+    public class SSRResolvePass : AAAARenderPass<SSRResolvePass.PassData>
     {
         private const int ResolvePass = 0;
         private const int BilateralBlurPass = 1;
-        private const int ComposePass = 2;
-        private readonly Material _resolveMaterial;
 
-        public SSRResolvePass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
-            _resolveMaterial = CoreUtils.CreateEngineMaterial(shaders.SsrResolvePS);
+        private readonly Material _material;
+
+        public SSRResolvePass(AAAARenderPassEvent renderPassEvent, Material material) : base(renderPassEvent) => _material = material;
 
         public override string Name => "SSR.Resolve";
-
-        public void Dispose()
-        {
-            CoreUtils.Destroy(_resolveMaterial);
-        }
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
@@ -44,13 +36,14 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
                     traceResultSize.x, traceResultSize.y, GraphicsFormat.R8G8B8A8_SRGB, GraphicsFormat.None
                 )
             );
-            passData.ResolveResult = builder.CreateTransientTexture(resolveResultDesc);
+            lightingData.SSRResolveResult = renderingData.RenderGraph.CreateTexture(resolveResultDesc);
+            passData.ResolveResult = builder.WriteTexture(lightingData.SSRResolveResult);
+
             resolveResultDesc.name = resolveResultName + "_Pong";
             passData.ResolveResultPong = builder.CreateTransientTexture(resolveResultDesc);
             passData.ResolveResultTexelSize = 1.0f / (float2) traceResultSize;
 
             passData.CameraColor = builder.ReadTexture(resourceData.CameraScaledColorBuffer);
-            passData.CameraDepth = builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
 
             AAAALightingSettings.SSRSettings ssrSettings = renderingData.PipelineAsset.LightingSettings.SSR;
             passData.BlurSmooth = ssrSettings.BlurSmooth;
@@ -71,11 +64,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
                 BilateralBlur(context.cmd, data, data.ResolveResult, data.ResolveResultPong, math.float2(1, 0));
                 BilateralBlur(context.cmd, data, data.ResolveResultPong, data.ResolveResult, math.float2(0, 1));
             }
-
-            using (new ProfilingScope(context.cmd, Profiling.Compose))
-            {
-                Compose(context.cmd, data);
-            }
         }
 
         private void ResolveUV(CommandBuffer cmd, PassData data)
@@ -89,7 +77,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             propertyBlock.SetTexture(ShaderID._SSRTraceResult, data.TraceResult);
             propertyBlock.SetTexture(ShaderID._CameraColor, data.CameraColor);
 
-            AAAABlitter.BlitTriangle(cmd, _resolveMaterial, ResolvePass, propertyBlock);
+            AAAABlitter.BlitTriangle(cmd, _material, ResolvePass, propertyBlock);
         }
 
         private void BilateralBlur(CommandBuffer cmd, PassData data, TextureHandle source, TextureHandle destination, float2 direction)
@@ -106,20 +94,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             propertyBlock.SetTexture(ShaderID._SSRResolveResult, source);
             propertyBlock.SetTexture(ShaderID._SSRTraceResult, data.TraceResult);
 
-            AAAABlitter.BlitTriangle(cmd, _resolveMaterial, BilateralBlurPass, propertyBlock);
-        }
-
-        private void Compose(CommandBuffer cmd, PassData data)
-        {
-            MaterialPropertyBlock propertyBlock = data.PropertyBlock;
-
-            cmd.SetRenderTarget(data.CameraColor, data.CameraDepth);
-
-            propertyBlock.Clear();
-            propertyBlock.SetVector(ShaderID._BlitScaleBias, new Vector4(1, 1, 0, 0));
-            propertyBlock.SetTexture(ShaderID._SSRResolveResult, data.ResolveResult);
-
-            AAAABlitter.BlitTriangle(cmd, _resolveMaterial, ComposePass, propertyBlock);
+            AAAABlitter.BlitTriangle(cmd, _material, BilateralBlurPass, propertyBlock);
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -135,7 +110,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
         private static class Profiling
         {
             public static readonly ProfilingSampler ResolveUV = new(nameof(ResolveUV));
-            public static readonly ProfilingSampler Compose = new(nameof(Compose));
             public static readonly ProfilingSampler BilateralBlur = new(nameof(BilateralBlur));
         }
 
@@ -145,7 +119,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             public float BlurRough;
             public float BlurSmooth;
             public TextureHandle CameraColor;
-            public TextureHandle CameraDepth;
             public TextureHandle ResolveResult;
             public TextureHandle ResolveResultPong;
             public float2 ResolveResultTexelSize;

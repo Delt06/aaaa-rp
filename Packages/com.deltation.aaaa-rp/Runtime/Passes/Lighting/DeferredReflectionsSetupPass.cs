@@ -11,6 +11,8 @@ namespace DELTation.AAAARP.Passes.Lighting
 
         public DeferredReflectionsSetupPass(AAAARenderPassEvent renderPassEvent, Material material) : base(renderPassEvent) => _material = material;
 
+        public override string Name => "DeferredReflections.Setup";
+
         protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();

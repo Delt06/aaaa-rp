@@ -11,12 +11,13 @@ namespace DELTation.AAAARP.FrameData
     public class AAAALightingData : ContextItem
     {
         public float AmbientIntensity;
+        public TextureHandle DeferredReflections;
         public TextureHandle GTAOTerm;
         public AAAALightingConstantBuffer LightingConstantBuffer;
         public BufferHandle PunctualLightsBuffer;
+        public TextureHandle SSRResolveResult;
         public TextureHandle SSRTraceResult;
         public int2 SSRTraceResultSize;
-        public TextureHandle DeferredReflections;
 
         public void Init(RenderGraph renderGraph, AAAALightingSettings lightingSettings)
         {
@@ -32,6 +33,7 @@ namespace DELTation.AAAARP.FrameData
 
             GTAOTerm = TextureHandle.nullHandle;
             SSRTraceResult = TextureHandle.nullHandle;
+            SSRResolveResult = TextureHandle.nullHandle;
         }
 
         public override void Reset()
@@ -41,6 +43,7 @@ namespace DELTation.AAAARP.FrameData
             PunctualLightsBuffer = BufferHandle.nullHandle;
             GTAOTerm = TextureHandle.nullHandle;
             SSRTraceResult = TextureHandle.nullHandle;
+            SSRResolveResult = TextureHandle.nullHandle;
             SSRTraceResultSize = default;
             DeferredReflections = default;
         }

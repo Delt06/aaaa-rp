@@ -25,6 +25,9 @@ namespace DELTation.AAAARP
         private readonly ClusteredLightingPass _clusteredLightingPass;
         private readonly ConvolveDiffuseIrradiancePass _convolveDiffuseIrradiancePass;
         private readonly DeferredLightingPass _deferredLightingPass;
+        private readonly DeferredReflectionsComposePass _deferredReflectionsComposePass;
+        private readonly Material _deferredReflectionsMaterial;
+        private readonly DeferredReflectionsSetupPass _deferredReflectionsSetupPass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferFalseNegativePass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferMainPass;
         private readonly FinalBlitPass _finalBlitPass;
@@ -39,14 +42,13 @@ namespace DELTation.AAAARP
         private readonly ShadowPassPool _shadowPassPool;
         private readonly SkyboxPass _skyboxPass;
         private readonly SMAAPass _smaaPass;
+        private readonly SSRComposePass _ssrComposePass;
         private readonly HZBGenerationPass _ssrHzbGenerationPass;
+        private readonly Material _ssrResolveMaterial;
         private readonly SSRResolvePass _ssrResolvePass;
         private readonly SSRTracePass _ssrTracePass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
         private readonly XeGTAOPass _xeGTAOPass;
-        private readonly DeferredReflectionsComposePass _deferredReflectionsComposePass;
-        private readonly Material _deferredReflectionsMaterial;
-        private readonly DeferredReflectionsSetupPass _deferredReflectionsSetupPass;
 
         public AAAARenderer(AAAARenderPipelineAsset pipelineAsset)
         {
@@ -76,9 +78,15 @@ namespace DELTation.AAAARP
                 new DrawVisibilityBufferPass(DrawVisibilityBufferPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer);
             _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
 
-            _ssrHzbGenerationPass = new HZBGenerationPass(AAAARenderPassEvent.AfterRenderingGbuffer, HZBGenerationPass.Mode.Min, "SSR.", shaders);
-            _ssrTracePass = new SSRTracePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
-            _ssrResolvePass = new SSRResolvePass(AAAARenderPassEvent.AfterRenderingTransparents, shaders);
+            _deferredReflectionsMaterial = CoreUtils.CreateEngineMaterial(shaders.DeferredReflectionsPS);
+            const AAAARenderPassEvent deferredReflectionsRenderPassEvent = AAAARenderPassEvent.AfterRenderingGbuffer;
+            _deferredReflectionsSetupPass = new DeferredReflectionsSetupPass(deferredReflectionsRenderPassEvent, _deferredReflectionsMaterial);
+            _deferredReflectionsComposePass = new DeferredReflectionsComposePass(deferredReflectionsRenderPassEvent, _deferredReflectionsMaterial);
+            _ssrResolveMaterial = CoreUtils.CreateEngineMaterial(shaders.SsrResolvePS);
+            _ssrHzbGenerationPass = new HZBGenerationPass(deferredReflectionsRenderPassEvent, HZBGenerationPass.Mode.Min, "SSR.", shaders);
+            _ssrTracePass = new SSRTracePass(deferredReflectionsRenderPassEvent, shaders);
+            _ssrComposePass = new SSRComposePass(deferredReflectionsRenderPassEvent, _ssrResolveMaterial);
+            _ssrResolvePass = new SSRResolvePass(deferredReflectionsRenderPassEvent, _ssrResolveMaterial);
 
             _clusteredLightingPass = new ClusteredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
@@ -87,10 +95,6 @@ namespace DELTation.AAAARP
 
             _smaaPass = new SMAAPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders, textures);
             _uberPostProcessingPass = new UberPostProcessingPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders);
-
-            _deferredReflectionsMaterial = CoreUtils.CreateEngineMaterial(shaders.DeferredReflectionsPS);
-            _deferredReflectionsSetupPass = new DeferredReflectionsSetupPass(AAAARenderPassEvent.AfterRenderingGbuffer, _deferredReflectionsMaterial);
-            _deferredReflectionsComposePass = new DeferredReflectionsComposePass(AAAARenderPassEvent.AfterRenderingGbuffer, _deferredReflectionsMaterial);
 
             const AAAARenderPassEvent upscaleRenderPassEvent = AAAARenderPassEvent.AfterRenderingPostProcessing;
             _bilinearUpscalePass = new BilinearUpscalePass(upscaleRenderPassEvent);
@@ -132,20 +136,28 @@ namespace DELTation.AAAARP
             EnqueuePass(_drawVisibilityBufferFalseNegativePass);
             EnqueuePass(_resolveVisibilityBufferPass);
 
-            if (_pipelineAsset.LightingSettings.SSR.Enabled)
-            {
-                EnqueuePass(_ssrHzbGenerationPass);
-                EnqueuePass(_ssrTracePass);
-                EnqueuePass(_ssrResolvePass);
-            }
-
             EnqueuePass(_clusteredLightingPass);
             EnqueuePass(_xeGTAOPass);
             EnqueuePass(_deferredLightingPass);
             EnqueuePass(_skyboxPass);
 
-            EnqueuePass(_deferredReflectionsSetupPass);
-            EnqueuePass(_deferredReflectionsComposePass);
+            {
+                if (_pipelineAsset.LightingSettings.SSR.Enabled)
+                {
+                    EnqueuePass(_ssrHzbGenerationPass);
+                    EnqueuePass(_ssrTracePass);
+                    EnqueuePass(_ssrResolvePass);
+                }
+
+                EnqueuePass(_deferredReflectionsSetupPass);
+
+                if (_pipelineAsset.LightingSettings.SSR.Enabled)
+                {
+                    EnqueuePass(_ssrComposePass);
+                }
+
+                EnqueuePass(_deferredReflectionsComposePass);
+            }
 
             if (cameraData.AntiAliasingTechnique == AAAAAntiAliasingTechnique.SMAA)
             {
@@ -190,6 +202,7 @@ namespace DELTation.AAAARP
             _uberPostProcessingPass.Dispose();
             _smaaPass.Dispose();
 
+            CoreUtils.Destroy(_ssrResolveMaterial);
             CoreUtils.Destroy(_deferredReflectionsMaterial);
         }
     }
