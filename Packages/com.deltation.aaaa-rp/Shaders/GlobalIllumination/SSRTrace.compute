@@ -1,5 +1,5 @@
 // Main Source: https://sugulee.wordpress.com/2021/01/19/screen-space-reflections-implementation-and-optimization-part-2-hi-z-tracing-method/
-// Attenuation options: https://sakibsaikia.github.io/graphics/2016/12/26/Screen-Space-Reflection-in-Killing-Floor-2.html#deferred-color-lookup
+// Attenuation options and dithering: https://sakibsaikia.github.io/graphics/2016/12/26/Screen-Space-Reflection-in-Killing-Floor-2.html#deferred-color-lookup
 
 #pragma kernel CS
 
@@ -39,6 +39,19 @@ float2 NDCToPixelUV(const float2 ndc)
     #endif
     result = result * 0.5 + 0.5;
     return result;
+}
+
+float Dither(uint2 pixelCoords)
+{
+    const float ditherThresholds[16] =
+    {
+        1.0 / 17.0, 9.0 / 17.0, 3.0 / 17.0, 11.0 / 17.0,
+        13.0 / 17.0, 5.0 / 17.0, 15.0 / 17.0, 7.0 / 17.0,
+        4.0 / 17.0, 12.0 / 17.0, 2.0 / 17.0, 10.0 / 17.0,
+        16.0 / 17.0, 8.0 / 17.0, 14.0 / 17.0, 6.0 / 17.0
+    };
+    const uint index = (uint(pixelCoords.x) % 4) * 4 + uint(pixelCoords.y) % 4;
+    return ditherThresholds[index];
 }
 
 float3 SampleGBufferNormals(const float2 uv)
@@ -116,7 +129,7 @@ float FindIntersection_HiZ(float3     originSS,
     uint  iter = 0;
     bool  isBackwardRay = LESS_DEPTH(reflectionSS.z, 0);
     float rayDir = isBackwardRay ? -1 : 1;
-    float maxThickness = 0.1f * max(_SSR_ScreenSize.z, _SSR_ScreenSize.w);
+    float maxThickness = 0.2f * max(_SSR_ScreenSize.z, _SSR_ScreenSize.w);
 
     while (level >= stopLevel && LEQUAL_DEPTH(ray.z*rayDir, maxZ*rayDir) && iter < MAX_ITERATIONS)
     {
@@ -203,7 +216,10 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
             float  attenuation = cameraFacingReflectionAttenuation;
             float blurRadius;
             float3 hit;
-            float  intensity = FindIntersection_HiZ(positionSS.xyz + reflectionSS * 0.001f, reflectionSS, 0.5f, hit);
+            // Fix self-intersection and some banding.
+            // https://sakibsaikia.github.io/graphics/2016/12/26/Screen-Space-Reflection-in-Killing-Floor-2.html#deferred-color-lookup
+            const float ditherOffset = 0.001f + Dither(pixelCoords) * 0.005f;
+            float  intensity = FindIntersection_HiZ(positionSS.xyz + reflectionSS * ditherOffset, reflectionSS, 0.5f, hit);
 
             attenuation *= intensity;
 
