@@ -73,9 +73,9 @@ Shader "Hidden/AAAA/SSR/Resolve"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PBR.hlsl"
 
             void InitializeSurfaceData(const GBufferValue gbuffer,
-                           const Varyings                 IN,
-                           const float                    deviceDepth,
-                           out SurfaceData                surfaceData)
+                                       const Varyings     IN,
+                                       const float        deviceDepth,
+                                       out SurfaceData    surfaceData)
             {
                 surfaceData.albedo = gbuffer.albedo;
                 surfaceData.roughness = gbuffer.roughness;
@@ -115,7 +115,7 @@ Shader "Hidden/AAAA/SSR/Resolve"
                 const float4 ssrValue = SAMPLE_TEXTURE2D(_SSRResolveResult, sampler_LinearClamp, IN.texcoord);
                 const float  roughnessAttenuation = 1.0 / (surfaceData.roughness * surfaceData.roughness + 1.0);
                 const float3 lightingIndirect = ComputeLightingIndirect(surfaceData, ssrValue.rgb);
-                
+
                 float contribution = ssrValue.a * roughnessAttenuation;
                 // Modulate reflection color to fix black halos from low intesity reflection colors.
                 // contribution *= saturate(length(ssrValue.rgb));

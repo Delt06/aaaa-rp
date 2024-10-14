@@ -80,7 +80,6 @@ namespace DELTation.AAAARP.Data
     [Serializable]
     public class AAAALightingSettings
     {
-
         public enum XeGTAODenoisingLevel
         {
             Disabled = 0,
@@ -111,6 +110,22 @@ namespace DELTation.AAAARP.Data
         [EnumButtons]
         public AAAAAmbientOcclusionTechnique AmbientOcclusion = AAAAAmbientOcclusionTechnique.XeGTAO;
         public XeGTAOSettings GTAOSettings = new();
+
+        public SSRSettings SSR = new();
+
+        [Serializable]
+        public class SSRSettings
+        {
+            public enum ResolutionScale
+            {
+                Full = 1,
+                Half = 2,
+                Quarter = 4,
+            }
+
+            public bool Enabled = true;
+            public ResolutionScale Resolution = ResolutionScale.Full;
+        }
 
         [Serializable]
         public class ShadowSettings

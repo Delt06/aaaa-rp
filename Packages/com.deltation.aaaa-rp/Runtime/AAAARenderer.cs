@@ -5,7 +5,6 @@ using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Passes;
 using DELTation.AAAARP.Passes.AntiAliasing;
 using DELTation.AAAARP.Passes.ClusteredLighting;
-using DELTation.AAAARP.Passes.GlobalIllumination;
 using DELTation.AAAARP.Passes.GlobalIllumination.AO;
 using DELTation.AAAARP.Passes.GlobalIllumination.SSR;
 using DELTation.AAAARP.Passes.IBL;
@@ -40,13 +39,15 @@ namespace DELTation.AAAARP
         private readonly SkyboxPass _skyboxPass;
         private readonly SMAAPass _smaaPass;
         private readonly HZBGenerationPass _ssrHzbGenerationPass;
-        private readonly SSRTracePass _ssrTracePass;
         private readonly SSRResolvePass _ssrResolvePass;
+        private readonly SSRTracePass _ssrTracePass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
         private readonly XeGTAOPass _xeGTAOPass;
 
-        public AAAARenderer()
+        public AAAARenderer(AAAARenderPipelineAsset pipelineAsset)
         {
+            _pipelineAsset = pipelineAsset;
+
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
             AAAARenderPipelineRuntimeTextures textures = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeTextures>();
 
@@ -123,9 +124,12 @@ namespace DELTation.AAAARP
             EnqueuePass(_drawVisibilityBufferFalseNegativePass);
             EnqueuePass(_resolveVisibilityBufferPass);
 
-            EnqueuePass(_ssrHzbGenerationPass);
-            EnqueuePass(_ssrTracePass);
-            EnqueuePass(_ssrResolvePass);
+            if (_pipelineAsset.LightingSettings.SSR.Enabled)
+            {
+                EnqueuePass(_ssrHzbGenerationPass);
+                EnqueuePass(_ssrTracePass);
+                EnqueuePass(_ssrResolvePass);
+            }
 
             EnqueuePass(_clusteredLightingPass);
             EnqueuePass(_xeGTAOPass);

@@ -28,7 +28,7 @@ namespace DELTation.AAAARP
         public AAAARenderPipeline(AAAARenderPipelineAsset pipelineAsset)
         {
             _pipelineAsset = pipelineAsset;
-            _renderer = new AAAARenderer();
+            _renderer = new AAAARenderer(pipelineAsset);
             _renderGraph = new RenderGraph("AAAARPRenderGraph");
 
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
@@ -161,7 +161,8 @@ namespace DELTation.AAAARP
             AAAAImageQualitySettings imageQualitySettings = camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.ImageQualitySettings : null;
             AAAAPostProcessingSettings postProcessingSettings =
                 camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.PostProcessingSettings : null;
-            AAAALightingSettings lightingSettings = camera.cameraType is CameraType.Game or CameraType.SceneView ? renderingData.PipelineAsset.LightingSettings : null;
+            AAAALightingSettings lightingSettings =
+                camera.cameraType is CameraType.Game or CameraType.SceneView ? renderingData.PipelineAsset.LightingSettings : null;
 
             cameraData.Renderer = renderer;
             cameraData.Camera = camera;
@@ -215,7 +216,7 @@ namespace DELTation.AAAARP
             Matrix4x4 projectionMatrix = camera.projectionMatrix;
             cameraData.SetViewProjectionAndJitterMatrix(camera.worldToCameraMatrix, projectionMatrix);
             cameraData.WorldSpaceCameraPos = camera.transform.position;
-            
+
             cameraData.AntiAliasingTechnique = imageQualitySettings?.AntiAliasing ?? AAAAAntiAliasingTechnique.Off;
             cameraData.UpscalingTechnique = imageQualitySettings?.Upscaling ?? AAAAUpscalingTechnique.Off;
             if (cameraData.RenderScale >= 1.0f)

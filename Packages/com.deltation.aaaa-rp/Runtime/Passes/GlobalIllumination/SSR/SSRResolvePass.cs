@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -32,11 +33,14 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
 
             passData.TraceResult = builder.ReadTexture(lightingData.SSRTraceResult);
-            passData.ResolveResult = builder.CreateTransientTexture(AAAARenderingUtils.CreateTextureDesc("SSRResolveResult", new RenderTextureDescriptor(
-                        cameraData.ScaledWidth, cameraData.ScaledHeight, GraphicsFormat.R8G8B8A8_SRGB, GraphicsFormat.None
-                    )
+
+            int2 traceResultSize = lightingData.SSRTraceResultSize;
+            TextureDesc resolveResultDesc = AAAARenderingUtils.CreateTextureDesc("SSR" + nameof(PassData.ResolveResult),
+                new RenderTextureDescriptor(
+                    traceResultSize.x, traceResultSize.y, GraphicsFormat.R8G8B8A8_SRGB, GraphicsFormat.None
                 )
             );
+            passData.ResolveResult = builder.CreateTransientTexture(resolveResultDesc);
             passData.CameraColor = builder.ReadTexture(resourceData.CameraScaledColorBuffer);
             passData.CameraDepth = builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
 
@@ -89,9 +93,9 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
         public class PassData : PassDataBase
         {
             public TextureHandle CameraColor;
+            public TextureHandle CameraDepth;
             public TextureHandle ResolveResult;
             public TextureHandle TraceResult;
-            public TextureHandle CameraDepth;
         }
     }
 }

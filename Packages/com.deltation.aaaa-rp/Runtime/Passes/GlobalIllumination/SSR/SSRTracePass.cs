@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
+using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.RenderPipelineResources;
@@ -27,9 +28,15 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
+            AAAALightingSettings.SSRSettings ssrSettings = renderingData.PipelineAsset.LightingSettings.SSR;
+            float resolutionScale = 1.0f / (float) ssrSettings.Resolution;
+            int ssrTargetWidth = (int) math.ceil(cameraData.ScaledWidth * resolutionScale);
+            int ssrTargetHeight = (int) math.ceil(cameraData.ScaledHeight * resolutionScale);
+
+            lightingData.SSRTraceResultSize = math.int2(ssrTargetWidth, ssrTargetHeight);
             lightingData.SSRTraceResult = renderingData.RenderGraph.CreateTexture(
                 AAAARenderingUtils.CreateTextureDesc("SSRTraceResult",
-                    new RenderTextureDescriptor(cameraData.ScaledWidth, cameraData.ScaledHeight, GraphicsFormat.R16G16B16A16_UNorm, GraphicsFormat.None)
+                    new RenderTextureDescriptor(ssrTargetWidth, ssrTargetHeight, GraphicsFormat.R16G16B16A16_UNorm, GraphicsFormat.None)
                     {
                         enableRandomWrite = true,
                     }
@@ -37,8 +44,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             );
 
             passData.ScreenSizePixels = new Vector4(
-                cameraData.ScaledWidth, cameraData.ScaledHeight,
-                1.0f / cameraData.ScaledWidth, 1.0f / cameraData.ScaledHeight
+                ssrTargetWidth, ssrTargetHeight,
+                1.0f / ssrTargetWidth, 1.0f / ssrTargetHeight
             );
             passData.Result = builder.WriteTexture(lightingData.SSRTraceResult);
 
@@ -50,14 +57,14 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             for (int hzbMipIndex = 0; hzbMipIndex < resourceData.CameraScaledHZBInfo.LevelCount; hzbMipIndex++)
             {
                 Vector4 mipRect = resourceData.CameraScaledHZBInfo.MipRects[hzbMipIndex];
-                float2 size = new float2(mipRect.z, mipRect.w);
+                var size = new float2(mipRect.z, mipRect.w);
                 if (hzbMipIndex > 0)
                 {
                     // When a mip level is not evenly divisible by 2, we round the result to the next higher value.
                     // It means the boundary cells in the next mip level correspond not to 4 of its parent, but 2 or even one.
                     // To keep cell computations correct, it is easier to set cell counts of these levels to fractional values.
                     Vector4 previousMipRect = resourceData.CameraScaledHZBInfo.MipRects[hzbMipIndex - 1];
-                    bool2 dimensionsWithHalfPixels = (new float2(previousMipRect.z, previousMipRect.w) / size) < 2;
+                    bool2 dimensionsWithHalfPixels = new float2(previousMipRect.z, previousMipRect.w) / size < 2;
                     size = math.select(size, size - 0.5f, dimensionsWithHalfPixels);
                 }
                 passData.HZBCellCounts[hzbMipIndex] = new Vector4(size.x, size.y);
@@ -101,12 +108,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
 
         public class PassData : PassDataBase
         {
+            public readonly Vector4[] HZBCellCounts = new Vector4[AAAAMeshletComputeShaders.HZBMaxLevelCount];
             public Vector4 CameraPosition;
             public Matrix4x4 InvViewProjMatrix;
             public TextureHandle Result;
             public Vector4 ScreenSizePixels;
             public Matrix4x4 ViewProjMatrix;
-            public Vector4[] HZBCellCounts = new Vector4[AAAAMeshletComputeShaders.HZBMaxLevelCount];
         }
     }
 }

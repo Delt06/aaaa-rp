@@ -1,6 +1,7 @@
 ﻿using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Lighting;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -14,6 +15,7 @@ namespace DELTation.AAAARP.FrameData
         public AAAALightingConstantBuffer LightingConstantBuffer;
         public BufferHandle PunctualLightsBuffer;
         public TextureHandle SSRTraceResult;
+        public int2 SSRTraceResultSize;
 
         public void Init(RenderGraph renderGraph, AAAALightingSettings lightingSettings)
         {
@@ -38,6 +40,7 @@ namespace DELTation.AAAARP.FrameData
             PunctualLightsBuffer = BufferHandle.nullHandle;
             GTAOTerm = TextureHandle.nullHandle;
             SSRTraceResult = TextureHandle.nullHandle;
+            SSRTraceResultSize = default;
         }
     }
 }
