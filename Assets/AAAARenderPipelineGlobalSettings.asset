@@ -157,6 +157,7 @@ MonoBehaviour:
         _buildClusterGridCS: {fileID: 7200000, guid: e087e57e3a56485588ee6a186afc4e70, type: 3}
         _clusterCullingCS: {fileID: 7200000, guid: 38bbe194146f48a8941bf74b2fac6adc, type: 3}
         _deferredLightingPS: {fileID: 4800000, guid: 0597c17db20e493b9ab3d9a2a42bb8d2, type: 3}
+        _deferredReflectionsPS: {fileID: 4800000, guid: a69f7974e4244df799916fcc15a68765, type: 3}
         _hzbGenerationCS: {fileID: 7200000, guid: 30e9b92e6a184f1fae128dee76e92eee, type: 3}
         _ssrTraceCS: {fileID: 7200000, guid: 6542319fde6147a6ad60c14faf26b380, type: 3}
         _ssrResolvePS: {fileID: 4800000, guid: 40ed29a446be4c73bbc804a97edf03be, type: 3}

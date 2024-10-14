@@ -10,7 +10,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
-namespace DELTation.AAAARP.Passes
+namespace DELTation.AAAARP.Passes.Lighting
 {
     public sealed class SetupLightingPass : AAAARenderPass<SetupLightingPass.PassData>
     {

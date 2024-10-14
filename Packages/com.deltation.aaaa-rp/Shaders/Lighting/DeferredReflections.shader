@@ -1,4 +1,4 @@
-Shader "Hidden/AAAA/DeferredLighting"
+Shader "Hidden/AAAA/DeferredReflections"
 {
     Properties {}
 
@@ -52,18 +52,17 @@ Shader "Hidden/AAAA/DeferredLighting"
         ZTest Greater
         ZClip Off
         Cull Off
-        Blend One One
 
         Pass
         {
-            Name "Deferred Lighting: Direct"
+            Name "Deferred Reflections: Environment"
 
+            Blend One One
 
             HLSLPROGRAM
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
-            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/GTAODirectLightingPragma.hlsl"
 
             float4 Frag(const Varyings IN) : SV_Target
             {
@@ -72,9 +71,27 @@ Shader "Hidden/AAAA/DeferredLighting"
                 SurfaceData        surfaceData;
                 InitializeSurfaceData(gbuffer, IN, deviceDepth, surfaceData);
 
-                float3     lighting = 0;
-                const uint lightCount = GetDirectionalLightCount();
+                const float3 cameraPositionWS = GetCameraPositionWS();
 
+                const float3 eyeWS = normalize(cameraPositionWS - surfaceData.positionWS);
+                const float3 reflectionWS = ComputeBRDFReflectionVector(surfaceData.bentNormalWS, eyeWS);
+                return float4(SamplePrefilteredEnvironment(reflectionWS, surfaceData.roughness), 1);
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "Deferred Reflections: Compose"
+
+            Blend One One
+
+            HLSLPROGRAM
+            #pragma vertex OverrideVert
+            #pragma fragment Frag
+
+            static float3 ComputeLightingIndirect(const SurfaceData surfaceData, const float3 reflections)
+            {
                 BRDFInput brdfInput;
                 brdfInput.normalWS = surfaceData.normalWS;
                 brdfInput.positionWS = surfaceData.positionWS;
@@ -84,56 +101,12 @@ Shader "Hidden/AAAA/DeferredLighting"
                 brdfInput.roughness = surfaceData.roughness;
                 brdfInput.irradiance = 0;
                 brdfInput.aoVisibility = surfaceData.aoVisibility;
-                brdfInput.bentNormalWS = surfaceData.normalWS;
-                brdfInput.prefilteredEnvironment = 0;
-
-                UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
-                for (uint lightIndex = 0; lightIndex < lightCount; ++lightIndex)
-                {
-                    const Light light = GetDirectionalLight(lightIndex, surfaceData.positionWS);
-                    lighting += ComputeBRDF(brdfInput, light);
-                }
-
-                const AAAAClusteredLightingGridCell lightGridCell = ClusteredLighting::LoadCell(surfaceData.positionWS, IN.texcoord);
-
-                for (uint i = 0; i < lightGridCell.Count; ++i)
-                {
-                    const uint  punctualLightIndex = ClusteredLighting::LoadLightIndex(lightGridCell, i);
-                    const Light light = GetPunctualLight(punctualLightIndex, surfaceData.positionWS);
-                    lighting += light.distanceAttenuation * ComputeBRDF(brdfInput, light);
-                }
-
-                return float4(lighting, 1);
-            }
-            ENDHLSL
-        }
-
-        Pass
-        {
-            Name "Deferred Lighting: Indirect"
-
-
-            HLSLPROGRAM
-            #pragma vertex OverrideVert
-            #pragma fragment Frag
-
-            static float3 ComputeLightingIndirect(const SurfaceData surfaceData)
-            {
-                BRDFInput brdfInput;
-                brdfInput.normalWS = surfaceData.normalWS;
-                brdfInput.positionWS = surfaceData.positionWS;
-                brdfInput.cameraPositionWS = GetCameraPositionWS();
-                brdfInput.diffuseColor = surfaceData.albedo;
-                brdfInput.metallic = surfaceData.metallic;
-                brdfInput.roughness = surfaceData.roughness;
-                brdfInput.irradiance = SampleDiffuseIrradiance(surfaceData.bentNormalWS);
-                brdfInput.aoVisibility = surfaceData.aoVisibility;
                 brdfInput.bentNormalWS = surfaceData.bentNormalWS;
-                brdfInput.prefilteredEnvironment = 0;
+                brdfInput.prefilteredEnvironment = reflections;
 
                 const float3 eyeWS = normalize(brdfInput.cameraPositionWS - surfaceData.positionWS);
-                const float3 indirectDiffuse = ComputeBRDFIndirectDiffuse(brdfInput, eyeWS);
-                return aaaa_AmbientIntensity * indirectDiffuse;
+                const float3 indirectSpecular = ComputeBRDFIndirectSpecular(brdfInput, eyeWS);
+                return aaaa_AmbientIntensity * indirectSpecular;
             }
 
             float4 Frag(const Varyings IN) : SV_Target
@@ -143,7 +116,8 @@ Shader "Hidden/AAAA/DeferredLighting"
                 SurfaceData        surfaceData;
                 InitializeSurfaceData(gbuffer, IN, deviceDepth, surfaceData);
 
-                const float3 lighting = ComputeLightingIndirect(surfaceData);
+                const float3 reflections = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord).rgb;
+                const float3 lighting = ComputeLightingIndirect(surfaceData, reflections);
                 return float4(lighting, 1);
             }
             ENDHLSL

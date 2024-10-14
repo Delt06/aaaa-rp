@@ -8,6 +8,7 @@ using DELTation.AAAARP.Passes.ClusteredLighting;
 using DELTation.AAAARP.Passes.GlobalIllumination.AO;
 using DELTation.AAAARP.Passes.GlobalIllumination.SSR;
 using DELTation.AAAARP.Passes.IBL;
+using DELTation.AAAARP.Passes.Lighting;
 using DELTation.AAAARP.Passes.PostProcessing;
 using DELTation.AAAARP.Passes.Shadows;
 using DELTation.AAAARP.RenderPipelineResources;
@@ -43,6 +44,9 @@ namespace DELTation.AAAARP
         private readonly SSRTracePass _ssrTracePass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
         private readonly XeGTAOPass _xeGTAOPass;
+        private readonly DeferredReflectionsComposePass _deferredReflectionsComposePass;
+        private readonly Material _deferredReflectionsMaterial;
+        private readonly DeferredReflectionsSetupPass _deferredReflectionsSetupPass;
 
         public AAAARenderer(AAAARenderPipelineAsset pipelineAsset)
         {
@@ -83,6 +87,10 @@ namespace DELTation.AAAARP
 
             _smaaPass = new SMAAPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders, textures);
             _uberPostProcessingPass = new UberPostProcessingPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders);
+
+            _deferredReflectionsMaterial = CoreUtils.CreateEngineMaterial(shaders.DeferredReflectionsPS);
+            _deferredReflectionsSetupPass = new DeferredReflectionsSetupPass(AAAARenderPassEvent.AfterRenderingGbuffer, _deferredReflectionsMaterial);
+            _deferredReflectionsComposePass = new DeferredReflectionsComposePass(AAAARenderPassEvent.AfterRenderingGbuffer, _deferredReflectionsMaterial);
 
             const AAAARenderPassEvent upscaleRenderPassEvent = AAAARenderPassEvent.AfterRenderingPostProcessing;
             _bilinearUpscalePass = new BilinearUpscalePass(upscaleRenderPassEvent);
@@ -136,6 +144,9 @@ namespace DELTation.AAAARP
             EnqueuePass(_deferredLightingPass);
             EnqueuePass(_skyboxPass);
 
+            EnqueuePass(_deferredReflectionsSetupPass);
+            EnqueuePass(_deferredReflectionsComposePass);
+
             if (cameraData.AntiAliasingTechnique == AAAAAntiAliasingTechnique.SMAA)
             {
                 EnqueuePass(_smaaPass);
@@ -178,6 +189,8 @@ namespace DELTation.AAAARP
 
             _uberPostProcessingPass.Dispose();
             _smaaPass.Dispose();
+
+            CoreUtils.Destroy(_deferredReflectionsMaterial);
         }
     }
 }

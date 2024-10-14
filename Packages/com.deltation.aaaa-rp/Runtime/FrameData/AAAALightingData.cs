@@ -16,6 +16,7 @@ namespace DELTation.AAAARP.FrameData
         public BufferHandle PunctualLightsBuffer;
         public TextureHandle SSRTraceResult;
         public int2 SSRTraceResultSize;
+        public TextureHandle DeferredReflections;
 
         public void Init(RenderGraph renderGraph, AAAALightingSettings lightingSettings)
         {
@@ -41,6 +42,7 @@ namespace DELTation.AAAARP.FrameData
             GTAOTerm = TextureHandle.nullHandle;
             SSRTraceResult = TextureHandle.nullHandle;
             SSRTraceResultSize = default;
+            DeferredReflections = default;
         }
     }
 }

@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
-namespace DELTation.AAAARP.Passes
+namespace DELTation.AAAARP.Passes.Lighting
 {
     public sealed class DeferredLightingPass : AAAARasterRenderPass<DeferredLightingPass.PassData>, IDisposable
     {
@@ -35,7 +35,7 @@ namespace DELTation.AAAARP.Passes
             builder.UseTexture(resourceData.GBufferNormals, AccessFlags.Read);
             builder.UseTexture(resourceData.GBufferMasks, AccessFlags.Read);
             builder.UseTexture(resourceData.CameraScaledDepthBuffer, AccessFlags.Read);
-            
+
             if (cameraData.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO)
             {
                 builder.UseTexture(lightingData.GTAOTerm, AccessFlags.Read);
