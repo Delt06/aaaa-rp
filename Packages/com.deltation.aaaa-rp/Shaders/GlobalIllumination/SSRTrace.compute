@@ -9,7 +9,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/Passes/GlobalIllumination/SSR/SSRComputeShaders.cs.hlsl"
 
-#define MAX_ITERATIONS 128
+#define MAX_ITERATIONS 48
 
 #define THREAD_GROUP_SIZE TRACE_THREAD_GROUP_SIZE
 
@@ -219,7 +219,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
             // Fix self-intersection and some banding.
             // https://sakibsaikia.github.io/graphics/2016/12/26/Screen-Space-Reflection-in-Killing-Floor-2.html#deferred-color-lookup
             const float ditherOffset = 0.001f + Dither(pixelCoords) * 0.005f;
-            float  intensity = FindIntersection_HiZ(positionSS.xyz + reflectionSS * ditherOffset, reflectionSS, 0.5f, hit);
+            float  intensity = FindIntersection_HiZ(positionSS.xyz + reflectionSS * 0, reflectionSS, 0.35f, hit);
 
             attenuation *= intensity;
 

@@ -41,6 +41,11 @@ MonoBehaviour:
       BentNormals: 1
       DirectLightingMicroshadows: 1
       FinalValuePower: 1
+    SSR:
+      Enabled: 1
+      Resolution: 1
+      BlurSmooth: 0.5
+      BlurRough: 2.5
   _imageBasedLightingSettings:
     DiffuseIrradianceResolution: 128
     BRDFLutResolution: 128

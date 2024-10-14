@@ -126,9 +126,9 @@ namespace DELTation.AAAARP.Data
             public bool Enabled = true;
             public ResolutionScale Resolution = ResolutionScale.Full;
             [Range(0.0f, 10.0f)]
-            public float BlurSmooth = 0.1f;
+            public float BlurSmooth = 0.5f;
             [Range(0.0f, 10.0f)]
-            public float BlurRough = 5.0f;
+            public float BlurRough = 2.5f;
         }
 
         [Serializable]
