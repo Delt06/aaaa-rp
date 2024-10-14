@@ -36,34 +36,6 @@ float2 NDCToPixelUV(const float2 ndc)
     return result;
 }
 
-#define NUM_BINARY_SEARCH_SAMPLES 16
-
-float3 BinarySearchHZB(const float3 raySampleSS, const float3 reflectionSS, const float startZBufferValue, const float mipLevel)
-{
-    float  t = abs(raySampleSS.z - startZBufferValue) / reflectionSS.z;
-    float3 minRaySampleSS = raySampleSS - reflectionSS * t;
-    float3 maxRaySampleSS = raySampleSS;
-    float3 midRaySampleSS;
-
-    for (int i = 0; i < NUM_BINARY_SEARCH_SAMPLES; i++)
-    {
-        midRaySampleSS = lerp(minRaySampleSS, maxRaySampleSS, 0.5);
-        const float2 pixelCoord = float2(raySampleSS.xy * _SSR_ScreenSize.xy);
-        const float  zBufferValue = CameraHZB::LoadClamp(pixelCoord, mipLevel);
-
-        if (GREATER_DEPTH(midRaySampleSS.z, zBufferValue))
-        {
-            maxRaySampleSS = midRaySampleSS;
-        }
-        else
-        {
-            minRaySampleSS = midRaySampleSS;
-        }
-    }
-
-    return midRaySampleSS;
-}
-
 float2 GetCellCount(int mipLevel)
 {
     return _SSR_HZBCellCounts[mipLevel].xy;
@@ -104,26 +76,26 @@ bool CrossedCellBoundary(float2 oldCellIndex, float2 newCellIndex)
     return (oldCellIndex.x != newCellIndex.x) || (oldCellIndex.y != newCellIndex.y);
 }
 
-#define MAX_ITERATIONS 128 
+#define MAX_ITERATIONS 128
 
-float FindIntersection_HiZ(float3     samplePosInTS,
-                           float3     vReflDirInTS,
+float FindIntersection_HiZ(float3     originSS,
+                           float3     reflectionSS,
                            float      maxTraceDistance,
                            out float3 intersection)
 {
     const int maxLevel = _CameraHZBLevelCount - 1;
 
-    float2 crossStep = float2(vReflDirInTS.x >= 0 ? 1 : -1, vReflDirInTS.y >= 0 ? 1 : -1);
+    float2 crossStep = float2(reflectionSS.x >= 0 ? 1 : -1, reflectionSS.y >= 0 ? 1 : -1);
     float2 crossOffset = crossStep * _SSR_ScreenSize.zw / 128;
     crossStep = saturate(crossStep);
 
-    float3 ray = samplePosInTS.xyz;
+    float3 ray = originSS.xyz;
     float  minZ = ray.z;
-    float  maxZ = ray.z + vReflDirInTS.z * maxTraceDistance;
+    float  maxZ = ray.z + reflectionSS.z * maxTraceDistance;
     float  deltaZ = (maxZ - minZ);
 
     float3 o = ray;
-    float3 d = vReflDirInTS * maxTraceDistance;
+    float3 d = reflectionSS * maxTraceDistance;
 
     int    startLevel = 0;
     int    stopLevel = 0;
@@ -134,7 +106,7 @@ float FindIntersection_HiZ(float3     samplePosInTS,
 
     int   level = startLevel;
     uint  iter = 0;
-    bool  isBackwardRay = LESS_DEPTH(vReflDirInTS.z, 0);
+    bool  isBackwardRay = LESS_DEPTH(reflectionSS.z, 0);
     float rayDir = isBackwardRay ? -1 : 1;
     float maxThickness = 0.1f * max(_SSR_ScreenSize.z, _SSR_ScreenSize.w);
 
@@ -236,9 +208,9 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
             }
             else
             {
-#if 0
+                #if 0
                 attenuation *= DirectionBasedAttenuation(reflectionWS, hit);
-#endif
+                #endif
 
                 // Attenuate samples near screen edges.
                 const float  uvEdge = 0.05f;
