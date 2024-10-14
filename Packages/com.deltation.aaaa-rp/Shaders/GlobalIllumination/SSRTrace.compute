@@ -130,7 +130,7 @@ float FindIntersection_HiZ(float3     originSS,
     uint  iter = 0;
     bool  isBackwardRay = LESS_DEPTH(reflectionSS.z, 0);
     float rayDir = isBackwardRay ? -1 : 1;
-    float maxThickness = _SSR_MaxThickness * max(_SSR_ScreenSize.z, _SSR_ScreenSize.w);
+    float maxThickness = _SSR_MaxThickness * log2(_SSR_ScreenSize.x) * 0.001;
 
     while (level >= stopLevel && LEQUAL_DEPTH(ray.z*rayDir, maxZ*rayDir) && iter < MAX_ITERATIONS)
     {
