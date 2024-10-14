@@ -44,7 +44,7 @@ MonoBehaviour:
     SSR:
       Enabled: 1
       Resolution: 1
-      BlurSmooth: 0
+      BlurSmooth: 0.5
       BlurRough: 2.5
       MaxThickness: 0.5
   _imageBasedLightingSettings:
