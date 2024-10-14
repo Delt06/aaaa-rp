@@ -18,6 +18,7 @@ float4x4 _SSR_ViewProjMatrix;
 float4x4 _SSR_InvViewProjMatrix;
 float4   _SSR_CameraPosition;
 float4   _SSR_ScreenSize;
+float    _SSR_MaxThickness;
 
 RWTexture2D<float4> _Result;
 
@@ -129,7 +130,7 @@ float FindIntersection_HiZ(float3     originSS,
     uint  iter = 0;
     bool  isBackwardRay = LESS_DEPTH(reflectionSS.z, 0);
     float rayDir = isBackwardRay ? -1 : 1;
-    float maxThickness = 0.2f * max(_SSR_ScreenSize.z, _SSR_ScreenSize.w);
+    float maxThickness = _SSR_MaxThickness * max(_SSR_ScreenSize.z, _SSR_ScreenSize.w);
 
     while (level >= stopLevel && LEQUAL_DEPTH(ray.z*rayDir, maxZ*rayDir) && iter < MAX_ITERATIONS)
     {
@@ -214,12 +215,12 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
             const float3 reflectionSS = normalize(reflectionPointSS.xyz - positionSS.xyz);
 
             float  attenuation = cameraFacingReflectionAttenuation;
-            float blurRadius;
+            float  blurRadius;
             float3 hit;
             // Fix self-intersection and some banding.
             // https://sakibsaikia.github.io/graphics/2016/12/26/Screen-Space-Reflection-in-Killing-Floor-2.html#deferred-color-lookup
             const float ditherOffset = 0.001f + Dither(pixelCoords) * 0.005f;
-            float  intensity = FindIntersection_HiZ(positionSS.xyz + reflectionSS * 0, reflectionSS, 0.35f, hit);
+            float       intensity = FindIntersection_HiZ(positionSS.xyz + reflectionSS * 0, reflectionSS, 0.35f, hit);
 
             attenuation *= intensity;
 

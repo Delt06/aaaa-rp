@@ -129,6 +129,8 @@ namespace DELTation.AAAARP.Data
             public float BlurSmooth = 0.5f;
             [Range(0.0f, 10.0f)]
             public float BlurRough = 2.5f;
+            [Range(0.0f, 5.0f)]
+            public float MaxThickness = 0.5f;
         }
 
         [Serializable]

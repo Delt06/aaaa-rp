@@ -53,6 +53,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             passData.ViewProjMatrix = viewProjMatrix;
             passData.InvViewProjMatrix = viewProjMatrix.inverse;
             passData.CameraPosition = cameraData.Camera.transform.position;
+            passData.MaxThickness = ssrSettings.MaxThickness;
 
             for (int hzbMipIndex = 0; hzbMipIndex < resourceData.CameraScaledHZBInfo.LevelCount; hzbMipIndex++)
             {
@@ -86,6 +87,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             context.cmd.SetComputeMatrixParam(_traceCS, ShaderID._SSR_InvViewProjMatrix, data.InvViewProjMatrix);
             context.cmd.SetComputeVectorParam(_traceCS, ShaderID._SSR_CameraPosition, data.CameraPosition);
             context.cmd.SetComputeVectorParam(_traceCS, ShaderID._SSR_ScreenSize, data.ScreenSizePixels);
+            context.cmd.SetComputeFloatParam(_traceCS, ShaderID._SSR_MaxThickness, data.MaxThickness);
 
             context.cmd.SetComputeTextureParam(_traceCS, kernelIndex, ShaderID._Result, data.Result);
 
@@ -104,6 +106,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             public static readonly int _SSR_InvViewProjMatrix = Shader.PropertyToID(nameof(_SSR_InvViewProjMatrix));
             public static readonly int _SSR_CameraPosition = Shader.PropertyToID(nameof(_SSR_CameraPosition));
             public static readonly int _SSR_ScreenSize = Shader.PropertyToID(nameof(_SSR_ScreenSize));
+            public static readonly int _SSR_MaxThickness = Shader.PropertyToID(nameof(_SSR_MaxThickness));
             public static readonly int _Result = Shader.PropertyToID(nameof(_Result));
         }
 
@@ -112,6 +115,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             public readonly Vector4[] HZBCellCounts = new Vector4[AAAAMeshletComputeShaders.HZBMaxLevelCount];
             public Vector4 CameraPosition;
             public Matrix4x4 InvViewProjMatrix;
+            public float MaxThickness;
             public TextureHandle Result;
             public Vector4 ScreenSizePixels;
             public Matrix4x4 ViewProjMatrix;
