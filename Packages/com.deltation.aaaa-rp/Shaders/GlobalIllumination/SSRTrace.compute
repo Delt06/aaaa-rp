@@ -1,3 +1,6 @@
+// Main Source: https://sugulee.wordpress.com/2021/01/19/screen-space-reflections-implementation-and-optimization-part-2-hi-z-tracing-method/
+// Attenuation options: https://sakibsaikia.github.io/graphics/2016/12/26/Screen-Space-Reflection-in-Killing-Floor-2.html#deferred-color-lookup
+
 #pragma kernel CS
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Depth.hlsl"
@@ -5,6 +8,8 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraHZB.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/Passes/GlobalIllumination/SSR/SSRComputeShaders.cs.hlsl"
+
+#define MAX_ITERATIONS 128
 
 #define THREAD_GROUP_SIZE TRACE_THREAD_GROUP_SIZE
 
@@ -80,8 +85,6 @@ bool CrossedCellBoundary(float2 oldCellIndex, float2 newCellIndex)
 {
     return (oldCellIndex.x != newCellIndex.x) || (oldCellIndex.y != newCellIndex.y);
 }
-
-#define MAX_ITERATIONS 128
 
 float FindIntersection_HiZ(float3     originSS,
                            float3     reflectionSS,
