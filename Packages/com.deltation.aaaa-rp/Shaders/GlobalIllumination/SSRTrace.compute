@@ -219,7 +219,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
             float3 hit;
             // Fix self-intersection and some banding.
             // https://sakibsaikia.github.io/graphics/2016/12/26/Screen-Space-Reflection-in-Killing-Floor-2.html#deferred-color-lookup
-            const float ditherOffset = 0.001f + Dither(pixelCoords) * 0.005f;
+            const float ditherOffset = 0.001f + Dither(pixelCoords) * 0.0025f;
             float       intensity = FindIntersection_HiZ(positionSS.xyz + reflectionSS * ditherOffset, reflectionSS, 0.35f, hit);
 
             attenuation *= intensity;
