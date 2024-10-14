@@ -18,5 +18,5 @@ MonoBehaviour:
   Normals: {fileID: 2800000, guid: ff9ba66bb34f36f469961d1c15dc1a52, type: 3}
   NormalsStrength: 0.4
   Masks: {fileID: 2800000, guid: 92affd9e3d99ddf4faceb70af9e574f0, type: 3}
-  Roughness: 1
-  Metallic: 0.85
+  Roughness: 0.704
+  Metallic: 1
