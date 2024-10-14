@@ -201,6 +201,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
             const float3 reflectionSS = normalize(reflectionPointSS.xyz - positionSS.xyz);
 
             float  attenuation = cameraFacingReflectionAttenuation;
+            float blurRadius;
             float3 hit;
             float  intensity = FindIntersection_HiZ(positionSS.xyz + reflectionSS * 0.001f, reflectionSS, 0.5f, hit);
 
@@ -209,9 +210,10 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
             const float hitDeviceDepth = SampleDeviceDepth(hit.xy);
 
             UNITY_BRANCH
-            if (hitDeviceDepth == UNITY_RAW_FAR_CLIP_VALUE)
+            if (hitDeviceDepth == UNITY_RAW_FAR_CLIP_VALUE || intensity == 0.0f)
             {
                 attenuation = 0;
+                blurRadius = 0;
             }
             else
             {
@@ -223,9 +225,12 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
                 const float  uvEdge = 0.05f;
                 const float2 uvSamplingAttenuation = smoothstep(0.0, uvEdge, hit.xy) * (1 - smoothstep(1 - uvEdge, 1, hit.xy));
                 attenuation *= uvSamplingAttenuation.x * uvSamplingAttenuation.y;
+
+                const GBufferValue gbufferValue = SampleGBuffer(pixelUV);
+                blurRadius = gbufferValue.roughness * gbufferValue.roughness;
             }
 
-            _Result[pixelCoords] = float4(hit.xy, 0, attenuation);
+            _Result[pixelCoords] = float4(hit.xy, blurRadius, attenuation);
         }
     }
 }

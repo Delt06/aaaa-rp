@@ -73,6 +73,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
             builder.ReadTexture(resourceData.CameraHZBScaled);
             builder.ReadTexture(resourceData.GBufferNormals);
+            builder.ReadTexture(resourceData.GBufferMasks);
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
