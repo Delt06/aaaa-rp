@@ -117,6 +117,7 @@ namespace DELTation.AAAARP.Renderers
                 instanceData.TotalMeshLODCount = (uint) mesh.MeshLODNodes.Length;
                 instanceData.MaterialIndex = (uint) _materialDataBuffer.GetOrAllocateMaterial(material);
                 instanceData.MeshLODLevelCount = (uint) mesh.MeshLODLevelCount;
+                instanceData.LODErrorScale = rendererAuthoring.LODErrorScale;
 
                 _rendererContainer.MaxMeshletListBuildJobCount += ComputeMeshletListBuildJobCount(instanceData);
                 _isDirty = true;

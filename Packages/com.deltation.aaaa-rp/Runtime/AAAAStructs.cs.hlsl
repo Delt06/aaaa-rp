@@ -29,6 +29,10 @@ struct AAAAInstanceData
     uint TotalMeshLODCount;
     uint MaterialIndex;
     uint MeshLODLevelCount;
+    float LODErrorScale;
+    uint Padding0;
+    uint Padding1;
+    uint Padding2;
 };
 
 // Generated from DELTation.AAAARP.AAAAMaterialData

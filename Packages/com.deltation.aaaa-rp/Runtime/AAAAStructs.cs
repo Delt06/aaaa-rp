@@ -19,6 +19,11 @@ namespace DELTation.AAAARP
         public uint TotalMeshLODCount;
         public uint MaterialIndex;
         public uint MeshLODLevelCount;
+
+        public float LODErrorScale;
+        public uint Padding0;
+        public uint Padding1;
+        public uint Padding2;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]

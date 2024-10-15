@@ -206,6 +206,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _mesh: {fileID: -6794912392173530250, guid: dbccbeae9b8dff8438a8d8830a8601a6, type: 3}
   _material: {fileID: 11400000, guid: 979388c7c2ffbc14e90ebe11cecf6a62, type: 2}
+  _lodErrorScale: 1
 --- !u!4 &246192031
 Transform:
   m_ObjectHideFlags: 0
@@ -349,6 +350,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _mesh: {fileID: -6794912392173530250, guid: dbccbeae9b8dff8438a8d8830a8601a6, type: 3}
   _material: {fileID: 11400000, guid: f312fbfccb6ad794196d20978b09285a, type: 2}
+  _lodErrorScale: 1
 --- !u!4 &273990908
 Transform:
   m_ObjectHideFlags: 0
@@ -584,6 +586,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _mesh: {fileID: -6794912392173530250, guid: dbccbeae9b8dff8438a8d8830a8601a6, type: 3}
   _material: {fileID: 11400000, guid: e2936eccf285cb744a741c2c00664879, type: 2}
+  _lodErrorScale: 1
 --- !u!4 &507743644
 Transform:
   m_ObjectHideFlags: 0
@@ -1060,6 +1063,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 5617748370349426508, guid: 9114ec25537647f4abb20dcb3a25cb97, type: 3}
+      propertyPath: _lodErrorScale
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 6672994860688019666, guid: 9114ec25537647f4abb20dcb3a25cb97, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1.13
@@ -1140,6 +1147,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _mesh: {fileID: -6794912392173530250, guid: dbccbeae9b8dff8438a8d8830a8601a6, type: 3}
   _material: {fileID: 11400000, guid: e2284751efb1c3a47bab5f00a143c50a, type: 2}
+  _lodErrorScale: 1
 --- !u!4 &1748357329
 Transform:
   m_ObjectHideFlags: 0
@@ -1206,6 +1214,10 @@ PrefabInstance:
     - target: {fileID: 2378623545977491097, guid: c96dd0a23bbdda641b33e32213796e12, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2471449732357888344, guid: c96dd0a23bbdda641b33e32213796e12, type: 3}
+      propertyPath: _lodErrorBias
+      value: 2356.1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1340,6 +1352,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _mesh: {fileID: -6794912392173530250, guid: dbccbeae9b8dff8438a8d8830a8601a6, type: 3}
   _material: {fileID: 11400000, guid: e1322a3407d56644387f2e15593056e8, type: 2}
+  _lodErrorScale: 1
 --- !u!4 &2120944181
 Transform:
   m_ObjectHideFlags: 0
@@ -1488,6 +1501,10 @@ PrefabInstance:
     - target: {fileID: 940450789692828703, guid: f93f23f63a6f84f41a43362cff4bb510, type: 3}
       propertyPath: m_Name
       value: chest_Authoring
+      objectReference: {fileID: 0}
+    - target: {fileID: 2968748437731839316, guid: f93f23f63a6f84f41a43362cff4bb510, type: 3}
+      propertyPath: _lodErrorScale
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5053177603001812848, guid: f93f23f63a6f84f41a43362cff4bb510, type: 3}
       propertyPath: m_LocalPosition.x

@@ -76,7 +76,7 @@ bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode, const AA
         const float  parentError = meshLODNode.ParentError >= 0
                                       ? meshLODNode.ParentError * GetScreenBoundRadiusSq(_CameraViewProjection, parentBoundsWS)
                                       : FLT_INF;
-        const float threshold = _MeshLODErrorThreshold * distanceToViewSq;
+        const float threshold = _MeshLODErrorThreshold * distanceToViewSq * instanceData.LODErrorScale;
         result = parentError > threshold && error <= threshold;
     }
 

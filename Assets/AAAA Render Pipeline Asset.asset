@@ -20,7 +20,7 @@ MonoBehaviour:
     Upscaling: 1
     FSRSharpness: 1
   _meshLODSettings:
-    ErrorThreshold: 100
+    ErrorThreshold: 5
   _lightingSettings:
     MaxPunctualLights: 1024
     Shadows:

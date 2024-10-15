@@ -46,3 +46,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _mesh: {fileID: -6794912392173530250, guid: 7434b0b41419b504a85191153c26d383, type: 3}
   _material: {fileID: 11400000, guid: 74362ab7a33a5ea429454bf3549f1298, type: 2}
+  _lodErrorScale: 0.01

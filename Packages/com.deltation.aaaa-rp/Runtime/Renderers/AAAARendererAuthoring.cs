@@ -9,6 +9,7 @@ namespace DELTation.AAAARP.Renderers
     {
         [SerializeField] private AAAAMeshletCollectionAsset _mesh;
         [SerializeField] private AAAAMaterialAsset _material;
+        [SerializeField] [Min(0.000001f)] private float _lodErrorScale = 1;
 
         public AAAAMeshletCollectionAsset Mesh
         {
@@ -20,6 +21,12 @@ namespace DELTation.AAAARP.Renderers
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _material;
+        }
+
+        public float LODErrorScale
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _lodErrorScale;
         }
     }
 }
