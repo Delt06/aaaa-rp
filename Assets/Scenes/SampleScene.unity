@@ -377,6 +377,7 @@ GameObject:
   - component: {fileID: 330585546}
   - component: {fileID: 330585544}
   - component: {fileID: 330585547}
+  - component: {fileID: 330585548}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -458,6 +459,23 @@ Camera:
   m_OcclusionCulling: 0
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!114 &330585548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 618b0e3f6c65dd247a4a016150006c57, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_LookSpeedController: 120
+  m_LookSpeedMouse: 4
+  m_MoveSpeed: 10
+  m_MoveSpeedIncrement: 2.5
+  m_Turbo: 10
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -1063,10 +1081,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 5617748370349426508, guid: 9114ec25537647f4abb20dcb3a25cb97, type: 3}
-      propertyPath: _lodErrorScale
-      value: 3
-      objectReference: {fileID: 0}
     - target: {fileID: 6672994860688019666, guid: 9114ec25537647f4abb20dcb3a25cb97, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1.13
@@ -1501,10 +1515,6 @@ PrefabInstance:
     - target: {fileID: 940450789692828703, guid: f93f23f63a6f84f41a43362cff4bb510, type: 3}
       propertyPath: m_Name
       value: chest_Authoring
-      objectReference: {fileID: 0}
-    - target: {fileID: 2968748437731839316, guid: f93f23f63a6f84f41a43362cff4bb510, type: 3}
-      propertyPath: _lodErrorScale
-      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5053177603001812848, guid: f93f23f63a6f84f41a43362cff4bb510, type: 3}
       propertyPath: m_LocalPosition.x
