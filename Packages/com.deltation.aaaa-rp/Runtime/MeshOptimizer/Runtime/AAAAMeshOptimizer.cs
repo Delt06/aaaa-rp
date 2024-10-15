@@ -106,15 +106,17 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
 
         public static unsafe MeshletBuildResults SimplifyMeshlets(Allocator allocator,
             NativeArray<MeshletBuildResults> meshletGroups,
-            NativeArray<float> vertices, uint vertexPositionOffset, uint vertexPositionsStride,
+            in VertexLayout vertexLayout,
             in MeshletGenerationParams meshletGenerationParams, SimplifyMode simplifyMode, float targetError, out float resultError)
         {
             using var _ = new ProfilingScope(Profiling.SimplifyMeshletsSampler);
 
             var localVertices = new NativeList<ClusterVertex>(Allocator.Temp);
+            var localVerticesGlobalIndices = new NativeList<uint>(Allocator.Temp);
             var localIndices = new NativeList<uint>(Allocator.Temp);
 
-            byte* pVertexPositionsBytes = (byte*) vertices.GetUnsafeReadOnlyPtr() + vertexPositionOffset;
+            byte* pVertexPositionsBytes = (byte*) vertexLayout.Vertices.GetUnsafeReadOnlyPtr() + vertexLayout.PositionOffset;
+            byte* pVertexUVBytes = vertexLayout.UV.IsCreated ? (byte*) vertexLayout.UV.GetUnsafeReadOnlyPtr() + vertexLayout.UVOffset : null;
 
             using (new ProfilingScope(Profiling.SimplifyMeshletsSharedVerticesSampler))
             {
@@ -127,12 +129,16 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
                         for (uint v = 0; v < meshlet.VertexCount; v++)
                         {
                             uint globalIndex = group.Vertices[(int) (meshlet.VertexOffset + v)];
-                            localVertices.Add(new ClusterVertex
-                                {
-                                    Position = *(float3*) (pVertexPositionsBytes + globalIndex * vertexPositionsStride),
-                                    Index = globalIndex,
-                                }
-                            );
+                            var clusterVertex = new ClusterVertex
+                            {
+                                Position = *(float3*) (pVertexPositionsBytes + globalIndex * vertexLayout.PositionStride),
+                            };
+                            // if (pVertexUVBytes != null)
+                            // {
+                            //     clusterVertex.UV = *(float2*) (pVertexUVBytes + globalIndex * vertexLayout.UVStride);
+                            // }
+                            localVerticesGlobalIndices.Add(globalIndex);
+                            localVertices.Add(clusterVertex);
                         }
 
                         for (uint t = 0; t < meshlet.TriangleCount; t++)
@@ -143,36 +149,33 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
                         }
                     }
                 }
-
-                var meshoptStreams = new NativeArray<meshopt_Stream>(1, Allocator.Temp);
-                meshoptStreams[0] = new meshopt_Stream
-                {
-                    data = localVertices.GetUnsafePtr(),
-                    size = (nuint) UnsafeUtility.SizeOf<ClusterVertex>(),
-                    stride = (nuint) UnsafeUtility.SizeOf<ClusterVertex>(),
-                };
-
-                uint newVertexCount = OptimizeIndexingInPlace((uint) localVertices.Length, localIndices.AsArray(), meshoptStreams);
-                localVertices.Length = (int) newVertexCount;
-                meshoptStreams.Dispose();
             }
 
             // ReSharper disable once PossibleLossOfFraction
             int targetIndexCount = (int) (localIndices.Length / 3 * 0.5f * 3);
             float resultErrorValue = 0.0f;
 
-            int simplifiedIndexCount = simplifyMode switch
+            int simplifiedIndexCount;
             {
-                SimplifyMode.Normal => (int) meshopt_simplify(localIndices.GetUnsafePtr(), localIndices.GetUnsafePtr(), (nuint) localIndices.Length,
-                    (float*) localVertices.GetUnsafePtr(), (nuint) localVertices.Length, (nuint) UnsafeUtility.SizeOf<ClusterVertex>(),
-                    (nuint) targetIndexCount, targetError, (uint) meshopt_SimplifyOptions.LockBorder, &resultErrorValue
-                ),
-                SimplifyMode.Sloppy => (int) meshopt_simplifySloppy(localIndices.GetUnsafePtr(), localIndices.GetUnsafePtr(), (nuint) localIndices.Length,
-                    (float*) localVertices.GetUnsafePtr(), (nuint) localVertices.Length, (nuint) UnsafeUtility.SizeOf<ClusterVertex>(),
-                    (nuint) targetIndexCount, targetError, &resultErrorValue
-                ),
-                var _ => throw new ArgumentOutOfRangeException(nameof(simplifyMode), simplifyMode, null),
-            };
+                uint* pDestination = localIndices.GetUnsafePtr();
+                var indexCount = (nuint) localIndices.Length;
+                float* pVertexPositions = (float*) localVertices.GetUnsafePtr();
+                var vertexCount = (nuint) localVertices.Length;
+                var vertexPositionsStride = (nuint) UnsafeUtility.SizeOf<ClusterVertex>();
+                simplifiedIndexCount = simplifyMode switch
+                {
+                    SimplifyMode.Normal => (int) meshopt_simplify(pDestination, pDestination, indexCount,
+                        pVertexPositions, vertexCount, vertexPositionsStride,
+                        (nuint) targetIndexCount, targetError, (uint) meshopt_SimplifyOptions.LockBorder, &resultErrorValue
+                    ),
+                    SimplifyMode.Sloppy => (int) meshopt_simplifySloppy(pDestination, pDestination, indexCount,
+                        pVertexPositions, vertexCount, vertexPositionsStride,
+                        (nuint) targetIndexCount, targetError, &resultErrorValue
+                    ),
+                    var _ => throw new ArgumentOutOfRangeException(nameof(simplifyMode), simplifyMode, null),
+                };
+            }
+
 
             localIndices.Length = simplifiedIndexCount;
 
@@ -180,11 +183,13 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
 
             foreach (uint localIndex in localIndices)
             {
-                globalIndices.Add(localVertices[(int) localIndex].Index);
+                globalIndices.Add(localVerticesGlobalIndices[(int) localIndex]);
             }
 
             resultError = resultErrorValue;
-            return BuildMeshlets(allocator, vertices, vertexPositionOffset, vertexPositionsStride, globalIndices.AsArray(), meshletGenerationParams);
+            return BuildMeshlets(allocator, vertexLayout.Vertices, vertexLayout.PositionOffset, vertexLayout.PositionStride, globalIndices.AsArray(),
+                meshletGenerationParams
+            );
         }
 
         public static unsafe void SpatialSortTrianglesInPlace(NativeArray<uint> indices, NativeArray<float> vertices, uint vertexCount,
@@ -221,13 +226,20 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
             return sortedItems;
         }
 
+        public struct VertexLayout
+        {
+            public NativeArray<float> Vertices;
+            public uint PositionOffset;
+            public uint PositionStride;
+            public NativeArray<float> UV;
+            public uint UVOffset;
+            public uint UVStride;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private struct ClusterVertex
         {
             public float3 Position;
-
-            // Index in the original vertex buffer
-            public uint Index;
         }
 
         public struct MeshletBuildResults : IDisposable

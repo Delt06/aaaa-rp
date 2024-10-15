@@ -77,7 +77,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 uint uvStreamStride = (uint) (uvStream >= 0 ? data.GetVertexBufferStride(uvStream) : 0);
                 NativeArray<float> uvVertexData = uvStream >= 0 ? data.GetVertexData<float>(uvStream) : default;
                 byte* pVerticesUV = uvVertexData.IsCreated ? (byte*) uvVertexData.GetUnsafeReadOnlyPtr() : null;
-                int vertexUVOffset = data.GetVertexAttributeOffset(VertexAttribute.TexCoord0);
+                uint vertexUVOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.TexCoord0);
 
                 uint vertexCount = (uint) data.vertexCount;
 
@@ -176,7 +176,16 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 }
                 meshLODLevels.Add(topLOD);
 
-                BuildLodGraph(meshLODLevels, allocator, vertexData, vertexPositionOffset, vertexBufferStride, meshletGenerationParams);
+                var vertexLayout = new AAAAMeshOptimizer.VertexLayout
+                {
+                    Vertices = vertexData,
+                    UV = uvVertexData,
+                    PositionOffset = vertexPositionOffset,
+                    PositionStride = vertexBufferStride,
+                    UVOffset = vertexUVOffset,
+                    UVStride = vertexBufferStride,
+                };
+                BuildLodGraph(meshLODLevels, allocator, vertexLayout, meshletGenerationParams);
 
                 int meshLODNodes = 0;
                 int totalMeshlets = 0;
@@ -306,7 +315,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                                                     VertexPositionOffset = vertexPositionOffset,
                                                     VertexTangentOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.Tangent),
                                                     UVStreamStride = uvStreamStride,
-                                                    VertexUVOffset = (uint) vertexUVOffset,
+                                                    VertexUVOffset = vertexUVOffset,
                                                     VerticesUVPtr = pVerticesUV,
                                                     DestinationPtr = pDestinationVertices + verticesWriteOffset,
                                                 }.Schedule((int) meshoptMeshlet.VertexCount, WriteVerticesJob.BatchSize)
@@ -353,8 +362,8 @@ namespace DELTation.AAAARP.Editor.Meshlets
             Debug.Log($"Building meshlets for {ctx.assetPath} took {timer.ElapsedMilliseconds:F3} ms.", meshletCollection);
         }
 
-        private void BuildLodGraph(NativeList<MeshLODNodeLevel> levels, Allocator allocator, NativeArray<float> vertexData, uint vertexPositionOffset,
-            uint vertexBufferStride, AAAAMeshOptimizer.MeshletGenerationParams meshletGenerationParams)
+        private void BuildLodGraph(NativeList<MeshLODNodeLevel> levels, Allocator allocator,
+            in AAAAMeshOptimizer.VertexLayout vertexLayout, AAAAMeshOptimizer.MeshletGenerationParams meshletGenerationParams)
         {
             AAAAMeshOptimizer.SimplifyMode simplifyMode = AAAAMeshOptimizer.SimplifyMode.Normal;
 
@@ -404,7 +413,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     float targetError = simplifyMode == AAAAMeshOptimizer.SimplifyMode.Sloppy ? TargetErrorSloppy : TargetError;
                     AAAAMeshOptimizer.MeshletBuildResults simplifiedMeshlets = AAAAMeshOptimizer.SimplifyMeshlets(allocator,
                         sourceMeshlets.AsArray(),
-                        vertexData, vertexPositionOffset, vertexBufferStride,
+                        vertexLayout,
                         meshletGenerationParams, simplifyMode, targetError, out float localError
                     );
                     Assert.IsTrue(localError >= 0.0f);
