@@ -41,12 +41,12 @@ The main goals of the project are:
 ## API Features
 
 - **ShaderModel 6.6 bindless resources (right here in Unity!)**
-- In-Editor [PIX for Windows]((https://devblogs.microsoft.com/pix/)) integration.
+- In-Editor [PIX for Windows]((https://devblogs.microsoft.com/pix/)) integration
 
 ## Project Structure
 
 - [Packages/com.deltation.aaaa-rp](./Packages/com.deltation.aaaa-rp): Unity SRP package.
-- [DELTationBindlessPlugin](./DELTationBindlessPlugin): native Unity plugin providing support for bindless and PIX integration. 
+- [DELTationBindlessPlugin](./DELTationBindlessPlugin): native Unity plugin providing support for bindless and PIX integration.
 
 ### External Dependencies
 
