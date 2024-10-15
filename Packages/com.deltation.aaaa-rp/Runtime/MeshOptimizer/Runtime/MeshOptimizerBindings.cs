@@ -24,6 +24,10 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
         [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern nuint meshopt_simplify(uint* destination, uint* indices, nuint indexCount, float* vertexPositions, nuint vertexCount,
             nuint vertexPositionsStride, nuint targetIndexCount, float targetError, uint options, float* resultError = null);
+        
+        [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
+        public static extern nuint meshopt_simplifySloppy(uint* destination, uint* indices, nuint indexCount, float* vertexPositions, nuint vertexCount,
+            nuint vertexPositionsStride, nuint targetIndexCount, float targetError, float* resultError = null);
 
         [DllImport(DLL, CharSet = CharSet, CallingConvention = CallingConvention)]
         public static extern void meshopt_optimizeVertexCache(uint* destination, uint* indices, nuint indexCount, nuint vertexCount);

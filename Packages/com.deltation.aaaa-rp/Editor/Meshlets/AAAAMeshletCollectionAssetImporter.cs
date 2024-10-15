@@ -30,6 +30,8 @@ namespace DELTation.AAAARP.Editor.Meshlets
         public bool OptimizeVertexCache;
         [Range(0.0f, 0.25f)]
         public float TargetError = 0.01f;
+        [Range(0.0f, 0.25f)]
+        public float TargetErrorSloppy = 0.001f;
         [Range(0.0f, 1.0f)]
         public float MinTriangleReductionPerStep = 0.8f;
         [Range(0, 10)]
@@ -354,6 +356,8 @@ namespace DELTation.AAAARP.Editor.Meshlets
         private void BuildLodGraph(NativeList<MeshLODNodeLevel> levels, Allocator allocator, NativeArray<float> vertexData, uint vertexPositionOffset,
             uint vertexBufferStride, AAAAMeshOptimizer.MeshletGenerationParams meshletGenerationParams)
         {
+            AAAAMeshOptimizer.SimplifyMode simplifyMode = AAAAMeshOptimizer.SimplifyMode.Normal;
+
             while (levels[^1].Nodes.Length > 1)
             {
                 ref MeshLODNodeLevel previousLevel = ref levels.ElementAt(levels.Length - 1);
@@ -397,10 +401,11 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     float sourceBoundsRadius = math.length(sourceBoundsCenter - sourceBoundsMin);
                     float4 sourceBounds = math.float4(sourceBoundsCenter, sourceBoundsRadius);
 
+                    float targetError = simplifyMode == AAAAMeshOptimizer.SimplifyMode.Sloppy ? TargetErrorSloppy : TargetError;
                     AAAAMeshOptimizer.MeshletBuildResults simplifiedMeshlets = AAAAMeshOptimizer.SimplifyMeshlets(allocator,
                         sourceMeshlets.AsArray(),
                         vertexData, vertexPositionOffset, vertexBufferStride,
-                        meshletGenerationParams, TargetError, out float localError
+                        meshletGenerationParams, simplifyMode, targetError, out float localError
                     );
                     Assert.IsTrue(localError >= 0.0f);
                     sourceMeshlets.Dispose();
@@ -459,7 +464,15 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 else
                 {
                     newMeshLODNodeLevel.Dispose();
-                    break;
+
+                    if (simplifyMode == AAAAMeshOptimizer.SimplifyMode.Normal)
+                    {
+                        simplifyMode = AAAAMeshOptimizer.SimplifyMode.Sloppy;
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
 

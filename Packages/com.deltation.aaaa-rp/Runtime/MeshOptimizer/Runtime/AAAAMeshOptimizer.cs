@@ -14,6 +14,13 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
 {
     public static class AAAAMeshOptimizer
     {
+
+        public enum SimplifyMode
+        {
+            Normal,
+            Sloppy,
+        }
+
         public static unsafe NativeArray<uint> OptimizeVertexCache(Allocator allocator, NativeArray<uint> indices, uint vertexCount)
         {
             var result = new NativeArray<uint>(indices.Length, allocator);
@@ -100,7 +107,7 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
         public static unsafe MeshletBuildResults SimplifyMeshlets(Allocator allocator,
             NativeArray<MeshletBuildResults> meshletGroups,
             NativeArray<float> vertices, uint vertexPositionOffset, uint vertexPositionsStride,
-            in MeshletGenerationParams meshletGenerationParams, float targetError, out float resultError)
+            in MeshletGenerationParams meshletGenerationParams, SimplifyMode simplifyMode, float targetError, out float resultError)
         {
             using var _ = new ProfilingScope(Profiling.SimplifyMeshletsSampler);
 
@@ -150,14 +157,23 @@ namespace DELTation.AAAARP.MeshOptimizer.Runtime
                 meshoptStreams.Dispose();
             }
 
-
             // ReSharper disable once PossibleLossOfFraction
             int targetIndexCount = (int) (localIndices.Length / 3 * 0.5f * 3);
             float resultErrorValue = 0.0f;
-            int simplifiedIndexCount = (int) meshopt_simplify(localIndices.GetUnsafePtr(), localIndices.GetUnsafePtr(), (nuint) localIndices.Length,
-                (float*) localVertices.GetUnsafePtr(), (nuint) localVertices.Length, (nuint) UnsafeUtility.SizeOf<ClusterVertex>(), (nuint) targetIndexCount,
-                targetError, (uint) meshopt_SimplifyOptions.LockBorder, &resultErrorValue
-            );
+
+            int simplifiedIndexCount = simplifyMode switch
+            {
+                SimplifyMode.Normal => (int) meshopt_simplify(localIndices.GetUnsafePtr(), localIndices.GetUnsafePtr(), (nuint) localIndices.Length,
+                    (float*) localVertices.GetUnsafePtr(), (nuint) localVertices.Length, (nuint) UnsafeUtility.SizeOf<ClusterVertex>(),
+                    (nuint) targetIndexCount, targetError, (uint) meshopt_SimplifyOptions.LockBorder, &resultErrorValue
+                ),
+                SimplifyMode.Sloppy => (int) meshopt_simplifySloppy(localIndices.GetUnsafePtr(), localIndices.GetUnsafePtr(), (nuint) localIndices.Length,
+                    (float*) localVertices.GetUnsafePtr(), (nuint) localVertices.Length, (nuint) UnsafeUtility.SizeOf<ClusterVertex>(),
+                    (nuint) targetIndexCount, targetError, &resultErrorValue
+                ),
+                var _ => throw new ArgumentOutOfRangeException(nameof(simplifyMode), simplifyMode, null),
+            };
+
             localIndices.Length = simplifiedIndexCount;
 
             var globalIndices = new NativeList<uint>(localIndices.Length, Allocator.Temp);
