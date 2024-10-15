@@ -92,34 +92,53 @@ namespace DELTation.AAAARP.Passes
                 return;
             }
 
-            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
-            Plane[] frustumPlanes = TempCollections.Planes;
-            if (CullingViewParametersOverride != null)
             {
-                passData.CullingView = CullingViewParametersOverride.Value;
-            }
-            else
-            {
+                AAAACameraData cameraData = frameData.Get<AAAACameraData>();
                 Camera camera = CullingCameraOverride != null ? CullingCameraOverride : cameraData.Camera;
                 Transform cameraTransform = camera.transform;
                 Vector3 cameraPosition = cameraTransform.position;
 
                 Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
                 Matrix4x4 viewProjectionMatrix = camera.projectionMatrix * viewMatrix;
-                passData.CullingView = new CullingViewParameters
+                Matrix4x4 gpuViewProjectionMatrix = GL.GetGPUProjectionMatrix(viewProjectionMatrix, true);
+
+                var pixelSize = new Vector2(cameraData.ScaledWidth, cameraData.ScaledHeight);
+                Vector3 cameraRight = cameraTransform.right;
+                Vector3 cameraUp = cameraTransform.up;
+
+                if (CullingViewParametersOverride != null)
                 {
-                    ViewMatrix = viewMatrix,
-                    ViewProjectionMatrix = viewProjectionMatrix,
-                    GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(viewProjectionMatrix, true),
-                    CameraPosition = new Vector4(cameraPosition.x, cameraPosition.y, cameraPosition.z, 1),
-                    CameraRight = cameraTransform.right,
-                    CameraUp = cameraTransform.up,
-                    PixelSize = new Vector2(cameraData.ScaledWidth, cameraData.ScaledHeight),
-                    IsPerspective = !camera.orthographic,
-                    BoundingSphereWS = math.float4(0, 0, 0, 0),
+                    passData.CullingView = CullingViewParametersOverride.Value;
+                }
+                else
+                {
+                    passData.CullingView = new CullingViewParameters
+                    {
+                        ViewMatrix = viewMatrix,
+                        ViewProjectionMatrix = viewProjectionMatrix,
+                        GPUViewProjectionMatrix = gpuViewProjectionMatrix,
+                        CameraPosition = cameraPosition,
+                        CameraRight = cameraRight,
+                        CameraUp = cameraUp,
+                        PixelSize = pixelSize,
+                        IsPerspective = !camera.orthographic,
+                        BoundingSphereWS = math.float4(0, 0, 0, 0),
+                    };
+                }
+
+                // LOD for shadows should be the same as for main view.
+                // We do not explicitly synchronize LOD selection, just the input parameters.
+                passData.LODSelectionContext = new LODSelectionContext
+                {
+                    CameraPosition = cameraPosition,
+                    CameraRight = cameraRight,
+                    CameraUp = cameraUp,
+                    PixelSize = pixelSize,
+                    GPUViewProjectionMatrix = gpuViewProjectionMatrix,
                 };
             }
 
+            Plane[] frustumPlanes = TempCollections.Planes;
             GeometryUtility.CalculateFrustumPlanes(passData.CullingView.ViewProjectionMatrix, frustumPlanes);
 
             for (int i = 0; i < frustumPlanes.Length; i++)
@@ -306,12 +325,12 @@ namespace DELTation.AAAARP.Passes
             {
                 const int kernelIndex = 0;
 
-                context.cmd.SetComputeMatrixParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraViewProjection, data.CullingView.GPUViewProjectionMatrix
-                );
-                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraPosition, data.CullingView.CameraPosition);
-                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraUp, data.CullingView.CameraUp);
-                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraRight, data.CullingView.CameraRight);
-                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._ScreenSizePixels, data.CullingView.PixelSize);
+                LODSelectionContext lodContext = data.LODSelectionContext;
+                context.cmd.SetComputeMatrixParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraViewProjection, lodContext.GPUViewProjectionMatrix);
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraPosition, lodContext.CameraPosition);
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraUp, lodContext.CameraUp);
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraRight, lodContext.CameraRight);
+                context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._ScreenSizePixels, lodContext.PixelSize);
 
                 context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex,
                     ShaderID.MeshletListBuild._Jobs, data.MeshletListBuildJobsBuffer
@@ -444,6 +463,7 @@ namespace DELTation.AAAARP.Passes
             public int InstanceCount;
 
             public BufferHandle InstanceIndices;
+            public LODSelectionContext LODSelectionContext;
 
             public BufferHandle MeshletListBuildIndirectDispatchArgsBuffer;
             public BufferHandle MeshletListBuildJobCounterBuffer;
@@ -451,6 +471,15 @@ namespace DELTation.AAAARP.Passes
 
             public BufferHandle OcclusionCullingInstanceVisibilityMask;
             public int OcclusionCullingInstanceVisibilityMaskCount;
+        }
+
+        public struct LODSelectionContext
+        {
+            public Matrix4x4 GPUViewProjectionMatrix;
+            public Vector3 CameraPosition;
+            public Vector3 CameraUp;
+            public Vector3 CameraRight;
+            public Vector2 PixelSize;
         }
 
         private static class Profiling
