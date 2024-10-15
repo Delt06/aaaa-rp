@@ -17,7 +17,7 @@ The main goals of the project are:
 
 > ❎ Only DirectX 12 is supported at the moment.
 
-### Features
+## Rendering Techniques
 
 - GPU Driven pipeline
   - Hierarchical meshlet LODs
@@ -38,12 +38,12 @@ The main goals of the project are:
 - [FSR 1.0](https://gpuopen.com/fidelityfx-superresolution/)
 - ACES/Neutral Tonemapping
 
-### API Features
+## API Features
 
 - **ShaderModel 6.6 bindless resources (right here in Unity!)**
 - In-Editor [PIX for Windows]((https://devblogs.microsoft.com/pix/)) integration.
 
-### Project Structure
+## Project Structure
 
 - [Packages/com.deltation.aaaa-rp](./Packages/com.deltation.aaaa-rp): Unity SRP package.
 - [DELTationBindlessPlugin](./DELTationBindlessPlugin): native Unity plugin providing support for bindless and PIX integration. 
