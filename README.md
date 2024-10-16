@@ -52,3 +52,4 @@ The main goals of the project are:
 
 - [zeux/meshoptimizer](https://github.com/zeux/meshoptimizer): mesh simplification and meshlet generation.
 - [KarypisLab/METIS](https://github.com/KarypisLab/METIS): graph partitioning.
+- [TsudaKageyu/minhook](https://github.com/TsudaKageyu/minhook): WinAPI hooking library.
