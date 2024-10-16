@@ -11,7 +11,7 @@ using UnityEngine.Assertions;
 
 namespace DELTation.AAAARP.Editor.Meshlets
 {
-    internal partial class AAAAMeshletCollectionAssetImporter
+    internal static partial class AAAAMeshletCollectionBuilder
     {
         private static NativeArray<NativeList<int>> GroupMeshlets(MeshLODNodeLevel meshLODNodeLevel, int meshletsPerGroup, Allocator allocator)
         {
