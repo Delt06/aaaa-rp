@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using DELTation.AAAARP.Materials;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
@@ -47,7 +48,7 @@ namespace DELTation.AAAARP.Renderers
             {
                 _materialDataBuffer?.Dispose();
                 _materialDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
-                    _materialData.Length, UnsafeUtility.SizeOf<AAAAMaterialData>()
+                    math.max(1, _materialData.Length), UnsafeUtility.SizeOf<AAAAMaterialData>()
                 )
                 {
                     name = "MaterialData",
