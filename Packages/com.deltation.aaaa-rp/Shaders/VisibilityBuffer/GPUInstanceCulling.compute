@@ -1,9 +1,10 @@
 #pragma kernel CS
 
 #pragma multi_compile_local _ MAIN_PASS FALSE_NEGATIVE_PASS
+#include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/Debugging/GPUCullingDebugPragma.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
-#include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/GPUCullingDebug.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/GPUCullingDebug.hlsl"
 
 #define THREAD_GROUP_SIZE GPUINSTANCE_CULLING_THREAD_GROUP_SIZE
 

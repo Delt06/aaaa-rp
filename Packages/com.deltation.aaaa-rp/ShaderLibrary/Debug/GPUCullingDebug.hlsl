@@ -1,8 +1,6 @@
 #ifndef AAAA_GPU_CULLING_DEBUG_INCLUDED
 #define AAAA_GPU_CULLING_DEBUG_INCLUDED
 
-#pragma multi_compile_local _ DEBUG_GPU_CULLING
-
 #include "Packages/com.deltation.aaaa-rp/Runtime/Debugging/AAAAGPUCullingDebugData.cs.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 

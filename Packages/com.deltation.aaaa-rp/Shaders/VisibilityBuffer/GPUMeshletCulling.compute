@@ -1,8 +1,9 @@
 #pragma kernel CS
 
 #pragma multi_compile_local _ MAIN_PASS FALSE_NEGATIVE_PASS
+#include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/Debugging/GPUCullingDebugPragma.hlsl"
 
-#include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/GPUCullingDebug.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/GPUCullingDebug.hlsl"
 
 #if defined(MAIN_PASS) || defined(FALSE_NEGATIVE_PASS)
 #define OCCLUSION_CULLING_ON
