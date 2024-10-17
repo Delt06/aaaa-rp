@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using DELTation.AAAARP.Core.ObjectDispatching;
 using DELTation.AAAARP.Materials;
 using DELTation.AAAARP.Meshlets;
 using UnityEngine;
@@ -15,18 +16,33 @@ namespace DELTation.AAAARP.Renderers
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _mesh;
+            set
+            {
+                _mesh = value;
+                UnityObjectUtils.MarkDirty(this);
+            }
         }
 
         public AAAAMaterialAsset Material
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _material;
+            set
+            {
+                _material = value;
+                UnityObjectUtils.MarkDirty(this);
+            }
         }
 
         public float LODErrorScale
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _lodErrorScale;
+            set
+            {
+                _lodErrorScale = value;
+                UnityObjectUtils.MarkDirty(this);
+            }
         }
     }
 }

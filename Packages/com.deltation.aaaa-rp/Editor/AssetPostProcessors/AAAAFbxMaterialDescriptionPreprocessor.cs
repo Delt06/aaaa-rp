@@ -10,6 +10,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
     internal sealed class AAAAFbxMaterialDescriptionPreprocessor : AssetPostprocessor
     {
         private const int Version = 1;
+        private const int Order = -980;
 
         private void OnPreprocessMaterialDescription(MaterialDescription description, Material material, AnimationClip[] animations)
         {
@@ -27,6 +28,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
         }
 
         public override uint GetVersion() => Version;
+        public override int GetPostprocessOrder() => Order;
 
         private static void ConvertToMaterialAsset(MaterialDescription description, AAAAMaterialAsset materialAsset)
         {
