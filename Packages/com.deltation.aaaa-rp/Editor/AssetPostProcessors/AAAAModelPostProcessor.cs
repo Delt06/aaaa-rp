@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using DELTation.AAAARP.Data;
+using DELTation.AAAARP.Editor.Meshlets;
 using DELTation.AAAARP.Materials;
+using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.Renderers;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Pool;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
 
@@ -16,36 +17,87 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
         private const int Version = 1;
         private const int Order = 0;
 
-        private void OnPostprocessModel(GameObject g)
+        private void OnPostprocessMeshHierarchy(GameObject g)
         {
             if (GraphicsSettings.currentRenderPipeline is not AAAARenderPipelineAsset)
             {
                 return;
             }
 
-            using PooledObject<List<Object>> _ = ListPool<Object>.Get(out List<Object> objects);
-            using PooledObject<List<Material>> __ = ListPool<Material>.Get(out List<Material> materials);
+            var assetObjects = new List<Object>();
+            var allMaterials = new List<Material>();
+            var allMeshes = new Dictionary<Mesh, AAAAMeshletCollectionAsset>();
 
-            context.GetObjects(objects);
+            context.GetObjects(assetObjects);
 
             const bool includeInactive = true;
             foreach (MeshRenderer meshRenderer in g.GetComponentsInChildren<MeshRenderer>(includeInactive))
             {
                 AAAARendererAuthoring rendererAuthoring = meshRenderer.gameObject.AddComponent<AAAARendererAuthoring>();
-                materials.AddRange(meshRenderer.sharedMaterials);
-                Material material = meshRenderer.sharedMaterial;
-                if (material != null)
+
+                if (meshRenderer.TryGetComponent(out MeshFilter meshFilter))
                 {
-                    rendererAuthoring.Material = objects.OfType<AAAAMaterialAsset>().FirstOrDefault(o => o.name == material.name);
+                    Mesh sharedMesh = meshFilter.sharedMesh;
+                    if (sharedMesh != null)
+                    {
+                        if (!allMeshes.TryGetValue(sharedMesh, out AAAAMeshletCollectionAsset meshletCollectionAsset))
+                        {
+                            meshletCollectionAsset = ScriptableObject.CreateInstance<AAAAMeshletCollectionAsset>();
+                            meshletCollectionAsset.name = sharedMesh.name;
+
+                            AAAAMeshletCollectionBuilder.Generate(meshletCollectionAsset, new AAAAMeshletCollectionBuilder.Parameters
+                                {
+                                    Mesh = sharedMesh,
+                                    LogErrorHandler = e => context.LogImportError(e),
+                                    OptimizeIndexing = true,
+                                    TargetError = 0.02f,
+                                    TargetErrorSloppy = 0.0f,
+                                    OptimizeVertexCache = true,
+                                    MinTriangleReductionPerStep = 0.9f,
+                                    MaxMeshLODLevelCount = 0,
+                                }
+                            );
+
+                            context.AddObjectToAsset(meshletCollectionAsset.name + "_" + nameof(AAAAMeshletCollectionAsset), meshletCollectionAsset);
+                            allMeshes.Add(sharedMesh, meshletCollectionAsset);
+                        }
+
+                        rendererAuthoring.Mesh = meshletCollectionAsset;
+                    }
+
+                    Object.DestroyImmediate(meshFilter);
+                }
+
+                {
+                    allMaterials.AddRange(meshRenderer.sharedMaterials);
+                    Material material = meshRenderer.sharedMaterial;
+                    if (material != null)
+                    {
+                        rendererAuthoring.Material = assetObjects.OfType<AAAAMaterialAsset>().FirstOrDefault(o => o.name == material.name);
+                    }
                 }
 
                 Object.DestroyImmediate(meshRenderer);
             }
 
-            foreach (Material material in materials)
+            foreach (Material material in allMaterials)
             {
+                // Internal materials should not have paths yet, but external remapped ones should.
+                // Only delete the internal ones.
+                string materialAssetPath = AssetDatabase.GetAssetPath(material);
+                if (!string.IsNullOrWhiteSpace(materialAssetPath))
+                {
+                    continue;
+                }
+
                 const bool allowDestroyingAssets = true;
                 Object.DestroyImmediate(material, allowDestroyingAssets);
+            }
+
+            foreach (Mesh mesh in allMeshes.Keys)
+            {
+                const bool allowDestroyingAssets = true;
+                Object.DestroyImmediate(mesh, allowDestroyingAssets);
             }
         }
 
