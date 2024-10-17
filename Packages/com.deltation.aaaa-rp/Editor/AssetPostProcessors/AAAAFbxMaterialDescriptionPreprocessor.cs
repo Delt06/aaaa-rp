@@ -7,17 +7,17 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Editor.AssetPostProcessors
 {
-    internal sealed class AAAAFbxMaterialDescriptionPreprocessor : AssetPostprocessor
+    internal sealed class AAAAFbxMaterialDescriptionPreprocessor : AAAAAssetPostprocessorBase
     {
         private const int Version = 1;
         private const int Order = -980;
 
         private void OnPreprocessMaterialDescription(MaterialDescription description, Material material, AnimationClip[] animations)
         {
-            if (GraphicsSettings.currentRenderPipeline is not AAAARenderPipelineAsset)
+            if (!ShouldRun())
             {
                 return;
-            }
+            } 
 
             AAAAMaterialAsset materialAsset = ScriptableObject.CreateInstance<AAAAMaterialAsset>();
             materialAsset.name = description.materialName;

@@ -1,25 +1,23 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Editor.Meshlets;
 using DELTation.AAAARP.Materials;
 using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.Renderers;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
 
 namespace DELTation.AAAARP.Editor.AssetPostProcessors
 {
-    internal sealed class AAAAModelPostProcessor : AssetPostprocessor
+    internal sealed class AAAAModelPostProcessor : AAAAAssetPostprocessorBase
     {
         private const int Version = 1;
         private const int Order = 0;
 
         private void OnPostprocessMeshHierarchy(GameObject g)
         {
-            if (GraphicsSettings.currentRenderPipeline is not AAAARenderPipelineAsset)
+            if (!ShouldRun())
             {
                 return;
             }
