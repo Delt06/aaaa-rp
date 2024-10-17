@@ -35,6 +35,8 @@ namespace DELTation.AAAARP
 
         public void Dispose()
         {
+            GC.SuppressFinalize(this);
+
             if (_currentColorBuffer != null)
             {
                 RTHandles.Release(_currentColorBuffer);
@@ -386,11 +388,11 @@ namespace DELTation.AAAARP
         private class PassData
         {
             public AAAACameraData CameraData;
+            public bool IsTargetBackbuffer;
+            public AAAARendererBase Renderer;
 
             // The size of the camera target changes during the frame, so we must make a copy of it here to preserve its record-time value.
             public Vector2Int ScaledCameraTargetSizeCopy;
-            public bool IsTargetBackbuffer;
-            public AAAARendererBase Renderer;
         }
 
         private static partial class Profiling
