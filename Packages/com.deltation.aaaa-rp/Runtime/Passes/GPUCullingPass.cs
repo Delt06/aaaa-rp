@@ -123,6 +123,7 @@ namespace DELTation.AAAARP.Passes
                         PixelSize = pixelSize,
                         IsPerspective = !camera.orthographic,
                         BoundingSphereWS = math.float4(0, 0, 0, 0),
+                        PassMask = AAAAInstancePassMask.Main,
                     };
                 }
 
@@ -257,6 +258,8 @@ namespace DELTation.AAAARP.Passes
                 }
             }
 
+            ref readonly CullingViewParameters view = ref data.CullingView;
+
             using (new ProfilingScope(context.cmd, Profiling.InstanceCulling))
             {
                 const int kernelIndex = 0;
@@ -273,12 +276,9 @@ namespace DELTation.AAAARP.Passes
 
                 context.cmd.SetComputeVectorArrayParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraFrustumPlanes, data.FrustumPlanes);
                 context.cmd.SetComputeVectorParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CullingSphereLS, data.CullingSphereLS);
-                context.cmd.SetComputeMatrixParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraViewProjection,
-                    data.CullingView.GPUViewProjectionMatrix
-                );
-                context.cmd.SetComputeMatrixParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraView,
-                    data.CullingView.ViewMatrix
-                );
+                context.cmd.SetComputeMatrixParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraViewProjection, view.GPUViewProjectionMatrix);
+                context.cmd.SetComputeMatrixParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraView, view.ViewMatrix);
+                context.cmd.SetComputeIntParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._PassMask, (int) view.PassMask);
 
                 context.cmd.SetBufferData(data.InstanceIndices, _instanceIndices.AsArray());
                 context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
@@ -381,15 +381,15 @@ namespace DELTation.AAAARP.Passes
 
                 context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraFrustumPlanes, data.FrustumPlanes);
                 context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CullingSphereLS, data.CullingSphereLS);
-                context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraPosition, data.CullingView.CameraPosition);
+                context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraPosition, view.CameraPosition);
                 context.cmd.SetComputeMatrixParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraViewProjection,
-                    data.CullingView.GPUViewProjectionMatrix
+                    view.GPUViewProjectionMatrix
                 );
                 context.cmd.SetComputeMatrixParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraView,
-                    data.CullingView.ViewMatrix
+                    view.ViewMatrix
                 );
                 context.cmd.SetComputeFloatParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraIsPerspective,
-                    data.CullingView.IsPerspective ? 1.0f : 0.0f
+                    view.IsPerspective ? 1.0f : 0.0f
                 );
 
                 context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, kernelIndex,
@@ -441,6 +441,7 @@ namespace DELTation.AAAARP.Passes
             public Matrix4x4 GPUViewProjectionMatrix;
             public float4 BoundingSphereWS;
             public bool IsPerspective;
+            public AAAAInstancePassMask PassMask;
         }
 
         public class PassData : PassDataBase
@@ -519,6 +520,7 @@ namespace DELTation.AAAARP.Passes
                 public static int _CullingSphereLS = Shader.PropertyToID(nameof(_CullingSphereLS));
                 public static int _CameraViewProjection = Shader.PropertyToID(nameof(_CameraViewProjection));
                 public static int _CameraView = Shader.PropertyToID(nameof(_CameraView));
+                public static int _PassMask = Shader.PropertyToID(nameof(_PassMask));
 
                 public static int _InstanceIndices = Shader.PropertyToID(nameof(_InstanceIndices));
                 public static int _InstanceIndicesCount = Shader.PropertyToID(nameof(_InstanceIndicesCount));

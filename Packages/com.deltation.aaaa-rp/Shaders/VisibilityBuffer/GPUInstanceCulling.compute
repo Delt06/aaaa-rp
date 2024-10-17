@@ -19,6 +19,7 @@ float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
 float4   _CullingSphereLS;
 float4x4 _CameraViewProjection;
 float4x4 _CameraView;
+uint     _PassMask;
 
 ByteAddressBuffer _InstanceIndices;
 uint              _InstanceIndicesCount;
@@ -47,6 +48,12 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     #endif
 
     const AAAAInstanceData instanceData = PullInstanceData(instanceID);
+
+    UNITY_BRANCH
+    if ((instanceData.PassMask & _PassMask) == 0)
+    {
+        return;
+    }
 
     const AABB             aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);
     const AABB             aabbWS = TransformAABB(aabbOS, instanceData.ObjectToWorldMatrix);

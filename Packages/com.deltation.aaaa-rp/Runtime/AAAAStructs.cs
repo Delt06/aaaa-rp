@@ -6,6 +6,15 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP
 {
+    [GenerateHLSL(PackingRules.Exact)]
+    [Flags]
+    public enum AAAAInstancePassMask
+    {
+        None = 0,
+        Main = 1 << 0,
+        Shadows = 1 << 1,
+    }
+
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     [StructLayout(LayoutKind.Sequential)]
     public struct AAAAInstanceData
@@ -21,7 +30,7 @@ namespace DELTation.AAAARP
         public uint MeshLODLevelCount;
 
         public float LODErrorScale;
-        public uint Padding0;
+        public AAAAInstancePassMask PassMask;
         public uint Padding1;
         public uint Padding2;
     }

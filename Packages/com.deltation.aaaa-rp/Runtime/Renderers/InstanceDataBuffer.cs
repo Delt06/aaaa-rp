@@ -118,6 +118,7 @@ namespace DELTation.AAAARP.Renderers
                 instanceData.MaterialIndex = (uint) _materialDataBuffer.GetOrAllocateMaterial(material);
                 instanceData.MeshLODLevelCount = (uint) mesh.MeshLODLevelCount;
                 instanceData.LODErrorScale = rendererAuthoring.LODErrorScale;
+                instanceData.PassMask = ExtractInstancePassMask(rendererAuthoring);
 
                 _rendererContainer.MaxMeshletListBuildJobCount += ComputeMeshletListBuildJobCount(instanceData);
                 _isDirty = true;
@@ -129,6 +130,30 @@ namespace DELTation.AAAARP.Renderers
             }
 
             invalidIDs.Dispose();
+        }
+
+        private static AAAAInstancePassMask ExtractInstancePassMask(AAAARendererAuthoring rendererAuthoring)
+        {
+            AAAAInstancePassMask passMask = AAAAInstancePassMask.Main;
+
+            switch (rendererAuthoring.ShadowCastingMode)
+            {
+                case ShadowCastingMode.Off:
+                    break;
+                case ShadowCastingMode.On:
+                    passMask |= AAAAInstancePassMask.Shadows;
+                    break;
+                case ShadowCastingMode.TwoSided:
+                    passMask |= AAAAInstancePassMask.Shadows;
+                    break;
+                case ShadowCastingMode.ShadowsOnly:
+                    passMask = AAAAInstancePassMask.Shadows;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            return passMask;
         }
 
         public void OnRendererTransformsChanged(NativeArray<int> transformedID, NativeArray<float4x4> localToWorldMatrices)

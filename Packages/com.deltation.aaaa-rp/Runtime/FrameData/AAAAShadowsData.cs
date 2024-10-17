@@ -133,6 +133,7 @@ namespace DELTation.AAAARP.FrameData
                                         CameraUp = lightUp,
                                         PixelSize = new Vector2(shadowMapResolution, shadowMapResolution),
                                         IsPerspective = false,
+                                        PassMask = AAAAInstancePassMask.Shadows,
                                     },
                                     GPUProjectionMatrix = GL.GetGPUProjectionMatrix(lightProjection, renderIntoTexture),
                                 }

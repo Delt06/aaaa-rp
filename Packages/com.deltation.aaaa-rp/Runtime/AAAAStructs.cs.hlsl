@@ -5,6 +5,13 @@
 #ifndef AAAASTRUCTS_CS_HLSL
 #define AAAASTRUCTS_CS_HLSL
 //
+// DELTation.AAAARP.AAAAInstancePassMask:  static fields
+//
+#define AAAAINSTANCEPASSMASK_NONE (0)
+#define AAAAINSTANCEPASSMASK_MAIN (1)
+#define AAAAINSTANCEPASSMASK_SHADOWS (2)
+
+//
 // DELTation.AAAARP.AAAAMaterialData:  static fields
 //
 #define NO_TEXTURE_INDEX (4294967295)
@@ -30,7 +37,7 @@ struct AAAAInstanceData
     uint MaterialIndex;
     uint MeshLODLevelCount;
     float LODErrorScale;
-    uint Padding0;
+    int PassMask;
     uint Padding1;
     uint Padding2;
 };

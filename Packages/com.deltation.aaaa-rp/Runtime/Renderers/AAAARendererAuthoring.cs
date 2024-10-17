@@ -3,6 +3,7 @@ using DELTation.AAAARP.Core.ObjectDispatching;
 using DELTation.AAAARP.Materials;
 using DELTation.AAAARP.Meshlets;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Renderers
 {
@@ -11,6 +12,7 @@ namespace DELTation.AAAARP.Renderers
         [SerializeField] private AAAAMeshletCollectionAsset _mesh;
         [SerializeField] private AAAAMaterialAsset _material;
         [SerializeField] [Min(0.000001f)] private float _lodErrorScale = 1;
+        [SerializeField] private ShadowCastingMode _shadowCastingMode = ShadowCastingMode.On;
 
         public AAAAMeshletCollectionAsset Mesh
         {
@@ -41,6 +43,17 @@ namespace DELTation.AAAARP.Renderers
             set
             {
                 _lodErrorScale = value;
+                UnityObjectUtils.MarkDirty(this);
+            }
+        }
+
+        public ShadowCastingMode ShadowCastingMode
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _shadowCastingMode;
+            set
+            {
+                _shadowCastingMode = value;
                 UnityObjectUtils.MarkDirty(this);
             }
         }
