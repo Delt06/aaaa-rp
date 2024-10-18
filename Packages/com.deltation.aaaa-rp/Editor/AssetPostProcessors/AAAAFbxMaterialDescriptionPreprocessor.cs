@@ -1,9 +1,8 @@
-﻿using DELTation.AAAARP.Data;
+﻿using System.Collections.Generic;
 using DELTation.AAAARP.Materials;
 using UnityEditor;
 using UnityEditor.AssetImporters;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Editor.AssetPostProcessors
 {
@@ -17,7 +16,13 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
             if (!ShouldRun())
             {
                 return;
-            } 
+            }
+
+            AAAAModelSettings modelSettings = JsonUtility.FromJson<AAAAModelSettings>(assetImporter.userData);
+            if (!modelSettings.GenerateMaterialAssets)
+            {
+                return;
+            }
 
             AAAAMaterialAsset materialAsset = ScriptableObject.CreateInstance<AAAAMaterialAsset>();
             materialAsset.name = description.materialName;
@@ -34,6 +39,9 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
         {
             {
                 const float opacity = 1.0f;
+
+                var propertyNames = new List<string>();
+                description.GetTexturePropertyNames(propertyNames);
 
                 if (description.TryGetProperty("DiffuseColor", out TexturePropertyDescription diffuseTextureProperty) &&
                     diffuseTextureProperty.texture is Texture2D albedoMap)

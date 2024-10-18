@@ -78,24 +78,31 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                 Object.DestroyImmediate(meshRenderer);
             }
 
-            foreach (Material material in allMaterials)
+            AAAAModelSettings modelSettings = JsonUtility.FromJson<AAAAModelSettings>(assetImporter.userData);
+            if (modelSettings.CleanupDefaultMaterials)
             {
-                // Internal materials should not have paths yet, but external remapped ones should.
-                // Only delete the internal ones.
-                string materialAssetPath = AssetDatabase.GetAssetPath(material);
-                if (!string.IsNullOrWhiteSpace(materialAssetPath))
+                foreach (Material material in allMaterials)
                 {
-                    continue;
-                }
+                    // Internal materials should not have paths yet, but external remapped ones should.
+                    // Only delete the internal ones.
+                    string materialAssetPath = AssetDatabase.GetAssetPath(material);
+                    if (!string.IsNullOrWhiteSpace(materialAssetPath))
+                    {
+                        continue;
+                    }
 
-                const bool allowDestroyingAssets = true;
-                Object.DestroyImmediate(material, allowDestroyingAssets);
+                    const bool allowDestroyingAssets = true;
+                    Object.DestroyImmediate(material, allowDestroyingAssets);
+                }
             }
 
-            foreach (Mesh mesh in allMeshes.Keys)
+            if (modelSettings.CleanupDefaultMeshes)
             {
-                const bool allowDestroyingAssets = true;
-                Object.DestroyImmediate(mesh, allowDestroyingAssets);
+                foreach (Mesh mesh in allMeshes.Keys)
+                {
+                    const bool allowDestroyingAssets = true;
+                    Object.DestroyImmediate(mesh, allowDestroyingAssets);
+                }
             }
         }
 
