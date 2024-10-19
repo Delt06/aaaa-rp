@@ -27,12 +27,26 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
             {
                 string assetPath = AssetDatabase.GetAssetPath(remapMaterial.MaterialAsset);
                 string guid = AssetDatabase.AssetPathToGUID(assetPath);
-                modelSettings.RemapMaterialsGuids.Add(new MaterialMappingGuid
+
+                int existingIndex = modelSettings.RemapMaterialsGuids.FindIndex(m => m.Name == remapMaterial.Name);
+                if (existingIndex == -1)
+                {
+                    modelSettings.RemapMaterialsGuids.Add(new MaterialMappingGuid
+                        {
+                            Name = remapMaterial.Name,
+                            Guid = guid,
+                        }
+                    );
+                }
+                else
+                {
+                    MaterialMappingGuid existingMapping = modelSettings.RemapMaterialsGuids[existingIndex];
+                    if (string.IsNullOrWhiteSpace(existingMapping.Guid))
                     {
-                        Name = remapMaterial.Name,
-                        Guid = guid,
+                        existingMapping.Guid = guid;
                     }
-                );
+                    modelSettings.RemapMaterialsGuids[existingIndex] = existingMapping;
+                }
             }
 
             modelSettings.RemapMaterials.Clear();

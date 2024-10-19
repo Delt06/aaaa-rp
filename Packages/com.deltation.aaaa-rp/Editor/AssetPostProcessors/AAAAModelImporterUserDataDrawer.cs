@@ -1,4 +1,7 @@
-﻿using UnityEditor;
+﻿using System.IO;
+using System.Linq;
+using DELTation.AAAARP.Materials;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Pool;
 
@@ -38,6 +41,45 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                 SerializedProperty property = serializedObject.FindProperty(nameof(AAAAModelUserDataWrapper.AAAASettings));
                 EditorGUILayout.PropertyField(property);
                 serializedObject.ApplyModifiedProperties();
+
+                if (GUILayout.Button("Extract Materials"))
+                {
+                    string destinationFolder = Path.GetDirectoryName(((ModelImporter) targets[0]).assetPath);
+                    destinationFolder = EditorUtility.OpenFolderPanel("Select Folder", destinationFolder, "");
+                    if (destinationFolder.StartsWith(Application.dataPath) && Directory.Exists(destinationFolder))
+                    {
+                        destinationFolder = destinationFolder.Replace(Application.dataPath + "/", string.Empty);
+                        destinationFolder = Path.Combine("Assets", destinationFolder);
+
+                        for (int i = 0; i < wrappers.Length; i++)
+                        {
+                            var modelImporter = (ModelImporter) targets[i];
+                            var wrapper = (AAAAModelUserDataWrapper) wrappers[i];
+
+                            AAAAMaterialAsset[] materialAssets = AssetDatabase.LoadAllAssetsAtPath(modelImporter.assetPath)
+                                .OfType<AAAAMaterialAsset>()
+                                .ToArray();
+                            foreach (AAAAMaterialAsset materialAsset in materialAssets)
+                            {
+                                AAAAMaterialAsset extractedMaterialAsset = Object.Instantiate(materialAsset);
+                                extractedMaterialAsset.name = materialAsset.name;
+                                string copyPath = Path.Combine(destinationFolder, materialAsset.name);
+                                copyPath = Path.ChangeExtension(copyPath, ".asset");
+                                copyPath = AssetDatabase.GenerateUniqueAssetPath(copyPath);
+                                AssetDatabase.CreateAsset(extractedMaterialAsset, copyPath);
+
+                                wrapper.AAAASettings.RemapMaterials.Add(new AAAAModelSettings.MaterialMapping
+                                    {
+                                        Name = materialAsset.name,
+                                        MaterialAsset = extractedMaterialAsset,
+                                    }
+                                );
+                            }
+                        }
+
+                        AssetDatabase.Refresh();
+                    }
+                }
 
                 for (int i = 0; i < wrappers.Length; i++)
                 {
