@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d124dbe9abb4e0ba3228241f9483940, type: 3}
+  m_Name: Sponza_vase_plant
+  m_EditorClassIdentifier: 
+  Albedo: {fileID: 2800000, guid: 59d377f622a0ffc4e80998a189c8b5b5, type: 3}
+  AlbedoColor: {r: 1, g: 1, b: 1, a: 1}
+  TextureTilingOffset: {x: 1, y: 1, z: 0, w: 0}
+  Normals: {fileID: 0}
+  NormalsStrength: 1
+  Masks: {fileID: 2800000, guid: 56bb3175780aa2843bafe666824d0648, type: 3}
+  Roughness: 0.641
+  Metallic: 2

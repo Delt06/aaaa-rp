@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d124dbe9abb4e0ba3228241f9483940, type: 3}
+  m_Name: Sponza_chain
+  m_EditorClassIdentifier: 
+  Albedo: {fileID: 2800000, guid: 2938c3679208302429be16cbab4af30f, type: 3}
+  AlbedoColor: {r: 1, g: 1, b: 1, a: 1}
+  TextureTilingOffset: {x: 1, y: 1, z: 0, w: 0}
+  Normals: {fileID: 2800000, guid: da62afbb17f90b444bdb6f3263c5ab0b, type: 3}
+  NormalsStrength: 0.25
+  Masks: {fileID: 0}
+  Roughness: 0.552
+  Metallic: 0.608

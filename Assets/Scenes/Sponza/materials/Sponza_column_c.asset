@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d124dbe9abb4e0ba3228241f9483940, type: 3}
+  m_Name: Sponza_column_c
+  m_EditorClassIdentifier: 
+  Albedo: {fileID: 2800000, guid: 4dae93035d77dc14cb1ce712f01009e1, type: 3}
+  AlbedoColor: {r: 1, g: 1, b: 1, a: 1}
+  TextureTilingOffset: {x: 1, y: 1, z: 0, w: 0}
+  Normals: {fileID: 2800000, guid: f6b8d4e5cab5a5d42b865434c927fb08, type: 3}
+  NormalsStrength: 1
+  Masks: {fileID: 2800000, guid: 49e322817c49f9049a21c3169c5bc2fe, type: 3}
+  Roughness: 1
+  Metallic: 0
