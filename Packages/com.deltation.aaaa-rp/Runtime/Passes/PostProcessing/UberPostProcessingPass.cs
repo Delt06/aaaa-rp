@@ -40,6 +40,7 @@ namespace DELTation.AAAARP.Passes.PostProcessing
             tempTargetDesc.name = "UberPost_TempTarget";
             passData.TempTarget = builder.CreateTransientTexture(tempTargetDesc);
 
+            passData.Exposure = renderingData.PipelineAsset.PostProcessingSettings.Exposure;
             passData.ToneMappingProfile = renderingData.PipelineAsset.PostProcessingSettings.ToneMapping;
         }
 
@@ -52,6 +53,7 @@ namespace DELTation.AAAARP.Passes.PostProcessing
             _propertyBlock.SetTexture(ShaderIDs._BlitTexture, data.CameraColor);
             _propertyBlock.SetVector(ShaderIDs._BlitScaleBias, new Vector4(1, 1, 0, 0));
 
+            _propertyBlock.SetFloat(ShaderIDs._Exposure, 1.0f / data.Exposure);
             context.cmd.SetKeyword(_material, _toneMapNeutralKeyword, data.ToneMappingProfile == AAAAPostProcessingSettings.ToneMappingProfile.Neutral);
             context.cmd.SetKeyword(_material, _toneMapACESKeyword, data.ToneMappingProfile == AAAAPostProcessingSettings.ToneMappingProfile.ACES);
 
@@ -64,6 +66,7 @@ namespace DELTation.AAAARP.Passes.PostProcessing
         public class PassData : PassDataBase
         {
             public TextureHandle CameraColor;
+            public float Exposure;
             public TextureHandle TempTarget;
 
             public AAAAPostProcessingSettings.ToneMappingProfile ToneMappingProfile;
@@ -74,6 +77,7 @@ namespace DELTation.AAAARP.Passes.PostProcessing
         {
             public static readonly int _BlitTexture = Shader.PropertyToID(nameof(_BlitTexture));
             public static readonly int _BlitScaleBias = Shader.PropertyToID(nameof(_BlitScaleBias));
+            public static readonly int _Exposure = Shader.PropertyToID(nameof(_Exposure));
         }
     }
 }

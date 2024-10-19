@@ -92,6 +92,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.AO
             passData.Settings.QualityLevel = (int) xeGtaoSettings.QualityLevel;
             passData.Settings.DenoisePasses = (int) xeGtaoSettings.DenoisingLevel;
             passData.Settings.FinalValuePower *= xeGtaoSettings.FinalValuePower;
+            passData.Settings.FalloffRange *= xeGtaoSettings.FalloffRange;
 
             const bool rowMajor = false;
             const uint frameCounter = 0;

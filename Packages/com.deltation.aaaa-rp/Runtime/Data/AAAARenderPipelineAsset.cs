@@ -162,6 +162,8 @@ namespace DELTation.AAAARP.Data
             public bool DirectLightingMicroshadows;
             [Range(0.0f, 5.0f)]
             public float FinalValuePower = 1.0f;
+            [Range(0.0f, 10.0f)]
+            public float FalloffRange = 1.0f;
         }
     }
 
@@ -192,9 +194,13 @@ namespace DELTation.AAAARP.Data
             ACES,
         }
 
+        [Range(0.01f, 10.0f)]
+        public float Exposure = 1.0f;
         public ToneMappingProfile ToneMapping = ToneMappingProfile.Off;
 
-        public bool AnyEnabled() => ToneMapping != ToneMappingProfile.Off;
+        public bool AnyEnabled() =>
+            !Mathf.Approximately(Exposure, 1.0f) ||
+            ToneMapping != ToneMappingProfile.Off;
     }
 
     [CreateAssetMenu(menuName = "AAAA RP/AAAA Render Pipeline Asset")]

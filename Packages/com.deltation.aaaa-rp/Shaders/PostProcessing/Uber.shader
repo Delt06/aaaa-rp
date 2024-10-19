@@ -32,6 +32,8 @@ Shader "Hidden/AAAA/PostProcessing/Uber"
 
             #pragma multi_compile_local _ _TONEMAP_NEUTRAL _TONEMAP_ACES
 
+            float _Exposure;
+
             void ToneMap(inout float3 color)
             {
                 #if defined(_TONEMAP_NEUTRAL)
@@ -45,6 +47,8 @@ Shader "Hidden/AAAA/PostProcessing/Uber"
             {
                 const float4 source = SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, IN.texcoord.xy, 0);
                 float3       result = source.rgb;
+
+                result = pow(result, _Exposure);
 
                 ToneMap(result);
 
