@@ -57,20 +57,6 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
 
             _defaultEditor.OnInspectorGUI();
             serializedObject.ApplyModifiedProperties();
-            
-            foreach (Action action in _onAfterInspectorGUI)
-            {
-                action();
-            }
-            
-            _onAfterInspectorGUI.Clear();
-        }
-        
-        private readonly List<Action> _onAfterInspectorGUI = new();
-
-        public void ScheduleAfterInspectorGUI(Action action)
-        {
-            _onAfterInspectorGUI.Add(action);
         }
 
         public static event Action<AAAAModelImporterEditor> DrawingInspectorGUI;

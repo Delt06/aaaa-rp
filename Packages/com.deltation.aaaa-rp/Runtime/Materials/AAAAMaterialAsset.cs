@@ -14,9 +14,9 @@ namespace DELTation.AAAARP.Materials
         public float NormalsStrength = 1.0f;
 
         public Texture2D Masks;
-        [Range(0.0f, 1.0f)]
+        [Range(0.0f, 2.0f)]
         public float Roughness = 0.5f;
-        [Range(0.0f, 1.0f)]
+        [Range(0.0f, 2.0f)]
         public float Metallic;
     }
 }

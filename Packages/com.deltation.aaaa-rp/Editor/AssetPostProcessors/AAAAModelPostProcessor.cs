@@ -25,6 +25,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
             var assetObjects = new List<Object>();
             var allMaterials = new List<Material>();
             var allMeshes = new Dictionary<Mesh, AAAAMeshletCollectionAsset>();
+            var modelSettings = AAAAModelSettings.Deserialize(assetImporter.userData);
 
             context.GetObjects(assetObjects);
 
@@ -71,14 +72,29 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                     Material material = meshRenderer.sharedMaterial;
                     if (material != null)
                     {
-                        rendererAuthoring.Material = assetObjects.OfType<AAAAMaterialAsset>().FirstOrDefault(o => o.name == material.name);
+                        AAAAMaterialAsset materialAsset = null;
+
+                        foreach (AAAAModelSettings.MaterialMapping materialMapping in modelSettings.RemapMaterials)
+                        {
+                            if (materialMapping.MaterialAsset != null && materialMapping.Name == material.name)
+                            {
+                                materialAsset = materialMapping.MaterialAsset;
+                                break;
+                            }
+                        }
+
+                        if (materialAsset == null)
+                        {
+                            materialAsset = assetObjects.OfType<AAAAMaterialAsset>().FirstOrDefault(o => o.name == material.name);
+                        }
+
+                        rendererAuthoring.Material = materialAsset;
                     }
                 }
 
                 Object.DestroyImmediate(meshRenderer);
             }
 
-            AAAAModelSettings modelSettings = JsonUtility.FromJson<AAAAModelSettings>(assetImporter.userData);
             if (modelSettings.CleanupDefaultMaterials)
             {
                 foreach (Material material in allMaterials)

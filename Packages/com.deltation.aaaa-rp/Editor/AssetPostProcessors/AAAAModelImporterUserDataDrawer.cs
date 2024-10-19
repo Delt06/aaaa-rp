@@ -29,7 +29,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                 {
                     AAAAModelUserDataWrapper wrapper = wrapperPool.Get();
                     string userData = ((ModelImporter) targets[i]).userData;
-                    JsonUtility.FromJsonOverwrite(userData, wrapper.AAAASettings);
+                    AAAAModelSettings.Deserialize(userData, wrapper.AAAASettings);
                     wrappers[i] = wrapper;
                 }
 
@@ -43,9 +43,9 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                 {
                     var wrapper = (AAAAModelUserDataWrapper) wrappers[i];
                     var modelImporter = (ModelImporter) targets[i];
-                    modelImporter.userData = JsonUtility.ToJson(wrapper.AAAASettings);
+                    modelImporter.userData = AAAAModelSettings.Serialize(wrapper.AAAASettings);
                 }
-                
+
                 serializedObject.Dispose();
 
                 foreach (Object wrapper in wrappers)

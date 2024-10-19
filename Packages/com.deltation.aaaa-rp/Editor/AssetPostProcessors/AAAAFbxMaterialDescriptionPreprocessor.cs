@@ -18,10 +18,19 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                 return;
             }
 
-            AAAAModelSettings modelSettings = JsonUtility.FromJson<AAAAModelSettings>(assetImporter.userData);
+            var modelSettings = AAAAModelSettings.Deserialize(assetImporter.userData);
             if (!modelSettings.GenerateMaterialAssets)
             {
                 return;
+            }
+
+            foreach (AAAAModelSettings.MaterialMapping materialMapping in modelSettings.RemapMaterials)
+            {
+                if (materialMapping.MaterialAsset != null && materialMapping.Name.Trim() == description.materialName)
+                {
+                    // context.DependsOnArtifact(AssetDatabase.GetAssetPath(materialMapping.MaterialAsset));
+                    return;
+                }
             }
 
             AAAAMaterialAsset materialAsset = ScriptableObject.CreateInstance<AAAAMaterialAsset>();
