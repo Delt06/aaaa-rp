@@ -12,6 +12,12 @@
 #define AAAAINSTANCEPASSMASK_SHADOWS (2)
 
 //
+// DELTation.AAAARP.AAAAMaterialFlags:  static fields
+//
+#define AAAAMATERIALFLAGS_NONE (0)
+#define AAAAMATERIALFLAGS_SPECULAR_AA (1)
+
+//
 // DELTation.AAAARP.AAAAMaterialData:  static fields
 //
 #define NO_TEXTURE_INDEX (4294967295)
@@ -54,7 +60,12 @@ struct AAAAMaterialData
     uint MasksIndex;
     float Roughness;
     float Metallic;
-    uint2 Padding0;
+    float SpecularAAScreenSpaceVariance;
+    float SpecularAAThreshold;
+    int MaterialFlags;
+    uint Padding0;
+    uint Padding1;
+    uint Padding2;
 };
 
 // Generated from DELTation.AAAARP.AAAAMeshlet

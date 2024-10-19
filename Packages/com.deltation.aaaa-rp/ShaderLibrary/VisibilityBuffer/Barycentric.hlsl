@@ -71,6 +71,19 @@ float3 InterpolateWithBarycentricNoDerivatives(const BarycentricDerivatives bary
     );
 }
 
+BarycentricDerivatives InterpolateWithBarycentric(const BarycentricDerivatives barycentric, float3 v0, float3 v1, float3 v2)
+{
+    const float3 vx = InterpolateWithBarycentric(barycentric, v0.x, v1.x, v2.x);
+    const float3 vy = InterpolateWithBarycentric(barycentric, v0.y, v1.y, v2.y);
+    const float3 vz = InterpolateWithBarycentric(barycentric, v0.z, v1.z, v2.z);
+
+    BarycentricDerivatives result;
+    result.lambda = float3(vx.x, vy.x, vz.x);
+    result.ddx = float3(vx.y, vy.y, vz.y);
+    result.ddy = float3(vx.z, vy.z, vz.z);
+    return result;
+}
+
 float4 InterpolateWithBarycentricNoDerivatives(const BarycentricDerivatives barycentric, float4 v0, float4 v1, float4 v2)
 {
     return float4(

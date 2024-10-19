@@ -18,5 +18,11 @@ namespace DELTation.AAAARP.Materials
         public float Roughness = 0.5f;
         [Range(0.0f, 2.0f)]
         public float Metallic;
+
+        public bool SpecularAA;
+        [Range(0.0f, 1.0f)]
+        public float SpecularAAScreenSpaceVariance = 0.1f;
+        [Range(0.0f, 1.0f)]
+        public float SpecularAAThreshold = 0.2f;
     }
 }

@@ -1,14 +1,17 @@
 Shader "Hidden/AAAA/VisibilityBufferResolve"
 {
     HLSLINCLUDE
-        #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
-        #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
-        #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+    #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+    #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
+    #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
     ENDHLSL
 
     SubShader
     {
-        Tags{ "RenderPipeline" = "AAAAPipeline" }
+        Tags
+        {
+            "RenderPipeline" = "AAAAPipeline"
+        }
 
         Pass
         {
@@ -30,7 +33,7 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Materials.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Utils.hlsl"
-            
+
             Varyings OverrideVert(Attributes input)
             {
                 Varyings output = Vert(input);
@@ -42,11 +45,11 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
 
             GBufferOutput Frag(const Varyings IN)
             {
-                const uint2 visibilityBufferPacked = SampleVisibilityBuffer(IN.texcoord); 
-                const VisibilityBufferValue visibilityBufferValue = UnpackVisibilityBufferValue(visibilityBufferPacked); 
+                const uint2                 visibilityBufferPacked = SampleVisibilityBuffer(IN.texcoord);
+                const VisibilityBufferValue visibilityBufferValue = UnpackVisibilityBufferValue(visibilityBufferPacked);
 
                 const AAAAInstanceData instanceData = PullInstanceData(visibilityBufferValue.instanceID);
-                const AAAAMeshlet meshlet = PullMeshletData(visibilityBufferValue.meshletID);
+                const AAAAMeshlet      meshlet = PullMeshletData(visibilityBufferValue.meshletID);
                 const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
 
                 const uint3 indices = uint3(
@@ -76,23 +79,28 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 };
 
                 const float2                 pixelNDC = ScreenCoordsToNDC(IN.positionCS);
-                const BarycentricDerivatives barycentric = CalculateFullBarycentric(positionCS[0], positionCS[1], positionCS[2], pixelNDC, _ScreenSize.zw);
+                const BarycentricDerivatives barycentric = CalculateFullBarycentric(
+                    positionCS[0], positionCS[1], positionCS[2], pixelNDC, _ScreenSize.zw);
 
                 InterpolatedUV interpolatedUV = InterpolateUV(barycentric, vertices[0], vertices[1], vertices[2]);
                 interpolatedUV.AddTilingOffset(materialData.TextureTilingOffset);
                 const float3 albedo = SampleAlbedo(interpolatedUV, materialData).rgb;
 
-                const float3 normalOS =
-                    SafeNormalize(
-                    InterpolateWithBarycentricNoDerivatives(barycentric, vertices[0].Normal.xyz, vertices[1].Normal.xyz, vertices[2].Normal.xyz)
-                );
-                float3 normalWS = TransformObjectToWorldNormal(normalOS, instanceData.WorldToObjectMatrix);
+                const float3 vertexNormalWS[3] =
+                {
+                    TransformObjectToWorldNormal(SafeNormalize(vertices[0].Normal.xyz), instanceData.WorldToObjectMatrix),
+                    TransformObjectToWorldNormal(SafeNormalize(vertices[1].Normal.xyz), instanceData.WorldToObjectMatrix),
+                    TransformObjectToWorldNormal(SafeNormalize(vertices[2].Normal.xyz), instanceData.WorldToObjectMatrix),
+                };
+                const BarycentricDerivatives barycentricVertexNormalWS = InterpolateWithBarycentric(
+                    barycentric, vertexNormalWS[0], vertexNormalWS[1], vertexNormalWS[2]);
+                float3 normalWS = SafeNormalize(barycentricVertexNormalWS.lambda);
 
                 UNITY_BRANCH
                 if (materialData.NormalsIndex != (uint)NO_TEXTURE_INDEX)
                 {
                     const float4 tangentOS = InterpolateWithBarycentricNoDerivatives(barycentric,
-                                                                                     vertices[0].Tangent, vertices[1].Tangent, vertices[2].Tangent);
+                                                vertices[0].Tangent, vertices[1].Tangent, vertices[2].Tangent);
                     const float4 tangentWS = float4(TransformObjectToWorldDir(tangentOS.xyz, instanceData.ObjectToWorldMatrix), tangentOS.w);
                     const float3 bitangentWS = tangentWS.w * cross(normalWS, tangentWS.xyz);
 
@@ -108,6 +116,15 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 gbufferValue.normalWS = normalWS;
                 gbufferValue.roughness = materialMasks.roughness;
                 gbufferValue.metallic = materialMasks.metallic;
+
+                UNITY_BRANCH
+                if (materialData.MaterialFlags & AAAAMATERIALFLAGS_SPECULAR_AA)
+                {
+                    const float screenSpaceVariance = materialData.SpecularAAScreenSpaceVariance;
+                    const float threshold = materialData.SpecularAAThreshold;
+                    gbufferValue.roughness = GeometricNormalFiltering(gbufferValue.roughness, barycentricVertexNormalWS,
+                               screenSpaceVariance, threshold);
+                }
 
                 return PackGBufferOutput(gbufferValue);
 

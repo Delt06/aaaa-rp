@@ -20,3 +20,6 @@ MonoBehaviour:
   Masks: {fileID: 2800000, guid: 1c0b6661261fa86459eacef19722a2ee, type: 3}
   Roughness: 0.514
   Metallic: 0.475
+  SpecularAA: 1
+  SpecularAAScreenSpaceVariance: 0.1
+  SpecularAAThreshold: 0.908

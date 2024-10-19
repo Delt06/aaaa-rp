@@ -109,6 +109,22 @@ namespace DELTation.AAAARP.Renderers
                 MasksIndex = GetOrAllocateTexture(material.Masks),
                 Roughness = material.Roughness,
                 Metallic = material.Metallic,
+                SpecularAAScreenSpaceVariance = material.SpecularAAScreenSpaceVariance,
+                SpecularAAThreshold = material.SpecularAAThreshold,
+
+                MaterialFlags = ExtractMaterialFlags(material),
             };
+
+        private static AAAAMaterialFlags ExtractMaterialFlags(AAAAMaterialAsset material)
+        {
+            AAAAMaterialFlags flags = AAAAMaterialFlags.None;
+
+            if (material.SpecularAA)
+            {
+                flags |= AAAAMaterialFlags.SpecularAA;
+            }
+
+            return flags;
+        }
     }
 }

@@ -35,6 +35,14 @@ namespace DELTation.AAAARP
         public uint Padding2;
     }
 
+    [GenerateHLSL(PackingRules.Exact)]
+    [Flags]
+    public enum AAAAMaterialFlags
+    {
+        None = 0,
+        SpecularAA = 1 << 0,
+    }
+
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     [StructLayout(LayoutKind.Sequential)]
     public struct AAAAMaterialData
@@ -49,7 +57,13 @@ namespace DELTation.AAAARP
 
         public float Roughness;
         public float Metallic;
-        public uint2 Padding0;
+        public float SpecularAAScreenSpaceVariance;
+        public float SpecularAAThreshold;
+
+        public AAAAMaterialFlags MaterialFlags;
+        public uint Padding0;
+        public uint Padding1;
+        public uint Padding2;
 
         public const uint NoTextureIndex = uint.MaxValue;
     }

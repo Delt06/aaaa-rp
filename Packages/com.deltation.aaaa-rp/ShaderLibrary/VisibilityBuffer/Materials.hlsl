@@ -114,4 +114,35 @@ MaterialMasks SampleMasks(const InterpolatedUV uv, const AAAAMaterialData materi
     return materialMasks;
 }
 
+// https://github.com/Unity-Technologies/Graphics/blob/e42df452b62857a60944aed34f02efa1bda50018/Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl#L218
+// Return modified perceptualRoughness based on provided variance (get from GeometricNormalVariance + TextureNormalVariance)
+float NormalFiltering(float perceptualRoughness, float variance, float threshold)
+{
+    const float roughness = perceptualRoughness * perceptualRoughness;
+    // Ref: Geometry into Shading - http://graphics.pixar.com/library/BumpRoughness/paper.pdf - equation (3)
+    float squaredRoughness = saturate(roughness * roughness + min(2.0 * variance, threshold * threshold));
+    // threshold can be really low, square the value for easier control
+    return sqrt(sqrt(squaredRoughness));
+}
+
+// Reference: Error Reduction and Simplification for Shading Anti-Aliasing
+// Specular antialiasing for geometry-induced normal (and NDF) variations: Tokuyoshi / Kaplanyan et al.'s method.
+// This is the deferred approximation, which works reasonably well so we keep it for forward too for now.
+// screenSpaceVariance should be at most 0.5^2 = 0.25, as that corresponds to considering
+// a gaussian pixel reconstruction kernel with a standard deviation of 0.5 of a pixel, thus 2 sigma covering the whole pixel.
+float GeometricNormalVariance(BarycentricDerivatives geometricNormalWS, float screenSpaceVariance)
+{
+    const float3 deltaU = geometricNormalWS.ddx;
+    const float3 deltaV = geometricNormalWS.ddy;
+    return screenSpaceVariance * (dot(deltaU, deltaU) + dot(deltaV, deltaV));
+}
+
+// Return modified perceptualRoughness
+float GeometricNormalFiltering(float perceptualRoughness, BarycentricDerivatives geometricNormalWS, float screenSpaceVariance,
+                               float threshold)
+{
+    float variance = GeometricNormalVariance(geometricNormalWS, screenSpaceVariance);
+    return NormalFiltering(perceptualRoughness, variance, threshold);
+}
+
 #endif // AAAA_VISIBILITY_BUFFER_MATERIALS_INCLUDED
