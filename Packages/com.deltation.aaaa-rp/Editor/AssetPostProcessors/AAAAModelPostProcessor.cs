@@ -33,6 +33,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
             foreach (MeshRenderer meshRenderer in g.GetComponentsInChildren<MeshRenderer>(includeInactive))
             {
                 AAAARendererAuthoring rendererAuthoring = meshRenderer.gameObject.AddComponent<AAAARendererAuthoring>();
+                rendererAuthoring.LODErrorScale = modelSettings.LODErrorScale;
 
                 if (meshRenderer.TryGetComponent(out MeshFilter meshFilter))
                 {

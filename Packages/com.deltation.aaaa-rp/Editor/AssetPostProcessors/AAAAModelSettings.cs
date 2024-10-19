@@ -10,6 +10,10 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
     [Serializable]
     public class AAAAModelSettings
     {
+        [Header("Mesh")]
+        [Min(0.000001f)]
+        public float LODErrorScale = 1.0f;
+        [Header("Materials")]
         public bool GenerateMaterialAssets = true;
         public bool CleanupDefaultMaterials = true;
         public bool CleanupDefaultMeshes = true;
