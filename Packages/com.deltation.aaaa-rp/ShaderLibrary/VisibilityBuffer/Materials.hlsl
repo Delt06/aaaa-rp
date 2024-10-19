@@ -108,8 +108,8 @@ MaterialMasks SampleMasks(const InterpolatedUV uv, const AAAAMaterialData materi
         materialMasks.metallic = 1;
     }
 
-    materialMasks.roughness *= materialData.Roughness;
-    materialMasks.metallic *= materialData.Metallic;
+    materialMasks.roughness = saturate(materialMasks.roughness * materialData.Roughness);
+    materialMasks.metallic = saturate(materialMasks.metallic * materialData.Metallic);
 
     return materialMasks;
 }
