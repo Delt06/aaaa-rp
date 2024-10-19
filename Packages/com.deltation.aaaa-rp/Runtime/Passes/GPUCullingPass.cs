@@ -124,6 +124,7 @@ namespace DELTation.AAAARP.Passes
                         IsPerspective = !camera.orthographic,
                         BoundingSphereWS = math.float4(0, 0, 0, 0),
                         PassMask = AAAAInstancePassMask.Main,
+                        DisableOcclusionCulling = CullingCameraOverride != null,
                     };
                 }
 
@@ -264,15 +265,10 @@ namespace DELTation.AAAARP.Passes
             {
                 const int kernelIndex = 0;
 
-                context.cmd.SetKeyword(_gpuInstanceCullingCS,
-                    new LocalKeyword(_gpuInstanceCullingCS, Keywords.MAIN_PASS), _passType == PassType.Main
-                );
-                context.cmd.SetKeyword(_gpuInstanceCullingCS,
-                    new LocalKeyword(_gpuInstanceCullingCS, Keywords.FALSE_NEGATIVE_PASS), _passType == PassType.FalseNegative
-                );
-                context.cmd.SetKeyword(_gpuInstanceCullingCS,
-                    new LocalKeyword(_gpuInstanceCullingCS, Keywords.Debug.DEBUG_GPU_CULLING), data.DebugDataBuffer.IsValid()
-                );
+                CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.MAIN_PASS, _passType == PassType.Main);
+                CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.FALSE_NEGATIVE_PASS, _passType == PassType.FalseNegative);
+                CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.DISABLE_OCCLUSION_CULLING, view.DisableOcclusionCulling);
+                CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.Debug.DEBUG_GPU_CULLING, data.DebugDataBuffer.IsValid());
 
                 context.cmd.SetComputeVectorArrayParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CameraFrustumPlanes, data.FrustumPlanes);
                 context.cmd.SetComputeVectorParam(_gpuInstanceCullingCS, ShaderID.GPUInstanceCulling._CullingSphereLS, data.CullingSphereLS);
@@ -369,15 +365,10 @@ namespace DELTation.AAAARP.Passes
             {
                 const int kernelIndex = 0;
 
-                context.cmd.SetKeyword(_gpuMeshletCullingCS,
-                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.MAIN_PASS), _passType == PassType.Main
-                );
-                context.cmd.SetKeyword(_gpuMeshletCullingCS,
-                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.FALSE_NEGATIVE_PASS), _passType == PassType.FalseNegative
-                );
-                context.cmd.SetKeyword(_gpuMeshletCullingCS,
-                    new LocalKeyword(_gpuMeshletCullingCS, Keywords.Debug.DEBUG_GPU_CULLING), data.DebugDataBuffer.IsValid()
-                );
+                CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.MAIN_PASS, _passType == PassType.Main);
+                CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.FALSE_NEGATIVE_PASS, _passType == PassType.FalseNegative);
+                CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.DISABLE_OCCLUSION_CULLING, view.DisableOcclusionCulling);
+                CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.Debug.DEBUG_GPU_CULLING, data.DebugDataBuffer.IsValid());
 
                 context.cmd.SetComputeVectorArrayParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CameraFrustumPlanes, data.FrustumPlanes);
                 context.cmd.SetComputeVectorParam(_gpuMeshletCullingCS, ShaderID.MeshletCulling._CullingSphereLS, data.CullingSphereLS);
@@ -442,6 +433,7 @@ namespace DELTation.AAAARP.Passes
             public float4 BoundingSphereWS;
             public bool IsPerspective;
             public AAAAInstancePassMask PassMask;
+            public bool DisableOcclusionCulling;
         }
 
         public class PassData : PassDataBase
@@ -499,6 +491,7 @@ namespace DELTation.AAAARP.Passes
         {
             public static string MAIN_PASS = nameof(MAIN_PASS);
             public static string FALSE_NEGATIVE_PASS = nameof(FALSE_NEGATIVE_PASS);
+            public static string DISABLE_OCCLUSION_CULLING = nameof(DISABLE_OCCLUSION_CULLING);
 
             public static class Debug
             {

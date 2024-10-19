@@ -1,6 +1,8 @@
 #pragma kernel CS
 
 #pragma multi_compile_local _ MAIN_PASS FALSE_NEGATIVE_PASS
+#pragma multi_compile_local _ DISABLE_OCCLUSION_CULLING
+
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/Debugging/GPUCullingDebugPragma.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
@@ -71,6 +73,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     #if defined(FALSE_NEGATIVE_PASS)
 
+    #if !defined(DISABLE_OCCLUSION_CULLING)
     UNITY_BRANCH
     if (!OcclusionCulling::IsVisible(boundingSquareSS))
     {
@@ -78,6 +81,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         GPUCullingDebug::OnCulled(boundingSquareSS, AAAAGPUCULLINGDEBUGGRANULARITY_INSTANCE, AAAAGPUCULLINGDEBUGTYPE_OCCLUSION);
         return;
     }
+    #endif
 
     UNITY_BRANCH
     if (OcclusionCulling::WasInstanceVisibleThisFrame(instanceID))
