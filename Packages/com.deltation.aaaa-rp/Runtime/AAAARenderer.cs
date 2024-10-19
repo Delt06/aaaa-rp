@@ -23,6 +23,7 @@ namespace DELTation.AAAARP
         private readonly BilinearUpscalePass _bilinearUpscalePass;
         private readonly BRDFIntegrationPass _brdfIntegrationPass;
         private readonly ClusteredLightingPass _clusteredLightingPass;
+        private readonly ColorHistoryPass _colorHistoryPass;
         private readonly ConvolveDiffuseIrradiancePass _convolveDiffuseIrradiancePass;
         private readonly DeferredLightingPass _deferredLightingPass;
         private readonly DeferredReflectionsComposePass _deferredReflectionsComposePass;
@@ -49,7 +50,6 @@ namespace DELTation.AAAARP
         private readonly SSRTracePass _ssrTracePass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
         private readonly XeGTAOPass _xeGTAOPass;
-        private readonly ColorHistoryPass _colorHistoryPass;
 
         public AAAARenderer(AAAARenderPipelineAsset pipelineAsset)
         {
@@ -131,6 +131,7 @@ namespace DELTation.AAAARP
 
             Camera cullingCameraOverride = DebugHandler?.GetGPUCullingCameraOverride();
             _gpuCullingMainPass.CullingCameraOverride = cullingCameraOverride;
+            _gpuCullingFalseNegativePass.CullingCameraOverride = cullingCameraOverride;
             EnqueuePass(_gpuCullingMainPass);
             EnqueuePass(_drawVisibilityBufferMainPass);
             EnqueuePass(_gpuCullingHzbGenerationPass);

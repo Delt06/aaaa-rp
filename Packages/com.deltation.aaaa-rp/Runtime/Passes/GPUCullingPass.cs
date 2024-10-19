@@ -325,7 +325,7 @@ namespace DELTation.AAAARP.Passes
             {
                 const int kernelIndex = 0;
 
-                LODSelectionContext lodContext = data.LODSelectionContext;
+                ref readonly LODSelectionContext lodContext = ref data.LODSelectionContext;
                 context.cmd.SetComputeMatrixParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraViewProjection, lodContext.GPUViewProjectionMatrix);
                 context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraPosition, lodContext.CameraPosition);
                 context.cmd.SetComputeVectorParam(_meshletListBuildCS, ShaderID.MeshletListBuild._CameraUp, lodContext.CameraUp);
