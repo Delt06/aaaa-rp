@@ -16,7 +16,7 @@ MonoBehaviour:
   AlbedoColor: {r: 1, g: 1, b: 1, a: 1}
   TextureTilingOffset: {x: 1, y: 1, z: 0, w: 0}
   Normals: {fileID: 2800000, guid: d66678550a816f842be3cf9db673dcbb, type: 3}
-  NormalsStrength: 0.4
+  NormalsStrength: 0.14
   Masks: {fileID: 2800000, guid: 963c304e1645c5c4d8919299eb08923a, type: 3}
   Roughness: 1
   Metallic: 0
