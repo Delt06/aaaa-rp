@@ -134,10 +134,6 @@ namespace DELTation.AAAARP.Data
             public XeGTAODenoisingLevel DenoisingLevel = XeGTAODenoisingLevel.Sharp;
             public bool BentNormals;
             public bool DirectLightingMicroshadows;
-            [Range(0.0f, 5.0f)]
-            public float FinalValuePower = 1.0f;
-            [Range(0.0f, 10.0f)]
-            public float FalloffRange = 1.0f;
         }
     }
 

@@ -232,6 +232,11 @@ namespace DELTation.AAAARP
             cameraData.PostProcessingEnabled =
                 cameraData.VolumeStack.GetComponent<AAAAPostProcessingOptionsVolumeComponent>().AnyEnabled();
             cameraData.AmbientOcclusionTechnique = lightingSettings?.AmbientOcclusion ?? AAAAAmbientOcclusionTechnique.Off;
+            if (cameraData.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO &&
+                cameraData.VolumeStack.GetComponent<AAAAGtaoVolumeComponent>().FinalValuePower == 0.0f)
+            {
+                cameraData.AmbientOcclusionTechnique = AAAAAmbientOcclusionTechnique.Off;
+            }
 
             return cameraData;
         }

@@ -138,7 +138,10 @@ namespace DELTation.AAAARP
             EnqueuePass(_resolveVisibilityBufferPass);
 
             EnqueuePass(_clusteredLightingPass);
-            EnqueuePass(_xeGTAOPass);
+            if (cameraData.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO)
+            {
+                EnqueuePass(_xeGTAOPass);
+            }
             EnqueuePass(_deferredLightingPass);
             EnqueuePass(_skyboxPass);
 

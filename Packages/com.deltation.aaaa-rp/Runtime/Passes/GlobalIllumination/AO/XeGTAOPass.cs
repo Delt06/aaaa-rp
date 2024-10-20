@@ -4,6 +4,7 @@ using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.ShaderLibrary.ThirdParty.XeGTAO;
+using DELTation.AAAARP.Volumes;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -88,11 +89,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.AO
                 passData.Edges = builder.CreateTransientTexture(textureDesc);
             }
 
+            AAAAGtaoVolumeComponent gtaoVolumeComponent = cameraData.VolumeStack.GetComponent<AAAAGtaoVolumeComponent>();
             passData.Settings = XeGTAO.GTAOSettings.Default;
             passData.Settings.QualityLevel = (int) xeGtaoSettings.QualityLevel;
             passData.Settings.DenoisePasses = (int) xeGtaoSettings.DenoisingLevel;
-            passData.Settings.FinalValuePower *= xeGtaoSettings.FinalValuePower;
-            passData.Settings.FalloffRange *= xeGtaoSettings.FalloffRange;
+            passData.Settings.FinalValuePower *= gtaoVolumeComponent.FinalValuePower.value;
+            passData.Settings.FalloffRange *= gtaoVolumeComponent.FalloffRange.value;
 
             const bool rowMajor = false;
             const uint frameCounter = 0;
