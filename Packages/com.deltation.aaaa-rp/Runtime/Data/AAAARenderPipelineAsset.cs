@@ -49,8 +49,6 @@ namespace DELTation.AAAARP.Data
             Ultra,
         }
 
-        public const float MaxFSRSharpness = 2.0f;
-
         [Range(0.5f, 2.0f)]
         public float RenderScale = 1.0f;
 
@@ -60,8 +58,6 @@ namespace DELTation.AAAARP.Data
 
         [EnumButtons]
         public AAAAUpscalingTechnique Upscaling;
-        [Range(0.0f, MaxFSRSharpness)]
-        public float FSRSharpness = 1.0f;
 
         [Serializable]
         public class SMAASettings

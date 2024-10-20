@@ -221,14 +221,14 @@ namespace DELTation.AAAARP
             cameraData.SetViewProjectionAndJitterMatrix(camera.worldToCameraMatrix, projectionMatrix);
             cameraData.WorldSpaceCameraPos = camera.transform.position;
 
+            cameraData.VolumeStack = VolumeManager.instance.stack;
             cameraData.AntiAliasingTechnique = imageQualitySettings?.AntiAliasing ?? AAAAAntiAliasingTechnique.Off;
             cameraData.UpscalingTechnique = imageQualitySettings?.Upscaling ?? AAAAUpscalingTechnique.Off;
-            if (cameraData.RenderScale >= 1.0f)
+            cameraData.FSRSharpness = cameraData.VolumeStack.GetComponent<AAAAFsrSharpnessVolumeComponent>().Sharpness.value;
+            if (cameraData.RenderScale >= 1.0f && Mathf.Approximately(cameraData.FSRSharpness, 0.0f))
             {
                 cameraData.UpscalingTechnique = AAAAUpscalingTechnique.Off;
             }
-            cameraData.VolumeStack = VolumeManager.instance.stack;
-            cameraData.FSRSharpness = imageQualitySettings?.FSRSharpness ?? 0.0f;
             cameraData.PostProcessingEnabled =
                 cameraData.VolumeStack.GetComponent<AAAAPostProcessingOptionsVolumeComponent>().AnyEnabled();
             cameraData.AmbientOcclusionTechnique = lightingSettings?.AmbientOcclusion ?? AAAAAmbientOcclusionTechnique.Off;

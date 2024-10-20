@@ -18,7 +18,6 @@ MonoBehaviour:
     SMAA:
       Preset: 2
     Upscaling: 1
-    FSRSharpness: 1
   _meshLODSettings:
     ErrorThreshold: 5
   _lightingSettings:
@@ -54,6 +53,3 @@ MonoBehaviour:
     PreFilteredEnvironmentMap:
       Resolution: 512
       MaxMipLevels: 5
-  _postProcessingSettings:
-    Exposure: 1.1
-    ToneMapping: 2

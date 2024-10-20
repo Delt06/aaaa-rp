@@ -17,6 +17,8 @@ namespace DELTation.AAAARP.Passes.PostProcessing
 {
     public sealed class FSRPass : AAAARenderPass<FSRPass.PassData>
     {
+        public const float MaxSharpness = 2.0f;
+        
         private readonly ComputeShader _easuCS;
         private readonly ComputeShader _rcasCS;
 
@@ -38,13 +40,21 @@ namespace DELTation.AAAARP.Passes.PostProcessing
             passData.OutputResolution = math.int2(cameraData.PixelWidth, cameraData.PixelHeight);
             passData.HDR = cameraData.IsHdrEnabled;
             passData.Sharpness = cameraData.FSRSharpness;
+            passData.UseEASU = cameraData.RenderScale < 1.0f;
             passData.UseRCAS = passData.Sharpness > 0.0f;
 
             if (passData.UseRCAS)
             {
-                TextureDesc textureDesc = resourceData.CameraColorDesc;
-                textureDesc.name = nameof(PassData.Intermedate);
-                passData.Intermedate = builder.CreateTransientTexture(textureDesc);
+                if (passData.UseEASU)
+                {
+                    TextureDesc textureDesc = resourceData.CameraColorDesc;
+                    textureDesc.name = nameof(PassData.Intermedate);
+                    passData.Intermedate = builder.CreateTransientTexture(textureDesc);    
+                }
+                else
+                {
+                    passData.Intermedate = passData.Input;
+                }
             }
             else
             {
@@ -59,23 +69,26 @@ namespace DELTation.AAAARP.Passes.PostProcessing
             const int threadGroupSizeY = AAAAFSRConstantBuffer.ThreadGroupSizeY;
             int threadGroupsY = AAAAMathUtils.AlignUp(data.OutputResolution.y, threadGroupSizeY) / threadGroupSizeY;
 
-            using (new ProfilingScope(context.cmd, Profiling.EASU))
+            if (data.UseEASU)
             {
-                AAAAFSRConstantBuffer constantBuffer = default;
-                Utils.FsrEasuCon(
-                    out constantBuffer.Const0, out constantBuffer.Const1, out constantBuffer.Const2, out constantBuffer.Const3,
-                    data.InputResolution.x, data.InputResolution.y,
-                    data.InputResolution.x, data.InputResolution.y,
-                    data.OutputResolution.x, data.OutputResolution.y
-                );
+                using (new ProfilingScope(context.cmd, Profiling.EASU))
+                {
+                    AAAAFSRConstantBuffer constantBuffer = default;
+                    Utils.FsrEasuCon(
+                        out constantBuffer.Const0, out constantBuffer.Const1, out constantBuffer.Const2, out constantBuffer.Const3,
+                        data.InputResolution.x, data.InputResolution.y,
+                        data.InputResolution.x, data.InputResolution.y,
+                        data.OutputResolution.x, data.OutputResolution.y
+                    );
 
-                //constantBuffer.Sample.x = data.HDR && !data.UseRCAS ? 1u : 0u;
-                ConstantBuffer.Push(context.cmd, constantBuffer, _easuCS, ShaderIDs.ConstantBuffer);
+                    //constantBuffer.Sample.x = data.HDR && !data.UseRCAS ? 1u : 0u;
+                    ConstantBuffer.Push(context.cmd, constantBuffer, _easuCS, ShaderIDs.ConstantBuffer);
 
-                const int kernelIndex = 0;
-                context.cmd.SetComputeTextureParam(_easuCS, kernelIndex, ShaderIDs._InputTexture, data.Input);
-                context.cmd.SetComputeTextureParam(_easuCS, kernelIndex, ShaderIDs._OutputTexture, data.Intermedate);
-                context.cmd.DispatchCompute(_easuCS, kernelIndex, threadGroupsX, threadGroupsY, 1);
+                    const int kernelIndex = 0;
+                    context.cmd.SetComputeTextureParam(_easuCS, kernelIndex, ShaderIDs._InputTexture, data.Input);
+                    context.cmd.SetComputeTextureParam(_easuCS, kernelIndex, ShaderIDs._OutputTexture, data.Intermedate);
+                    context.cmd.DispatchCompute(_easuCS, kernelIndex, threadGroupsX, threadGroupsY, 1);
+                }
             }
 
             if (data.UseRCAS)
@@ -85,7 +98,7 @@ namespace DELTation.AAAARP.Passes.PostProcessing
                     AAAAFSRConstantBuffer constantBuffer = default;
                     Utils.FsrRcasCon(
                         out constantBuffer.Const0,
-                        AAAAImageQualitySettings.MaxFSRSharpness - data.Sharpness
+                        MaxSharpness - data.Sharpness
                     );
 
                     //constantBuffer.Sample.x = data.HDR ? 1u : 0u;
@@ -108,6 +121,7 @@ namespace DELTation.AAAARP.Passes.PostProcessing
             public TextureHandle Output;
             public int2 OutputResolution;
             public float Sharpness;
+            public bool UseEASU;
             public bool UseRCAS;
         }
 
