@@ -16,7 +16,6 @@ namespace DELTation.AAAARP.Editor.Meshlets
         private const string Extension = "aaaameshletcollection";
 
         public Mesh Mesh;
-        public bool OptimizeIndexing;
         public bool OptimizeVertexCache;
         [Range(0.0f, 0.25f)]
         public float TargetError = 0.01f;
@@ -42,7 +41,6 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     TargetErrorSloppy = TargetErrorSloppy,
                     MinTriangleReductionPerStep = MinTriangleReductionPerStep,
                     Mesh = Mesh,
-                    OptimizeIndexing = OptimizeIndexing,
                     TargetError = TargetError,
                     OptimizeVertexCache = OptimizeVertexCache,
                     MaxMeshLODLevelCount = MaxMeshLODLevelCount,

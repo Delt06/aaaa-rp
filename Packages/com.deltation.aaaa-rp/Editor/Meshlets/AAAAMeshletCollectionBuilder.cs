@@ -40,62 +40,22 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 indexData.Dispose();
             }
 
+            SubMeshDescriptor subMeshDescriptor = data.GetSubMesh(parameters.SubMeshIndex);
+            indexDataU32 = indexDataU32.GetSubArray(subMeshDescriptor.indexStart, subMeshDescriptor.indexCount);
+            uint baseVertex = (uint) subMeshDescriptor.baseVertex;
+
+            for (int i = 0; i < indexDataU32.Length; i++)
+            {
+                indexDataU32[i] += baseVertex;
+            }
+
             int uvStream = data.GetVertexAttributeStream(VertexAttribute.TexCoord0);
             uint uvStreamStride = (uint) (uvStream >= 0 ? data.GetVertexBufferStride(uvStream) : 0);
             NativeArray<float> uvVertexData = uvStream >= 0 ? data.GetVertexData<float>(uvStream) : default;
             byte* pVerticesUV = uvVertexData.IsCreated ? (byte*) uvVertexData.GetUnsafeReadOnlyPtr() : null;
             uint vertexUVOffset = (uint) data.GetVertexAttributeOffset(VertexAttribute.TexCoord0);
 
-            uint vertexCount = (uint) data.vertexCount;
-
-            if (parameters.OptimizeIndexing)
-            {
-                var streams = new NativeList<meshopt_Stream>(Allocator.Temp);
-
-                var copiedVertices = new NativeArray<float>(vertexData.Length, Allocator.TempJob);
-                copiedVertices.CopyFrom(vertexData);
-                vertexData.Dispose();
-                vertexData = copiedVertices;
-
-                streams.Add(new meshopt_Stream
-                    {
-                        data = (byte*) vertexData.GetUnsafePtr() + vertexPositionOffset,
-                        size = vertexBufferStride,
-                        stride = vertexBufferStride,
-                    }
-                );
-
-                if (uvStream > 0)
-                {
-                    var copiedUVs = new NativeArray<float>(uvVertexData.Length, Allocator.TempJob);
-                    copiedUVs.CopyFrom(uvVertexData);
-                    uvVertexData.Dispose();
-                    uvVertexData = copiedUVs;
-
-                    streams.Add(new meshopt_Stream
-                        {
-                            data = (byte*) uvVertexData.GetUnsafePtr() + vertexUVOffset,
-                            size = uvStreamStride,
-                            stride = uvStreamStride,
-                        }
-                    );
-                }
-
-                var copiedIndices = new NativeArray<uint>(indexDataU32.Length, Allocator.TempJob);
-                copiedIndices.CopyFrom(indexDataU32);
-                indexDataU32.Dispose();
-                indexDataU32 = copiedIndices;
-
-                uint newVertexCount = AAAAMeshOptimizer.OptimizeIndexingInPlace(vertexCount, indexDataU32, streams.AsArray());
-                vertexCount = newVertexCount;
-
-                vertexData = vertexData.GetSubArray(0, (int) (newVertexCount * (vertexBufferStride / sizeof(float))));
-
-                if (uvVertexData.IsCreated)
-                {
-                    uvVertexData = uvVertexData.GetSubArray(0, (int) (newVertexCount * (uvStreamStride / sizeof(float))));
-                }
-            }
+            uint vertexCount = (uint) subMeshDescriptor.vertexCount;
 
             if (parameters.OptimizeVertexCache)
             {
@@ -506,7 +466,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
         public struct Parameters
         {
             public Mesh Mesh;
-            public bool OptimizeIndexing;
+            public int SubMeshIndex;
             public Action<string> LogErrorHandler;
             public bool OptimizeVertexCache;
             public int MaxMeshLODLevelCount;

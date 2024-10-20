@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DELTation.AAAARP.Editor.Meshlets;
 using DELTation.AAAARP.Materials;
 using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.Renderers;
+using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -24,7 +26,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
 
             var assetObjects = new List<Object>();
             var allMaterials = new List<Material>();
-            var allMeshes = new Dictionary<Mesh, AAAAMeshletCollectionAsset>();
+            var allMeshes = new Dictionary<SubMeshKey, AAAAMeshletCollectionAsset>();
             var modelSettings = AAAAModelSettings.Deserialize(assetImporter.userData);
 
             context.GetObjects(assetObjects);
@@ -32,65 +34,77 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
             const bool includeInactive = true;
             foreach (MeshRenderer meshRenderer in g.GetComponentsInChildren<MeshRenderer>(includeInactive))
             {
-                AAAARendererAuthoring rendererAuthoring = meshRenderer.gameObject.AddComponent<AAAARendererAuthoring>();
-                rendererAuthoring.LODErrorScale = modelSettings.LODErrorScale;
-
                 if (meshRenderer.TryGetComponent(out MeshFilter meshFilter))
                 {
+                    Material[] sharedMaterials = meshRenderer.sharedMaterials;
+                    allMaterials.AddRange(sharedMaterials);
+
                     Mesh sharedMesh = meshFilter.sharedMesh;
                     if (sharedMesh != null)
                     {
-                        if (!allMeshes.TryGetValue(sharedMesh, out AAAAMeshletCollectionAsset meshletCollectionAsset))
+                        for (int subMeshIndex = 0; subMeshIndex < sharedMesh.subMeshCount; subMeshIndex++)
                         {
-                            meshletCollectionAsset = ScriptableObject.CreateInstance<AAAAMeshletCollectionAsset>();
-                            meshletCollectionAsset.name = sharedMesh.name;
+                            AAAARendererAuthoring rendererAuthoring = meshRenderer.gameObject.AddComponent<AAAARendererAuthoring>();
+                            rendererAuthoring.LODErrorScale = modelSettings.LODErrorScale;
 
-                            AAAAMeshletCollectionBuilder.Generate(meshletCollectionAsset, new AAAAMeshletCollectionBuilder.Parameters
+                            var subMeshKey = new SubMeshKey
+                            {
+                                Mesh = sharedMesh,
+                                SubMeshIndex = subMeshIndex,
+                            };
+                            if (!allMeshes.TryGetValue(subMeshKey, out AAAAMeshletCollectionAsset meshletCollectionAsset))
+                            {
+                                meshletCollectionAsset = ScriptableObject.CreateInstance<AAAAMeshletCollectionAsset>();
+                                meshletCollectionAsset.name = sharedMesh.name;
+
+                                AAAAMeshletCollectionBuilder.Generate(meshletCollectionAsset, new AAAAMeshletCollectionBuilder.Parameters
+                                    {
+                                        Mesh = sharedMesh,
+                                        SubMeshIndex = subMeshIndex,
+                                        LogErrorHandler = e => context.LogImportError(e),
+                                        TargetError = 0.02f,
+                                        TargetErrorSloppy = 0.0f,
+
+                                        // OptimizeVertexCache = true,
+                                        MinTriangleReductionPerStep = 0.9f,
+                                        MaxMeshLODLevelCount = 0,
+                                    }
+                                );
+
+                                context.AddObjectToAsset(meshletCollectionAsset.name + "_" + nameof(AAAAMeshletCollectionAsset), meshletCollectionAsset);
+                                allMeshes.Add(subMeshKey, meshletCollectionAsset);
+                            }
+
+                            rendererAuthoring.Mesh = meshletCollectionAsset;
+
+                            {
+                                Material material = sharedMaterials[math.min(subMeshIndex, sharedMaterials.Length - 1)];
+                                if (material != null)
                                 {
-                                    Mesh = sharedMesh,
-                                    LogErrorHandler = e => context.LogImportError(e),
-                                    OptimizeIndexing = true,
-                                    TargetError = 0.02f,
-                                    TargetErrorSloppy = 0.0f,
-                                    OptimizeVertexCache = true,
-                                    MinTriangleReductionPerStep = 0.9f,
-                                    MaxMeshLODLevelCount = 0,
+                                    AAAAMaterialAsset materialAsset = null;
+
+                                    foreach (AAAAModelSettings.MaterialMapping materialMapping in modelSettings.RemapMaterials)
+                                    {
+                                        if (materialMapping.MaterialAsset != null && materialMapping.Name == material.name)
+                                        {
+                                            materialAsset = materialMapping.MaterialAsset;
+                                            break;
+                                        }
+                                    }
+
+                                    if (materialAsset == null)
+                                    {
+                                        materialAsset = assetObjects.OfType<AAAAMaterialAsset>().FirstOrDefault(o => o.name == material.name);
+                                    }
+
+                                    rendererAuthoring.Material = materialAsset;
                                 }
-                            );
+                            }
 
-                            context.AddObjectToAsset(meshletCollectionAsset.name + "_" + nameof(AAAAMeshletCollectionAsset), meshletCollectionAsset);
-                            allMeshes.Add(sharedMesh, meshletCollectionAsset);
                         }
-
-                        rendererAuthoring.Mesh = meshletCollectionAsset;
                     }
 
                     Object.DestroyImmediate(meshFilter);
-                }
-
-                {
-                    allMaterials.AddRange(meshRenderer.sharedMaterials);
-                    Material material = meshRenderer.sharedMaterial;
-                    if (material != null)
-                    {
-                        AAAAMaterialAsset materialAsset = null;
-
-                        foreach (AAAAModelSettings.MaterialMapping materialMapping in modelSettings.RemapMaterials)
-                        {
-                            if (materialMapping.MaterialAsset != null && materialMapping.Name == material.name)
-                            {
-                                materialAsset = materialMapping.MaterialAsset;
-                                break;
-                            }
-                        }
-
-                        if (materialAsset == null)
-                        {
-                            materialAsset = assetObjects.OfType<AAAAMaterialAsset>().FirstOrDefault(o => o.name == material.name);
-                        }
-
-                        rendererAuthoring.Material = materialAsset;
-                    }
                 }
 
                 Object.DestroyImmediate(meshRenderer);
@@ -115,15 +129,33 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
 
             if (modelSettings.CleanupDefaultMeshes)
             {
-                foreach (Mesh mesh in allMeshes.Keys)
+                foreach (SubMeshKey subMeshKey in allMeshes.Keys)
                 {
                     const bool allowDestroyingAssets = true;
-                    Object.DestroyImmediate(mesh, allowDestroyingAssets);
+                    Object.DestroyImmediate(subMeshKey.Mesh, allowDestroyingAssets);
                 }
             }
         }
 
         public override uint GetVersion() => Version;
         public override int GetPostprocessOrder() => Order;
+
+        private struct SubMeshKey : IEquatable<SubMeshKey>
+        {
+            public Mesh Mesh;
+            public int SubMeshIndex;
+
+            public bool Equals(SubMeshKey other) => Equals(Mesh, other.Mesh) && SubMeshIndex == other.SubMeshIndex;
+
+            public override bool Equals(object obj) => obj is SubMeshKey other && Equals(other);
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return (Mesh != null ? Mesh.GetHashCode() : 0) * 397 ^ SubMeshIndex;
+                }
+            }
+        }
     }
 }
