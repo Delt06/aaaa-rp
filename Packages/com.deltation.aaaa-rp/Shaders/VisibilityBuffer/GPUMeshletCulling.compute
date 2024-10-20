@@ -87,6 +87,25 @@ bool Culling(const AAAAInstanceData instanceData, const AAAAMeshlet meshletData)
     return result;
 }
 
+uint GetRendererListID(const AAAAInstanceData instanceData, const AAAAMaterialData materialData)
+{
+    uint rendererListID = materialData.RendererListID;
+
+    if (instanceData.Flags & AAAAINSTANCEFLAGS_FLIP_WINDING_ORDER)
+    {
+        if (rendererListID & AAAARENDERERLISTID_CULL_FRONT)
+        {
+            rendererListID &= ~AAAARENDERERLISTID_CULL_FRONT;
+        }
+        else
+        {
+            rendererListID |= AAAARENDERERLISTID_CULL_FRONT;
+        }
+    }
+
+    return rendererListID;
+}
+
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
@@ -109,12 +128,12 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
-    const uint             rendererListIndex = materialData.RendererListID;
+    const uint             rendererListID = GetRendererListID(instanceData, materialData);
 
     uint localRenderRequestWriteOffset = 0;
-    _DestinationMeshletsCounter.InterlockedAdd(4 * rendererListIndex, 1, localRenderRequestWriteOffset);
+    _DestinationMeshletsCounter.InterlockedAdd(4 * rendererListID, 1, localRenderRequestWriteOffset);
 
-    const uint renderRequestIndex = localRenderRequestWriteOffset + rendererListIndex * _MaxMeshletRenderRequestsPerList;
+    const uint renderRequestIndex = localRenderRequestWriteOffset + rendererListID * _MaxMeshletRenderRequestsPerList;
     StoreMeshletRenderRequest(_DestinationMeshlets, renderRequestIndex, meshletRenderRequest);
     #ifdef OCCLUSION_CULLING_ON
     OcclusionCulling::MarkVisibleThisFrame(meshletRenderRequest.InstanceID);

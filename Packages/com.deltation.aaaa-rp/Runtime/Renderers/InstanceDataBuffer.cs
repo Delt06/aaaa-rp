@@ -102,9 +102,13 @@ namespace DELTation.AAAARP.Renderers
 
                 if (isNew)
                 {
-                    float4x4 localToWorldMatrix = rendererAuthoring.transform.localToWorldMatrix;
+                    Transform transform = rendererAuthoring.transform;
+                    float4x4 localToWorldMatrix = transform.localToWorldMatrix;
+
                     instanceData.ObjectToWorldMatrix = localToWorldMatrix;
                     instanceData.WorldToObjectMatrix = AAAAMathUtils.AffineInverse3D(localToWorldMatrix);
+                    instanceData.Flags = AAAAInstanceFlags.None;
+                    UpdateWindingOrderFlag(ref instanceData.Flags, transform.lossyScale);
                 }
                 else
                 {
@@ -130,6 +134,19 @@ namespace DELTation.AAAARP.Renderers
             }
 
             invalidIDs.Dispose();
+        }
+
+        private static void UpdateWindingOrderFlag(ref AAAAInstanceFlags flags, float3 scale)
+        {
+            int negativeDimensionsCount = (int) math.dot(math.float3(scale < 0.0f), math.float3(1, 1, 1));
+            if (negativeDimensionsCount % 2 == 1)
+            {
+                flags |= AAAAInstanceFlags.FlipWindingOrder;
+            }
+            else
+            {
+                flags &= ~AAAAInstanceFlags.FlipWindingOrder;
+            }
         }
 
         private static AAAAInstancePassMask ExtractInstancePassMask(AAAARendererAuthoring rendererAuthoring)
@@ -169,6 +186,10 @@ namespace DELTation.AAAARP.Renderers
                 ref AAAAInstanceData instanceData = ref _cpuBuffer.ElementAtRef(metadata.IndexAllocation.Index);
                 instanceData.ObjectToWorldMatrix = localToWorldMatrices[index];
                 instanceData.WorldToObjectMatrix = AAAAMathUtils.AffineInverse3D(localToWorldMatrices[index]);
+
+                float3 scale = ((Matrix4x4) instanceData.ObjectToWorldMatrix).lossyScale;
+                UpdateWindingOrderFlag(ref instanceData.Flags, scale);
+
                 _isDirty = true;
             }
         }

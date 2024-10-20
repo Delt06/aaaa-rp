@@ -1,10 +1,14 @@
 Shader "Hidden/AAAA/VisibilityBuffer"
 {
-    Properties {}
+    Properties
+    {
+        _Cull ("Cull", Float) = 2
+    }
     SubShader
     {
         ZTest Less
         ZWrite On
+        Cull [_Cull]
 
         Pass
         {

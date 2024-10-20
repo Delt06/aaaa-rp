@@ -146,6 +146,9 @@ namespace DELTation.AAAARP.Renderers
             rendererList.Material = CoreUtils.CreateEngineMaterial(shader);
             rendererList.Material.SetKeyword(new LocalKeyword(shader, "_ALPHATEST_ON"), (listID & AAAARendererListID.AlphaTest) != 0);
 
+            CullMode cullMode = (listID & AAAARendererListID.CullFront) != 0 ? CullMode.Front : CullMode.Back;
+            rendererList.Material.SetFloat(ShaderIDs._Cull, (float) cullMode);
+
             return rendererList;
         }
 
@@ -355,6 +358,7 @@ namespace DELTation.AAAARP.Renderers
             public static readonly int _MeshletRenderRequests = Shader.PropertyToID(nameof(_MeshletRenderRequests));
             public static readonly int unity_IndirectDrawArgs = Shader.PropertyToID(nameof(unity_IndirectDrawArgs));
             public static readonly int unity_BaseCommandID = Shader.PropertyToID(nameof(unity_BaseCommandID));
+            public static readonly int _Cull = Shader.PropertyToID(nameof(_Cull));
         }
     }
 }

@@ -14,6 +14,14 @@ namespace DELTation.AAAARP
         Main = 1 << 0,
         Shadows = 1 << 1,
     }
+    
+    [GenerateHLSL(PackingRules.Exact)]
+    [Flags]
+    public enum AAAAInstanceFlags
+    {
+        None = 0,
+        FlipWindingOrder = 1 << 0,
+    }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     [StructLayout(LayoutKind.Sequential)]
@@ -31,8 +39,8 @@ namespace DELTation.AAAARP
 
         public float LODErrorScale;
         public AAAAInstancePassMask PassMask;
-        public uint Padding1;
-        public uint Padding2;
+        public AAAAInstanceFlags Flags;
+        public uint Padding0;
     }
 
     [GenerateHLSL(PackingRules.Exact)]
@@ -49,7 +57,8 @@ namespace DELTation.AAAARP
     {
         Default = 0,
         AlphaTest = 1 << 0,
-        Count = 2,
+        CullFront = 1 << 1,
+        Count = (AlphaTest | CullFront) + 1,
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]

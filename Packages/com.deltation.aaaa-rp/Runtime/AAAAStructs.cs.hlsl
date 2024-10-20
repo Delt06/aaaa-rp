@@ -5,6 +5,12 @@
 #ifndef AAAASTRUCTS_CS_HLSL
 #define AAAASTRUCTS_CS_HLSL
 //
+// DELTation.AAAARP.AAAAInstanceFlags:  static fields
+//
+#define AAAAINSTANCEFLAGS_NONE (0)
+#define AAAAINSTANCEFLAGS_FLIP_WINDING_ORDER (1)
+
+//
 // DELTation.AAAARP.AAAAInstancePassMask:  static fields
 //
 #define AAAAINSTANCEPASSMASK_NONE (0)
@@ -20,9 +26,10 @@
 //
 // DELTation.AAAARP.AAAARendererListID:  static fields
 //
-#define AAAARENDERERLISTID_NONE (0)
+#define AAAARENDERERLISTID_DEFAULT (0)
 #define AAAARENDERERLISTID_ALPHA_TEST (1)
-#define AAAARENDERERLISTID_COUNT (2)
+#define AAAARENDERERLISTID_CULL_FRONT (2)
+#define AAAARENDERERLISTID_COUNT (4)
 
 //
 // DELTation.AAAARP.AAAAMaterialData:  static fields
@@ -51,8 +58,8 @@ struct AAAAInstanceData
     uint MeshLODLevelCount;
     float LODErrorScale;
     int PassMask;
-    uint Padding1;
-    uint Padding2;
+    int Flags;
+    uint Padding0;
 };
 
 // Generated from DELTation.AAAARP.AAAAMaterialData
