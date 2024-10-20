@@ -41,7 +41,6 @@ Shader "Hidden/AAAA/VisibilityBuffer"
             #pragma fragment ShadowCasterPS
 
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
-            #pragma enable_d3d11_debug_symbols
 
             #pragma multi_compile_local _ _ALPHATEST_ON
 
