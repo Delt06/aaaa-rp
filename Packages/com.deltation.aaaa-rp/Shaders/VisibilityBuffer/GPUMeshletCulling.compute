@@ -3,6 +3,7 @@
 #pragma multi_compile_local _ MAIN_PASS FALSE_NEGATIVE_PASS
 #pragma multi_compile_local _ DISABLE_OCCLUSION_CULLING
 
+#include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/Debugging/GPUCullingDebugPragma.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/GPUCullingDebug.hlsl"
@@ -17,6 +18,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Materials.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshletCulling.hlsl"
 #define RW_OCCLUSION_CULLING_INSTANCE_VISIBILITY_MASK
@@ -29,6 +31,7 @@ float4x4 _CameraViewProjection;
 float4x4 _CameraView;
 float4x4 _CameraViewInv;
 float    _CameraIsPerspective;
+uint     _MaxMeshletRenderRequestsPerList;
 
 ByteAddressBuffer _SourceMeshletsCounter;
 ByteAddressBuffer _SourceMeshlets;
@@ -105,10 +108,14 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    uint renderRequestWriteOffset = 0;
-    _DestinationMeshletsCounter.InterlockedAdd(0, 1, renderRequestWriteOffset);
+    const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
+    const uint             rendererListIndex = materialData.RendererListID;
 
-    StoreMeshletRenderRequest(_DestinationMeshlets, renderRequestWriteOffset, meshletRenderRequest);
+    uint localRenderRequestWriteOffset = 0;
+    _DestinationMeshletsCounter.InterlockedAdd(4 * rendererListIndex, 1, localRenderRequestWriteOffset);
+
+    const uint renderRequestIndex = localRenderRequestWriteOffset + rendererListIndex * _MaxMeshletRenderRequestsPerList;
+    StoreMeshletRenderRequest(_DestinationMeshlets, renderRequestIndex, meshletRenderRequest);
     #ifdef OCCLUSION_CULLING_ON
     OcclusionCulling::MarkVisibleThisFrame(meshletRenderRequest.InstanceID);
     #endif

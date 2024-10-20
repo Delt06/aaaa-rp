@@ -28,12 +28,13 @@ namespace DELTation.AAAARP.Renderers
 
         [CanBeNull]
         private readonly AAAARenderPipelineDebugDisplaySettings _debugDisplaySettings;
-        private readonly Material _material;
         private readonly MaterialDataBuffer _materialDataBuffer;
+        private readonly MaterialPropertyBlock _materialPropertyBlock = new();
         private readonly Dictionary<AAAAMeshletCollectionAsset, int> _meshletCollectionToTopMeshLODNodesStartIndex = new();
         private readonly AAAAMeshLODSettings _meshLODSettings;
 
         private readonly AAAAObjectTracker _objectTracker;
+        private readonly RendererList[] _rendererLists;
         private bool _isDirty;
 
         private NativeList<AAAAMeshlet> _meshletData;
@@ -63,7 +64,13 @@ namespace DELTation.AAAARP.Renderers
 
             _objectTracker = new AAAAObjectTracker(InstanceDataBuffer, _materialDataBuffer, _bindlessTextureContainer);
 
-            _material = CoreUtils.CreateEngineMaterial(shaders.VisibilityBufferPS);
+            _rendererLists = new RendererList[(int) AAAARendererListID.Count];
+
+            for (int listIndex = 0; listIndex < _rendererLists.Length; listIndex++)
+            {
+                var listID = (AAAARendererListID) listIndex;
+                _rendererLists[listIndex] = CreateRendererList(listID, shaders);
+            }
 
 #if UNITY_EDITOR
 
@@ -86,6 +93,9 @@ namespace DELTation.AAAARP.Renderers
         public GraphicsBuffer MeshletRenderRequestsBuffer { get; private set; }
 
         private int MaxMeshLODLevelsCount { get; set; }
+
+        public int MaxMeshletRenderRequestsPerList => _meshletData.Length;
+        public int RendererListCount => _rendererLists.Length;
 
         public void Dispose()
         {
@@ -121,6 +131,22 @@ namespace DELTation.AAAARP.Renderers
             _sharedVertexBuffer?.Dispose();
             _sharedIndexBuffer?.Dispose();
             MeshletRenderRequestsBuffer?.Dispose();
+
+            foreach (RendererList rendererList in _rendererLists)
+            {
+                CoreUtils.Destroy(rendererList.Material);
+            }
+        }
+
+        private static RendererList CreateRendererList(AAAARendererListID listID, AAAARenderPipelineRuntimeShaders shaders)
+        {
+            Shader shader = shaders.VisibilityBufferPS;
+
+            RendererList rendererList;
+            rendererList.Material = CoreUtils.CreateEngineMaterial(shader);
+            rendererList.Material.SetKeyword(new LocalKeyword(shader, "_ALPHATEST_ON"), (listID & AAAARendererListID.AlphaTest) != 0);
+
+            return rendererList;
         }
 
         public void PreRender(ScriptableRenderContext context)
@@ -205,7 +231,9 @@ namespace DELTation.AAAARP.Renderers
 
             MeshletRenderRequestsBuffer?.Dispose();
             MeshletRenderRequestsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
-                AAAAMathUtils.AlignUp(4 * _meshletData.Length * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(), sizeof(uint)) / sizeof(uint),
+                AAAAMathUtils.AlignUp(4 * _rendererLists.Length * MaxMeshletRenderRequestsPerList * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(),
+                    sizeof(uint)
+                ) / sizeof(uint),
                 sizeof(uint)
             )
             {
@@ -214,7 +242,8 @@ namespace DELTation.AAAARP.Renderers
 
             IndirectDrawArgsBuffer?.Dispose();
             IndirectDrawArgsBuffer =
-                new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw, GraphicsBuffer.IndirectDrawArgs.size / sizeof(uint),
+                new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw,
+                    _rendererLists.Length * GraphicsBuffer.IndirectDrawArgs.size / sizeof(uint),
                     sizeof(uint)
                 )
                 {
@@ -231,8 +260,18 @@ namespace DELTation.AAAARP.Renderers
 
             if (IndirectDrawArgsBuffer != null && InstanceDataBuffer.InstanceCount > 0)
             {
-                const int argsOffset = 0;
-                cmd.DrawProceduralIndirect(Matrix4x4.identity, _material, (int) passType, MeshTopology.Triangles, IndirectDrawArgsBuffer, argsOffset);
+                for (int index = 0; index < _rendererLists.Length; index++)
+                {
+                    ref readonly RendererList rendererList = ref _rendererLists[index];
+                    int argsOffset = index * GraphicsBuffer.IndirectDrawArgs.size;
+
+                    _materialPropertyBlock.Clear();
+                    _materialPropertyBlock.SetBuffer(ShaderIDs.unity_IndirectDrawArgs, IndirectDrawArgsBuffer);
+                    _materialPropertyBlock.SetInteger(ShaderIDs.unity_BaseCommandID, index);
+                    cmd.DrawProceduralIndirect(Matrix4x4.identity, rendererList.Material, (int) passType, MeshTopology.Triangles,
+                        IndirectDrawArgsBuffer, argsOffset, _materialPropertyBlock
+                    );
+                }
             }
         }
 
@@ -293,6 +332,11 @@ namespace DELTation.AAAARP.Renderers
             }
         }
 
+        public struct RendererList
+        {
+            public Material Material;
+        }
+
         private static class Profiling
         {
             public static readonly ProfilingSampler PreRender = new("Visibility Buffer Container: Pre Render");
@@ -309,6 +353,8 @@ namespace DELTation.AAAARP.Renderers
             public static readonly int _SharedVertexBuffer = Shader.PropertyToID(nameof(_SharedVertexBuffer));
             public static readonly int _SharedIndexBuffer = Shader.PropertyToID(nameof(_SharedIndexBuffer));
             public static readonly int _MeshletRenderRequests = Shader.PropertyToID(nameof(_MeshletRenderRequests));
+            public static readonly int unity_IndirectDrawArgs = Shader.PropertyToID(nameof(unity_IndirectDrawArgs));
+            public static readonly int unity_BaseCommandID = Shader.PropertyToID(nameof(unity_BaseCommandID));
         }
     }
 }

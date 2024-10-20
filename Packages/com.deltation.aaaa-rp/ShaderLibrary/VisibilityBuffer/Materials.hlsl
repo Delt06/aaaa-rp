@@ -41,7 +41,27 @@ InterpolatedUV InterpolateUV(const BarycentricDerivatives barycentric, const AAA
     return uv;
 }
 
-float4 SampleAlbedo(const InterpolatedUV uv, const AAAAMaterialData materialData)
+float4 SampleAlbedo(const float2 uv, const AAAAMaterialData materialData)
+{
+    const uint textureIndex = materialData.AlbedoIndex;
+
+    float4 textureAlbedo;
+
+    UNITY_BRANCH
+    if (textureIndex != (uint)NO_TEXTURE_INDEX)
+    {
+        const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
+        textureAlbedo = SAMPLE_TEXTURE2D(texture, sampler_TrilinearRepeat_Aniso16, uv);
+    }
+    else
+    {
+        textureAlbedo = float4(1, 1, 1, 1);
+    }
+
+    return materialData.AlbedoColor * textureAlbedo;
+}
+
+float4 SampleAlbedoGrad(const InterpolatedUV uv, const AAAAMaterialData materialData)
 {
     const uint textureIndex = materialData.AlbedoIndex;
 
@@ -61,7 +81,7 @@ float4 SampleAlbedo(const InterpolatedUV uv, const AAAAMaterialData materialData
     return materialData.AlbedoColor * textureAlbedo;
 }
 
-float3 SampleNormalTS(const InterpolatedUV uv, const AAAAMaterialData materialData)
+float3 SampleNormalTSGrad(const InterpolatedUV uv, const AAAAMaterialData materialData)
 {
     const uint textureIndex = materialData.NormalsIndex;
 
@@ -88,7 +108,7 @@ struct MaterialMasks
     float metallic;
 };
 
-MaterialMasks SampleMasks(const InterpolatedUV uv, const AAAAMaterialData materialData)
+MaterialMasks SampleMasksGrad(const InterpolatedUV uv, const AAAAMaterialData materialData)
 {
     const uint textureIndex = materialData.MasksIndex;
 

@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d124dbe9abb4e0ba3228241f9483940, type: 3}
   m_Name: Sponza_leaf
   m_EditorClassIdentifier: 
+  AlphaClip: 1
+  AlphaClipThreshold: 0.5
   Albedo: {fileID: 2800000, guid: 2c19200c834a7dc41bb6bad8cc939853, type: 3}
   AlbedoColor: {r: 1, g: 1, b: 1, a: 1}
   TextureTilingOffset: {x: 1, y: 1, z: 0, w: 0}
@@ -20,3 +22,6 @@ MonoBehaviour:
   Masks: {fileID: 2800000, guid: f5aaa6f0d671e704899d3875da3a7da3, type: 3}
   Roughness: 1.204
   Metallic: 0.442
+  SpecularAA: 0
+  SpecularAAScreenSpaceVariance: 0.1
+  SpecularAAThreshold: 0.2

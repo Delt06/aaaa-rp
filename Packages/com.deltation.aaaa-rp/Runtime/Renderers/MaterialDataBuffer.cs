@@ -113,6 +113,8 @@ namespace DELTation.AAAARP.Renderers
                 SpecularAAThreshold = material.SpecularAAThreshold,
 
                 MaterialFlags = ExtractMaterialFlags(material),
+                RendererListID = ConstructRendererListID(material),
+                AlphaClipThreshold = material.AlphaClipThreshold,
             };
 
         private static AAAAMaterialFlags ExtractMaterialFlags(AAAAMaterialAsset material)
@@ -125,6 +127,18 @@ namespace DELTation.AAAARP.Renderers
             }
 
             return flags;
+        }
+
+        private static AAAARendererListID ConstructRendererListID(AAAAMaterialAsset material)
+        {
+            AAAARendererListID listID = AAAARendererListID.Default;
+
+            if (material.AlphaClip)
+            {
+                listID |= AAAARendererListID.AlphaTest;
+            }
+
+            return listID;
         }
     }
 }

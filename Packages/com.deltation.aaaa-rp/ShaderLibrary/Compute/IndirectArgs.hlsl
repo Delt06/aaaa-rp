@@ -25,6 +25,11 @@ struct IndirectArgs
         value.w = drawArgs.startInstance;
         return value;
     }
+
+    static uint IndirectDrawArgsStride()
+    {
+        return 4 * 4;
+    }
 };
 
 #endif // AAAA_INDIRECT_ARGS_INCLUDED

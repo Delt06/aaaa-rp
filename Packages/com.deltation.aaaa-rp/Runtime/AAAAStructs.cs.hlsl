@@ -18,6 +18,13 @@
 #define AAAAMATERIALFLAGS_SPECULAR_AA (1)
 
 //
+// DELTation.AAAARP.AAAARendererListID:  static fields
+//
+#define AAAARENDERERLISTID_NONE (0)
+#define AAAARENDERERLISTID_ALPHA_TEST (1)
+#define AAAARENDERERLISTID_COUNT (2)
+
+//
 // DELTation.AAAARP.AAAAMaterialData:  static fields
 //
 #define NO_TEXTURE_INDEX (4294967295)
@@ -63,9 +70,9 @@ struct AAAAMaterialData
     float SpecularAAScreenSpaceVariance;
     float SpecularAAThreshold;
     int MaterialFlags;
+    int RendererListID;
+    float AlphaClipThreshold;
     uint Padding0;
-    uint Padding1;
-    uint Padding2;
 };
 
 // Generated from DELTation.AAAARP.AAAAMeshlet

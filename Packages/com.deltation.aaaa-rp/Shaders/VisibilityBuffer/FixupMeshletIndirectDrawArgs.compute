@@ -6,15 +6,20 @@
 ByteAddressBuffer   _RequestCounter;
 RWByteAddressBuffer _IndirectArgs;
 
+uint _MaxMeshletRenderRequestsPerList;
+
 [numthreads(1, 1, 1)]
-void CS()
+void CS(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint requestCount = _RequestCounter.Load(0);
+    const uint rendererListIndex = dispatchThreadID.x;
+    const uint requestCount = _RequestCounter.Load(4 * rendererListIndex);
 
     IndirectDrawArgs indirectDrawArgs;
-    indirectDrawArgs.startInstance = 0;
+    indirectDrawArgs.startInstance = rendererListIndex * _MaxMeshletRenderRequestsPerList;
     indirectDrawArgs.instanceCount = requestCount;
     indirectDrawArgs.startVertex = 0;
     indirectDrawArgs.vertexCountPerInstance = MAX_MESHLET_INDICES;
-    _IndirectArgs.Store4(0, IndirectArgs::PackIndirectDrawArgs(indirectDrawArgs));
+
+    const uint writeOffset = rendererListIndex * IndirectArgs::IndirectDrawArgsStride();
+    _IndirectArgs.Store4(writeOffset, IndirectArgs::PackIndirectDrawArgs(indirectDrawArgs));
 }

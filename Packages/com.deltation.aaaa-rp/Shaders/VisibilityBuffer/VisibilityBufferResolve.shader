@@ -84,7 +84,7 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
 
                 InterpolatedUV interpolatedUV = InterpolateUV(barycentric, vertices[0], vertices[1], vertices[2]);
                 interpolatedUV.AddTilingOffset(materialData.TextureTilingOffset);
-                const float3 albedo = SampleAlbedo(interpolatedUV, materialData).rgb;
+                const float3 albedo = SampleAlbedoGrad(interpolatedUV, materialData).rgb;
 
                 const float3 vertexNormalWS[3] =
                 {
@@ -105,11 +105,11 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                     const float3 bitangentWS = tangentWS.w * cross(normalWS, tangentWS.xyz);
 
                     const float3x3 tangentToWorld = float3x3(tangentWS.xyz, bitangentWS, normalWS);
-                    const float3   normalTS = SampleNormalTS(interpolatedUV, materialData);
+                    const float3   normalTS = SampleNormalTSGrad(interpolatedUV, materialData);
                     normalWS = TransformTangentToWorld(normalTS, tangentToWorld, true);
                 }
 
-                const MaterialMasks materialMasks = SampleMasks(interpolatedUV, materialData);
+                const MaterialMasks materialMasks = SampleMasksGrad(interpolatedUV, materialData);
 
                 GBufferValue gbufferValue;
                 gbufferValue.albedo = albedo;

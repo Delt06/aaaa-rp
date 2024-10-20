@@ -42,6 +42,15 @@ namespace DELTation.AAAARP
         None = 0,
         SpecularAA = 1 << 0,
     }
+    
+    [GenerateHLSL(PackingRules.Exact)]
+    [Flags]
+    public enum AAAARendererListID
+    {
+        Default = 0,
+        AlphaTest = 1 << 0,
+        Count = 2,
+    }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
     [StructLayout(LayoutKind.Sequential)]
@@ -61,9 +70,9 @@ namespace DELTation.AAAARP
         public float SpecularAAThreshold;
 
         public AAAAMaterialFlags MaterialFlags;
+        public AAAARendererListID RendererListID;
+        public float AlphaClipThreshold;
         public uint Padding0;
-        public uint Padding1;
-        public uint Padding2;
 
         public const uint NoTextureIndex = uint.MaxValue;
     }

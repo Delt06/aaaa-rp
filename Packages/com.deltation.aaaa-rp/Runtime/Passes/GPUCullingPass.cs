@@ -86,6 +86,8 @@ namespace DELTation.AAAARP.Passes
             _instanceIndices.Clear();
             rendererContainer.InstanceDataBuffer.GetInstanceIndices(_instanceIndices);
             passData.InstanceCount = _instanceIndices.Length;
+            passData.MaxMeshletRenderRequestsPerList = rendererContainer.MaxMeshletRenderRequestsPerList;
+            passData.RendererListCount = rendererContainer.RendererListCount;
 
             if (passData.InstanceCount == 0)
             {
@@ -216,7 +218,8 @@ namespace DELTation.AAAARP.Passes
                 passData.OcclusionCullingInstanceVisibilityMaskCount = default;
             }
 
-            passData.DestinationMeshletsCounterBuffer = builder.CreateTransientBuffer(CreateCounterBufferDesc("MeshletRenderRequestCounter"));
+            passData.DestinationMeshletsCounterBuffer =
+                builder.CreateTransientBuffer(CreateCounterBufferDesc("MeshletRenderRequestCounter", passData.RendererListCount));
             passData.DestinationMeshletsBuffer = builder.WriteBuffer(renderingData.RenderGraph.ImportBuffer(meshletRenderRequestsBuffer));
 
             passData.IndirectDrawArgsBuffer = builder.WriteBuffer(renderingData.RenderGraph.ImportBuffer(rendererContainer.IndirectDrawArgsBuffer));
@@ -233,8 +236,8 @@ namespace DELTation.AAAARP.Passes
                 : default;
         }
 
-        private static BufferDesc CreateCounterBufferDesc(string name) =>
-            new(1, sizeof(uint), GraphicsBuffer.Target.Raw)
+        private static BufferDesc CreateCounterBufferDesc(string name, int count = 1) =>
+            new(count, sizeof(uint), GraphicsBuffer.Target.Raw)
             {
                 name = name,
             };
@@ -358,7 +361,7 @@ namespace DELTation.AAAARP.Passes
 
             using (new ProfilingScope(context.cmd, Profiling.ClearBuffers))
             {
-                AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.DestinationMeshletsCounterBuffer, 1, 0, 0);
+                AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.DestinationMeshletsCounterBuffer, data.RendererListCount, 0, 0);
             }
 
             using (new ProfilingScope(context.cmd, Profiling.MeshletCulling))
@@ -396,6 +399,9 @@ namespace DELTation.AAAARP.Passes
                 context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, kernelIndex,
                     ShaderID.MeshletCulling._DestinationMeshlets, data.DestinationMeshletsBuffer
                 );
+                context.cmd.SetComputeIntParam(_gpuMeshletCullingCS,
+                    ShaderID.MeshletCulling._MaxMeshletRenderRequestsPerList, data.MaxMeshletRenderRequestsPerList
+                );
 
                 if (data.DebugDataBuffer.IsValid())
                 {
@@ -417,7 +423,10 @@ namespace DELTation.AAAARP.Passes
                 context.cmd.SetComputeBufferParam(_fixupMeshletIndirectDrawArgsCS, kernelIndex,
                     ShaderID.FixupIndirectDrawArgs._IndirectArgs, data.IndirectDrawArgsBuffer
                 );
-                context.cmd.DispatchCompute(_fixupMeshletIndirectDrawArgsCS, kernelIndex, 1, 1, 1);
+                context.cmd.SetComputeIntParam(_fixupMeshletIndirectDrawArgsCS,
+                    ShaderID.FixupIndirectDrawArgs._MaxMeshletRenderRequestsPerList, data.MaxMeshletRenderRequestsPerList
+                );
+                context.cmd.DispatchCompute(_fixupMeshletIndirectDrawArgsCS, kernelIndex, data.RendererListCount, 1, 1);
             }
         }
 
@@ -457,6 +466,7 @@ namespace DELTation.AAAARP.Passes
 
             public BufferHandle InstanceIndices;
             public LODSelectionContext LODSelectionContext;
+            public int MaxMeshletRenderRequestsPerList;
 
             public BufferHandle MeshletListBuildIndirectDispatchArgsBuffer;
             public BufferHandle MeshletListBuildJobCounterBuffer;
@@ -464,6 +474,7 @@ namespace DELTation.AAAARP.Passes
 
             public BufferHandle OcclusionCullingInstanceVisibilityMask;
             public int OcclusionCullingInstanceVisibilityMaskCount;
+            public int RendererListCount;
         }
 
         public struct LODSelectionContext
@@ -562,12 +573,14 @@ namespace DELTation.AAAARP.Passes
 
                 public static int _DestinationMeshletsCounter = Shader.PropertyToID(nameof(_DestinationMeshletsCounter));
                 public static int _DestinationMeshlets = Shader.PropertyToID(nameof(_DestinationMeshlets));
+                public static int _MaxMeshletRenderRequestsPerList = Shader.PropertyToID(nameof(_MaxMeshletRenderRequestsPerList));
             }
 
             public static class FixupIndirectDrawArgs
             {
                 public static int _RequestCounter = Shader.PropertyToID(nameof(_RequestCounter));
                 public static int _IndirectArgs = Shader.PropertyToID(nameof(_IndirectArgs));
+                public static int _MaxMeshletRenderRequestsPerList = Shader.PropertyToID(nameof(_MaxMeshletRenderRequestsPerList));
             }
         }
     }
