@@ -45,7 +45,7 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
 
             GBufferOutput Frag(const Varyings IN)
             {
-                const uint2                 visibilityBufferPacked = SampleVisibilityBuffer(IN.texcoord);
+                const uint2                 visibilityBufferPacked = LoadVisibilityBuffer(IN.positionCS.xy);
                 const VisibilityBufferValue visibilityBufferValue = UnpackVisibilityBufferValue(visibilityBufferPacked);
 
                 const AAAAInstanceData instanceData = PullInstanceData(visibilityBufferValue.instanceID);
