@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
-using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Utils;
+using DELTation.AAAARP.Volumes;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -23,6 +23,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
@@ -47,9 +48,9 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
                 resourceData.CameraColorHistoryIsValid ? resourceData.CameraScaledColorHistoryBuffer : resourceData.CameraScaledColorBuffer
             );
 
-            AAAALightingSettings.SSRSettings ssrSettings = renderingData.PipelineAsset.LightingSettings.SSR;
-            passData.BlurSmooth = ssrSettings.BlurSmooth;
-            passData.BlurRough = ssrSettings.BlurRough;
+            AAAASsrVolumeComponent ssr = cameraData.VolumeStack.GetComponent<AAAASsrVolumeComponent>();
+            passData.BlurSmooth = ssr.BlurSmooth.value;
+            passData.BlurRough = ssr.BlurRough.value;
 
             builder.AllowPassCulling(false);
         }

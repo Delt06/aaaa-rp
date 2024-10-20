@@ -12,6 +12,7 @@ using DELTation.AAAARP.Passes.Lighting;
 using DELTation.AAAARP.Passes.PostProcessing;
 using DELTation.AAAARP.Passes.Shadows;
 using DELTation.AAAARP.RenderPipelineResources;
+using DELTation.AAAARP.Volumes;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -36,7 +37,6 @@ namespace DELTation.AAAARP
         private readonly GPUCullingPass _gpuCullingFalseNegativePass;
         private readonly HZBGenerationPass _gpuCullingHzbGenerationPass;
         private readonly GPUCullingPass _gpuCullingMainPass;
-        private readonly AAAARenderPipelineAsset _pipelineAsset;
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly SetupLightingPass _setupLightingPass;
@@ -51,10 +51,8 @@ namespace DELTation.AAAARP
         private readonly UberPostProcessingPass _uberPostProcessingPass;
         private readonly XeGTAOPass _xeGTAOPass;
 
-        public AAAARenderer(AAAARenderPipelineAsset pipelineAsset)
+        public AAAARenderer()
         {
-            _pipelineAsset = pipelineAsset;
-
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
             AAAARenderPipelineRuntimeTextures textures = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeTextures>();
 
@@ -145,7 +143,9 @@ namespace DELTation.AAAARP
             EnqueuePass(_skyboxPass);
 
             {
-                if (_pipelineAsset.LightingSettings.SSR.Enabled)
+                AAAASsrVolumeComponent ssr = cameraData.VolumeStack.GetComponent<AAAASsrVolumeComponent>();
+
+                if (ssr.Enabled.value)
                 {
                     EnqueuePass(_ssrHzbGenerationPass);
                     EnqueuePass(_ssrTracePass);
@@ -154,7 +154,7 @@ namespace DELTation.AAAARP
 
                 EnqueuePass(_deferredReflectionsSetupPass);
 
-                if (_pipelineAsset.LightingSettings.SSR.Enabled)
+                if (ssr.Enabled.value)
                 {
                     EnqueuePass(_ssrComposePass);
                 }

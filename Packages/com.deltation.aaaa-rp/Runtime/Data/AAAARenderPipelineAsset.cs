@@ -107,28 +107,6 @@ namespace DELTation.AAAARP.Data
         public AAAAAmbientOcclusionTechnique AmbientOcclusion = AAAAAmbientOcclusionTechnique.XeGTAO;
         public XeGTAOSettings GTAOSettings = new();
 
-        public SSRSettings SSR = new();
-
-        [Serializable]
-        public class SSRSettings
-        {
-            public enum ResolutionScale
-            {
-                Full = 1,
-                Half = 2,
-                Quarter = 4,
-            }
-
-            public bool Enabled = true;
-            public ResolutionScale Resolution = ResolutionScale.Full;
-            [Range(0.0f, 10.0f)]
-            public float BlurSmooth = 0.5f;
-            [Range(0.0f, 10.0f)]
-            public float BlurRough = 2.5f;
-            [Range(0.0f, 1.0f)]
-            public float MaxThickness = 0.5f;
-        }
-
         [Serializable]
         public class ShadowSettings
         {

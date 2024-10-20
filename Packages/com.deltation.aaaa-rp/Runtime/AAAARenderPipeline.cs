@@ -29,7 +29,7 @@ namespace DELTation.AAAARP
         public AAAARenderPipeline(AAAARenderPipelineAsset pipelineAsset)
         {
             _pipelineAsset = pipelineAsset;
-            _renderer = new AAAARenderer(pipelineAsset);
+            _renderer = new AAAARenderer();
             _renderGraph = new RenderGraph("AAAARPRenderGraph");
 
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();

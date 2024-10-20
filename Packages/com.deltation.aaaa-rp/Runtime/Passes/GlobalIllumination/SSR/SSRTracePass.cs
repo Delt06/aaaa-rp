@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
-using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.RenderPipelineResources;
+using DELTation.AAAARP.Volumes;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -28,8 +28,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
-            AAAALightingSettings.SSRSettings ssrSettings = renderingData.PipelineAsset.LightingSettings.SSR;
-            float resolutionScale = 1.0f / (float) ssrSettings.Resolution;
+            AAAASsrVolumeComponent ssr = cameraData.VolumeStack.GetComponent<AAAASsrVolumeComponent>();
+            float resolutionScale = 1.0f / (float) ssr.Resolution.value;
             int ssrTargetWidth = (int) math.ceil(cameraData.ScaledWidth * resolutionScale);
             int ssrTargetHeight = (int) math.ceil(cameraData.ScaledHeight * resolutionScale);
 
@@ -53,7 +53,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
             passData.ViewProjMatrix = viewProjMatrix;
             passData.InvViewProjMatrix = viewProjMatrix.inverse;
             passData.CameraPosition = cameraData.Camera.transform.position;
-            passData.MaxThickness = ssrSettings.MaxThickness;
+            passData.MaxThickness = ssr.MaxThickness.value;
 
             for (int hzbMipIndex = 0; hzbMipIndex < resourceData.CameraScaledHZBInfo.LevelCount; hzbMipIndex++)
             {
