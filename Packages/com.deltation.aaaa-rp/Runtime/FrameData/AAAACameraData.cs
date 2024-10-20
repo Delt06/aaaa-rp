@@ -35,6 +35,7 @@ namespace DELTation.AAAARP.FrameData
         public bool UseScreenCoordOverride;
         public Matrix4x4 ViewMatrix;
         public Vector3 WorldSpaceCameraPos;
+        public VolumeStack VolumeStack;
 
         public int ScaledWidth => Mathf.Max(1, (int) (Camera.pixelWidth * RenderScale));
         public int ScaledHeight => Mathf.Max(1, (int) (Camera.pixelHeight * RenderScale));
@@ -72,6 +73,7 @@ namespace DELTation.AAAARP.FrameData
             AntiAliasingTechnique = default;
             UpscalingTechnique = default;
             PostProcessingEnabled = false;
+            VolumeStack = default;
         }
 
         internal void SetViewProjectionAndJitterMatrix(Matrix4x4 viewMatrix, Matrix4x4 projectionMatrix)

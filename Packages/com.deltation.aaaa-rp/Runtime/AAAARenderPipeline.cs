@@ -5,6 +5,7 @@ using DELTation.AAAARP.Lighting;
 using DELTation.AAAARP.Renderers;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
+using DELTation.AAAARP.Volumes;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -46,6 +47,9 @@ namespace DELTation.AAAARP
             RTHandles.Initialize(Screen.width, Screen.height);
             ShaderGlobalKeywords.InitializeShaderGlobalKeywords();
 
+            AAAADefaultVolumeProfileSettings defaultVolumeProfileSettings = GraphicsSettings.GetRenderPipelineSettings<AAAADefaultVolumeProfileSettings>();
+            VolumeManager.instance.Initialize(defaultVolumeProfileSettings.volumeProfile);
+
             _bindlessTextureContainer = new BindlessTextureContainer();
             _shadowMapPool = new ShadowMapPool(_bindlessTextureContainer);
             _rendererContainer = new AAAARendererContainer(_bindlessTextureContainer, pipelineAsset.MeshLODSettings, pipelineDebugDisplaySettings);
@@ -58,6 +62,7 @@ namespace DELTation.AAAARP
 
             foreach (Camera camera in cameras)
             {
+                UpdateVolumeFramework(camera);
                 RenderSingleCamera(context, _renderer, camera);
             }
 
@@ -129,6 +134,7 @@ namespace DELTation.AAAARP
 
             Blitter.Cleanup();
             ConstantBuffer.ReleaseAll();
+            VolumeManager.instance.Deinitialize();
 
             base.Dispose(disposing);
 
@@ -159,8 +165,6 @@ namespace DELTation.AAAARP
         {
             AAAACameraData cameraData = frameData.GetOrCreate<AAAACameraData>();
             AAAAImageQualitySettings imageQualitySettings = camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.ImageQualitySettings : null;
-            AAAAPostProcessingSettings postProcessingSettings =
-                camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.PostProcessingSettings : null;
             AAAALightingSettings lightingSettings =
                 camera.cameraType is CameraType.Game or CameraType.SceneView ? renderingData.PipelineAsset.LightingSettings : null;
 
@@ -223,8 +227,10 @@ namespace DELTation.AAAARP
             {
                 cameraData.UpscalingTechnique = AAAAUpscalingTechnique.Off;
             }
+            cameraData.VolumeStack = VolumeManager.instance.stack;
             cameraData.FSRSharpness = imageQualitySettings?.FSRSharpness ?? 0.0f;
-            cameraData.PostProcessingEnabled = postProcessingSettings?.AnyEnabled() ?? false;
+            cameraData.PostProcessingEnabled =
+                cameraData.VolumeStack.GetComponent<AAAAPostProcessingOptionsVolumeComponent>().AnyEnabled();
             cameraData.AmbientOcclusionTechnique = lightingSettings?.AmbientOcclusion ?? AAAAAmbientOcclusionTechnique.Off;
 
             return cameraData;
@@ -258,6 +264,12 @@ namespace DELTation.AAAARP
             AAAAImageBasedLightingData imageBasedLightingData = frameData.GetOrCreate<AAAAImageBasedLightingData>();
 
             return imageBasedLightingData;
+        }
+
+        private static void UpdateVolumeFramework(Camera camera)
+        {
+            VolumeManager.instance.ResetMainStack();
+            VolumeManager.instance.Update(camera.transform, 1);
         }
     }
 }

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
-using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
+using DELTation.AAAARP.Volumes;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -31,8 +31,8 @@ namespace DELTation.AAAARP.Passes.PostProcessing
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
-            AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
 
             passData.CameraColor = builder.ReadWriteTexture(resourceData.CameraScaledColorBuffer);
 
@@ -40,8 +40,9 @@ namespace DELTation.AAAARP.Passes.PostProcessing
             tempTargetDesc.name = "UberPost_TempTarget";
             passData.TempTarget = builder.CreateTransientTexture(tempTargetDesc);
 
-            passData.Exposure = renderingData.PipelineAsset.PostProcessingSettings.Exposure;
-            passData.ToneMappingProfile = renderingData.PipelineAsset.PostProcessingSettings.ToneMapping;
+            AAAAPostProcessingOptionsVolumeComponent postProcessingOptions = cameraData.VolumeStack.GetComponent<AAAAPostProcessingOptionsVolumeComponent>();
+            passData.Exposure = postProcessingOptions.Exposure.value;
+            passData.ToneMappingProfile = postProcessingOptions.ToneMappingProfile.value;
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
@@ -54,8 +55,8 @@ namespace DELTation.AAAARP.Passes.PostProcessing
             _propertyBlock.SetVector(ShaderIDs._BlitScaleBias, new Vector4(1, 1, 0, 0));
 
             _propertyBlock.SetFloat(ShaderIDs._Exposure, 1.0f / data.Exposure);
-            context.cmd.SetKeyword(_material, _toneMapNeutralKeyword, data.ToneMappingProfile == AAAAPostProcessingSettings.ToneMappingProfile.Neutral);
-            context.cmd.SetKeyword(_material, _toneMapACESKeyword, data.ToneMappingProfile == AAAAPostProcessingSettings.ToneMappingProfile.ACES);
+            context.cmd.SetKeyword(_material, _toneMapNeutralKeyword, data.ToneMappingProfile == AAAAToneMappingProfile.Neutral);
+            context.cmd.SetKeyword(_material, _toneMapACESKeyword, data.ToneMappingProfile == AAAAToneMappingProfile.ACES);
 
             const int shaderPass = 0;
             AAAABlitter.BlitTriangle(context.cmd, _material, shaderPass, _propertyBlock);
@@ -69,7 +70,7 @@ namespace DELTation.AAAARP.Passes.PostProcessing
             public float Exposure;
             public TextureHandle TempTarget;
 
-            public AAAAPostProcessingSettings.ToneMappingProfile ToneMappingProfile;
+            public AAAAToneMappingProfile ToneMappingProfile;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
