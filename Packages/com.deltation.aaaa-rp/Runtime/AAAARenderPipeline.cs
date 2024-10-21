@@ -225,6 +225,11 @@ namespace DELTation.AAAARP
             cameraData.AntiAliasingTechnique = imageQualitySettings?.AntiAliasing ?? AAAAAntiAliasingTechnique.Off;
             cameraData.UpscalingTechnique = imageQualitySettings?.Upscaling ?? AAAAUpscalingTechnique.Off;
             cameraData.FSRSharpness = cameraData.VolumeStack.GetComponent<AAAAFsrSharpnessVolumeComponent>().Sharpness.value;
+            if (cameraData.RenderScale > 1)
+            {
+                cameraData.FSRSharpness = 0.0f;
+            }
+
             if (cameraData.RenderScale >= 1.0f && Mathf.Approximately(cameraData.FSRSharpness, 0.0f))
             {
                 cameraData.UpscalingTechnique = AAAAUpscalingTechnique.Off;
