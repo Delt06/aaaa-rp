@@ -9,6 +9,7 @@ namespace DELTation.AAAARP.Materials
         public bool AlphaClip;
         [Range(0.0f, 1.0f)]
         public float AlphaClipThreshold = 0.5f;
+        public bool TwoSided;
 
         [Header("Color")]
         public Texture2D Albedo;

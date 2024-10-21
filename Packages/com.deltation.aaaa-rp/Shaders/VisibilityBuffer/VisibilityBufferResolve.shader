@@ -34,6 +34,24 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Materials.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Utils.hlsl"
 
+            float ComputeNormalFlipSign(const AAAAMaterialData materialData, const float3 positionWS[3])
+            {
+                float normalSign = 1;
+
+                UNITY_BRANCH
+                if (materialData.RendererListID & AAAARENDERERLISTID_CULL_OFF)
+                {
+                    const float3 autoNormalWS = cross(normalize(positionWS[0] - positionWS[1]), normalize(positionWS[2] - positionWS[0]));
+                    const float3 viewForwardDirWS = GetViewForwardDir(UNITY_MATRIX_V);
+                    if (dot(autoNormalWS, viewForwardDirWS) < 0)
+                    {
+                        normalSign = -1;
+                    }
+                }
+
+                return normalSign;
+            }
+
             Varyings OverrideVert(Attributes input)
             {
                 Varyings output = Vert(input);
@@ -86,11 +104,12 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 interpolatedUV.AddTilingOffset(materialData.TextureTilingOffset);
                 const float3 albedo = SampleAlbedoGrad(interpolatedUV, materialData).rgb;
 
+                const float  normalFlipSing = ComputeNormalFlipSign(materialData, positionWS);
                 const float3 vertexNormalWS[3] =
                 {
-                    TransformObjectToWorldNormal(SafeNormalize(vertices[0].Normal.xyz), instanceData.WorldToObjectMatrix),
-                    TransformObjectToWorldNormal(SafeNormalize(vertices[1].Normal.xyz), instanceData.WorldToObjectMatrix),
-                    TransformObjectToWorldNormal(SafeNormalize(vertices[2].Normal.xyz), instanceData.WorldToObjectMatrix),
+                    normalFlipSing * TransformObjectToWorldNormal(SafeNormalize(vertices[0].Normal.xyz), instanceData.WorldToObjectMatrix),
+                    normalFlipSing * TransformObjectToWorldNormal(SafeNormalize(vertices[1].Normal.xyz), instanceData.WorldToObjectMatrix),
+                    normalFlipSing * TransformObjectToWorldNormal(SafeNormalize(vertices[2].Normal.xyz), instanceData.WorldToObjectMatrix),
                 };
                 const BarycentricDerivatives barycentricVertexNormalWS = InterpolateWithBarycentric(
                     barycentric, vertexNormalWS[0], vertexNormalWS[1], vertexNormalWS[2]);
@@ -123,7 +142,7 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                     const float screenSpaceVariance = materialData.SpecularAAScreenSpaceVariance;
                     const float threshold = materialData.SpecularAAThreshold;
                     gbufferValue.roughness = GeometricNormalFiltering(gbufferValue.roughness, barycentricVertexNormalWS,
-                               screenSpaceVariance, threshold);
+                           screenSpaceVariance, threshold);
                 }
 
                 return PackGBufferOutput(gbufferValue);

@@ -138,6 +138,11 @@ namespace DELTation.AAAARP.Renderers
                 listID |= AAAARendererListID.AlphaTest;
             }
 
+            if (material.TwoSided)
+            {
+                listID |= AAAARendererListID.CullOff;
+            }
+
             return listID;
         }
     }

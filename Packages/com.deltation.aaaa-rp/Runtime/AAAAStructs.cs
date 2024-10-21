@@ -14,7 +14,7 @@ namespace DELTation.AAAARP
         Main = 1 << 0,
         Shadows = 1 << 1,
     }
-    
+
     [GenerateHLSL(PackingRules.Exact)]
     [Flags]
     public enum AAAAInstanceFlags
@@ -50,7 +50,7 @@ namespace DELTation.AAAARP
         None = 0,
         SpecularAA = 1 << 0,
     }
-    
+
     [GenerateHLSL(PackingRules.Exact)]
     [Flags]
     public enum AAAARendererListID
@@ -58,7 +58,8 @@ namespace DELTation.AAAARP
         Default = 0,
         AlphaTest = 1 << 0,
         CullFront = 1 << 1,
-        Count = (AlphaTest | CullFront) + 1,
+        CullOff = 1 << 2,
+        Count = (AlphaTest | CullFront | CullOff) + 1,
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]

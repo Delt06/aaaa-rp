@@ -39,7 +39,7 @@ ByteAddressBuffer _SourceMeshlets;
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
 
-bool Culling(const AAAAInstanceData instanceData, const AAAAMeshlet meshletData)
+bool Culling(const AAAAInstanceData instanceData, const uint rendererListID, const AAAAMeshlet meshletData)
 {
     const float4           boundingSphereWS = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
     const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(boundingSphereWS, _CameraViewProjection);
@@ -54,7 +54,8 @@ bool Culling(const AAAAInstanceData instanceData, const AAAAMeshlet meshletData)
         const bool   isPerspective = _CameraIsPerspective;
 
         UNITY_BRANCH
-        if (ConeCulling(_CameraPosition.xyz, viewForwardDirWS, isPerspective, instanceData, meshletData))
+        if (rendererListID & AAAARENDERERLISTID_CULL_OFF ||
+            ConeCulling(_CameraPosition.xyz, viewForwardDirWS, isPerspective, instanceData, meshletData))
         {
             #if defined(FALSE_NEGATIVE_PASS) && !defined(DISABLE_OCCLUSION_CULLING)
         
@@ -91,7 +92,8 @@ uint GetRendererListID(const AAAAInstanceData instanceData, const AAAAMaterialDa
 {
     uint rendererListID = materialData.RendererListID;
 
-    if (instanceData.Flags & AAAAINSTANCEFLAGS_FLIP_WINDING_ORDER)
+    if (instanceData.Flags & AAAAINSTANCEFLAGS_FLIP_WINDING_ORDER &&
+        !(rendererListID & AAAARENDERERLISTID_CULL_OFF))
     {
         if (rendererListID & AAAARENDERERLISTID_CULL_FRONT)
         {
@@ -120,15 +122,14 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(_SourceMeshlets, sourceMeshletID);
     const AAAAInstanceData         instanceData = PullInstanceData(meshletRenderRequest.InstanceID);
+    const AAAAMaterialData         materialData = PullMaterialData(instanceData.MaterialIndex);
+    const uint                     rendererListID = GetRendererListID(instanceData, materialData);
     const AAAAMeshlet              meshlet = PullMeshletData(meshletRenderRequest.MeshletID);
 
-    if (!Culling(instanceData, meshlet))
+    if (!Culling(instanceData, rendererListID, meshlet))
     {
         return;
     }
-
-    const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
-    const uint             rendererListID = GetRendererListID(instanceData, materialData);
 
     uint localRenderRequestWriteOffset = 0;
     _DestinationMeshletsCounter.InterlockedAdd(4 * rendererListID, 1, localRenderRequestWriteOffset);

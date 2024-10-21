@@ -147,6 +147,7 @@ namespace DELTation.AAAARP.Renderers
             rendererList.Material.SetKeyword(new LocalKeyword(shader, "_ALPHATEST_ON"), (listID & AAAARendererListID.AlphaTest) != 0);
 
             CullMode cullMode = (listID & AAAARendererListID.CullFront) != 0 ? CullMode.Front : CullMode.Back;
+            cullMode = (listID & AAAARendererListID.CullOff) != 0 ? CullMode.Off : cullMode;
             rendererList.Material.SetFloat(ShaderIDs._Cull, (float) cullMode);
 
             return rendererList;
