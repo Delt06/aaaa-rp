@@ -146,7 +146,7 @@ namespace DELTation.AAAARP.Passes.Lighting
             if (visibleLight.lightType == LightType.Spot)
             {
                 punctualLightData.SpotDirection_Angle.xyz = AAAALightingUtils.ExtractDirection(lightLocalToWorld);
-                punctualLightData.SpotDirection_Angle.w = Mathf.Deg2Rad * visibleLight.spotAngle;
+                punctualLightData.SpotDirection_Angle.w = Mathf.Deg2Rad * visibleLight.spotAngle * 0.5f;
             }
             else
             {
@@ -156,7 +156,8 @@ namespace DELTation.AAAARP.Passes.Lighting
             AAAAPunctualLightUtils.GetPunctualLightDistanceAttenuation(visibleLight,
                 out punctualLightData.Attenuations.x
             );
-            AAAAPunctualLightUtils.GetPunctualLightSpotAngleAttenuation(visibleLight, null, out punctualLightData.Attenuations.y,
+            float innerSpotAngle = visibleLight.spotAngle * 0.6f;
+            AAAAPunctualLightUtils.GetPunctualLightSpotAngleAttenuation(visibleLight, innerSpotAngle, out punctualLightData.Attenuations.y,
                 out punctualLightData.Attenuations.z
             );
 

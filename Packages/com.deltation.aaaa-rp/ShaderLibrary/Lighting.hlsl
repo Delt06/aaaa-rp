@@ -65,7 +65,7 @@ Light GetPunctualLight(const uint index, const float3 positionWS)
 
     const float3 offset = punctualLightData.PositionWS.xyz - positionWS;
     const float  distanceSqr = max(dot(offset, offset), HALF_MIN);
-    const float3 lightDirection = offset / distanceSqr;
+    const float3 lightDirection = offset * rsqrt(distanceSqr);
     const float  distanceAttenuation = DistanceAttenuation(distanceSqr, punctualLightData.Attenuations.x);
     const float  angleAttenuation = AngleAttenuation(punctualLightData.SpotDirection_Angle.xyz, lightDirection, punctualLightData.Attenuations.yz);
 
