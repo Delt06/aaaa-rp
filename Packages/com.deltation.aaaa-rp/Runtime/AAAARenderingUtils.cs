@@ -11,8 +11,7 @@ namespace DELTation.AAAARP
         public static TextureDesc CreateTextureDesc(string name, RenderTextureDescriptor input) =>
             new(input.width, input.height)
             {
-                colorFormat = input.graphicsFormat,
-                depthBufferBits = (DepthBits) input.depthBufferBits,
+                format = input.graphicsFormat,
                 dimension = input.dimension,
                 slices = input.volumeDepth,
                 name = name,

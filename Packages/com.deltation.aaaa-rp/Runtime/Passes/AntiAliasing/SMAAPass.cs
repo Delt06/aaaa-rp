@@ -59,7 +59,7 @@ namespace DELTation.AAAARP.Passes.AntiAliasing
                 edgesDesc.clearColor = Color.clear;
 
                 // We only need R8G8_UNorm, but using the full format results in better render graph texture reuse.
-                edgesDesc.colorFormat = GraphicsFormat.R8G8B8A8_UNorm;
+                edgesDesc.format = GraphicsFormat.R8G8B8A8_UNorm;
 
                 passData.Edges = builder.CreateTransientTexture(edgesDesc);
             }
@@ -68,8 +68,7 @@ namespace DELTation.AAAARP.Passes.AntiAliasing
                 TextureDesc edgesDepthDesc = cameraColorDesc;
                 edgesDepthDesc.name = "SMAAEdgesDepth";
                 edgesDepthDesc.clearBuffer = true;
-                edgesDepthDesc.colorFormat = GraphicsFormat.None;
-                edgesDepthDesc.depthBufferBits = DepthBits.Depth32;
+                edgesDepthDesc.format = GraphicsFormat.D32_SFloat;
 
                 passData.EdgeDepth = builder.CreateTransientTexture(edgesDepthDesc);
             }
@@ -79,7 +78,7 @@ namespace DELTation.AAAARP.Passes.AntiAliasing
                 weightsDesc.name = "SMAAWeights";
                 weightsDesc.clearBuffer = true;
                 weightsDesc.clearColor = Color.clear;
-                weightsDesc.colorFormat = GraphicsFormat.R8G8B8A8_UNorm;
+                weightsDesc.format = GraphicsFormat.R8G8B8A8_UNorm;
 
                 passData.Weights = builder.CreateTransientTexture(weightsDesc);
             }

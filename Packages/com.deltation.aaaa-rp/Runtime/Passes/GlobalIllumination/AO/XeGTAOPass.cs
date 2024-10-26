@@ -48,7 +48,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.AO
                 textureDesc.clearBuffer = false;
                 textureDesc.name = nameof(PassData.WorkingDepths);
                 textureDesc.enableRandomWrite = true;
-                textureDesc.colorFormat = GraphicsFormat.R32_SFloat;
+                textureDesc.format = GraphicsFormat.R32_SFloat;
                 textureDesc.width = passData.Resolution.x;
                 textureDesc.height = passData.Resolution.y;
 
@@ -71,7 +71,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.AO
                 TextureDesc textureDesc = resourceData.CameraScaledColorDesc;
                 textureDesc.clearBuffer = false;
                 textureDesc.enableRandomWrite = true;
-                textureDesc.colorFormat = passData.OutputBentNormals ? GraphicsFormat.R32_UInt : GraphicsFormat.R8_UInt;
+                textureDesc.format = passData.OutputBentNormals ? GraphicsFormat.R32_UInt : GraphicsFormat.R8_UInt;
                 textureDesc.width = passData.Resolution.x;
                 textureDesc.height = passData.Resolution.y;
 
@@ -84,7 +84,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.AO
                 lightingData.GTAOTerm = renderingData.RenderGraph.CreateTexture(textureDesc);
                 passData.FinalAOTerm = builder.WriteTexture(lightingData.GTAOTerm);
 
-                textureDesc.colorFormat = GraphicsFormat.R8_UNorm;
+                textureDesc.format = GraphicsFormat.R8_UNorm;
                 textureDesc.name = nameof(PassData.Edges);
                 passData.Edges = builder.CreateTransientTexture(textureDesc);
             }

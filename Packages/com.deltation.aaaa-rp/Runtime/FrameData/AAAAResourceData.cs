@@ -87,7 +87,6 @@ namespace DELTation.AAAARP.FrameData
 
 
                     TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("CameraColor_Scaled_History", cameraTargetDescriptor);
-                    desc.depthBufferBits = DepthBits.None;
                     desc.filterMode = FilterMode.Bilinear;
                     desc.wrapMode = TextureWrapMode.Clamp;
                     desc.clearBuffer = cameraData.ClearColor;
@@ -108,7 +107,6 @@ namespace DELTation.AAAARP.FrameData
             {
                 TextureDesc cameraColorDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
                 cameraColorDesc.name = "CameraColor";
-                cameraColorDesc.depthBufferBits = DepthBits.None;
                 cameraColorDesc.filterMode = FilterMode.Bilinear;
                 cameraColorDesc.wrapMode = TextureWrapMode.Clamp;
                 cameraColorDesc.clearBuffer = cameraData.ClearColor;
@@ -120,8 +118,7 @@ namespace DELTation.AAAARP.FrameData
 
                 TextureDesc cameraDepthDesc = AAAARenderingUtils.CreateTextureDesc(null, cameraData.CameraTargetDescriptor);
                 cameraDepthDesc.name = "CameraDepth";
-                cameraDepthDesc.colorFormat = GraphicsFormat.D24_UNorm_S8_UInt;
-                cameraDepthDesc.depthBufferBits = DepthBits.Depth32;
+                cameraDepthDesc.format = GraphicsFormat.D24_UNorm_S8_UInt;
                 cameraDepthDesc.filterMode = FilterMode.Point;
                 cameraDepthDesc.wrapMode = TextureWrapMode.Clamp;
                 cameraDepthDesc.clearBuffer = cameraData.ClearDepth;
@@ -148,8 +145,7 @@ namespace DELTation.AAAARP.FrameData
                 TextureDesc cameraHzbScaledDesc = cameraDepthDesc;
                 cameraHzbScaledDesc.width = CameraScaledHZBInfo.TextureSize.x;
                 cameraHzbScaledDesc.height = CameraScaledHZBInfo.TextureSize.y;
-                cameraHzbScaledDesc.colorFormat = GraphicsFormat.R32_SFloat;
-                cameraHzbScaledDesc.depthBufferBits = 0;
+                cameraHzbScaledDesc.format = GraphicsFormat.R32_SFloat;
                 cameraHzbScaledDesc.enableRandomWrite = true;
                 cameraHzbScaledDesc.name = "CameraHZB_Scaled";
                 cameraHzbScaledDesc.clearBuffer = false;
@@ -158,8 +154,7 @@ namespace DELTation.AAAARP.FrameData
 
             {
                 TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("VisibilityBuffer", cameraData.CameraTargetDescriptor);
-                desc.colorFormat = GraphicsFormat.R32G32_UInt;
-                desc.depthBufferBits = DepthBits.None;
+                desc.format = GraphicsFormat.R32G32_UInt;
                 desc.filterMode = FilterMode.Point;
                 desc.wrapMode = TextureWrapMode.Clamp;
                 desc.clearBuffer = true;
@@ -172,8 +167,7 @@ namespace DELTation.AAAARP.FrameData
 
             {
                 TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("GBuffer_Albedo", cameraData.CameraTargetDescriptor);
-                desc.depthBufferBits = DepthBits.None;
-                desc.colorFormat = GraphicsFormat.R8G8B8A8_UNorm;
+                desc.format = GraphicsFormat.R8G8B8A8_UNorm;
                 desc.filterMode = FilterMode.Bilinear;
                 desc.wrapMode = TextureWrapMode.Clamp;
                 desc.clearBuffer = true;
@@ -186,8 +180,7 @@ namespace DELTation.AAAARP.FrameData
 
             {
                 TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("GBuffer_Normals", cameraData.CameraTargetDescriptor);
-                desc.depthBufferBits = DepthBits.None;
-                desc.colorFormat = GraphicsFormat.R16G16_SNorm;
+                desc.format = GraphicsFormat.R16G16_SNorm;
                 desc.filterMode = FilterMode.Bilinear;
                 desc.wrapMode = TextureWrapMode.Clamp;
                 desc.clearBuffer = true;
@@ -200,8 +193,7 @@ namespace DELTation.AAAARP.FrameData
 
             {
                 TextureDesc desc = AAAARenderingUtils.CreateTextureDesc("GBuffer_Masks", cameraData.CameraTargetDescriptor);
-                desc.depthBufferBits = DepthBits.None;
-                desc.colorFormat = GraphicsFormat.R8G8B8A8_UNorm;
+                desc.format = GraphicsFormat.R8G8B8A8_UNorm;
                 desc.filterMode = FilterMode.Bilinear;
                 desc.wrapMode = TextureWrapMode.Clamp;
                 desc.clearBuffer = true;

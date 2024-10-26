@@ -13,7 +13,7 @@ The main goals of the project are:
 
 ### Unity and Graphics API Versions
 
-> 🔨 Developed with Unity 6000.0.17f1.
+> 🔨 Developed with Unity 6000.0.23f1.
 
 > ❎ Only DirectX 12 is supported at the moment.
 
