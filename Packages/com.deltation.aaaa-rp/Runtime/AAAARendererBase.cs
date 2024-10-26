@@ -19,10 +19,10 @@ namespace DELTation.AAAARP
         private RTHandle _currentColorBuffer;
         private RTHandle _currentDepthBuffer;
 
-        protected AAAARendererBase()
+        protected AAAARendererBase(AAAARawBufferClear rawBufferClear)
         {
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
-            DebugHandler = new AAAADebugHandler();
+            DebugHandler = new AAAADebugHandler(rawBufferClear);
 #endif
         }
 

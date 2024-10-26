@@ -10,15 +10,16 @@ namespace DELTation.AAAARP.Renderers
     {
         private const int FramesInFlight = 3;
         private readonly FrameResources[] _frameResources;
+        private readonly AAAARawBufferClear _rawBufferClear;
         private readonly ComputeShader _rawBufferClearCS;
 
         private int _frameIndex;
         private bool _isDirty;
 
-        public OcclusionCullingResources(ComputeShader rawBufferClearCS)
+        public OcclusionCullingResources(AAAARawBufferClear rawBufferClear)
         {
             _frameResources = new FrameResources[FramesInFlight];
-            _rawBufferClearCS = rawBufferClearCS;
+            _rawBufferClear = rawBufferClear;
 
             const int stride = sizeof(uint);
             const int instancesPerItem = stride * 8;
@@ -70,7 +71,7 @@ namespace DELTation.AAAARP.Renderers
                         GraphicsBuffer mask = frameResources.InstanceVisibilityMask;
                         const int writeOffset = 0;
                         const int clearValue = 0;
-                        AAAARawBufferClear.DispatchClear(cmd, _rawBufferClearCS, mask, mask.count, writeOffset, clearValue);
+                        _rawBufferClear.DispatchClear(cmd, mask, mask.count, writeOffset, clearValue);
                     }
 
                     _isDirty = false;

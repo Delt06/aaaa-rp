@@ -36,20 +36,21 @@ namespace DELTation.AAAARP.Passes
         private readonly ComputeShader _gpuMeshletCullingCS;
         private readonly ComputeShader _meshletListBuildCS;
         private readonly PassType _passType;
-        private readonly ComputeShader _rawBufferClearCS;
+        private readonly AAAARawBufferClear _rawBufferClear;
         private NativeList<int> _instanceIndices;
 
         public GPUCullingPass(PassType passType, AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders,
+            AAAARawBufferClear rawBufferClear,
             [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings, string nameTag = null) : base(renderPassEvent)
         {
             _passType = passType;
-            _rawBufferClearCS = runtimeShaders.RawBufferClearCS;
             _gpuInstanceCullingCS = runtimeShaders.GPUInstanceCullingCS;
             _fixupMeshletListBuildIndirectDispatchArgsCS = runtimeShaders.FixupMeshletListBuildIndirectDispatchArgsCS;
             _meshletListBuildCS = runtimeShaders.MeshletListBuildCS;
             _fixupGPUMeshletCullingIndirectDispatchArgsCS = runtimeShaders.FixupGPUMeshletCullingIndirectDispatchArgsCS;
             _gpuMeshletCullingCS = runtimeShaders.GPUMeshletCullingCS;
             _fixupMeshletIndirectDrawArgsCS = runtimeShaders.FixupMeshletIndirectDrawArgsCS;
+            _rawBufferClear = rawBufferClear;
             _instanceIndices = new NativeList<int>(Allocator.Persistent);
             _debugDisplaySettings = debugDisplaySettings;
 
@@ -167,7 +168,8 @@ namespace DELTation.AAAARP.Passes
 
             GraphicsBuffer meshletRenderRequestsBuffer = rendererContainer.MeshletRenderRequestsBuffer;
 
-            passData.InitialMeshletListCounterBuffer = builder.CreateTransientBuffer(CreateCounterBufferDesc("InitialMeshletListCounter"));
+            passData.InitialMeshletListCounterBuffer =
+                builder.CreateTransientBuffer(CreateCounterBufferDesc("InitialMeshletListCounter", extraTargets: GraphicsBuffer.Target.CopyDestination));
             passData.InitialMeshletListBuffer = builder.CreateTransientBuffer(
                 new BufferDesc(meshletRenderRequestsBuffer.count, meshletRenderRequestsBuffer.stride, meshletRenderRequestsBuffer.target)
                 {
@@ -192,7 +194,7 @@ namespace DELTation.AAAARP.Passes
                 }
             );
             passData.MeshletListBuildJobCounterBuffer = builder.CreateTransientBuffer(
-                new BufferDesc(1, sizeof(uint), GraphicsBuffer.Target.Raw)
+                new BufferDesc(1, sizeof(uint), GraphicsBuffer.Target.Raw | GraphicsBuffer.Target.CopyDestination)
                 {
                     name = nameof(PassData.MeshletListBuildJobCounterBuffer),
                 }
@@ -219,7 +221,10 @@ namespace DELTation.AAAARP.Passes
             }
 
             passData.DestinationMeshletsCounterBuffer =
-                builder.CreateTransientBuffer(CreateCounterBufferDesc("MeshletRenderRequestCounter", passData.RendererListCount));
+                builder.CreateTransientBuffer(CreateCounterBufferDesc("MeshletRenderRequestCounter", passData.RendererListCount,
+                        GraphicsBuffer.Target.CopyDestination
+                    )
+                );
             passData.DestinationMeshletsBuffer = builder.WriteBuffer(renderingData.RenderGraph.ImportBuffer(meshletRenderRequestsBuffer));
 
             passData.IndirectDrawArgsBuffer = builder.WriteBuffer(renderingData.RenderGraph.ImportBuffer(rendererContainer.IndirectDrawArgsBuffer));
@@ -236,8 +241,8 @@ namespace DELTation.AAAARP.Passes
                 : default;
         }
 
-        private static BufferDesc CreateCounterBufferDesc(string name, int count = 1) =>
-            new(count, sizeof(uint), GraphicsBuffer.Target.Raw)
+        private static BufferDesc CreateCounterBufferDesc(string name, int count = 1, GraphicsBuffer.Target extraTargets = default) =>
+            new(count, sizeof(uint), GraphicsBuffer.Target.Raw | extraTargets)
             {
                 name = name,
             };
@@ -251,12 +256,13 @@ namespace DELTation.AAAARP.Passes
 
             using (new ProfilingScope(context.cmd, Profiling.ClearBuffers))
             {
-                AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.InitialMeshletListCounterBuffer, 1, 0, 0);
-                AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.MeshletListBuildJobCounterBuffer, 1, 0, 0);
+                _rawBufferClear.FastZeroClear(context.cmd, data.InitialMeshletListCounterBuffer, 1);
+                _rawBufferClear.FastZeroClear(context.cmd, data.MeshletListBuildJobCounterBuffer, 1);
+                _rawBufferClear.FastZeroClear(context.cmd, data.DestinationMeshletsCounterBuffer, data.RendererListCount);
 
                 if (data.OcclusionCullingInstanceVisibilityMask.IsValid())
                 {
-                    AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.OcclusionCullingInstanceVisibilityMask,
+                    _rawBufferClear.DispatchClear(context.cmd, data.OcclusionCullingInstanceVisibilityMask,
                         data.OcclusionCullingInstanceVisibilityMaskCount, 0, 0
                     );
                 }
@@ -357,11 +363,6 @@ namespace DELTation.AAAARP.Passes
                     ShaderID.FixupMeshletCullingIndirectDispatchArgs._IndirectArgs, data.GPUMeshletCullingIndirectDispatchArgsBuffer
                 );
                 context.cmd.DispatchCompute(_fixupGPUMeshletCullingIndirectDispatchArgsCS, kernelIndex, 1, 1, 1);
-            }
-
-            using (new ProfilingScope(context.cmd, Profiling.ClearBuffers))
-            {
-                AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.DestinationMeshletsCounterBuffer, data.RendererListCount, 0, 0);
             }
 
             using (new ProfilingScope(context.cmd, Profiling.MeshletCulling))

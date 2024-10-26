@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.RenderPipelineResources;
+using DELTation.AAAARP.Utils;
 
 namespace DELTation.AAAARP.Passes.Shadows
 {
@@ -10,16 +11,18 @@ namespace DELTation.AAAARP.Passes.Shadows
         private const string NameTag = "Shadows";
 
         private readonly AAAARenderPipelineDebugDisplaySettings _debugSettings;
+        private readonly AAAARawBufferClear _rawBufferClear;
         private readonly AAAARenderPassEvent _renderPassEvent;
         private readonly List<PassSet> _sets = new();
         private readonly AAAARenderPipelineRuntimeShaders _shaders;
         private int _setsOffset;
 
         public ShadowPassPool(AAAARenderPassEvent renderPassEvent,
-            AAAARenderPipelineRuntimeShaders shaders, AAAARenderPipelineDebugDisplaySettings debugSettings)
+            AAAARenderPipelineRuntimeShaders shaders, AAAARawBufferClear rawBufferClear, AAAARenderPipelineDebugDisplaySettings debugSettings)
         {
             _debugSettings = debugSettings;
             _shaders = shaders;
+            _rawBufferClear = rawBufferClear;
             _renderPassEvent = renderPassEvent;
         }
 
@@ -39,7 +42,8 @@ namespace DELTation.AAAARP.Passes.Shadows
             {
                 _sets.Add(new PassSet
                     {
-                        GPUCullingPass = new GPUCullingPass(GPUCullingPass.PassType.Basic, _renderPassEvent, _shaders, _debugSettings, NameTag),
+                        GPUCullingPass =
+                            new GPUCullingPass(GPUCullingPass.PassType.Basic, _renderPassEvent, _shaders, _rawBufferClear, _debugSettings, NameTag),
                         DrawShadowsPass = new DrawShadowsPass(_renderPassEvent),
                     }
                 );

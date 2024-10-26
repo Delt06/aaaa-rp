@@ -7,6 +7,7 @@ using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.Meshlets;
 using DELTation.AAAARP.RenderPipelineResources;
+using DELTation.AAAARP.Utils;
 using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
@@ -47,6 +48,7 @@ namespace DELTation.AAAARP.Renderers
         private NativeList<AAAAMeshletVertex> _sharedVertices;
 
         internal AAAARendererContainer(BindlessTextureContainer bindlessTextureContainer, AAAAMeshLODSettings meshLODSettings,
+            AAAARawBufferClear rawBufferClear,
             [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings)
         {
             _bindlessTextureContainer = bindlessTextureContainer;
@@ -56,7 +58,7 @@ namespace DELTation.AAAARP.Renderers
             _debugDisplaySettings = debugDisplaySettings;
             _materialDataBuffer = new MaterialDataBuffer(_bindlessTextureContainer, Allocator.Persistent);
             InstanceDataBuffer = new InstanceDataBuffer(this, _materialDataBuffer, Allocator.Persistent);
-            OcclusionCullingResources = new OcclusionCullingResources(shaders.RawBufferClearCS);
+            OcclusionCullingResources = new OcclusionCullingResources(rawBufferClear);
             _meshLODNodes = new NativeList<AAAAMeshLODNode>(Allocator.Persistent);
             _meshletData = new NativeList<AAAAMeshlet>(Allocator.Persistent);
             _sharedVertices = new NativeList<AAAAMeshletVertex>(Allocator.Persistent);

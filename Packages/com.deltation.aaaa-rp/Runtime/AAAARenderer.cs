@@ -12,6 +12,7 @@ using DELTation.AAAARP.Passes.Lighting;
 using DELTation.AAAARP.Passes.PostProcessing;
 using DELTation.AAAARP.Passes.Shadows;
 using DELTation.AAAARP.RenderPipelineResources;
+using DELTation.AAAARP.Utils;
 using DELTation.AAAARP.Volumes;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -51,7 +52,7 @@ namespace DELTation.AAAARP
         private readonly UberPostProcessingPass _uberPostProcessingPass;
         private readonly XeGTAOPass _xeGTAOPass;
 
-        public AAAARenderer()
+        public AAAARenderer(AAAARawBufferClear rawBufferClear) : base(rawBufferClear)
         {
             AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
             AAAARenderPipelineRuntimeTextures textures = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeTextures>();
@@ -60,14 +61,16 @@ namespace DELTation.AAAARP
             _brdfIntegrationPass = new BRDFIntegrationPass(AAAARenderPassEvent.BeforeRendering, shaders);
             _preFilterEnvironmentPass = new PreFilterEnvironmentPass(AAAARenderPassEvent.BeforeRendering, shaders);
 
-            _shadowPassPool = new ShadowPassPool(AAAARenderPassEvent.BeforeRenderingShadows, shaders, DebugHandler?.DisplaySettings);
+            _shadowPassPool = new ShadowPassPool(AAAARenderPassEvent.BeforeRenderingShadows, shaders, rawBufferClear, DebugHandler?.DisplaySettings);
             _setupLightingPass = new SetupLightingPass(AAAARenderPassEvent.AfterRenderingShadows);
 
-            _gpuCullingMainPass = new GPUCullingPass(GPUCullingPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders,
-                DebugHandler?.DisplaySettings
+            _gpuCullingMainPass = new GPUCullingPass(
+                GPUCullingPass.PassType.Main, AAAARenderPassEvent.BeforeRenderingGbuffer,
+                shaders, rawBufferClear, DebugHandler?.DisplaySettings
             );
-            _gpuCullingFalseNegativePass = new GPUCullingPass(GPUCullingPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer, shaders,
-                DebugHandler?.DisplaySettings
+            _gpuCullingFalseNegativePass = new GPUCullingPass(
+                GPUCullingPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer,
+                shaders, rawBufferClear, DebugHandler?.DisplaySettings
             );
             _gpuCullingHzbGenerationPass =
                 new HZBGenerationPass(AAAARenderPassEvent.BeforeRenderingGbuffer, HZBGenerationPass.Mode.Max, "GPUCulling.", shaders);
@@ -87,7 +90,7 @@ namespace DELTation.AAAARP
             _ssrComposePass = new SSRComposePass(deferredReflectionsRenderPassEvent, _ssrResolveMaterial);
             _ssrResolvePass = new SSRResolvePass(deferredReflectionsRenderPassEvent, _ssrResolveMaterial);
 
-            _clusteredLightingPass = new ClusteredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
+            _clusteredLightingPass = new ClusteredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders, rawBufferClear);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _xeGTAOPass = new XeGTAOPass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);

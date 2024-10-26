@@ -1,6 +1,5 @@
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
-using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine.Rendering;
@@ -10,10 +9,10 @@ namespace DELTation.AAAARP.Passes.Debugging
 {
     public sealed class GPUCullingDebugSetupPass : AAAARenderPass<GPUCullingDebugSetupPass.PassData>
     {
-        private readonly AAAARenderPipelineRuntimeShaders _runtimeShaders;
+        private readonly AAAARawBufferClear _rawBufferClear;
 
-        public GPUCullingDebugSetupPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent) =>
-            _runtimeShaders = runtimeShaders;
+        public GPUCullingDebugSetupPass(AAAARenderPassEvent renderPassEvent, AAAARawBufferClear rawBufferClear)
+            : base(renderPassEvent) => _rawBufferClear = rawBufferClear;
 
         public override string Name => "GPUCulling.Debug.Setup";
 
@@ -30,7 +29,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             int uintCount = bufferCount * bufferStride;
             const int writeOffset = 0;
             const int clearValue = 0;
-            AAAARawBufferClear.DispatchClear(context.cmd, _runtimeShaders.RawBufferClearCS,
+            _rawBufferClear.DispatchClear(context.cmd,
                 data.DebugBuffer, uintCount, writeOffset, clearValue
             );
         }

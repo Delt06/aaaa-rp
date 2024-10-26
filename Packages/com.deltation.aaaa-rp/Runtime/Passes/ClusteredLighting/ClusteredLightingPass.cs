@@ -16,13 +16,14 @@ namespace DELTation.AAAARP.Passes.ClusteredLighting
     {
         private readonly ComputeShader _buildClusterGridCS;
         private readonly ComputeShader _clusterCullingCS;
-        private readonly ComputeShader _rawBufferClearCS;
+        private readonly AAAARawBufferClear _rawBufferClear;
 
-        public ClusteredLightingPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders) : base(renderPassEvent)
+        public ClusteredLightingPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders, AAAARawBufferClear rawBufferClear) :
+            base(renderPassEvent)
         {
             _buildClusterGridCS = runtimeShaders.BuildClusterGridCS;
             _clusterCullingCS = runtimeShaders.ClusterCullingCS;
-            _rawBufferClearCS = runtimeShaders.RawBufferClearCS;
+            _rawBufferClear = rawBufferClear;
         }
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
@@ -47,7 +48,7 @@ namespace DELTation.AAAARP.Passes.ClusteredLighting
             }
 
             {
-                var bufferDesc = new BufferDesc(1, sizeof(uint), GraphicsBuffer.Target.Raw)
+                var bufferDesc = new BufferDesc(1, sizeof(uint), GraphicsBuffer.Target.Raw | GraphicsBuffer.Target.CopyDestination)
                 {
                     name = nameof(PassData.LightIndexCounterBuffer),
                 };
@@ -64,7 +65,7 @@ namespace DELTation.AAAARP.Passes.ClusteredLighting
         protected override void Render(PassData data, RenderGraphContext context)
         {
             {
-                AAAARawBufferClear.DispatchClear(context.cmd, _rawBufferClearCS, data.LightIndexCounterBuffer, 1, 0, 0);
+                _rawBufferClear.FastZeroClear(context.cmd, data.LightIndexCounterBuffer, 1);
             }
 
             using (new ProfilingScope(context.cmd, Profiling.BuildClusterGrid))

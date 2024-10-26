@@ -22,17 +22,20 @@ namespace DELTation.AAAARP
         private readonly DebugDisplaySettingsUI _debugDisplaySettingsUI = new();
 
         private readonly AAAARenderPipelineAsset _pipelineAsset;
+        private readonly AAAARawBufferClear _rawBufferClear;
         private readonly AAAARendererBase _renderer;
         private readonly AAAARendererContainer _rendererContainer;
         private RenderGraph _renderGraph;
 
         public AAAARenderPipeline(AAAARenderPipelineAsset pipelineAsset)
         {
+            AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
+            _rawBufferClear = new AAAARawBufferClear(shaders);
+
             _pipelineAsset = pipelineAsset;
-            _renderer = new AAAARenderer();
+            _renderer = new AAAARenderer(_rawBufferClear);
             _renderGraph = new RenderGraph("AAAARPRenderGraph");
 
-            AAAARenderPipelineRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAARenderPipelineRuntimeShaders>();
             Blitter.Initialize(shaders.CoreBlitPS, shaders.CoreBlitColorAndDepthPS);
 
             DebugManager.instance.RefreshEditor();
@@ -52,7 +55,8 @@ namespace DELTation.AAAARP
 
             _bindlessTextureContainer = new BindlessTextureContainer();
             _shadowMapPool = new ShadowMapPool(_bindlessTextureContainer);
-            _rendererContainer = new AAAARendererContainer(_bindlessTextureContainer, pipelineAsset.MeshLODSettings, pipelineDebugDisplaySettings);
+            _rendererContainer =
+                new AAAARendererContainer(_bindlessTextureContainer, pipelineAsset.MeshLODSettings, _rawBufferClear, pipelineDebugDisplaySettings);
         }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
@@ -141,6 +145,8 @@ namespace DELTation.AAAARP
             _renderer?.Dispose();
             _renderGraph.Cleanup();
             _renderGraph = null;
+
+            _rawBufferClear.Dispose();
         }
 
         private AAAAResourceData CreateResourceData(ContextContainer frameData, AAAACameraData cameraData)

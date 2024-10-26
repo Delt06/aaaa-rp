@@ -2,6 +2,7 @@
 using DELTation.AAAARP.Passes;
 using DELTation.AAAARP.Passes.Debugging;
 using DELTation.AAAARP.RenderPipelineResources;
+using DELTation.AAAARP.Utils;
 using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -26,7 +27,7 @@ namespace DELTation.AAAARP.Debugging
         [CanBeNull]
         private readonly VisibilityBufferDebugPass _visibilityBufferDebugPass;
 
-        public AAAADebugHandler()
+        public AAAADebugHandler(AAAARawBufferClear rawBufferClear)
         {
             _debugSetupPass = new DebugSetupPass(AAAARenderPassEvent.BeforeRendering);
 
@@ -36,12 +37,9 @@ namespace DELTation.AAAARP.Debugging
                 _gBufferDebugPass = new GBufferDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
                 _lightingDebugPass = new LightingDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
 
-                if (GraphicsSettings.TryGetRenderPipelineSettings(out AAAARenderPipelineRuntimeShaders runtimeShaders))
-                {
-                    _gpuCullingDebugSetupPass = new GPUCullingDebugSetupPass(AAAARenderPassEvent.BeforeRendering, runtimeShaders);
-                    _gpuCullingDebugViewPass = new GPUCullingDebugViewPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
-                    _gpuCullingDebugReadbackPass = new GPUCullingDebugReadbackPass(AAAARenderPassEvent.AfterRendering, DisplaySettings);
-                }
+                _gpuCullingDebugSetupPass = new GPUCullingDebugSetupPass(AAAARenderPassEvent.BeforeRendering, rawBufferClear);
+                _gpuCullingDebugViewPass = new GPUCullingDebugViewPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
+                _gpuCullingDebugReadbackPass = new GPUCullingDebugReadbackPass(AAAARenderPassEvent.AfterRendering, DisplaySettings);
             }
         }
 
