@@ -4,6 +4,7 @@ using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
 using DELTation.AAAARP.Volumes;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -54,7 +55,7 @@ namespace DELTation.AAAARP.Passes.PostProcessing
             _propertyBlock.SetTexture(ShaderIDs._BlitTexture, data.CameraColor);
             _propertyBlock.SetVector(ShaderIDs._BlitScaleBias, new Vector4(1, 1, 0, 0));
 
-            _propertyBlock.SetFloat(ShaderIDs._Exposure, 1.0f / data.Exposure);
+            _propertyBlock.SetFloat(ShaderIDs._Exposure, 1.0f / math.max(0.001f, data.Exposure));
             context.cmd.SetKeyword(_material, _toneMapNeutralKeyword, data.ToneMappingProfile == AAAAToneMappingProfile.Neutral);
             context.cmd.SetKeyword(_material, _toneMapACESKeyword, data.ToneMappingProfile == AAAAToneMappingProfile.ACES);
 

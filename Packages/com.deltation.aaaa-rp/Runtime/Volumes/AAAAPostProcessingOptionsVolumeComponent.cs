@@ -8,7 +8,7 @@ namespace DELTation.AAAARP.Volumes
     [Serializable] [VolumeComponentMenu("AAAA/Post Processing Options")] [SupportedOnRenderPipeline(typeof(AAAARenderPipelineAsset))]
     public class AAAAPostProcessingOptionsVolumeComponent : VolumeComponent
     {
-        public ClampedFloatParameter Exposure = new(1.0f, 0.0f, 10.0f);
+        public ClampedFloatParameter Exposure = new(1.0f, 0.1f, 10.0f);
         public EnumParameter<AAAAToneMappingProfile> ToneMappingProfile = new(AAAAToneMappingProfile.Off);
 
         public AAAAPostProcessingOptionsVolumeComponent() => displayName = "AAAA Post Processing Options";
