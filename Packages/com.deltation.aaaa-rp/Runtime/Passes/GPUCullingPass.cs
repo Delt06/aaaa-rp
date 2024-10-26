@@ -31,7 +31,6 @@ namespace DELTation.AAAARP.Passes
 
         private readonly ComputeShader _fixupGPUMeshletCullingIndirectDispatchArgsCS;
         private readonly ComputeShader _fixupMeshletIndirectDrawArgsCS;
-        private readonly ComputeShader _fixupMeshletListBuildIndirectDispatchArgsCS;
         private readonly ComputeShader _gpuInstanceCullingCS;
         private readonly ComputeShader _gpuMeshletCullingCS;
         private readonly ComputeShader _meshletListBuildCS;
@@ -45,7 +44,6 @@ namespace DELTation.AAAARP.Passes
         {
             _passType = passType;
             _gpuInstanceCullingCS = runtimeShaders.GPUInstanceCullingCS;
-            _fixupMeshletListBuildIndirectDispatchArgsCS = runtimeShaders.FixupMeshletListBuildIndirectDispatchArgsCS;
             _meshletListBuildCS = runtimeShaders.MeshletListBuildCS;
             _fixupGPUMeshletCullingIndirectDispatchArgsCS = runtimeShaders.FixupGPUMeshletCullingIndirectDispatchArgsCS;
             _gpuMeshletCullingCS = runtimeShaders.GPUMeshletCullingCS;
@@ -193,12 +191,6 @@ namespace DELTation.AAAARP.Passes
                     name = nameof(PassData.MeshletListBuildIndirectDispatchArgsBuffer),
                 }
             );
-            passData.MeshletListBuildJobCounterBuffer = builder.CreateTransientBuffer(
-                new BufferDesc(1, sizeof(uint), GraphicsBuffer.Target.Raw | GraphicsBuffer.Target.CopyDestination)
-                {
-                    name = nameof(PassData.MeshletListBuildJobCounterBuffer),
-                }
-            );
             passData.MeshletListBuildJobsBuffer = builder.CreateTransientBuffer(
                 new BufferDesc(rendererContainer.MaxMeshletListBuildJobCount, UnsafeUtility.SizeOf<AAAAMeshletListBuildJob>(),
                     GraphicsBuffer.Target.Structured
@@ -254,11 +246,21 @@ namespace DELTation.AAAARP.Passes
                 return;
             }
 
-            using (new ProfilingScope(context.cmd, Profiling.ClearBuffers))
+            using (new ProfilingScope(context.cmd, Profiling.InitBuffers))
             {
                 _rawBufferClear.FastZeroClear(context.cmd, data.InitialMeshletListCounterBuffer, 1);
-                _rawBufferClear.FastZeroClear(context.cmd, data.MeshletListBuildJobCounterBuffer, 1);
                 _rawBufferClear.FastZeroClear(context.cmd, data.DestinationMeshletsCounterBuffer, data.RendererListCount);
+
+                context.cmd.SetBufferData(data.MeshletListBuildIndirectDispatchArgsBuffer, new NativeArray<IndirectDispatchArgs>(1, Allocator.Temp)
+                    {
+                        [0] = new IndirectDispatchArgs
+                        {
+                            ThreadGroupsX = 0,
+                            ThreadGroupsY = 1,
+                            ThreadGroupsZ = 1,
+                        },
+                    }
+                );
 
                 if (data.OcclusionCullingInstanceVisibilityMask.IsValid())
                 {
@@ -296,8 +298,11 @@ namespace DELTation.AAAARP.Passes
                 context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
                     ShaderID.GPUInstanceCulling._Jobs, data.MeshletListBuildJobsBuffer
                 );
+
+                // Meshlet list build indirect args ThreadGroupsX is the same as job counter.
+                // Bind it directly to avoid a separate dispatch for indirect args fixup.
                 context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
-                    ShaderID.GPUInstanceCulling._JobCounter, data.MeshletListBuildJobCounterBuffer
+                    ShaderID.GPUInstanceCulling._JobCounter, data.MeshletListBuildIndirectDispatchArgsBuffer
                 );
 
                 if (data.DebugDataBuffer.IsValid())
@@ -311,19 +316,6 @@ namespace DELTation.AAAARP.Passes
                 context.cmd.DispatchCompute(_gpuInstanceCullingCS, kernelIndex,
                     AAAAMathUtils.AlignUp(data.InstanceCount, groupSize) / groupSize, 1, 1
                 );
-            }
-
-            using (new ProfilingScope(context.cmd, Profiling.FixupMeshletListBuildIndirectDispatchArgs))
-            {
-                const int kernelIndex = 0;
-
-                context.cmd.SetComputeBufferParam(_fixupMeshletListBuildIndirectDispatchArgsCS, kernelIndex,
-                    ShaderID.FixupMeshletListBuildIndirectDispatchArgs._JobCounter, data.MeshletListBuildJobCounterBuffer
-                );
-                context.cmd.SetComputeBufferParam(_fixupMeshletListBuildIndirectDispatchArgsCS, kernelIndex,
-                    ShaderID.FixupMeshletListBuildIndirectDispatchArgs._IndirectArgs, data.MeshletListBuildIndirectDispatchArgsBuffer
-                );
-                context.cmd.DispatchCompute(_fixupMeshletListBuildIndirectDispatchArgsCS, kernelIndex, 1, 1, 1);
             }
 
             using (new ProfilingScope(context.cmd, Profiling.MeshletListBuild))
@@ -470,7 +462,6 @@ namespace DELTation.AAAARP.Passes
             public int MaxMeshletRenderRequestsPerList;
 
             public BufferHandle MeshletListBuildIndirectDispatchArgsBuffer;
-            public BufferHandle MeshletListBuildJobCounterBuffer;
             public BufferHandle MeshletListBuildJobsBuffer;
 
             public BufferHandle OcclusionCullingInstanceVisibilityMask;
@@ -489,9 +480,8 @@ namespace DELTation.AAAARP.Passes
 
         private static class Profiling
         {
-            public static readonly ProfilingSampler ClearBuffers = new(nameof(ClearBuffers));
+            public static readonly ProfilingSampler InitBuffers = new(nameof(InitBuffers));
             public static readonly ProfilingSampler InstanceCulling = new(nameof(InstanceCulling));
-            public static readonly ProfilingSampler FixupMeshletListBuildIndirectDispatchArgs = new(nameof(FixupMeshletListBuildIndirectDispatchArgs));
             public static readonly ProfilingSampler MeshletListBuild = new(nameof(MeshletListBuild));
             public static readonly ProfilingSampler FixupMeshletCullingIndirectDispatchArgs = new(nameof(FixupMeshletCullingIndirectDispatchArgs));
             public static readonly ProfilingSampler MeshletCulling = new(nameof(MeshletCulling));
@@ -532,12 +522,6 @@ namespace DELTation.AAAARP.Passes
 
                 public static int _Jobs = Shader.PropertyToID(nameof(_Jobs));
                 public static int _JobCounter = Shader.PropertyToID(nameof(_JobCounter));
-            }
-
-            public static class FixupMeshletListBuildIndirectDispatchArgs
-            {
-                public static int _JobCounter = Shader.PropertyToID(nameof(_JobCounter));
-                public static int _IndirectArgs = Shader.PropertyToID(nameof(_IndirectArgs));
             }
 
             public static class MeshletListBuild

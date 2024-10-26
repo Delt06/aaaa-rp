@@ -50,10 +50,6 @@ namespace DELTation.AAAARP.RenderPipelineResources
         private ComputeShader _gpuInstanceCullingCS;
 
         [SerializeField]
-        [ResourcePath("Shaders/VisibilityBuffer/FixupMeshletListBuildIndirectDispatchArgs.compute")]
-        private ComputeShader _fixupMeshletListBuildIndirectDispatchArgsCS;
-
-        [SerializeField]
         [ResourcePath("Shaders/VisibilityBuffer/MeshletListBuild.compute")]
         private ComputeShader _meshletListBuildCS;
 
@@ -157,12 +153,6 @@ namespace DELTation.AAAARP.RenderPipelineResources
         {
             get => _gpuInstanceCullingCS;
             set => this.SetValueAndNotify(ref _gpuInstanceCullingCS, value, nameof(_gpuInstanceCullingCS));
-        }
-
-        public ComputeShader FixupMeshletListBuildIndirectDispatchArgsCS
-        {
-            get => _fixupMeshletListBuildIndirectDispatchArgsCS;
-            set => this.SetValueAndNotify(ref _fixupMeshletListBuildIndirectDispatchArgsCS, value, nameof(_fixupMeshletListBuildIndirectDispatchArgsCS));
         }
 
         public ComputeShader MeshletListBuildCS
