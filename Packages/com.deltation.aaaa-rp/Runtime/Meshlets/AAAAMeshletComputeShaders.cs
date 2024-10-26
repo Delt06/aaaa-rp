@@ -26,7 +26,7 @@ namespace DELTation.AAAARP.Meshlets
     public struct AAAAMeshletListBuildJob
     {
         [UsedImplicitly]
-        public const uint MaxLODNodesPerThreadGroup = AAAAMeshletComputeShaders.MeshletListBuildThreadGroupSize * 4;
+        public const uint MaxLODNodesPerThreadGroup = AAAAMeshletComputeShaders.MeshletListBuildThreadGroupSize;
 
         public uint InstanceID;
         public uint MeshLODNodeOffset;

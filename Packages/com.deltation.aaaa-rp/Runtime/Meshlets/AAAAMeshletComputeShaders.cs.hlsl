@@ -18,7 +18,7 @@
 //
 // DELTation.AAAARP.Meshlets.AAAAMeshletListBuildJob:  static fields
 //
-#define MAX_LODNODES_PER_THREAD_GROUP (128)
+#define MAX_LODNODES_PER_THREAD_GROUP (32)
 
 // Generated from DELTation.AAAARP.Meshlets.AAAAMeshletListBuildJob
 // PackingRules = Exact

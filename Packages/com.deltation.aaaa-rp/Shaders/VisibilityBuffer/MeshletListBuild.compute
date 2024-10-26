@@ -43,18 +43,16 @@ float GetScreenBoundRadiusSq(const float4x4 vpMatrix, const float4 boundsWS)
     return max(dot(v0, v0), dot(v1, v1));
 }
 
-void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode meshLODNode)
+void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode meshLODNode, inout uint writeOffset)
 {
-    uint meshletWriteOffset;
-    _DestinationMeshletsCounter.InterlockedAdd(0, meshLODNode.MeshletCount, meshletWriteOffset);
-
     for (uint i = 0; i < meshLODNode.MeshletCount; ++i)
     {
         AAAAMeshletRenderRequest meshletRenderRequest;
         meshletRenderRequest.InstanceID = instanceID;
         meshletRenderRequest.MeshletID = meshLODNode.MeshletStartIndex + i;
 
-        StoreMeshletRenderRequest(_DestinationMeshlets, meshletWriteOffset + i, meshletRenderRequest);
+        StoreMeshletRenderRequest(_DestinationMeshlets, writeOffset, meshletRenderRequest);
+        ++writeOffset;
     }
 }
 
@@ -83,9 +81,26 @@ bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode, const AA
     return result;
 }
 
+groupshared uint g_CachedNodes_MeshletCount[MAX_LODNODES_PER_THREAD_GROUP];
+groupshared uint g_CachedNodes_MeshletStartIndex[MAX_LODNODES_PER_THREAD_GROUP];
+
+groupshared uint g_PassedNodeIndices[MAX_LODNODES_PER_THREAD_GROUP];
+groupshared uint g_PassedMeshletCount;
+groupshared uint g_PassedNodeCount;
+
+groupshared uint g_MeshletWriteOffset;
+
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_GroupID)
 {
+    if (groupThreadID.x == 0)
+    {
+        g_PassedMeshletCount = 0;
+        g_PassedNodeCount = 0;
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
     const AAAAMeshletListBuildJob job = _Jobs[groupID.x];
     const AAAAInstanceData        instanceData = PullInstanceData(job.InstanceID);
 
@@ -93,15 +108,50 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     const float  distanceToViewSq = Length2(_CameraPosition.xyz - instanceBoundsCenter);
 
     const uint from = instanceData.TopMeshLODStartIndex + job.MeshLODNodeOffset;
-    const uint to = from + job.MeshLODNodeCount;
+    const uint nodeCount = min(MAX_LODNODES_PER_THREAD_GROUP, job.MeshLODNodeCount);
 
-    for (uint nodeIndex = from + groupThreadID.x; nodeIndex < to; nodeIndex += THREAD_GROUP_SIZE)
+    for (uint i = groupThreadID.x; i < nodeCount; i += THREAD_GROUP_SIZE)
     {
+        const uint            nodeIndex = from + i;
         const AAAAMeshLODNode meshLODNode = PullMeshLODNode(nodeIndex);
+
+        const uint cachedNodeIndex = i;
+        g_CachedNodes_MeshletCount[cachedNodeIndex] = meshLODNode.MeshletCount;
+        g_CachedNodes_MeshletStartIndex[cachedNodeIndex] = meshLODNode.MeshletStartIndex;
 
         if (ShouldPushMeshletRenderRequests(meshLODNode, instanceData, distanceToViewSq))
         {
-            PushMeshletRenderRequests(job.InstanceID, meshLODNode);
+            uint listOffset;
+            InterlockedAdd(g_PassedNodeCount, 1, listOffset);
+            InterlockedAdd(g_PassedMeshletCount, meshLODNode.MeshletCount);
+            g_PassedNodeIndices[listOffset] = cachedNodeIndex;
+        }
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    if (groupThreadID.x == 0)
+    {
+        _DestinationMeshletsCounter.InterlockedAdd(0, g_PassedMeshletCount, g_MeshletWriteOffset);
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    for (uint listIndex = groupThreadID.x; listIndex < g_PassedNodeCount; listIndex += THREAD_GROUP_SIZE)
+    {
+        const uint cachedNodeIndex = g_PassedNodeIndices[listIndex];
+        const uint meshletCount = g_CachedNodes_MeshletCount[cachedNodeIndex];
+        const uint meshletStartIndex = g_CachedNodes_MeshletStartIndex[cachedNodeIndex];
+
+        for (uint i = 0; i < meshletCount; ++i)
+        {
+            AAAAMeshletRenderRequest meshletRenderRequest;
+            meshletRenderRequest.InstanceID = job.InstanceID;
+            meshletRenderRequest.MeshletID = meshletStartIndex + i;
+
+            uint writeOffset;
+            InterlockedAdd(g_MeshletWriteOffset, 1, writeOffset);
+            StoreMeshletRenderRequest(_DestinationMeshlets, writeOffset, meshletRenderRequest);
         }
     }
 }
