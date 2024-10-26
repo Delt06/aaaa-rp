@@ -30,7 +30,6 @@ namespace DELTation.AAAARP.Passes
         private readonly AAAARenderPipelineDebugDisplaySettings _debugDisplaySettings;
 
         private readonly ComputeShader _fixupGPUMeshletCullingIndirectDispatchArgsCS;
-        private readonly ComputeShader _fixupMeshletIndirectDrawArgsCS;
         private readonly ComputeShader _gpuInstanceCullingCS;
         private readonly ComputeShader _gpuMeshletCullingCS;
         private readonly ComputeShader _meshletListBuildCS;
@@ -47,7 +46,6 @@ namespace DELTation.AAAARP.Passes
             _meshletListBuildCS = runtimeShaders.MeshletListBuildCS;
             _fixupGPUMeshletCullingIndirectDispatchArgsCS = runtimeShaders.FixupGPUMeshletCullingIndirectDispatchArgsCS;
             _gpuMeshletCullingCS = runtimeShaders.GPUMeshletCullingCS;
-            _fixupMeshletIndirectDrawArgsCS = runtimeShaders.FixupMeshletIndirectDrawArgsCS;
             _rawBufferClear = rawBufferClear;
             _instanceIndices = new NativeList<int>(Allocator.Persistent);
             _debugDisplaySettings = debugDisplaySettings;
@@ -212,11 +210,6 @@ namespace DELTation.AAAARP.Passes
                 passData.OcclusionCullingInstanceVisibilityMaskCount = default;
             }
 
-            passData.DestinationMeshletsCounterBuffer =
-                builder.CreateTransientBuffer(CreateCounterBufferDesc("MeshletRenderRequestCounter", passData.RendererListCount,
-                        GraphicsBuffer.Target.CopyDestination
-                    )
-                );
             passData.DestinationMeshletsBuffer = builder.WriteBuffer(renderingData.RenderGraph.ImportBuffer(meshletRenderRequestsBuffer));
 
             passData.IndirectDrawArgsBuffer = builder.WriteBuffer(renderingData.RenderGraph.ImportBuffer(rendererContainer.IndirectDrawArgsBuffer));
@@ -249,7 +242,6 @@ namespace DELTation.AAAARP.Passes
             using (new ProfilingScope(context.cmd, Profiling.InitBuffers))
             {
                 _rawBufferClear.FastZeroClear(context.cmd, data.InitialMeshletListCounterBuffer, 1);
-                _rawBufferClear.FastZeroClear(context.cmd, data.DestinationMeshletsCounterBuffer, data.RendererListCount);
 
                 context.cmd.SetBufferData(data.MeshletListBuildIndirectDispatchArgsBuffer, new NativeArray<IndirectDispatchArgs>(1, Allocator.Temp)
                     {
@@ -261,6 +253,20 @@ namespace DELTation.AAAARP.Passes
                         },
                     }
                 );
+
+                var initialIndirectDrawArgs =
+                    new NativeArray<GraphicsBuffer.IndirectDrawArgs>(data.RendererListCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                for (int rendererListIndex = 0; rendererListIndex < data.RendererListCount; rendererListIndex++)
+                {
+                    initialIndirectDrawArgs[rendererListIndex] = new GraphicsBuffer.IndirectDrawArgs
+                    {
+                        startInstance = (uint) (rendererListIndex * data.MaxMeshletRenderRequestsPerList),
+                        instanceCount = 0,
+                        startVertex = 0,
+                        vertexCountPerInstance = AAAAMeshletConfiguration.MaxMeshletIndices,
+                    };
+                }
+                context.cmd.SetBufferData(data.IndirectDrawArgsBuffer, initialIndirectDrawArgs);
 
                 if (data.OcclusionCullingInstanceVisibilityMask.IsValid())
                 {
@@ -386,9 +392,19 @@ namespace DELTation.AAAARP.Passes
                     ShaderID.MeshletCulling._SourceMeshlets, data.InitialMeshletListBuffer
                 );
 
+                // Bind draw args directly, eliminating the need for a separate indirect args fixup dispatch.
                 context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, kernelIndex,
-                    ShaderID.MeshletCulling._DestinationMeshletsCounter, data.DestinationMeshletsCounterBuffer
+                    ShaderID.MeshletCulling._DestinationMeshletsCounter, data.IndirectDrawArgsBuffer
                 );
+
+                // Counter is draw args instance count. 
+                context.cmd.SetComputeIntParam(_gpuMeshletCullingCS,
+                    ShaderID.MeshletCulling._DestinationMeshletsCounterOffset, sizeof(uint)
+                );
+                context.cmd.SetComputeIntParam(_gpuMeshletCullingCS,
+                    ShaderID.MeshletCulling._DestinationMeshletsCounterStride, GraphicsBuffer.IndirectDrawArgs.size
+                );
+
                 context.cmd.SetComputeBufferParam(_gpuMeshletCullingCS, kernelIndex,
                     ShaderID.MeshletCulling._DestinationMeshlets, data.DestinationMeshletsBuffer
                 );
@@ -404,22 +420,6 @@ namespace DELTation.AAAARP.Passes
                 }
 
                 context.cmd.DispatchCompute(_gpuMeshletCullingCS, kernelIndex, data.GPUMeshletCullingIndirectDispatchArgsBuffer, 0);
-            }
-
-            using (new ProfilingScope(context.cmd, Profiling.FixupIndirectDrawArgs))
-            {
-                const int kernelIndex = 0;
-
-                context.cmd.SetComputeBufferParam(_fixupMeshletIndirectDrawArgsCS, kernelIndex,
-                    ShaderID.FixupIndirectDrawArgs._RequestCounter, data.DestinationMeshletsCounterBuffer
-                );
-                context.cmd.SetComputeBufferParam(_fixupMeshletIndirectDrawArgsCS, kernelIndex,
-                    ShaderID.FixupIndirectDrawArgs._IndirectArgs, data.IndirectDrawArgsBuffer
-                );
-                context.cmd.SetComputeIntParam(_fixupMeshletIndirectDrawArgsCS,
-                    ShaderID.FixupIndirectDrawArgs._MaxMeshletRenderRequestsPerList, data.MaxMeshletRenderRequestsPerList
-                );
-                context.cmd.DispatchCompute(_fixupMeshletIndirectDrawArgsCS, kernelIndex, data.RendererListCount, 1, 1);
             }
         }
 
@@ -448,7 +448,6 @@ namespace DELTation.AAAARP.Passes
             public BufferHandle DebugDataBuffer;
 
             public BufferHandle DestinationMeshletsBuffer;
-            public BufferHandle DestinationMeshletsCounterBuffer;
             public BufferHandle GPUMeshletCullingIndirectDispatchArgsBuffer;
             public BufferHandle IndirectDrawArgsBuffer;
 
@@ -485,7 +484,6 @@ namespace DELTation.AAAARP.Passes
             public static readonly ProfilingSampler MeshletListBuild = new(nameof(MeshletListBuild));
             public static readonly ProfilingSampler FixupMeshletCullingIndirectDispatchArgs = new(nameof(FixupMeshletCullingIndirectDispatchArgs));
             public static readonly ProfilingSampler MeshletCulling = new(nameof(MeshletCulling));
-            public static readonly ProfilingSampler FixupIndirectDrawArgs = new(nameof(FixupIndirectDrawArgs));
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -557,14 +555,9 @@ namespace DELTation.AAAARP.Passes
                 public static int _SourceMeshlets = Shader.PropertyToID(nameof(_SourceMeshlets));
 
                 public static int _DestinationMeshletsCounter = Shader.PropertyToID(nameof(_DestinationMeshletsCounter));
+                public static int _DestinationMeshletsCounterOffset = Shader.PropertyToID(nameof(_DestinationMeshletsCounterOffset));
+                public static int _DestinationMeshletsCounterStride = Shader.PropertyToID(nameof(_DestinationMeshletsCounterStride));
                 public static int _DestinationMeshlets = Shader.PropertyToID(nameof(_DestinationMeshlets));
-                public static int _MaxMeshletRenderRequestsPerList = Shader.PropertyToID(nameof(_MaxMeshletRenderRequestsPerList));
-            }
-
-            public static class FixupIndirectDrawArgs
-            {
-                public static int _RequestCounter = Shader.PropertyToID(nameof(_RequestCounter));
-                public static int _IndirectArgs = Shader.PropertyToID(nameof(_IndirectArgs));
                 public static int _MaxMeshletRenderRequestsPerList = Shader.PropertyToID(nameof(_MaxMeshletRenderRequestsPerList));
             }
         }

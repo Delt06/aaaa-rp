@@ -62,10 +62,6 @@ namespace DELTation.AAAARP.RenderPipelineResources
         private ComputeShader _gpuMeshletCullingCS;
 
         [SerializeField]
-        [ResourcePath("Shaders/VisibilityBuffer/FixupMeshletIndirectDrawArgs.compute")]
-        private ComputeShader _fixupMeshletIndirectDrawArgsCS;
-
-        [SerializeField]
         [ResourcePath("Shaders/ClusteredLighting/BuildClusterGrid.compute")]
         private ComputeShader _buildClusterGridCS;
 
@@ -171,12 +167,6 @@ namespace DELTation.AAAARP.RenderPipelineResources
         {
             get => _gpuMeshletCullingCS;
             set => this.SetValueAndNotify(ref _gpuMeshletCullingCS, value, nameof(_gpuMeshletCullingCS));
-        }
-
-        public ComputeShader FixupMeshletIndirectDrawArgsCS
-        {
-            get => _fixupMeshletIndirectDrawArgsCS;
-            set => this.SetValueAndNotify(ref _fixupMeshletIndirectDrawArgsCS, value, nameof(_fixupMeshletIndirectDrawArgsCS));
         }
 
         public ComputeShader HZBGenerationCS

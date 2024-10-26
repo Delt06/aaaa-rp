@@ -37,6 +37,8 @@ ByteAddressBuffer _SourceMeshletsCounter;
 ByteAddressBuffer _SourceMeshlets;
 
 RWByteAddressBuffer _DestinationMeshletsCounter;
+uint                _DestinationMeshletsCounterOffset;
+uint                _DestinationMeshletsCounterStride;
 RWByteAddressBuffer _DestinationMeshlets;
 
 bool Culling(const AAAAInstanceData instanceData, const uint rendererListID, const AAAAMeshlet meshletData)
@@ -131,8 +133,9 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    uint localRenderRequestWriteOffset = 0;
-    _DestinationMeshletsCounter.InterlockedAdd(4 * rendererListID, 1, localRenderRequestWriteOffset);
+    uint       localRenderRequestWriteOffset = 0;
+    const uint counterAddress = _DestinationMeshletsCounterStride * rendererListID + _DestinationMeshletsCounterOffset;
+    _DestinationMeshletsCounter.InterlockedAdd(counterAddress, 1, localRenderRequestWriteOffset);
 
     const uint renderRequestIndex = localRenderRequestWriteOffset + rendererListID * _MaxMeshletRenderRequestsPerList;
     StoreMeshletRenderRequest(_DestinationMeshlets, renderRequestIndex, meshletRenderRequest);
