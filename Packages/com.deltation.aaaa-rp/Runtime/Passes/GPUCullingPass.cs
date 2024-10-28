@@ -91,6 +91,10 @@ namespace DELTation.AAAARP.Passes
                 return;
             }
 
+            passData.CullingContextCount = 0;
+            PassData.CullingContext cullingContext = passData.CullingContexts[passData.CullingContextCount++];
+            passData.DisableOcclusionCulling = CullingCameraOverride != null;
+
             {
                 AAAACameraData cameraData = frameData.Get<AAAACameraData>();
                 Camera camera = CullingCameraOverride != null ? CullingCameraOverride : cameraData.Camera;
@@ -107,11 +111,11 @@ namespace DELTation.AAAARP.Passes
 
                 if (CullingViewParametersOverride != null)
                 {
-                    passData.CullingView = CullingViewParametersOverride.Value;
+                    cullingContext.ViewParameters = CullingViewParametersOverride.Value;
                 }
                 else
                 {
-                    passData.CullingView = new CullingViewParameters
+                    cullingContext.ViewParameters = new CullingViewParameters
                     {
                         ViewMatrix = viewMatrix,
                         ViewProjectionMatrix = viewProjectionMatrix,
@@ -123,13 +127,12 @@ namespace DELTation.AAAARP.Passes
                         IsPerspective = !camera.orthographic,
                         BoundingSphereWS = math.float4(0, 0, 0, 0),
                         PassMask = AAAAInstancePassMask.Main,
-                        DisableOcclusionCulling = CullingCameraOverride != null,
                     };
                 }
 
                 // LOD for shadows should be the same as for main view.
                 // We do not explicitly synchronize LOD selection, just the input parameters.
-                passData.LODSelectionContext = new LODSelectionContext
+                cullingContext.LODSelectionContext = new LODSelectionContext
                 {
                     CameraPosition = cameraPosition,
                     CameraRight = cameraRight,
@@ -140,19 +143,21 @@ namespace DELTation.AAAARP.Passes
             }
 
             Plane[] frustumPlanes = TempCollections.Planes;
-            GeometryUtility.CalculateFrustumPlanes(passData.CullingView.ViewProjectionMatrix, frustumPlanes);
+            GeometryUtility.CalculateFrustumPlanes(cullingContext.ViewParameters.ViewProjectionMatrix, frustumPlanes);
 
             for (int i = 0; i < frustumPlanes.Length; i++)
             {
                 Plane frustumPlane = frustumPlanes[i];
-                passData.FrustumPlanes[i] = new Vector4(frustumPlane.normal.x, frustumPlane.normal.y, frustumPlane.normal.z, frustumPlane.distance);
+                cullingContext.FrustumPlanes[i] = new Vector4(frustumPlane.normal.x, frustumPlane.normal.y, frustumPlane.normal.z, frustumPlane.distance);
             }
 
-            passData.CullingSphereLS = float4.zero;
-            if (passData.CullingView.BoundingSphereWS.w > 0.0f)
+            cullingContext.CullingSphereLS = float4.zero;
+            if (cullingContext.ViewParameters.BoundingSphereWS.w > 0.0f)
             {
-                passData.CullingSphereLS.xyz = math.transform(passData.CullingView.ViewMatrix, passData.CullingView.BoundingSphereWS.xyz);
-                passData.CullingSphereLS.w = passData.CullingView.BoundingSphereWS.w;
+                cullingContext.CullingSphereLS.xyz = math.transform(cullingContext.ViewParameters.ViewMatrix,
+                    cullingContext.ViewParameters.BoundingSphereWS.xyz
+                );
+                cullingContext.CullingSphereLS.w = cullingContext.ViewParameters.BoundingSphereWS.w;
             }
 
             passData.InstanceIndices = builder.CreateTransientBuffer(
@@ -258,23 +263,20 @@ namespace DELTation.AAAARP.Passes
             using (new ProfilingScope(context.cmd, Profiling.InitBuffers))
             {
                 {
-                    var gpuCullingContexts =
-                        new NativeArray<GPUCullingContext>(data.CullingContextCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-                    ConstantBufferUtils.FillGPUCullingContext(
-                        ref gpuCullingContexts.ElementAtRef(0), data.CullingView, data.FrustumPlanes, data.CullingSphereLS
-                    );
+                    const Allocator allocator = Allocator.Temp;
+                    const NativeArrayOptions arrayOptions = NativeArrayOptions.UninitializedMemory;
+                    var cullingContextsData = new NativeArray<GPUCullingContext>(data.CullingContextCount, allocator, arrayOptions);
+                    var lodSelectionContextsData = new NativeArray<GPULODSelectionContext>(data.CullingContextCount, allocator, arrayOptions);
 
-                    context.cmd.SetBufferData(data.GPUCullingContextBuffer, gpuCullingContexts);
-                }
+                    for (int contextIndex = 0; contextIndex < data.CullingContextCount; contextIndex++)
+                    {
+                        PassData.CullingContext cullingContext = data.CullingContexts[contextIndex];
+                        ConstantBufferUtils.FillGPUCullingContext(ref cullingContextsData.ElementAtRef(contextIndex), cullingContext);
+                        ConstantBufferUtils.FillGPULODSelectionContext(ref lodSelectionContextsData.ElementAtRef(contextIndex), cullingContext);
+                    }
 
-                {
-                    var gpuLodSelectionContexts =
-                        new NativeArray<GPULODSelectionContext>(data.CullingContextCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-                    ConstantBufferUtils.FillGPULODSelectionContext(
-                        ref gpuLodSelectionContexts.ElementAtRef(0), data.LODSelectionContext
-                    );
-
-                    context.cmd.SetBufferData(data.GPULODSelectionContextBuffer, gpuLodSelectionContexts);
+                    context.cmd.SetBufferData(data.GPUCullingContextBuffer, cullingContextsData);
+                    context.cmd.SetBufferData(data.GPULODSelectionContextBuffer, lodSelectionContextsData);
                 }
 
                 _rawBufferClear.FastZeroClear(context.cmd, data.InitialMeshletListCounterBuffer, 1);
@@ -312,15 +314,13 @@ namespace DELTation.AAAARP.Passes
                 }
             }
 
-            ref readonly CullingViewParameters view = ref data.CullingView;
-
             using (new ProfilingScope(context.cmd, Profiling.InstanceCulling))
             {
                 const int kernelIndex = 0;
 
                 CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.MAIN_PASS, _passType == PassType.Main);
                 CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.FALSE_NEGATIVE_PASS, _passType == PassType.FalseNegative);
-                CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.DISABLE_OCCLUSION_CULLING, view.DisableOcclusionCulling);
+                CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.DISABLE_OCCLUSION_CULLING, data.DisableOcclusionCulling);
                 CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.Debug.DEBUG_GPU_CULLING, data.DebugDataBuffer.IsValid());
 
                 context.cmd.SetComputeConstantBufferParam(_gpuInstanceCullingCS,
@@ -409,7 +409,7 @@ namespace DELTation.AAAARP.Passes
 
                 CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.MAIN_PASS, _passType == PassType.Main);
                 CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.FALSE_NEGATIVE_PASS, _passType == PassType.FalseNegative);
-                CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.DISABLE_OCCLUSION_CULLING, view.DisableOcclusionCulling);
+                CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.DISABLE_OCCLUSION_CULLING, data.DisableOcclusionCulling);
                 CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.Debug.DEBUG_GPU_CULLING, data.DebugDataBuffer.IsValid());
 
                 context.cmd.SetComputeConstantBufferParam(_gpuMeshletCullingCS,
@@ -464,21 +464,23 @@ namespace DELTation.AAAARP.Passes
 
         private static class ConstantBufferUtils
         {
-            public static unsafe void FillGPUCullingContext(ref GPUCullingContext gpuCullingContext, in CullingViewParameters cullingView,
-                Vector4[] frustumPlanes, float4 cullingSphereLS)
+            public static unsafe void FillGPUCullingContext(ref GPUCullingContext gpuCullingContext, in PassData.CullingContext cullingContext)
             {
+                CullingViewParameters viewParameters = cullingContext.ViewParameters;
+
                 gpuCullingContext = new GPUCullingContext
                 {
-                    ViewMatrix = cullingView.ViewMatrix,
-                    ViewProjectionMatrix = cullingView.GPUViewProjectionMatrix,
-                    CameraPosition = math.float4(cullingView.CameraPosition, 1),
-                    CullingSphereLS = cullingSphereLS,
-                    PassMask = (int) cullingView.PassMask,
-                    CameraIsPerspective = cullingView.IsPerspective ? 1 : 0,
+                    ViewMatrix = viewParameters.ViewMatrix,
+                    ViewProjectionMatrix = viewParameters.GPUViewProjectionMatrix,
+                    CameraPosition = math.float4(viewParameters.CameraPosition, 1),
+                    CullingSphereLS = cullingContext.CullingSphereLS,
+                    PassMask = (int) viewParameters.PassMask,
+                    CameraIsPerspective = viewParameters.IsPerspective ? 1 : 0,
                 };
 
                 fixed (float* pFrustumPlanesDestination = gpuCullingContext.FrustumPlanes)
                 {
+                    Vector4[] frustumPlanes = cullingContext.FrustumPlanes;
                     fixed (Vector4* pFrustumPlanesSource = frustumPlanes)
                     {
                         UnsafeUtility.MemCpy(pFrustumPlanesDestination, pFrustumPlanesSource, UnsafeUtility.SizeOf<Vector4>() * frustumPlanes.Length);
@@ -486,8 +488,10 @@ namespace DELTation.AAAARP.Passes
                 }
             }
 
-            public static void FillGPULODSelectionContext(ref GPULODSelectionContext gpuLodSelectionContext, in LODSelectionContext lodSelectionContext)
+            public static void FillGPULODSelectionContext(ref GPULODSelectionContext gpuLodSelectionContext, in PassData.CullingContext cullingContext)
             {
+                LODSelectionContext lodSelectionContext = cullingContext.LODSelectionContext;
+
                 gpuLodSelectionContext = new GPULODSelectionContext
                 {
                     CameraPosition = math.float4(lodSelectionContext.CameraPosition, 1),
@@ -511,20 +515,17 @@ namespace DELTation.AAAARP.Passes
             public float4 BoundingSphereWS;
             public bool IsPerspective;
             public AAAAInstancePassMask PassMask;
-            public bool DisableOcclusionCulling;
         }
 
         public class PassData : PassDataBase
         {
-            public readonly Vector4[] FrustumPlanes = new Vector4[6];
+            public readonly CullingContext[] CullingContexts = new CullingContext[GPUCullingContext.MaxCullingContextsPerBatch];
             public int CullingContextCount;
-            public float4 CullingSphereLS;
-
-            public CullingViewParameters CullingView;
 
             public BufferHandle DebugDataBuffer;
 
             public BufferHandle DestinationMeshletsBuffer;
+            public bool DisableOcclusionCulling;
             public BufferHandle GPUCullingContextBuffer;
             public BufferHandle GPULODSelectionContextBuffer;
             public BufferHandle GPUMeshletCullingIndirectDispatchArgsBuffer;
@@ -536,7 +537,6 @@ namespace DELTation.AAAARP.Passes
             public int InstanceCount;
 
             public BufferHandle InstanceIndices;
-            public LODSelectionContext LODSelectionContext;
             public int MaxMeshletRenderRequestsPerList;
 
             public BufferHandle MeshletListBuildIndirectDispatchArgsBuffer;
@@ -545,6 +545,22 @@ namespace DELTation.AAAARP.Passes
             public BufferHandle OcclusionCullingInstanceVisibilityMask;
             public int OcclusionCullingInstanceVisibilityMaskCount;
             public int RendererListCount;
+
+            public PassData()
+            {
+                for (int i = 0; i < CullingContexts.Length; i++)
+                {
+                    CullingContexts[i] = new CullingContext();
+                }
+            }
+
+            public class CullingContext
+            {
+                public readonly Vector4[] FrustumPlanes = new Vector4[6];
+                public float4 CullingSphereLS;
+                public LODSelectionContext LODSelectionContext;
+                public CullingViewParameters ViewParameters;
+            }
         }
 
         public struct LODSelectionContext
