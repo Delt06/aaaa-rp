@@ -16,7 +16,7 @@ struct IndirectArgs
         return value;
     }
 
-    static uint4 PackIndirectDrawArgs(const IndirectDrawArgs drawArgs)
+    static uint4 PackDrawArgs(const IndirectDrawArgs drawArgs)
     {
         uint4 value;
         value.x = drawArgs.vertexCountPerInstance;
@@ -26,7 +26,12 @@ struct IndirectArgs
         return value;
     }
 
-    static uint IndirectDrawArgsStride()
+    static uint DispatchArgsStride()
+    {
+        return 3 * 4;
+    }
+
+    static uint DrawArgsStride()
     {
         return 4 * 4;
     }

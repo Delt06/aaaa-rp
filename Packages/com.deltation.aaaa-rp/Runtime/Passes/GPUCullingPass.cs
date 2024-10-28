@@ -355,7 +355,7 @@ namespace DELTation.AAAARP.Passes
 
                 const int groupSize = (int) AAAAMeshletComputeShaders.GPUInstanceCullingThreadGroupSize;
                 context.cmd.DispatchCompute(_gpuInstanceCullingCS, kernelIndex,
-                    AAAAMathUtils.AlignUp(data.InstanceCount, groupSize) / groupSize, 1, 1
+                    AAAAMathUtils.AlignUp(data.InstanceCount, groupSize) / groupSize, data.CullingContextCount, 1
                 );
             }
 
@@ -378,9 +378,16 @@ namespace DELTation.AAAARP.Passes
                     ShaderID.MeshletListBuild._DestinationMeshlets, data.InitialMeshletListBuffer
                 );
 
-                context.cmd.DispatchCompute(_meshletListBuildCS, kernelIndex,
-                    data.MeshletListBuildIndirectDispatchArgsBuffer, 0
-                );
+                for (int cullingContextIndex = 0; cullingContextIndex < data.CullingContextCount; cullingContextIndex++)
+                {
+                    context.cmd.SetComputeIntParam(_meshletListBuildCS,
+                        ShaderID.MeshletListBuild._CullingContextIndex, cullingContextIndex
+                    );
+                    uint argsOffset = (uint) (cullingContextIndex * UnsafeUtility.SizeOf<IndirectDispatchArgs>());
+                    context.cmd.DispatchCompute(_meshletListBuildCS, kernelIndex,
+                        data.MeshletListBuildIndirectDispatchArgsBuffer, argsOffset
+                    );
+                }
             }
 
             using (new ProfilingScope(context.cmd, Profiling.FixupMeshletCullingIndirectDispatchArgs))
@@ -393,7 +400,7 @@ namespace DELTation.AAAARP.Passes
                 context.cmd.SetComputeBufferParam(_fixupGPUMeshletCullingIndirectDispatchArgsCS, kernelIndex,
                     ShaderID.FixupMeshletCullingIndirectDispatchArgs._IndirectArgs, data.GPUMeshletCullingIndirectDispatchArgsBuffer
                 );
-                context.cmd.DispatchCompute(_fixupGPUMeshletCullingIndirectDispatchArgsCS, kernelIndex, 1, 1, 1);
+                context.cmd.DispatchCompute(_fixupGPUMeshletCullingIndirectDispatchArgsCS, kernelIndex, data.CullingContextCount, 1, 1);
             }
 
             using (new ProfilingScope(context.cmd, Profiling.MeshletCulling))
@@ -444,7 +451,14 @@ namespace DELTation.AAAARP.Passes
                     );
                 }
 
-                context.cmd.DispatchCompute(_gpuMeshletCullingCS, kernelIndex, data.GPUMeshletCullingIndirectDispatchArgsBuffer, 0);
+                for (int cullingContextIndex = 0; cullingContextIndex < data.CullingContextCount; cullingContextIndex++)
+                {
+                    context.cmd.SetComputeIntParam(_gpuMeshletCullingCS,
+                        ShaderID.MeshletCulling._CullingContextIndex, cullingContextIndex
+                    );
+                    uint argsOffset = (uint) (cullingContextIndex * UnsafeUtility.SizeOf<IndirectDispatchArgs>());
+                    context.cmd.DispatchCompute(_gpuMeshletCullingCS, kernelIndex, data.GPUMeshletCullingIndirectDispatchArgsBuffer, argsOffset);
+                }
             }
         }
 
@@ -586,6 +600,7 @@ namespace DELTation.AAAARP.Passes
             public static class MeshletListBuild
             {
                 public static int _LODSelectionContexts = Shader.PropertyToID(nameof(_LODSelectionContexts));
+                public static int _CullingContextIndex = Shader.PropertyToID(nameof(_CullingContextIndex));
 
                 public static int _Jobs = Shader.PropertyToID(nameof(_Jobs));
 
@@ -602,6 +617,7 @@ namespace DELTation.AAAARP.Passes
             public static class MeshletCulling
             {
                 public static int _CullingContexts = Shader.PropertyToID(nameof(_CullingContexts));
+                public static int _CullingContextIndex = Shader.PropertyToID(nameof(_CullingContextIndex));
 
                 public static int _SourceMeshletsCounter = Shader.PropertyToID(nameof(_SourceMeshletsCounter));
                 public static int _SourceMeshlets = Shader.PropertyToID(nameof(_SourceMeshlets));

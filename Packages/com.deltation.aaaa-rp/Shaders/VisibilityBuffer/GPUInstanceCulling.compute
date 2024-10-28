@@ -13,6 +13,7 @@
 #define THREAD_GROUP_SIZE GPUINSTANCE_CULLING_THREAD_GROUP_SIZE
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Compute/IndirectArgs.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/GPUCullingContexts.hlsl"
@@ -29,7 +30,7 @@ RWStructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
 RWByteAddressBuffer                         _JobCounter;
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
-void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupID : SV_GroupID)
 {
     const uint i = dispatchThreadID.x;
     UNITY_BRANCH
@@ -49,7 +50,8 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     #endif
 
     const AAAAInstanceData  instanceData = PullInstanceData(instanceID);
-    const GPUCullingContext cullingContext = _CullingContexts.Items[0];
+    const uint              contextIndex = groupID.y;
+    const GPUCullingContext cullingContext = _CullingContexts.Items[contextIndex];
 
     UNITY_BRANCH
     if ((instanceData.PassMask & cullingContext.PassMask) == 0)
@@ -94,7 +96,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     const uint totalMeshLODCount = instanceData.TotalMeshLODCount;
     const uint jobCount = ceil((float)totalMeshLODCount / MAX_LODNODES_PER_THREAD_GROUP);
     uint       jobWriteOffset;
-    _JobCounter.InterlockedAdd(0, jobCount, jobWriteOffset);
+    _JobCounter.InterlockedAdd(contextIndex * IndirectArgs::DispatchArgsStride(), jobCount, jobWriteOffset);
 
     for (uint jobIndex = 0; jobIndex < jobCount; ++jobIndex)
     {
@@ -106,6 +108,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         job.InstanceID = instanceID,
         job.MeshLODNodeOffset = offset;
         job.MeshLODNodeCount = count;
+        // TODO: use the culling context's offset
         _Jobs[jobWriteOffset + jobIndex] = job;
     }
 }

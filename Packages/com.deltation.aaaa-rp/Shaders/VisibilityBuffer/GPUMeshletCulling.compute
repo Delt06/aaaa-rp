@@ -29,6 +29,7 @@
 
 ConstantBuffer<GPUCullingContextArray> _CullingContexts;
 
+uint _CullingContextIndex;
 uint _MaxMeshletRenderRequestsPerList;
 
 ByteAddressBuffer _SourceMeshletsCounter;
@@ -111,7 +112,7 @@ uint GetRendererListID(const AAAAInstanceData instanceData, const AAAAMaterialDa
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint meshletsCount = _SourceMeshletsCounter.Load(0);
+    const uint meshletsCount = _SourceMeshletsCounter.Load(_CullingContextIndex * 4);
     const uint sourceMeshletID = dispatchThreadID.x;
 
     UNITY_BRANCH
@@ -120,7 +121,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    const GPUCullingContext cullingContext = _CullingContexts.Items[0];
+    const GPUCullingContext cullingContext = _CullingContexts.Items[_CullingContextIndex];
 
     const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(_SourceMeshlets, sourceMeshletID);
     const AAAAInstanceData         instanceData = PullInstanceData(meshletRenderRequest.InstanceID);
@@ -137,6 +138,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     const uint counterAddress = _DestinationMeshletsCounterStride * rendererListID + _DestinationMeshletsCounterOffset;
     _DestinationMeshletsCounter.InterlockedAdd(counterAddress, 1, localRenderRequestWriteOffset);
 
+    // TODO: use the culling context's offset
     const uint renderRequestIndex = localRenderRequestWriteOffset + rendererListID * _MaxMeshletRenderRequestsPerList;
     StoreMeshletRenderRequest(_DestinationMeshlets, renderRequestIndex, meshletRenderRequest);
     #ifdef OCCLUSION_CULLING_ON

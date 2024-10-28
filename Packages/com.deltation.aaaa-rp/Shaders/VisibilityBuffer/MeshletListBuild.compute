@@ -16,6 +16,7 @@
 
 uint  _ForcedMeshLODNodeDepth;
 float _MeshLODErrorThreshold;
+uint  _CullingContextIndex;
 
 ConstantBuffer<GPULODSelectionContextArray> _LODSelectionContexts;
 
@@ -103,7 +104,8 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
 
     GroupMemoryBarrierWithGroupSync();
 
-    const GPULODSelectionContext  lodSelectionContext = _LODSelectionContexts.Items[0];
+    const uint                    contextIndex = _CullingContextIndex;
+    const GPULODSelectionContext  lodSelectionContext = _LODSelectionContexts.Items[contextIndex];
     const AAAAMeshletListBuildJob job = _Jobs[groupID.x];
     const AAAAInstanceData        instanceData = PullInstanceData(job.InstanceID);
 
@@ -135,7 +137,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
 
     if (groupThreadID.x == 0)
     {
-        _DestinationMeshletsCounter.InterlockedAdd(0, g_PassedMeshletCount, g_MeshletWriteOffset);
+        _DestinationMeshletsCounter.InterlockedAdd(contextIndex * 4, g_PassedMeshletCount, g_MeshletWriteOffset);
     }
 
     GroupMemoryBarrierWithGroupSync();
@@ -154,6 +156,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
 
             uint writeOffset;
             InterlockedAdd(g_MeshletWriteOffset, 1, writeOffset);
+            // TODO: write with offset depending on the culling index
             StoreMeshletRenderRequest(_DestinationMeshlets, writeOffset, meshletRenderRequest);
         }
     }
