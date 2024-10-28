@@ -1,11 +1,14 @@
 #pragma kernel CS
 
+#pragma use_dxc
+
 #pragma multi_compile_local _ MAIN_PASS FALSE_NEGATIVE_PASS
 #pragma multi_compile_local _ DISABLE_OCCLUSION_CULLING
 
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/Debugging/GPUCullingDebugPragma.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
+#include "Packages/com.deltation.aaaa-rp/Runtime/Passes/GPUCullingContext.cs.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/GPUCullingDebug.hlsl"
 
 #define THREAD_GROUP_SIZE GPUINSTANCE_CULLING_THREAD_GROUP_SIZE
@@ -17,11 +20,7 @@
 #define RW_OCCLUSION_CULLING_INSTANCE_VISIBILITY_MASK
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/OcclusionCulling.hlsl"
 
-float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
-float4   _CullingSphereLS;
-float4x4 _CameraViewProjection;
-float4x4 _CameraView;
-uint     _PassMask;
+ConstantBuffer<GPUCullingContext> _CullingContext;
 
 ByteAddressBuffer _InstanceIndices;
 uint              _InstanceIndicesCount;
@@ -49,10 +48,11 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     }
     #endif
 
-    const AAAAInstanceData instanceData = PullInstanceData(instanceID);
+    const AAAAInstanceData  instanceData = PullInstanceData(instanceID);
+    const GPUCullingContext cullingContext = _CullingContext;
 
     UNITY_BRANCH
-    if ((instanceData.PassMask & _PassMask) == 0)
+    if ((instanceData.PassMask & cullingContext.CullingPassMask) == 0)
     {
         return;
     }
@@ -60,11 +60,11 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     const AABB             aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);
     const AABB             aabbWS = TransformAABB(aabbOS, instanceData.ObjectToWorldMatrix);
     const float4           boundingSphereWS = AABBToBoundingSphere(aabbWS);
-    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(aabbWS, _CameraViewProjection);
+    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(aabbWS, cullingContext.CullingViewProjection);
 
     UNITY_BRANCH
-    if (!FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphereWS) ||
-        !LightSphereCulling(_CullingSphereLS, _CameraView, boundingSphereWS))
+    if (!FrustumVsSphereCulling(cullingContext.CullingFrustumPlanes, boundingSphereWS) ||
+        !LightSphereCulling(cullingContext.CullingSphereLS, cullingContext.CullingView, boundingSphereWS))
     {
         OcclusionCulling::MarkInvisibleThisFrame(instanceID);
         GPUCullingDebug::OnCulled(boundingSquareSS, AAAAGPUCULLINGDEBUGGRANULARITY_INSTANCE, AAAAGPUCULLINGDEBUGTYPE_FRUSTUM);

@@ -1,5 +1,7 @@
 #pragma kernel CS
 
+#pragma use_dxc
+
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 #define THREAD_GROUP_SIZE MESHLET_LIST_BUILD_THREAD_GROUP_SIZE
 
@@ -9,15 +11,12 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLODNodes.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshletListBuild.hlsl"
+#include "Packages/com.deltation.aaaa-rp/Runtime/Passes/GPUCullingContext.cs.hlsl"
 
 uint  _ForcedMeshLODNodeDepth;
 float _MeshLODErrorThreshold;
 
-float4x4 _CameraViewProjection;
-float4   _CameraPosition;
-float4   _CameraUp;
-float4   _CameraRight;
-float2   _ScreenSizePixels;
+ConstantBuffer<GPULODSelectionContext> _LODSelectionContext;
 
 StructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
 
@@ -32,14 +31,15 @@ float2 GetNormalizedScreenCoordinates(const float4x4 mvpMatrix, const float3 pos
     return centerCS.xy;
 }
 
-float GetScreenBoundRadiusSq(const float4x4 vpMatrix, const float4 boundsWS)
+float GetScreenBoundRadiusSq(const GPULODSelectionContext lodSelectionContext, const float4 boundsWS)
 {
-    const float2 p0 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz);
-    const float2 p1 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz + _CameraUp.xyz * boundsWS.w);
-    const float2 p2 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz + _CameraRight.xyz * boundsWS.w);
+    const float4x4 vpMatrix = lodSelectionContext.LODCameraViewProjection;
+    const float2   p0 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz);
+    const float2   p1 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz + lodSelectionContext.LODCameraUp.xyz * boundsWS.w);
+    const float2   p2 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz + lodSelectionContext.LODCameraRight.xyz * boundsWS.w);
 
-    const float2 v0 = (p1 - p0) * _ScreenSizePixels;
-    const float2 v1 = (p2 - p0) * _ScreenSizePixels;
+    const float2 v0 = (p1 - p0) * lodSelectionContext.LODScreenSizePixels;
+    const float2 v1 = (p2 - p0) * lodSelectionContext.LODScreenSizePixels;
     return max(dot(v0, v0), dot(v1, v1));
 }
 
@@ -56,7 +56,8 @@ void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode mesh
     }
 }
 
-bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode, const AAAAInstanceData instanceData, const float distanceToViewSq)
+bool ShouldPushMeshletRenderRequests(const GPULODSelectionContext lodSelectionContext, const AAAAMeshLODNode meshLODNode,
+                                     const AAAAInstanceData       instanceData, const float                  distanceToViewSq)
 {
     bool result;
 
@@ -70,10 +71,10 @@ bool ShouldPushMeshletRenderRequests(const AAAAMeshLODNode meshLODNode, const AA
     {
         const float4 boundsWS = TransformBoundingSphere(meshLODNode.Bounds, instanceData.ObjectToWorldMatrix);
         const float4 parentBoundsWS = TransformBoundingSphere(meshLODNode.ParentBounds, instanceData.ObjectToWorldMatrix);
-        const float  error = meshLODNode.Error * GetScreenBoundRadiusSq(_CameraViewProjection, boundsWS);
+        const float  error = meshLODNode.Error * GetScreenBoundRadiusSq(lodSelectionContext, boundsWS);
         const float  parentError = meshLODNode.ParentError >= 0
-                                      ? meshLODNode.ParentError * GetScreenBoundRadiusSq(_CameraViewProjection, parentBoundsWS)
-                                      : FLT_INF;
+                                       ? meshLODNode.ParentError * GetScreenBoundRadiusSq(lodSelectionContext, parentBoundsWS)
+                                       : FLT_INF;
         const float threshold = _MeshLODErrorThreshold * distanceToViewSq * instanceData.LODErrorScale;
         result = parentError > threshold && error <= threshold;
     }
@@ -101,11 +102,12 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
 
     GroupMemoryBarrierWithGroupSync();
 
+    const GPULODSelectionContext  lodSelectionContext = _LODSelectionContext;
     const AAAAMeshletListBuildJob job = _Jobs[groupID.x];
     const AAAAInstanceData        instanceData = PullInstanceData(job.InstanceID);
 
     const float3 instanceBoundsCenter = (instanceData.AABBMin.xyz + instanceData.AABBMax.xyz) * 0.5f;
-    const float  distanceToViewSq = Length2(_CameraPosition.xyz - instanceBoundsCenter);
+    const float  distanceToViewSq = Length2(lodSelectionContext.LODCameraPosition.xyz - instanceBoundsCenter);
 
     const uint from = instanceData.TopMeshLODStartIndex + job.MeshLODNodeOffset;
     const uint nodeCount = min(MAX_LODNODES_PER_THREAD_GROUP, job.MeshLODNodeCount);
@@ -119,7 +121,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
         g_CachedNodes_MeshletCount[cachedNodeIndex] = meshLODNode.MeshletCount;
         g_CachedNodes_MeshletStartIndex[cachedNodeIndex] = meshLODNode.MeshletStartIndex;
 
-        if (ShouldPushMeshletRenderRequests(meshLODNode, instanceData, distanceToViewSq))
+        if (ShouldPushMeshletRenderRequests(lodSelectionContext, meshLODNode, instanceData, distanceToViewSq))
         {
             uint listOffset;
             InterlockedAdd(g_PassedNodeCount, 1, listOffset);

@@ -1,10 +1,13 @@
 #pragma kernel CS
 
+#pragma use_dxc
+
 #pragma multi_compile_local _ MAIN_PASS FALSE_NEGATIVE_PASS
 #pragma multi_compile_local _ DISABLE_OCCLUSION_CULLING
 
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/Debugging/GPUCullingDebugPragma.hlsl"
+#include "Packages/com.deltation.aaaa-rp/Runtime/Passes/GPUCullingContext.cs.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Debug/GPUCullingDebug.hlsl"
 
@@ -24,14 +27,9 @@
 #define RW_OCCLUSION_CULLING_INSTANCE_VISIBILITY_MASK
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/OcclusionCulling.hlsl"
 
-float4   _CameraFrustumPlanes[PLANES_IN_FRUSTUM];
-float4   _CameraPosition;
-float4   _CullingSphereLS;
-float4x4 _CameraViewProjection;
-float4x4 _CameraView;
-float4x4 _CameraViewInv;
-float    _CameraIsPerspective;
-uint     _MaxMeshletRenderRequestsPerList;
+ConstantBuffer<GPUCullingContext> _CullingContext;
+
+uint _MaxMeshletRenderRequestsPerList;
 
 ByteAddressBuffer _SourceMeshletsCounter;
 ByteAddressBuffer _SourceMeshlets;
@@ -41,23 +39,23 @@ uint                _DestinationMeshletsCounterOffset;
 uint                _DestinationMeshletsCounterStride;
 RWByteAddressBuffer _DestinationMeshlets;
 
-bool Culling(const AAAAInstanceData instanceData, const uint rendererListID, const AAAAMeshlet meshletData)
+bool Culling(const GPUCullingContext cullingContext, const AAAAInstanceData instanceData, const uint rendererListID, const AAAAMeshlet meshletData)
 {
     const float4           boundingSphereWS = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
-    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(boundingSphereWS, _CameraViewProjection);
+    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(boundingSphereWS, cullingContext.CullingViewProjection);
 
     bool result = false;
 
     UNITY_BRANCH
-    if (FrustumVsSphereCulling(_CameraFrustumPlanes, boundingSphereWS) &&
-        LightSphereCulling(_CullingSphereLS, _CameraView, boundingSphereWS))
+    if (FrustumVsSphereCulling(cullingContext.CullingFrustumPlanes, boundingSphereWS) &&
+        LightSphereCulling(cullingContext.CullingSphereLS, cullingContext.CullingView, boundingSphereWS))
     {
-        const float3 viewForwardDirWS = -GetViewForwardDir(_CameraView);
-        const bool   isPerspective = _CameraIsPerspective;
+        const float3 viewForwardDirWS = -GetViewForwardDir(cullingContext.CullingView);
+        const bool   isPerspective = cullingContext.CullingCameraIsPerspective;
 
         UNITY_BRANCH
         if (rendererListID & AAAARENDERERLISTID_CULL_OFF ||
-            ConeCulling(_CameraPosition.xyz, viewForwardDirWS, isPerspective, instanceData, meshletData))
+            ConeCulling(cullingContext.CullingCameraPosition.xyz, viewForwardDirWS, isPerspective, instanceData, meshletData))
         {
             #if defined(FALSE_NEGATIVE_PASS) && !defined(DISABLE_OCCLUSION_CULLING)
         
@@ -122,13 +120,15 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
+    const GPUCullingContext cullingContext = _CullingContext;
+
     const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(_SourceMeshlets, sourceMeshletID);
     const AAAAInstanceData         instanceData = PullInstanceData(meshletRenderRequest.InstanceID);
     const AAAAMaterialData         materialData = PullMaterialData(instanceData.MaterialIndex);
     const uint                     rendererListID = GetRendererListID(instanceData, materialData);
     const AAAAMeshlet              meshlet = PullMeshletData(meshletRenderRequest.MeshletID);
 
-    if (!Culling(instanceData, rendererListID, meshlet))
+    if (!Culling(cullingContext, instanceData, rendererListID, meshlet))
     {
         return;
     }
