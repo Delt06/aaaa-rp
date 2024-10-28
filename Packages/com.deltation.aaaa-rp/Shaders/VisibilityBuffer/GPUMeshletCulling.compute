@@ -42,20 +42,20 @@ RWByteAddressBuffer _DestinationMeshlets;
 bool Culling(const GPUCullingContext cullingContext, const AAAAInstanceData instanceData, const uint rendererListID, const AAAAMeshlet meshletData)
 {
     const float4           boundingSphereWS = TransformBoundingSphere(meshletData.BoundingSphere, instanceData.ObjectToWorldMatrix);
-    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(boundingSphereWS, cullingContext.CullingViewProjection);
+    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(boundingSphereWS, cullingContext.ViewProjectionMatrix);
 
     bool result = false;
 
     UNITY_BRANCH
-    if (FrustumVsSphereCulling(cullingContext.CullingFrustumPlanes, boundingSphereWS) &&
-        LightSphereCulling(cullingContext.CullingSphereLS, cullingContext.CullingView, boundingSphereWS))
+    if (FrustumVsSphereCulling(cullingContext.FrustumPlanes, boundingSphereWS) &&
+        LightSphereCulling(cullingContext.CullingSphereLS, cullingContext.ViewMatrix, boundingSphereWS))
     {
-        const float3 viewForwardDirWS = -GetViewForwardDir(cullingContext.CullingView);
-        const bool   isPerspective = cullingContext.CullingCameraIsPerspective;
+        const float3 viewForwardDirWS = -GetViewForwardDir(cullingContext.ViewMatrix);
+        const bool   isPerspective = cullingContext.CameraIsPerspective;
 
         UNITY_BRANCH
         if (rendererListID & AAAARENDERERLISTID_CULL_OFF ||
-            ConeCulling(cullingContext.CullingCameraPosition.xyz, viewForwardDirWS, isPerspective, instanceData, meshletData))
+            ConeCulling(cullingContext.CameraPosition.xyz, viewForwardDirWS, isPerspective, instanceData, meshletData))
         {
             #if defined(FALSE_NEGATIVE_PASS) && !defined(DISABLE_OCCLUSION_CULLING)
         

@@ -52,7 +52,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     const GPUCullingContext cullingContext = _CullingContext;
 
     UNITY_BRANCH
-    if ((instanceData.PassMask & cullingContext.CullingPassMask) == 0)
+    if ((instanceData.PassMask & cullingContext.PassMask) == 0)
     {
         return;
     }
@@ -60,11 +60,11 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     const AABB             aabbOS = AABB::Create(instanceData.AABBMin.xyz, instanceData.AABBMax.xyz);
     const AABB             aabbWS = TransformAABB(aabbOS, instanceData.ObjectToWorldMatrix);
     const float4           boundingSphereWS = AABBToBoundingSphere(aabbWS);
-    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(aabbWS, cullingContext.CullingViewProjection);
+    const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(aabbWS, cullingContext.ViewProjectionMatrix);
 
     UNITY_BRANCH
-    if (!FrustumVsSphereCulling(cullingContext.CullingFrustumPlanes, boundingSphereWS) ||
-        !LightSphereCulling(cullingContext.CullingSphereLS, cullingContext.CullingView, boundingSphereWS))
+    if (!FrustumVsSphereCulling(cullingContext.FrustumPlanes, boundingSphereWS) ||
+        !LightSphereCulling(cullingContext.CullingSphereLS, cullingContext.ViewMatrix, boundingSphereWS))
     {
         OcclusionCulling::MarkInvisibleThisFrame(instanceID);
         GPUCullingDebug::OnCulled(boundingSquareSS, AAAAGPUCULLINGDEBUGGRANULARITY_INSTANCE, AAAAGPUCULLINGDEBUGTYPE_FRUSTUM);

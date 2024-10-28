@@ -13,24 +13,24 @@
 // PackingRules = Exact
 struct GPUCullingContext
 {
-    float4x4 CullingViewProjection;
-    float4x4 CullingView;
-    float4 CullingCameraPosition;
-    float4 CullingFrustumPlanes[6];
+    float4x4 ViewProjectionMatrix;
+    float4x4 ViewMatrix;
+    float4 CameraPosition;
+    float4 FrustumPlanes[6];
     float4 CullingSphereLS;
-    int CullingPassMask;
-    int CullingCameraIsPerspective;
+    int PassMask;
+    int CameraIsPerspective;
 };
 
 // Generated from DELTation.AAAARP.Passes.GPULODSelectionContext
 // PackingRules = Exact
 struct GPULODSelectionContext
 {
-    float4x4 LODCameraViewProjection;
-    float4 LODCameraPosition;
-    float4 LODCameraUp;
-    float4 LODCameraRight;
-    float2 LODScreenSizePixels;
+    float4x4 ViewProjectionMatrix;
+    float4 CameraPosition;
+    float4 CameraUp;
+    float4 CameraRight;
+    float2 ScreenSizePixels;
 };
 
 

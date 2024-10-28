@@ -33,13 +33,13 @@ float2 GetNormalizedScreenCoordinates(const float4x4 mvpMatrix, const float3 pos
 
 float GetScreenBoundRadiusSq(const GPULODSelectionContext lodSelectionContext, const float4 boundsWS)
 {
-    const float4x4 vpMatrix = lodSelectionContext.LODCameraViewProjection;
+    const float4x4 vpMatrix = lodSelectionContext.ViewProjectionMatrix;
     const float2   p0 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz);
-    const float2   p1 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz + lodSelectionContext.LODCameraUp.xyz * boundsWS.w);
-    const float2   p2 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz + lodSelectionContext.LODCameraRight.xyz * boundsWS.w);
+    const float2   p1 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz + lodSelectionContext.CameraUp.xyz * boundsWS.w);
+    const float2   p2 = GetNormalizedScreenCoordinates(vpMatrix, boundsWS.xyz + lodSelectionContext.CameraRight.xyz * boundsWS.w);
 
-    const float2 v0 = (p1 - p0) * lodSelectionContext.LODScreenSizePixels;
-    const float2 v1 = (p2 - p0) * lodSelectionContext.LODScreenSizePixels;
+    const float2 v0 = (p1 - p0) * lodSelectionContext.ScreenSizePixels;
+    const float2 v1 = (p2 - p0) * lodSelectionContext.ScreenSizePixels;
     return max(dot(v0, v0), dot(v1, v1));
 }
 
@@ -107,7 +107,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     const AAAAInstanceData        instanceData = PullInstanceData(job.InstanceID);
 
     const float3 instanceBoundsCenter = (instanceData.AABBMin.xyz + instanceData.AABBMax.xyz) * 0.5f;
-    const float  distanceToViewSq = Length2(lodSelectionContext.LODCameraPosition.xyz - instanceBoundsCenter);
+    const float  distanceToViewSq = Length2(lodSelectionContext.CameraPosition.xyz - instanceBoundsCenter);
 
     const uint from = instanceData.TopMeshLODStartIndex + job.MeshLODNodeOffset;
     const uint nodeCount = min(MAX_LODNODES_PER_THREAD_GROUP, job.MeshLODNodeCount);

@@ -262,15 +262,15 @@ namespace DELTation.AAAARP.Passes
 
                     gpuCullingContext = new GPUCullingContext
                     {
-                        CullingView = data.CullingView.ViewMatrix,
-                        CullingViewProjection = data.CullingView.GPUViewProjectionMatrix,
-                        CullingCameraPosition = math.float4(data.CullingView.CameraPosition, 1),
+                        ViewMatrix = data.CullingView.ViewMatrix,
+                        ViewProjectionMatrix = data.CullingView.GPUViewProjectionMatrix,
+                        CameraPosition = math.float4(data.CullingView.CameraPosition, 1),
                         CullingSphereLS = data.CullingSphereLS,
-                        CullingPassMask = (int) data.CullingView.PassMask,
-                        CullingCameraIsPerspective = data.CullingView.IsPerspective ? 1 : 0,
+                        PassMask = (int) data.CullingView.PassMask,
+                        CameraIsPerspective = data.CullingView.IsPerspective ? 1 : 0,
                     };
 
-                    fixed (float* pFrustumPlanesDestination = gpuCullingContext.CullingFrustumPlanes)
+                    fixed (float* pFrustumPlanesDestination = gpuCullingContext.FrustumPlanes)
                     {
                         fixed (Vector4* pFrustumPlanesSource = data.FrustumPlanes)
                         {
@@ -286,11 +286,11 @@ namespace DELTation.AAAARP.Passes
                     ref GPULODSelectionContext gpulodSelectionContext = ref gpuLodSelectionContexts.ElementAtRef(0);
                     gpulodSelectionContext = new GPULODSelectionContext
                     {
-                        LODCameraPosition = math.float4(data.LODSelectionContext.CameraPosition, 1),
-                        LODCameraRight = math.float4(data.LODSelectionContext.CameraRight, 0),
-                        LODCameraUp = math.float4(data.LODSelectionContext.CameraUp, 0),
-                        LODCameraViewProjection = data.LODSelectionContext.GPUViewProjectionMatrix,
-                        LODScreenSizePixels = data.LODSelectionContext.PixelSize,
+                        CameraPosition = math.float4(data.LODSelectionContext.CameraPosition, 1),
+                        CameraRight = math.float4(data.LODSelectionContext.CameraRight, 0),
+                        CameraUp = math.float4(data.LODSelectionContext.CameraUp, 0),
+                        ViewProjectionMatrix = data.LODSelectionContext.GPUViewProjectionMatrix,
+                        ScreenSizePixels = data.LODSelectionContext.PixelSize,
                     };
 
                     context.cmd.SetBufferData(data.GPULODSelectionContextBuffer, gpuLodSelectionContexts);

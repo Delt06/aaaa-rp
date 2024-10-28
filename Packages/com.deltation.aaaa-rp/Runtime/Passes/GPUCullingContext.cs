@@ -1,33 +1,36 @@
-﻿using Unity.Mathematics;
+﻿using System.Runtime.InteropServices;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Passes
 {
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
+    [StructLayout(LayoutKind.Auto)]
     public unsafe struct GPUCullingContext
     {
         public const int MaxCullingContextsPerBatch = 8;
 
-        public float4x4 CullingViewProjection;
-        public float4x4 CullingView;
-        public float4 CullingCameraPosition;
+        public float4x4 ViewProjectionMatrix;
+        public float4x4 ViewMatrix;
+        public float4 CameraPosition;
 
         [HLSLArray(6, typeof(Vector4))]
-        public fixed float CullingFrustumPlanes[6 * 4];
+        public fixed float FrustumPlanes[6 * 4];
         public float4 CullingSphereLS;
 
-        public int CullingPassMask;
-        public int CullingCameraIsPerspective;
+        public int PassMask;
+        public int CameraIsPerspective;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
+    [StructLayout(LayoutKind.Auto)]
     public struct GPULODSelectionContext
     {
-        public float4x4 LODCameraViewProjection;
-        public float4 LODCameraPosition;
-        public float4 LODCameraUp;
-        public float4 LODCameraRight;
-        public float2 LODScreenSizePixels;
+        public float4x4 ViewProjectionMatrix;
+        public float4 CameraPosition;
+        public float4 CameraUp;
+        public float4 CameraRight;
+        public float2 ScreenSizePixels;
     }
 }
