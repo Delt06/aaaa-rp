@@ -8,6 +8,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/GPUCullingContexts.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLODNodes.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshletListBuild.hlsl"
@@ -16,7 +17,7 @@
 uint  _ForcedMeshLODNodeDepth;
 float _MeshLODErrorThreshold;
 
-ConstantBuffer<GPULODSelectionContext> _LODSelectionContext;
+ConstantBuffer<GPULODSelectionContextArray> _LODSelectionContexts;
 
 StructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
 
@@ -73,8 +74,8 @@ bool ShouldPushMeshletRenderRequests(const GPULODSelectionContext lodSelectionCo
         const float4 parentBoundsWS = TransformBoundingSphere(meshLODNode.ParentBounds, instanceData.ObjectToWorldMatrix);
         const float  error = meshLODNode.Error * GetScreenBoundRadiusSq(lodSelectionContext, boundsWS);
         const float  parentError = meshLODNode.ParentError >= 0
-                                       ? meshLODNode.ParentError * GetScreenBoundRadiusSq(lodSelectionContext, parentBoundsWS)
-                                       : FLT_INF;
+                                      ? meshLODNode.ParentError * GetScreenBoundRadiusSq(lodSelectionContext, parentBoundsWS)
+                                      : FLT_INF;
         const float threshold = _MeshLODErrorThreshold * distanceToViewSq * instanceData.LODErrorScale;
         result = parentError > threshold && error <= threshold;
     }
@@ -102,7 +103,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
 
     GroupMemoryBarrierWithGroupSync();
 
-    const GPULODSelectionContext  lodSelectionContext = _LODSelectionContext;
+    const GPULODSelectionContext  lodSelectionContext = _LODSelectionContexts.Items[0];
     const AAAAMeshletListBuildJob job = _Jobs[groupID.x];
     const AAAAInstanceData        instanceData = PullInstanceData(job.InstanceID);
 
