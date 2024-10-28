@@ -52,6 +52,9 @@ namespace DELTation.AAAARP.Lighting
                 {
                     hideFlags = HideFlags.HideAndDontSave,
                 };
+#if DEBUG
+                renderTexture.name = $"ShadowMap_{resolution}x{resolution}_{poolData.RenderTextures.Count:00}";
+#endif
 
                 renderTexture.Create();
 
