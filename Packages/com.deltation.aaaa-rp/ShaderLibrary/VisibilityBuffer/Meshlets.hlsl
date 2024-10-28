@@ -31,9 +31,10 @@ AAAAMeshletRenderRequest PullMeshletRenderRequest(ByteAddressBuffer renderReques
     return renderRequest;
 }
 
-void StoreMeshletRenderRequest(RWByteAddressBuffer renderRequests, const uint index, AAAAMeshletRenderRequest renderRequest)
+void StoreMeshletRenderRequest(RWByteAddressBuffer            renderRequests, const uint storeOffset, const uint index,
+                               const AAAAMeshletRenderRequest renderRequest)
 {
-    const uint  address = MeshletRenderRequestIndexToAddress(index);
+    const uint  address = storeOffset + MeshletRenderRequestIndexToAddress(index);
     const uint2 value = uint2(renderRequest.InstanceID, renderRequest.MeshletID);
     renderRequests.Store2(address, value);
 }

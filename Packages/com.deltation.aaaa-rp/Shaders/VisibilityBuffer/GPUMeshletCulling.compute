@@ -31,6 +31,7 @@ ConstantBuffer<GPUCullingContextArray> _CullingContexts;
 
 uint _CullingContextIndex;
 uint _MaxMeshletRenderRequestsPerList;
+uint _DestinationMeshletsOffset;
 
 ByteAddressBuffer _SourceMeshletsCounter;
 ByteAddressBuffer _SourceMeshlets;
@@ -140,7 +141,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     // TODO: use the culling context's offset
     const uint renderRequestIndex = localRenderRequestWriteOffset + rendererListID * _MaxMeshletRenderRequestsPerList;
-    StoreMeshletRenderRequest(_DestinationMeshlets, renderRequestIndex, meshletRenderRequest);
+    StoreMeshletRenderRequest(_DestinationMeshlets, _DestinationMeshletsOffset, renderRequestIndex, meshletRenderRequest);
     #ifdef OCCLUSION_CULLING_ON
     OcclusionCulling::MarkVisibleThisFrame(meshletRenderRequest.InstanceID);
     #endif

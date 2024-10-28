@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
@@ -117,17 +118,7 @@ namespace DELTation.AAAARP
             EnqueuePass(_brdfIntegrationPass);
             EnqueuePass(_preFilterEnvironmentPass);
 
-            for (int shadowLightIndex = 0; shadowLightIndex < shadowsData.ShadowLights.Length; shadowLightIndex++)
-            {
-                ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
-                for (int splitIndex = 0; splitIndex < shadowLight.Splits.Length; splitIndex++)
-                {
-                    ref readonly AAAAShadowsData.ShadowLightSplit shadowLightSplit = ref shadowLight.Splits.ElementAtRef(splitIndex);
-                    ShadowPassPool.PassSet passSet = _shadowPassPool.RequestPassesBasic(shadowLightIndex, splitIndex, shadowLightSplit.CullingView);
-                    EnqueuePass(passSet.GPUCullingPass);
-                    EnqueuePass(passSet.DrawShadowsPass);
-                }
-            }
+            EnqueueShadowPasses(shadowsData);
             EnqueuePass(_setupLightingPass);
 
             Camera cullingCameraOverride = DebugHandler?.GetGPUCullingCameraOverride();
@@ -195,6 +186,50 @@ namespace DELTation.AAAARP
             EnqueuePass(_finalBlitPass);
 
             DebugHandler?.Setup(this, renderGraph, context);
+        }
+
+        private void EnqueueShadowPasses(AAAAShadowsData shadowsData)
+        {
+            using (ListPool<ShadowPassPool.PassSet>.Get(out List<ShadowPassPool.PassSet> contextPasses))
+            {
+                for (int shadowLightIndex = 0; shadowLightIndex < shadowsData.ShadowLights.Length; shadowLightIndex++)
+                {
+                    ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
+                    for (int splitIndex = 0; splitIndex < shadowLight.Splits.Length; splitIndex++)
+                    {
+                        ref readonly AAAAShadowsData.ShadowLightSplit shadowLightSplit = ref shadowLight.Splits.ElementAtRef(splitIndex);
+                        int contextIndex = contextPasses.Count;
+                        ShadowPassPool.PassSet passSet =
+                            _shadowPassPool.RequestPassesBasic(shadowLightIndex, splitIndex, shadowLightSplit.CullingView, contextIndex);
+                        contextPasses.Add(passSet);
+
+                        if (contextPasses.Count == GPUCullingContext.MaxCullingContextsPerBatch)
+                        {
+                            FlushShadowPasses(contextPasses);
+                        }
+                    }
+                }
+
+                if (contextPasses.Count > 0)
+                {
+                    FlushShadowPasses(contextPasses);
+                }
+            }
+        }
+
+        private void FlushShadowPasses(List<ShadowPassPool.PassSet> contextPasses)
+        {
+            foreach (ShadowPassPool.PassSet passSet in contextPasses)
+            {
+                EnqueuePass(passSet.GPUCullingPass);
+            }
+
+            foreach (ShadowPassPool.PassSet passSet in contextPasses)
+            {
+                EnqueuePass(passSet.DrawShadowsPass);
+            }
+
+            contextPasses.Clear();
         }
 
         protected override void Dispose(bool disposing)

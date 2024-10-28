@@ -6,6 +6,7 @@ using DELTation.AAAARP.Core.ObjectDispatching;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.Meshlets;
+using DELTation.AAAARP.Passes;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
 using JetBrains.Annotations;
@@ -83,6 +84,9 @@ namespace DELTation.AAAARP.Renderers
 
             _isDirty = true;
         }
+
+        public int MeshletRenderRequestByteStridePerContext { get; private set; }
+        public int IndirectDrawArgsByteStridePerContext { get; private set; }
 
         internal OcclusionCullingResources OcclusionCullingResources { get; }
 
@@ -235,21 +239,23 @@ namespace DELTation.AAAARP.Renderers
             );
             _sharedIndexBuffer.SetData(_sharedIndices.AsArray());
 
+            MeshletRenderRequestByteStridePerContext = AAAAMathUtils.AlignUp(
+                4 * _rendererLists.Length * math.max(1, MaxMeshletRenderRequestsPerList) * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(),
+                sizeof(uint)
+            );
             MeshletRenderRequestsBuffer?.Dispose();
             MeshletRenderRequestsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Raw,
-                AAAAMathUtils.AlignUp(4 * _rendererLists.Length * MaxMeshletRenderRequestsPerList * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(),
-                    sizeof(uint)
-                ) / sizeof(uint),
-                sizeof(uint)
+                GPUCullingContext.MaxCullingContextsPerBatch * MeshletRenderRequestByteStridePerContext / sizeof(uint), sizeof(uint)
             )
             {
                 name = "VisibilityBuffer_MeshletRenderRequests",
             };
 
+            IndirectDrawArgsByteStridePerContext = _rendererLists.Length * GraphicsBuffer.IndirectDrawArgs.size;
             IndirectDrawArgsBuffer?.Dispose();
             IndirectDrawArgsBuffer =
                 new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw,
-                    _rendererLists.Length * GraphicsBuffer.IndirectDrawArgs.size / sizeof(uint),
+                    GPUCullingContext.MaxCullingContextsPerBatch * IndirectDrawArgsByteStridePerContext / sizeof(uint),
                     sizeof(uint)
                 )
                 {
@@ -257,7 +263,7 @@ namespace DELTation.AAAARP.Renderers
                 };
         }
 
-        public void Draw(CameraType cameraType, CommandBuffer cmd, PassType passType)
+        public void Draw(CameraType cameraType, CommandBuffer cmd, PassType passType, int contextIndex)
         {
             if (!ShouldDraw(cameraType))
             {
@@ -266,14 +272,18 @@ namespace DELTation.AAAARP.Renderers
 
             if (IndirectDrawArgsBuffer != null && InstanceDataBuffer.InstanceCount > 0)
             {
+                int baseCommandID = contextIndex * _rendererLists.Length;
+                int baseArgsOffset = contextIndex * IndirectDrawArgsByteStridePerContext;
+
                 for (int index = 0; index < _rendererLists.Length; index++)
                 {
                     ref readonly RendererList rendererList = ref _rendererLists[index];
-                    int argsOffset = index * GraphicsBuffer.IndirectDrawArgs.size;
+                    int commandID = baseCommandID + index;
+                    int argsOffset = baseArgsOffset + index * GraphicsBuffer.IndirectDrawArgs.size;
 
                     _materialPropertyBlock.Clear();
                     _materialPropertyBlock.SetBuffer(ShaderIDs.unity_IndirectDrawArgs, IndirectDrawArgsBuffer);
-                    _materialPropertyBlock.SetInteger(ShaderIDs.unity_BaseCommandID, index);
+                    _materialPropertyBlock.SetInteger(ShaderIDs.unity_BaseCommandID, commandID);
                     cmd.DrawProceduralIndirect(Matrix4x4.identity, rendererList.Material, (int) passType, MeshTopology.Triangles,
                         IndirectDrawArgsBuffer, argsOffset, _materialPropertyBlock
                     );

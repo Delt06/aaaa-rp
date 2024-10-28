@@ -36,7 +36,7 @@ namespace DELTation.AAAARP.Passes.Shadows
             _sets.Clear();
         }
 
-        public PassSet RequestPassesBasic(int shadowLightIndex, int splitIndex, in GPUCullingPass.CullingViewParameters cullingViewParameters)
+        public PassSet RequestPassesBasic(int shadowLightIndex, int splitIndex, in GPUCullingPass.CullingViewParameters cullingViewParameters, int contextIndex)
         {
             while (_setsOffset >= _sets.Count)
             {
@@ -51,8 +51,10 @@ namespace DELTation.AAAARP.Passes.Shadows
 
             PassSet set = _sets[_setsOffset];
             set.GPUCullingPass.CullingViewParametersOverride = cullingViewParameters;
+            set.GPUCullingPass.ContextIndex = contextIndex;
             set.DrawShadowsPass.ShadowLightIndex = shadowLightIndex;
             set.DrawShadowsPass.SplitIndex = splitIndex;
+            set.DrawShadowsPass.ContextIndex = contextIndex;
             ++_setsOffset;
             return set;
         }

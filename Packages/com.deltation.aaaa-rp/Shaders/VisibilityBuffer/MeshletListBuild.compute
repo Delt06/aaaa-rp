@@ -45,19 +45,6 @@ float GetScreenBoundRadiusSq(const GPULODSelectionContext lodSelectionContext, c
     return max(dot(v0, v0), dot(v1, v1));
 }
 
-void PushMeshletRenderRequests(const uint instanceID, const AAAAMeshLODNode meshLODNode, inout uint writeOffset)
-{
-    for (uint i = 0; i < meshLODNode.MeshletCount; ++i)
-    {
-        AAAAMeshletRenderRequest meshletRenderRequest;
-        meshletRenderRequest.InstanceID = instanceID;
-        meshletRenderRequest.MeshletID = meshLODNode.MeshletStartIndex + i;
-
-        StoreMeshletRenderRequest(_DestinationMeshlets, writeOffset, meshletRenderRequest);
-        ++writeOffset;
-    }
-}
-
 bool ShouldPushMeshletRenderRequests(const GPULODSelectionContext lodSelectionContext, const AAAAMeshLODNode meshLODNode,
                                      const AAAAInstanceData       instanceData, const float                  distanceToViewSq)
 {
@@ -157,7 +144,8 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
             uint writeOffset;
             InterlockedAdd(g_MeshletWriteOffset, 1, writeOffset);
             // TODO: write with offset depending on the culling index
-            StoreMeshletRenderRequest(_DestinationMeshlets, writeOffset, meshletRenderRequest);
+            const uint storeOffset = 0;
+            StoreMeshletRenderRequest(_DestinationMeshlets, storeOffset, writeOffset, meshletRenderRequest);
         }
     }
 }

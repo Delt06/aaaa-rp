@@ -15,6 +15,7 @@ namespace DELTation.AAAARP.Passes.Shadows
 
         public int ShadowLightIndex { get; set; }
         public int SplitIndex { get; set; }
+        public int ContextIndex { get; set; }
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
@@ -50,7 +51,7 @@ namespace DELTation.AAAARP.Passes.Shadows
             context.cmd.SetGlobalDepthBias(1.0f, data.SlopeBias);
 
             ConstantBuffer.PushGlobal(context.cmd, data.ShadowRenderingConstantBuffer, ShaderIDs.ShadowRenderingConstantBuffer);
-            data.RendererContainer.Draw(data.CameraType, context.cmd, AAAARendererContainer.PassType.ShadowCaster);
+            data.RendererContainer.Draw(data.CameraType, context.cmd, AAAARendererContainer.PassType.ShadowCaster, ContextIndex);
 
             context.cmd.SetGlobalDepthBias(0.0f, 0.0f);
         }

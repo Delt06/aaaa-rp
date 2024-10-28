@@ -66,6 +66,7 @@ namespace DELTation.AAAARP.Passes
 
         public override string Name { get; }
         public CullingViewParameters? CullingViewParametersOverride { get; set; }
+        public int ContextIndex { get; set; }
 
         public void Dispose()
         {
@@ -94,6 +95,8 @@ namespace DELTation.AAAARP.Passes
             passData.CullingContextCount = 0;
             PassData.CullingContext cullingContext = passData.CullingContexts[passData.CullingContextCount++];
             passData.DisableOcclusionCulling = CullingCameraOverride != null;
+            passData.IndirectDrawArgsOffset = ContextIndex * rendererContainer.IndirectDrawArgsByteStridePerContext;
+            passData.MeshletRenderRequestsOffset = ContextIndex * rendererContainer.MeshletRenderRequestByteStridePerContext;
 
             {
                 AAAACameraData cameraData = frameData.Get<AAAACameraData>();
@@ -292,19 +295,26 @@ namespace DELTation.AAAARP.Passes
                     }
                 );
 
-                var initialIndirectDrawArgs =
-                    new NativeArray<GraphicsBuffer.IndirectDrawArgs>(data.RendererListCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-                for (int rendererListIndex = 0; rendererListIndex < data.RendererListCount; rendererListIndex++)
                 {
-                    initialIndirectDrawArgs[rendererListIndex] = new GraphicsBuffer.IndirectDrawArgs
+                    var initialIndirectDrawArgs =
+                        new NativeArray<GraphicsBuffer.IndirectDrawArgs>(data.RendererListCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                    int baseInstance = data.MeshletRenderRequestsOffset / UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>();
+                    for (int rendererListIndex = 0; rendererListIndex < data.RendererListCount; rendererListIndex++)
                     {
-                        startInstance = (uint) (rendererListIndex * data.MaxMeshletRenderRequestsPerList),
-                        instanceCount = 0,
-                        startVertex = 0,
-                        vertexCountPerInstance = AAAAMeshletConfiguration.MaxMeshletIndices,
-                    };
+                        initialIndirectDrawArgs[rendererListIndex] = new GraphicsBuffer.IndirectDrawArgs
+                        {
+                            startInstance = (uint) (baseInstance + rendererListIndex * data.MaxMeshletRenderRequestsPerList),
+                            instanceCount = 0,
+                            startVertex = 0,
+                            vertexCountPerInstance = AAAAMeshletConfiguration.MaxMeshletIndices,
+                        };
+                    }
+                    const int nativeBufferStartIndex = 0;
+                    int graphicsBufferStartIndex = data.IndirectDrawArgsOffset / UnsafeUtility.SizeOf<GraphicsBuffer.IndirectDrawArgs>();
+                    context.cmd.SetBufferData(data.IndirectDrawArgsBuffer, initialIndirectDrawArgs,
+                        nativeBufferStartIndex, graphicsBufferStartIndex, initialIndirectDrawArgs.Length
+                    );
                 }
-                context.cmd.SetBufferData(data.IndirectDrawArgsBuffer, initialIndirectDrawArgs);
 
                 if (data.OcclusionCullingInstanceVisibilityMask.IsValid())
                 {
@@ -431,7 +441,7 @@ namespace DELTation.AAAARP.Passes
 
                 // Counter is draw args instance count. 
                 context.cmd.SetComputeIntParam(_gpuMeshletCullingCS,
-                    ShaderID.MeshletCulling._DestinationMeshletsCounterOffset, sizeof(uint)
+                    ShaderID.MeshletCulling._DestinationMeshletsCounterOffset, sizeof(uint) + data.IndirectDrawArgsOffset
                 );
                 context.cmd.SetComputeIntParam(_gpuMeshletCullingCS,
                     ShaderID.MeshletCulling._DestinationMeshletsCounterStride, GraphicsBuffer.IndirectDrawArgs.size
@@ -442,6 +452,9 @@ namespace DELTation.AAAARP.Passes
                 );
                 context.cmd.SetComputeIntParam(_gpuMeshletCullingCS,
                     ShaderID.MeshletCulling._MaxMeshletRenderRequestsPerList, data.MaxMeshletRenderRequestsPerList
+                );
+                context.cmd.SetComputeIntParam(_gpuMeshletCullingCS,
+                    ShaderID.MeshletCulling._DestinationMeshletsOffset, data.MeshletRenderRequestsOffset
                 );
 
                 if (data.DebugDataBuffer.IsValid())
@@ -530,6 +543,7 @@ namespace DELTation.AAAARP.Passes
             public BufferHandle GPULODSelectionContextBuffer;
             public BufferHandle GPUMeshletCullingIndirectDispatchArgsBuffer;
             public BufferHandle IndirectDrawArgsBuffer;
+            public int IndirectDrawArgsOffset;
 
             public BufferHandle InitialMeshletListBuffer;
             public BufferHandle InitialMeshletListCounterBuffer;
@@ -541,6 +555,7 @@ namespace DELTation.AAAARP.Passes
 
             public BufferHandle MeshletListBuildIndirectDispatchArgsBuffer;
             public BufferHandle MeshletListBuildJobsBuffer;
+            public int MeshletRenderRequestsOffset;
 
             public BufferHandle OcclusionCullingInstanceVisibilityMask;
             public int OcclusionCullingInstanceVisibilityMaskCount;
@@ -634,6 +649,7 @@ namespace DELTation.AAAARP.Passes
             {
                 public static int _CullingContexts = Shader.PropertyToID(nameof(_CullingContexts));
                 public static int _CullingContextIndex = Shader.PropertyToID(nameof(_CullingContextIndex));
+                public static int _DestinationMeshletsOffset = Shader.PropertyToID(nameof(_DestinationMeshletsOffset));
 
                 public static int _SourceMeshletsCounter = Shader.PropertyToID(nameof(_SourceMeshletsCounter));
                 public static int _SourceMeshlets = Shader.PropertyToID(nameof(_SourceMeshlets));
