@@ -109,6 +109,6 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupID 
         job.MeshLODNodeOffset = offset;
         job.MeshLODNodeCount = count;
         // TODO: use the culling context's offset
-        _Jobs[jobWriteOffset + jobIndex] = job;
+        _Jobs[cullingContext.MeshletListBuildJobsOffset + jobWriteOffset + jobIndex] = job;
     }
 }

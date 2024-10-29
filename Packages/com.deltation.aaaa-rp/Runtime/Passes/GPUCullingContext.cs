@@ -22,6 +22,7 @@ namespace DELTation.AAAARP.Passes
         public int PassMask;
         public int CameraIsPerspective;
         public uint BaseStartInstance;
+        public uint MeshletListBuildJobsOffset;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]

@@ -84,7 +84,6 @@ namespace DELTation.AAAARP.Passes
             _instanceIndices.Clear();
             rendererContainer.InstanceDataBuffer.GetInstanceIndices(_instanceIndices);
             passData.InstanceCount = _instanceIndices.Length;
-            passData.RendererListCount = rendererContainer.RendererListCount;
 
             if (passData.InstanceCount == 0)
             {
@@ -180,7 +179,7 @@ namespace DELTation.AAAARP.Passes
                 }
             );
             passData.GPUMeshletCullingIndirectDispatchArgsBuffer = builder.CreateTransientBuffer(
-                new BufferDesc(UnsafeUtility.SizeOf<IndirectDispatchArgs>() / sizeof(uint), sizeof(uint),
+                new BufferDesc(GPUCullingContext.MaxCullingContextsPerBatch * UnsafeUtility.SizeOf<IndirectDispatchArgs>() / sizeof(uint), sizeof(uint),
                     GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw
                 )
                 {
@@ -189,7 +188,7 @@ namespace DELTation.AAAARP.Passes
             );
 
             passData.RendererListMeshletCountsBuffer = builder.CreateTransientBuffer(
-                new BufferDesc((int) AAAARendererListID.Count * GPUCullingContext.MaxCullingContextsPerBatch, sizeof(uint),
+                new BufferDesc(GPUCullingContext.MaxCullingContextsPerBatch * (int) AAAARendererListID.Count, sizeof(uint),
                     GraphicsBuffer.Target.Raw | GraphicsBuffer.Target.CopyDestination
                 )
                 {
@@ -197,7 +196,8 @@ namespace DELTation.AAAARP.Passes
                 }
             );
             passData.MeshletListBuildIndirectDispatchArgsBuffer = builder.CreateTransientBuffer(
-                new BufferDesc(UnsafeUtility.SizeOf<IndirectDispatchArgs>() / sizeof(uint), sizeof(uint),
+                new BufferDesc(
+                    GPUCullingContext.MaxCullingContextsPerBatch * UnsafeUtility.SizeOf<IndirectDispatchArgs>() / sizeof(uint), sizeof(uint),
                     GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw
                 )
                 {
@@ -205,13 +205,15 @@ namespace DELTation.AAAARP.Passes
                 }
             );
             passData.MeshletListBuildJobsBuffer = builder.CreateTransientBuffer(
-                new BufferDesc(rendererContainer.MaxMeshletListBuildJobCount, UnsafeUtility.SizeOf<AAAAMeshletListBuildJob>(),
+                new BufferDesc(GPUCullingContext.MaxCullingContextsPerBatch * rendererContainer.MaxMeshletListBuildJobCount,
+                    UnsafeUtility.SizeOf<AAAAMeshletListBuildJob>(),
                     GraphicsBuffer.Target.Structured
                 )
                 {
                     name = nameof(PassData.MeshletListBuildJobsBuffer),
                 }
             );
+            cullingContext.MeshletListBuildJobsOffset = ContextIndex * rendererContainer.MaxMeshletListBuildJobCount;
 
             if (_passType != PassType.Basic)
             {
@@ -290,25 +292,33 @@ namespace DELTation.AAAARP.Passes
                 }
 
                 _rawBufferClear.FastZeroClear(context.cmd, data.InitialMeshletListCounterBuffer, 1);
+                const int rendererListCount = (int) AAAARendererListID.Count;
                 _rawBufferClear.FastZeroClear(context.cmd, data.RendererListMeshletCountsBuffer,
-                    (int) AAAARendererListID.Count * GPUCullingContext.MaxCullingContextsPerBatch
+                    rendererListCount * GPUCullingContext.MaxCullingContextsPerBatch
                 );
 
-                context.cmd.SetBufferData(data.MeshletListBuildIndirectDispatchArgsBuffer, new NativeArray<IndirectDispatchArgs>(1, Allocator.Temp)
+                {
+                    var initialIndirectDispatchArgs =
+                        new NativeArray<IndirectDispatchArgs>(data.CullingContextCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+
+                    for (int i = 0; i < initialIndirectDispatchArgs.Length; i++)
                     {
-                        [0] = new IndirectDispatchArgs
+                        initialIndirectDispatchArgs[i] = new IndirectDispatchArgs
                         {
                             ThreadGroupsX = 0,
                             ThreadGroupsY = 1,
                             ThreadGroupsZ = 1,
-                        },
+                        };
                     }
-                );
+                    context.cmd.SetBufferData(data.MeshletListBuildIndirectDispatchArgsBuffer, initialIndirectDispatchArgs);
+                }
 
                 {
                     var initialIndirectDrawArgs =
-                        new NativeArray<GraphicsBuffer.IndirectDrawArgs>(data.RendererListCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-                    for (int rendererListIndex = 0; rendererListIndex < data.RendererListCount; rendererListIndex++)
+                        new NativeArray<GraphicsBuffer.IndirectDrawArgs>(data.CullingContextCount * rendererListCount, Allocator.Temp,
+                            NativeArrayOptions.UninitializedMemory
+                        );
+                    for (int rendererListIndex = 0; rendererListIndex < initialIndirectDrawArgs.Length; rendererListIndex++)
                     {
                         initialIndirectDrawArgs[rendererListIndex] = new GraphicsBuffer.IndirectDrawArgs
                         {
@@ -509,6 +519,7 @@ namespace DELTation.AAAARP.Passes
                     PassMask = (int) viewParameters.PassMask,
                     CameraIsPerspective = viewParameters.IsPerspective ? 1 : 0,
                     BaseStartInstance = (uint) (cullingContext.MeshletRenderRequestsOffset / UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>()),
+                    MeshletListBuildJobsOffset = (uint) cullingContext.MeshletListBuildJobsOffset,
                 };
 
                 fixed (float* pFrustumPlanesDestination = gpuCullingContext.FrustumPlanes)
@@ -577,7 +588,6 @@ namespace DELTation.AAAARP.Passes
 
             public BufferHandle OcclusionCullingInstanceVisibilityMask;
             public int OcclusionCullingInstanceVisibilityMaskCount;
-            public int RendererListCount;
 
             public BufferHandle RendererListMeshletCountsBuffer;
 
@@ -594,6 +604,7 @@ namespace DELTation.AAAARP.Passes
                 public readonly Vector4[] FrustumPlanes = new Vector4[6];
                 public float4 CullingSphereLS;
                 public LODSelectionContext LODSelectionContext;
+                public int MeshletListBuildJobsOffset;
                 public int MeshletRenderRequestsOffset;
                 public CullingViewParameters ViewParameters;
             }

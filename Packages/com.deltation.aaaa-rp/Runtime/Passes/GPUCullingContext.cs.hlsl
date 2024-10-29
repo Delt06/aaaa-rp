@@ -21,6 +21,7 @@ struct GPUCullingContext
     int PassMask;
     int CameraIsPerspective;
     uint BaseStartInstance;
+    uint MeshletListBuildJobsOffset;
 };
 
 // Generated from DELTation.AAAARP.Passes.GPULODSelectionContext
