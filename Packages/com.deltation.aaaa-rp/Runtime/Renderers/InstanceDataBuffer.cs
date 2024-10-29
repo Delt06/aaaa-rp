@@ -115,17 +115,23 @@ namespace DELTation.AAAARP.Renderers
                     _rendererContainer.MaxMeshletListBuildJobCount -= ComputeMeshletListBuildJobCount(instanceData);
                 }
 
+                AAAARendererContainer.MeshMetadata meshMetadata = _rendererContainer.GetOrAllocateMeshLODNodes(mesh);
+
                 instanceData.AABBMin = math.float4(mesh.Bounds.min, 0.0f);
                 instanceData.AABBMax = math.float4(mesh.Bounds.max, 0.0f);
-                instanceData.TopMeshLODStartIndex = (uint) _rendererContainer.GetOrAllocateMeshLODNodes(mesh);
+                instanceData.TopMeshLODStartIndex = (uint) meshMetadata.TopMeshLODNodesStartIndex;
                 instanceData.TotalMeshLODCount = (uint) mesh.MeshLODNodes.Length;
                 instanceData.MaterialIndex = (uint) _materialDataBuffer.GetOrAllocateMaterial(material);
                 instanceData.MeshLODLevelCount = (uint) mesh.MeshLODLevelCount;
                 instanceData.LODErrorScale = rendererAuthoring.LODErrorScale;
                 instanceData.PassMask = ExtractInstancePassMask(rendererAuthoring);
 
+                instanceMetadata.MeshInstanceID = mesh.GetInstanceID();
+
                 _rendererContainer.MaxMeshletListBuildJobCount += ComputeMeshletListBuildJobCount(instanceData);
                 _isDirty = true;
+
+                _metadata[instanceID] = instanceMetadata;
             }
 
             if (invalidIDs.Length > 0)
@@ -225,6 +231,14 @@ namespace DELTation.AAAARP.Renderers
             }
         }
 
+        internal void GetInstanceMetadata(NativeList<InstanceMetadata> indices)
+        {
+            foreach (KVPair<int, InstanceMetadata> kvp in _metadata)
+            {
+                indices.Add(kvp.Value);
+            }
+        }
+
         public void PreRender(CommandBuffer cmd)
         {
             if (_isDirty)
@@ -236,9 +250,10 @@ namespace DELTation.AAAARP.Renderers
             cmd.SetGlobalBuffer(RendererContainerShaderIDs._InstanceData, _gpuBuffer);
         }
 
-        private struct InstanceMetadata
+        internal struct InstanceMetadata
         {
             public AAAAIndexAllocator.IndexAllocation IndexAllocation;
+            public int MeshInstanceID;
         }
     }
 }

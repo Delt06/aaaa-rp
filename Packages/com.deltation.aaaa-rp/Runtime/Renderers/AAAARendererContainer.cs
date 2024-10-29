@@ -32,7 +32,7 @@ namespace DELTation.AAAARP.Renderers
         private readonly AAAARenderPipelineDebugDisplaySettings _debugDisplaySettings;
         private readonly MaterialDataBuffer _materialDataBuffer;
         private readonly MaterialPropertyBlock _materialPropertyBlock = new();
-        private readonly Dictionary<AAAAMeshletCollectionAsset, int> _meshletCollectionToTopMeshLODNodesStartIndex = new();
+        private readonly Dictionary<int, MeshMetadata> _meshInstanceIDToMetadata = new();
         private readonly AAAAMeshLODSettings _meshLODSettings;
 
         private readonly AAAAObjectTracker _objectTracker;
@@ -100,7 +100,7 @@ namespace DELTation.AAAARP.Renderers
 
         private int MaxMeshLODLevelsCount { get; set; }
 
-        public int MaxMeshletRenderRequestsPerList => _meshletData.Length;
+        public int MaxMeshletRenderRequestsPerList { get; private set; }
         public int RendererListCount => _rendererLists.Length;
 
         public void Dispose()
@@ -205,6 +205,8 @@ namespace DELTation.AAAARP.Renderers
                 return;
             }
 
+            MaxMeshletRenderRequestsPerList = FindMaxSimultaneousMeshletCount();
+
             _meshLODNodesBuffer?.Dispose();
             _meshLODNodesBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, math.max(1, _meshLODNodes.Length),
                 UnsafeUtility.SizeOf<AAAAMeshLODNode>()
@@ -240,7 +242,7 @@ namespace DELTation.AAAARP.Renderers
             _sharedIndexBuffer.SetData(_sharedIndices.AsArray());
 
             MeshletRenderRequestByteStridePerContext = AAAAMathUtils.AlignUp(
-                4 * _rendererLists.Length * math.max(1, MaxMeshletRenderRequestsPerList) * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(),
+                _rendererLists.Length * math.max(1, MaxMeshletRenderRequestsPerList) * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(),
                 sizeof(uint)
             );
             MeshletRenderRequestsBuffer?.Dispose();
@@ -261,6 +263,24 @@ namespace DELTation.AAAARP.Renderers
                 {
                     name = "VisibilityBuffer_IndirectDrawArgs",
                 };
+        }
+
+        private int FindMaxSimultaneousMeshletCount()
+        {
+            var instanceMetadata = new NativeList<InstanceDataBuffer.InstanceMetadata>(InstanceDataBuffer.InstanceCount, Allocator.Temp);
+            InstanceDataBuffer.GetInstanceMetadata(instanceMetadata);
+
+            int meshletCount = 0;
+
+            foreach (InstanceDataBuffer.InstanceMetadata instance in instanceMetadata)
+            {
+                if (_meshInstanceIDToMetadata.TryGetValue(instance.MeshInstanceID, out MeshMetadata meshMetadata))
+                {
+                    meshletCount += meshMetadata.LeafMeshletCount;
+                }
+            }
+
+            return meshletCount;
         }
 
         public void Draw(CameraType cameraType, CommandBuffer cmd, PassType passType, int contextIndex)
@@ -298,11 +318,13 @@ namespace DELTation.AAAARP.Renderers
         private float GetMeshLODErrorThreshold() =>
             math.max(0, _meshLODSettings.ErrorThreshold + (_debugDisplaySettings?.RenderingSettings.MeshLODErrorThresholdBias ?? 0.0f));
 
-        internal int GetOrAllocateMeshLODNodes(AAAAMeshletCollectionAsset meshletCollection)
+        internal MeshMetadata GetOrAllocateMeshLODNodes(AAAAMeshletCollectionAsset meshletCollection)
         {
-            if (_meshletCollectionToTopMeshLODNodesStartIndex.TryGetValue(meshletCollection, out int meshLODNodeStartIndex))
+            int meshInstanceID = meshletCollection.GetInstanceID();
+
+            if (_meshInstanceIDToMetadata.TryGetValue(meshInstanceID, out MeshMetadata meshMetadata))
             {
-                return meshLODNodeStartIndex;
+                return meshMetadata;
             }
 
             MaxMeshLODLevelsCount = Mathf.Max(MaxMeshLODLevelsCount, meshletCollection.MeshLODLevelCount);
@@ -310,7 +332,11 @@ namespace DELTation.AAAARP.Renderers
             uint triangleOffset = (uint) _sharedIndices.Length;
             uint vertexOffset = (uint) _sharedVertices.Length;
             uint meshletOffset = (uint) _meshletData.Length;
-            meshLODNodeStartIndex = _meshLODNodes.Length;
+            meshMetadata = new MeshMetadata
+            {
+                TopMeshLODNodesStartIndex = _meshLODNodes.Length,
+                LeafMeshletCount = meshletCollection.LeafMeshletCount,
+            };
 
             foreach (AAAAMeshlet sourceMeshlet in meshletCollection.Meshlets)
             {
@@ -332,9 +358,9 @@ namespace DELTation.AAAARP.Renderers
             AppendFromManagedArray(_sharedVertices, meshletCollection.VertexBuffer);
             AppendFromManagedArray(_sharedIndices, meshletCollection.IndexBuffer);
 
-            _meshletCollectionToTopMeshLODNodesStartIndex.Add(meshletCollection, meshLODNodeStartIndex);
+            _meshInstanceIDToMetadata.Add(meshInstanceID, meshMetadata);
             _isDirty = true;
-            return meshLODNodeStartIndex;
+            return meshMetadata;
         }
 
         private static unsafe void AppendFromManagedArray<T>(NativeList<T> destination, T[] source) where T : unmanaged
@@ -346,6 +372,12 @@ namespace DELTation.AAAARP.Renderers
             {
                 UnsafeUtility.MemCpy(destination.GetUnsafePtr() + offset, pSource, source.Length * UnsafeUtility.SizeOf<T>());
             }
+        }
+
+        internal struct MeshMetadata
+        {
+            public int TopMeshLODNodesStartIndex;
+            public int LeafMeshletCount;
         }
 
         public struct RendererList

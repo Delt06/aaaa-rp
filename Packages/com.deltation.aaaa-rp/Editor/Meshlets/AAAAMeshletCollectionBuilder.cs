@@ -147,6 +147,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                 );
             }
 
+            meshletCollection.LeafMeshletCount = mainMeshletBuildResults.Meshlets.Length;
             meshletCollection.MeshLODLevelCount = meshLODLevels.Length;
             meshletCollection.MeshLODLevelNodeCounts = new int[meshLODLevels.Length];
             meshletCollection.MeshLODNodes = new AAAAMeshLODNode[meshLODNodes];

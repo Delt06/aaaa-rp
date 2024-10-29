@@ -15,6 +15,7 @@ namespace DELTation.AAAARP.Meshlets
 
         public Bounds Bounds;
         public int MeshLODLevelCount;
+        public int LeafMeshletCount;
         public int[] MeshLODLevelNodeCounts = Array.Empty<int>();
         public AAAAMeshLODNode[] MeshLODNodes = Array.Empty<AAAAMeshLODNode>();
         public AAAAMeshlet[] Meshlets = Array.Empty<AAAAMeshlet>();
