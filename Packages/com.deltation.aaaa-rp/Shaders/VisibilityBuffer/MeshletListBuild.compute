@@ -2,6 +2,8 @@
 
 #pragma use_dxc
 
+#include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
+
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 #define THREAD_GROUP_SIZE MESHLET_LIST_BUILD_THREAD_GROUP_SIZE
 
@@ -9,6 +11,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/GPUCullingContexts.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Materials.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Meshlets.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshLODNodes.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/MeshletListBuild.hlsl"
@@ -24,6 +27,13 @@ StructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
 
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
+RWByteAddressBuffer _RendererListMeshletCounts;
+
+void OnSelectedMeshlet(const uint contextIndex, const AAAAMaterialData materialData)
+{
+    const uint counterOffset = contextIndex * AAAARENDERERLISTID_COUNT + materialData.RendererListID;
+    _RendererListMeshletCounts.InterlockedAdd(4 * counterOffset, 1);
+}
 
 float2 GetNormalizedScreenCoordinates(const float4x4 mvpMatrix, const float3 positionWS)
 {
@@ -95,6 +105,7 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
     const GPULODSelectionContext  lodSelectionContext = _LODSelectionContexts.Items[contextIndex];
     const AAAAMeshletListBuildJob job = _Jobs[groupID.x];
     const AAAAInstanceData        instanceData = PullInstanceData(job.InstanceID);
+    const AAAAMaterialData        materialData = PullMaterialData(instanceData.MaterialIndex);
 
     const float3 instanceBoundsCenter = (instanceData.AABBMin.xyz + instanceData.AABBMax.xyz) * 0.5f;
     const float  distanceToViewSq = Length2(lodSelectionContext.CameraPosition.xyz - instanceBoundsCenter);
@@ -117,6 +128,8 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
             InterlockedAdd(g_PassedNodeCount, 1, listOffset);
             InterlockedAdd(g_PassedMeshletCount, meshLODNode.MeshletCount);
             g_PassedNodeIndices[listOffset] = cachedNodeIndex;
+
+            OnSelectedMeshlet(contextIndex, materialData);
         }
     }
 

@@ -242,7 +242,7 @@ namespace DELTation.AAAARP.Renderers
             _sharedIndexBuffer.SetData(_sharedIndices.AsArray());
 
             MeshletRenderRequestByteStridePerContext = AAAAMathUtils.AlignUp(
-                _rendererLists.Length * math.max(1, MaxMeshletRenderRequestsPerList) * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(),
+                math.max(1, MaxMeshletRenderRequestsPerList) * UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>(),
                 sizeof(uint)
             );
             MeshletRenderRequestsBuffer?.Dispose();

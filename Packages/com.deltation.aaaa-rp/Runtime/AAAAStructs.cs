@@ -56,10 +56,10 @@ namespace DELTation.AAAARP
     public enum AAAARendererListID
     {
         Default = 0,
-        AlphaTest = 1 << 0,
-        CullFront = 1 << 1,
-        CullOff = 1 << 2,
-        Count = (AlphaTest | CullFront | CullOff) + 1,
+        CullFront = 1 << 0,
+        CullOff = 1 << 1,
+        AlphaTest = 1 << 2, // Alpha test is the last for better early Z usage.
+        Count = (CullFront | CullOff | AlphaTest) + 1,
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]

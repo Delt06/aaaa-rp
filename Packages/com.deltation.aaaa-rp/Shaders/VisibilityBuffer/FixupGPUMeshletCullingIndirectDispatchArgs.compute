@@ -1,11 +1,22 @@
 #pragma kernel CS
 
+#pragma use_dxc
+
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Compute/IndirectArgs.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/GPUCullingContexts.hlsl"
+
+ConstantBuffer<GPUCullingContextArray> _CullingContexts;
 
 ByteAddressBuffer   _RequestCounter;
 RWByteAddressBuffer _IndirectArgs;
+
+uint _BaseStartInstance;
+uint _IndirectDrawArgsOffset;
+
+ByteAddressBuffer   _RendererListMeshletCounts;
+RWByteAddressBuffer _IndirectDrawArgs;
 
 [numthreads(1, 1, 1)]
 void CS(const uint3 groupID : SV_GroupID)
@@ -18,4 +29,31 @@ void CS(const uint3 groupID : SV_GroupID)
     indirectDispatchArgs.ThreadGroupsY = 1;
     indirectDispatchArgs.ThreadGroupsZ = 1;
     _IndirectArgs.Store3(IndirectArgs::DispatchArgsStride() * contextIndex, IndirectArgs::PackDispatchArgs(indirectDispatchArgs));
+
+    // Naive prefix sum. Given counts, find all offsets.
+    uint startInstance[AAAARENDERERLISTID_COUNT];
+
+    // Start with base instance.
+    for (uint i = 0; i < AAAARENDERERLISTID_COUNT; ++i)
+    {
+        startInstance[i] = _BaseStartInstance;
+    }
+
+    for (uint i = 0; i < AAAARENDERERLISTID_COUNT; ++i)
+    {
+        const uint meshletCount = _RendererListMeshletCounts.Load(4 * (contextIndex * AAAARENDERERLISTID_COUNT + i));
+
+        for (uint j = i + 1; j < AAAARENDERERLISTID_COUNT; ++j)
+        {
+            startInstance[j] += meshletCount;
+        }
+    }
+
+    for (uint i = 0; i < AAAARENDERERLISTID_COUNT; ++i)
+    {
+        const uint drawArgsIndex = contextIndex * AAAARENDERERLISTID_COUNT + i;
+        const uint drawArgsAddress = _IndirectDrawArgsOffset + IndirectArgs::DrawArgsStride() * drawArgsIndex;
+        // Start instance is the fourth field.
+        _IndirectDrawArgs.Store(drawArgsAddress + 4 * 3, startInstance[i]);
+    }
 }

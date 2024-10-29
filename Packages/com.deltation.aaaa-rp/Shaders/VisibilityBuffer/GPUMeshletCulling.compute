@@ -19,6 +19,7 @@
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Compute/IndirectArgs.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Instances.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/GPUCullingContexts.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/Materials.hlsl"
@@ -30,15 +31,12 @@
 ConstantBuffer<GPUCullingContextArray> _CullingContexts;
 
 uint _CullingContextIndex;
-uint _MaxMeshletRenderRequestsPerList;
-uint _DestinationMeshletsOffset;
 
 ByteAddressBuffer _SourceMeshletsCounter;
 ByteAddressBuffer _SourceMeshlets;
 
-RWByteAddressBuffer _DestinationMeshletsCounter;
-uint                _DestinationMeshletsCounterOffset;
-uint                _DestinationMeshletsCounterStride;
+RWByteAddressBuffer _IndirectDrawArgs;
+uint                _IndirectDrawArgsOffset;
 RWByteAddressBuffer _DestinationMeshlets;
 
 bool Culling(const GPUCullingContext cullingContext, const AAAAInstanceData instanceData, const uint rendererListID, const AAAAMeshlet meshletData)
@@ -136,12 +134,16 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     uint       localRenderRequestWriteOffset = 0;
-    const uint counterAddress = _DestinationMeshletsCounterStride * rendererListID + _DestinationMeshletsCounterOffset;
-    _DestinationMeshletsCounter.InterlockedAdd(counterAddress, 1, localRenderRequestWriteOffset);
+    const uint drawArgsOffset = _IndirectDrawArgsOffset + IndirectArgs::DrawArgsStride() * (_CullingContextIndex * AAAARENDERERLISTID_COUNT +
+        rendererListID);
 
-    // TODO: use the culling context's offset
-    const uint renderRequestIndex = localRenderRequestWriteOffset + rendererListID * _MaxMeshletRenderRequestsPerList;
-    StoreMeshletRenderRequest(_DestinationMeshlets, _DestinationMeshletsOffset, renderRequestIndex, meshletRenderRequest);
+    // Instance count is the second field.
+    _IndirectDrawArgs.InterlockedAdd(drawArgsOffset + 4, 1, localRenderRequestWriteOffset);
+
+    // Start instance is the fourth field.
+    const uint startInstance = _IndirectDrawArgs.Load(drawArgsOffset + 4 * 3);
+
+    StoreMeshletRenderRequest(_DestinationMeshlets, 0, localRenderRequestWriteOffset + startInstance, meshletRenderRequest);
     #ifdef OCCLUSION_CULLING_ON
     OcclusionCulling::MarkVisibleThisFrame(meshletRenderRequest.InstanceID);
     #endif
