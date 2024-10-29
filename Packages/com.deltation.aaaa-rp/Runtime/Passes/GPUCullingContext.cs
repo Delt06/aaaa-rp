@@ -21,6 +21,7 @@ namespace DELTation.AAAARP.Passes
 
         public int PassMask;
         public int CameraIsPerspective;
+        public uint BaseStartInstance;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]

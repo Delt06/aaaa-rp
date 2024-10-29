@@ -20,6 +20,7 @@ struct GPUCullingContext
     float4 CullingSphereLS;
     int PassMask;
     int CameraIsPerspective;
+    uint BaseStartInstance;
 };
 
 // Generated from DELTation.AAAARP.Passes.GPULODSelectionContext

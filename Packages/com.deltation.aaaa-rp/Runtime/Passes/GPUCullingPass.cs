@@ -95,7 +95,7 @@ namespace DELTation.AAAARP.Passes
             PassData.CullingContext cullingContext = passData.CullingContexts[passData.CullingContextCount++];
             passData.DisableOcclusionCulling = CullingCameraOverride != null;
             passData.IndirectDrawArgsOffset = ContextIndex * rendererContainer.IndirectDrawArgsByteStridePerContext;
-            passData.MeshletRenderRequestsOffset = ContextIndex * rendererContainer.MeshletRenderRequestByteStridePerContext;
+            cullingContext.MeshletRenderRequestsOffset = ContextIndex * rendererContainer.MeshletRenderRequestByteStridePerContext;
 
             {
                 AAAACameraData cameraData = frameData.Get<AAAACameraData>();
@@ -428,10 +428,6 @@ namespace DELTation.AAAARP.Passes
                     ShaderID.FixupMeshletCullingIndirectDispatchArgs._IndirectArgs, data.GPUMeshletCullingIndirectDispatchArgsBuffer
                 );
 
-                int baseStartInstance = data.MeshletRenderRequestsOffset / UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>();
-                context.cmd.SetComputeIntParam(_fixupGPUMeshletCullingIndirectDispatchArgsCS,
-                    ShaderID.FixupMeshletCullingIndirectDispatchArgs._BaseStartInstance, baseStartInstance
-                );
                 context.cmd.SetComputeIntParam(_fixupGPUMeshletCullingIndirectDispatchArgsCS,
                     ShaderID.FixupMeshletCullingIndirectDispatchArgs._IndirectDrawArgsOffset, data.IndirectDrawArgsOffset
                 );
@@ -512,6 +508,7 @@ namespace DELTation.AAAARP.Passes
                     CullingSphereLS = cullingContext.CullingSphereLS,
                     PassMask = (int) viewParameters.PassMask,
                     CameraIsPerspective = viewParameters.IsPerspective ? 1 : 0,
+                    BaseStartInstance = (uint) (cullingContext.MeshletRenderRequestsOffset / UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>()),
                 };
 
                 fixed (float* pFrustumPlanesDestination = gpuCullingContext.FrustumPlanes)
@@ -577,7 +574,6 @@ namespace DELTation.AAAARP.Passes
 
             public BufferHandle MeshletListBuildIndirectDispatchArgsBuffer;
             public BufferHandle MeshletListBuildJobsBuffer;
-            public int MeshletRenderRequestsOffset;
 
             public BufferHandle OcclusionCullingInstanceVisibilityMask;
             public int OcclusionCullingInstanceVisibilityMaskCount;
@@ -598,6 +594,7 @@ namespace DELTation.AAAARP.Passes
                 public readonly Vector4[] FrustumPlanes = new Vector4[6];
                 public float4 CullingSphereLS;
                 public LODSelectionContext LODSelectionContext;
+                public int MeshletRenderRequestsOffset;
                 public CullingViewParameters ViewParameters;
             }
         }
@@ -671,7 +668,6 @@ namespace DELTation.AAAARP.Passes
                 public static int _RequestCounter = Shader.PropertyToID(nameof(_RequestCounter));
                 public static int _IndirectArgs = Shader.PropertyToID(nameof(_IndirectArgs));
 
-                public static int _BaseStartInstance = Shader.PropertyToID(nameof(_BaseStartInstance));
                 public static int _IndirectDrawArgsOffset = Shader.PropertyToID(nameof(_IndirectDrawArgsOffset));
                 public static int _RendererListMeshletCounts = Shader.PropertyToID(nameof(_RendererListMeshletCounts));
                 public static int _IndirectDrawArgs = Shader.PropertyToID(nameof(_IndirectDrawArgs));
