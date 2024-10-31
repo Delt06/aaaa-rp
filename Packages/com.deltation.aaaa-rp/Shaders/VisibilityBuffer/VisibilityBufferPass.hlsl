@@ -66,7 +66,7 @@ Varyings VS(const uint svInstanceID : SV_InstanceID, const uint svIndexID : SV_V
     Varyings OUT;
 
     const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(
-        _MeshletRenderRequests, GetIndirectInstanceID_Base(svInstanceID));
+        _MeshletRenderRequests, 0, GetIndirectInstanceID_Base(svInstanceID));
     const uint indexID = GetIndirectVertexID_Base(svIndexID);
 
     const AAAAInstanceData perInstanceData = PullInstanceData(meshletRenderRequest.InstanceID);

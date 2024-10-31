@@ -22,6 +22,10 @@ struct GPUCullingContext
     int CameraIsPerspective;
     uint BaseStartInstance;
     uint MeshletListBuildJobsOffset;
+    uint MeshletRenderRequestsOffset;
+    uint Padding0;
+    uint Padding1;
+    uint Padding2;
 };
 
 // Generated from DELTation.AAAARP.Passes.GPULODSelectionContext
@@ -33,6 +37,8 @@ struct GPULODSelectionContext
     float4 CameraUp;
     float4 CameraRight;
     float2 ScreenSizePixels;
+    uint Padding0;
+    uint Padding1;
 };
 
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Debugging;
@@ -65,8 +66,7 @@ namespace DELTation.AAAARP.Passes
         public Camera CullingCameraOverride { get; set; }
 
         public override string Name { get; }
-        public CullingViewParameters? CullingViewParametersOverride { get; set; }
-        public int ContextIndex { get; set; }
+        public List<CullingViewParameters> CullingContextParameterList { get; } = new();
 
         public void Dispose()
         {
@@ -90,33 +90,27 @@ namespace DELTation.AAAARP.Passes
                 return;
             }
 
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
+            Camera camera = CullingCameraOverride != null ? CullingCameraOverride : cameraData.Camera;
+            Transform cameraTransform = camera.transform;
+            Vector3 cameraPosition = cameraTransform.position;
+
+            Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
+            Matrix4x4 viewProjectionMatrix = camera.projectionMatrix * viewMatrix;
+            Matrix4x4 gpuViewProjectionMatrix = GL.GetGPUProjectionMatrix(viewProjectionMatrix, true);
+
+            var pixelSize = new Vector2(cameraData.ScaledWidth, cameraData.ScaledHeight);
+            Vector3 cameraRight = cameraTransform.right;
+            Vector3 cameraUp = cameraTransform.up;
+
             passData.CullingContextCount = 0;
-            PassData.CullingContext cullingContext = passData.CullingContexts[passData.CullingContextCount++];
             passData.DisableOcclusionCulling = CullingCameraOverride != null;
-            passData.IndirectDrawArgsOffset = ContextIndex * rendererContainer.IndirectDrawArgsByteStridePerContext;
-            cullingContext.MeshletRenderRequestsOffset = ContextIndex * rendererContainer.MeshletRenderRequestByteStridePerContext;
 
+            bool noOverrides = CullingContextParameterList.Count == 0;
+
+            if (noOverrides)
             {
-                AAAACameraData cameraData = frameData.Get<AAAACameraData>();
-                Camera camera = CullingCameraOverride != null ? CullingCameraOverride : cameraData.Camera;
-                Transform cameraTransform = camera.transform;
-                Vector3 cameraPosition = cameraTransform.position;
-
-                Matrix4x4 viewMatrix = camera.worldToCameraMatrix;
-                Matrix4x4 viewProjectionMatrix = camera.projectionMatrix * viewMatrix;
-                Matrix4x4 gpuViewProjectionMatrix = GL.GetGPUProjectionMatrix(viewProjectionMatrix, true);
-
-                var pixelSize = new Vector2(cameraData.ScaledWidth, cameraData.ScaledHeight);
-                Vector3 cameraRight = cameraTransform.right;
-                Vector3 cameraUp = cameraTransform.up;
-
-                if (CullingViewParametersOverride != null)
-                {
-                    cullingContext.ViewParameters = CullingViewParametersOverride.Value;
-                }
-                else
-                {
-                    cullingContext.ViewParameters = new CullingViewParameters
+                CullingContextParameterList.Add(new CullingViewParameters
                     {
                         ViewMatrix = viewMatrix,
                         ViewProjectionMatrix = viewProjectionMatrix,
@@ -128,8 +122,19 @@ namespace DELTation.AAAARP.Passes
                         IsPerspective = !camera.orthographic,
                         BoundingSphereWS = math.float4(0, 0, 0, 0),
                         PassMask = AAAAInstancePassMask.Main,
-                    };
-                }
+                    }
+                );
+            }
+
+            passData.IndirectDrawArgsOffset = 0;
+
+            for (int contextIndex = 0; contextIndex < CullingContextParameterList.Count; contextIndex++)
+            {
+                CullingViewParameters cullingViewParameters = CullingContextParameterList[contextIndex];
+                PassData.CullingContext cullingContext = passData.CullingContexts[passData.CullingContextCount++];
+
+                cullingContext.MeshletRenderRequestsOffset = contextIndex * rendererContainer.MeshletRenderRequestByteStridePerContext;
+                cullingContext.ViewParameters = cullingViewParameters;
 
                 // LOD for shadows should be the same as for main view.
                 // We do not explicitly synchronize LOD selection, just the input parameters.
@@ -141,24 +146,31 @@ namespace DELTation.AAAARP.Passes
                     PixelSize = pixelSize,
                     GPUViewProjectionMatrix = gpuViewProjectionMatrix,
                 };
+
+                Plane[] frustumPlanes = TempCollections.Planes;
+                GeometryUtility.CalculateFrustumPlanes(cullingContext.ViewParameters.ViewProjectionMatrix, frustumPlanes);
+
+                for (int i = 0; i < frustumPlanes.Length; i++)
+                {
+                    Plane frustumPlane = frustumPlanes[i];
+                    cullingContext.FrustumPlanes[i] = new Vector4(frustumPlane.normal.x, frustumPlane.normal.y, frustumPlane.normal.z, frustumPlane.distance);
+                }
+
+                cullingContext.CullingSphereLS = float4.zero;
+                if (cullingContext.ViewParameters.BoundingSphereWS.w > 0.0f)
+                {
+                    cullingContext.CullingSphereLS.xyz = math.transform(cullingContext.ViewParameters.ViewMatrix,
+                        cullingContext.ViewParameters.BoundingSphereWS.xyz
+                    );
+                    cullingContext.CullingSphereLS.w = cullingContext.ViewParameters.BoundingSphereWS.w;
+                }
+
+                cullingContext.MeshletListBuildJobsOffset = contextIndex * rendererContainer.MaxMeshletListBuildJobCount;
             }
 
-            Plane[] frustumPlanes = TempCollections.Planes;
-            GeometryUtility.CalculateFrustumPlanes(cullingContext.ViewParameters.ViewProjectionMatrix, frustumPlanes);
-
-            for (int i = 0; i < frustumPlanes.Length; i++)
+            if (noOverrides)
             {
-                Plane frustumPlane = frustumPlanes[i];
-                cullingContext.FrustumPlanes[i] = new Vector4(frustumPlane.normal.x, frustumPlane.normal.y, frustumPlane.normal.z, frustumPlane.distance);
-            }
-
-            cullingContext.CullingSphereLS = float4.zero;
-            if (cullingContext.ViewParameters.BoundingSphereWS.w > 0.0f)
-            {
-                cullingContext.CullingSphereLS.xyz = math.transform(cullingContext.ViewParameters.ViewMatrix,
-                    cullingContext.ViewParameters.BoundingSphereWS.xyz
-                );
-                cullingContext.CullingSphereLS.w = cullingContext.ViewParameters.BoundingSphereWS.w;
+                CullingContextParameterList.Clear();
             }
 
             passData.InstanceIndices = builder.CreateTransientBuffer(
@@ -171,7 +183,14 @@ namespace DELTation.AAAARP.Passes
             GraphicsBuffer meshletRenderRequestsBuffer = rendererContainer.MeshletRenderRequestsBuffer;
 
             passData.InitialMeshletListCounterBuffer =
-                builder.CreateTransientBuffer(CreateCounterBufferDesc("InitialMeshletListCounter", extraTargets: GraphicsBuffer.Target.CopyDestination));
+                builder.CreateTransientBuffer(
+                    new BufferDesc(GPUCullingContext.MaxCullingContextsPerBatch, sizeof(uint),
+                        GraphicsBuffer.Target.Raw | GraphicsBuffer.Target.CopyDestination
+                    )
+                    {
+                        name = nameof(PassData.InitialMeshletListCounterBuffer),
+                    }
+                );
             passData.InitialMeshletListBuffer = builder.CreateTransientBuffer(
                 new BufferDesc(meshletRenderRequestsBuffer.count, meshletRenderRequestsBuffer.stride, meshletRenderRequestsBuffer.target)
                 {
@@ -213,7 +232,6 @@ namespace DELTation.AAAARP.Passes
                     name = nameof(PassData.MeshletListBuildJobsBuffer),
                 }
             );
-            cullingContext.MeshletListBuildJobsOffset = ContextIndex * rendererContainer.MaxMeshletListBuildJobCount;
 
             if (_passType != PassType.Basic)
             {
@@ -245,7 +263,6 @@ namespace DELTation.AAAARP.Passes
                     }
                 )
             );
-            passData.CullingContextCount = 1;
 
             if (_passType == PassType.FalseNegative)
             {
@@ -254,16 +271,10 @@ namespace DELTation.AAAARP.Passes
                 builder.ReadTexture(resourceData.CameraHZBScaled);
             }
 
-            passData.DebugDataBuffer = _debugDisplaySettings is { RenderingSettings: { DebugGPUCulling: true } } && CullingViewParametersOverride == null
+            passData.DebugDataBuffer = _debugDisplaySettings is { RenderingSettings: { DebugGPUCulling: true } } && CullingContextParameterList == null
                 ? builder.ReadBuffer(frameData.Get<AAAADebugData>().GPUCullingDebugBuffer)
                 : default;
         }
-
-        private static BufferDesc CreateCounterBufferDesc(string name, int count = 1, GraphicsBuffer.Target extraTargets = default) =>
-            new(count, sizeof(uint), GraphicsBuffer.Target.Raw | extraTargets)
-            {
-                name = name,
-            };
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
@@ -291,7 +302,9 @@ namespace DELTation.AAAARP.Passes
                     context.cmd.SetBufferData(data.GPULODSelectionContextBuffer, lodSelectionContextsData);
                 }
 
-                _rawBufferClear.FastZeroClear(context.cmd, data.InitialMeshletListCounterBuffer, 1);
+                _rawBufferClear.FastZeroClear(context.cmd, data.InitialMeshletListCounterBuffer,
+                    GPUCullingContext.MaxCullingContextsPerBatch
+                );
                 const int rendererListCount = (int) AAAARendererListID.Count;
                 _rawBufferClear.FastZeroClear(context.cmd, data.RendererListMeshletCountsBuffer,
                     rendererListCount * GPUCullingContext.MaxCullingContextsPerBatch
@@ -318,9 +331,9 @@ namespace DELTation.AAAARP.Passes
                         new NativeArray<GraphicsBuffer.IndirectDrawArgs>(data.CullingContextCount * rendererListCount, Allocator.Temp,
                             NativeArrayOptions.UninitializedMemory
                         );
-                    for (int rendererListIndex = 0; rendererListIndex < initialIndirectDrawArgs.Length; rendererListIndex++)
+                    for (int argsIndex = 0; argsIndex < initialIndirectDrawArgs.Length; argsIndex++)
                     {
-                        initialIndirectDrawArgs[rendererListIndex] = new GraphicsBuffer.IndirectDrawArgs
+                        initialIndirectDrawArgs[argsIndex] = new GraphicsBuffer.IndirectDrawArgs
                         {
                             startInstance = 0,
                             instanceCount = 0,
@@ -393,6 +406,10 @@ namespace DELTation.AAAARP.Passes
                 const int kernelIndex = 0;
 
                 context.cmd.SetComputeConstantBufferParam(_meshletListBuildCS,
+                    ShaderID.MeshletListBuild._CullingContexts, data.GPUCullingContextBuffer,
+                    0, UnsafeUtility.SizeOf<GPUCullingContext>() * data.CullingContextCount
+                );
+                context.cmd.SetComputeConstantBufferParam(_meshletListBuildCS,
                     ShaderID.MeshletListBuild._LODSelectionContexts, data.GPULODSelectionContextBuffer,
                     0, UnsafeUtility.SizeOf<GPULODSelectionContext>() * data.CullingContextCount
                 );
@@ -430,6 +447,9 @@ namespace DELTation.AAAARP.Passes
                     ShaderID.FixupMeshletCullingIndirectDispatchArgs._CullingContexts, data.GPUCullingContextBuffer,
                     0, UnsafeUtility.SizeOf<GPUCullingContext>() * data.CullingContextCount
                 );
+                context.cmd.SetComputeIntParam(_fixupGPUMeshletCullingIndirectDispatchArgsCS,
+                    ShaderID.FixupMeshletCullingIndirectDispatchArgs._CullingContextCount, data.CullingContextCount
+                );
 
                 context.cmd.SetComputeBufferParam(_fixupGPUMeshletCullingIndirectDispatchArgsCS, kernelIndex,
                     ShaderID.FixupMeshletCullingIndirectDispatchArgs._RequestCounter, data.InitialMeshletListCounterBuffer
@@ -448,7 +468,7 @@ namespace DELTation.AAAARP.Passes
                     ShaderID.FixupMeshletCullingIndirectDispatchArgs._IndirectDrawArgs, data.IndirectDrawArgsBuffer
                 );
 
-                context.cmd.DispatchCompute(_fixupGPUMeshletCullingIndirectDispatchArgsCS, kernelIndex, data.CullingContextCount, 1, 1);
+                context.cmd.DispatchCompute(_fixupGPUMeshletCullingIndirectDispatchArgsCS, kernelIndex, 1, 1, 1);
             }
 
             using (new ProfilingScope(context.cmd, Profiling.MeshletCulling))
@@ -520,6 +540,7 @@ namespace DELTation.AAAARP.Passes
                     CameraIsPerspective = viewParameters.IsPerspective ? 1 : 0,
                     BaseStartInstance = (uint) (cullingContext.MeshletRenderRequestsOffset / UnsafeUtility.SizeOf<AAAAMeshletRenderRequestPacked>()),
                     MeshletListBuildJobsOffset = (uint) cullingContext.MeshletListBuildJobsOffset,
+                    MeshletRenderRequestsOffset = (uint) cullingContext.MeshletRenderRequestsOffset,
                 };
 
                 fixed (float* pFrustumPlanesDestination = gpuCullingContext.FrustumPlanes)
@@ -662,6 +683,7 @@ namespace DELTation.AAAARP.Passes
 
             public static class MeshletListBuild
             {
+                public static int _CullingContexts = Shader.PropertyToID(nameof(_CullingContexts));
                 public static int _LODSelectionContexts = Shader.PropertyToID(nameof(_LODSelectionContexts));
                 public static int _CullingContextIndex = Shader.PropertyToID(nameof(_CullingContextIndex));
 
@@ -675,6 +697,7 @@ namespace DELTation.AAAARP.Passes
             public static class FixupMeshletCullingIndirectDispatchArgs
             {
                 public static int _CullingContexts = Shader.PropertyToID(nameof(_CullingContexts));
+                public static int _CullingContextCount = Shader.PropertyToID(nameof(_CullingContextCount));
 
                 public static int _RequestCounter = Shader.PropertyToID(nameof(_RequestCounter));
                 public static int _IndirectArgs = Shader.PropertyToID(nameof(_IndirectArgs));

@@ -10,12 +10,14 @@ namespace DELTation.AAAARP.Passes.Shadows
     {
         private const string NameTag = "Shadows";
 
+        private readonly List<GPUCullingPass> _cullingPasses = new();
         private readonly AAAARenderPipelineDebugDisplaySettings _debugSettings;
+        private readonly List<DrawShadowsPass> _drawShadowsPasses = new();
         private readonly AAAARawBufferClear _rawBufferClear;
         private readonly AAAARenderPassEvent _renderPassEvent;
-        private readonly List<PassSet> _sets = new();
         private readonly AAAARenderPipelineRuntimeShaders _shaders;
-        private int _setsOffset;
+        private int _cullingPassOffset;
+        private int _drawPassOffset;
 
         public ShadowPassPool(AAAARenderPassEvent renderPassEvent,
             AAAARenderPipelineRuntimeShaders shaders, AAAARawBufferClear rawBufferClear, AAAARenderPipelineDebugDisplaySettings debugSettings)
@@ -28,40 +30,48 @@ namespace DELTation.AAAARP.Passes.Shadows
 
         public void Dispose()
         {
-            foreach (PassSet set in _sets)
+            foreach (GPUCullingPass gpuCullingPass in _cullingPasses)
             {
-                set.GPUCullingPass.Dispose();
+                gpuCullingPass.Dispose();
             }
 
-            _sets.Clear();
+            _drawShadowsPasses.Clear();
+            _cullingPasses.Clear();
         }
 
-        public PassSet RequestPassesBasic(int shadowLightIndex, int splitIndex, in GPUCullingPass.CullingViewParameters cullingViewParameters, int contextIndex)
+        public DrawShadowsPass RequestDrawPass(int shadowLightIndex, int splitIndex, int contextIndex)
         {
-            while (_setsOffset >= _sets.Count)
+            while (_drawPassOffset >= _drawShadowsPasses.Count)
             {
-                _sets.Add(new PassSet
-                    {
-                        GPUCullingPass =
-                            new GPUCullingPass(GPUCullingPass.PassType.Basic, _renderPassEvent, _shaders, _rawBufferClear, _debugSettings, NameTag),
-                        DrawShadowsPass = new DrawShadowsPass(_renderPassEvent),
-                    }
-                );
+                _drawShadowsPasses.Add(new DrawShadowsPass(_renderPassEvent));
             }
 
-            PassSet set = _sets[_setsOffset];
-            set.GPUCullingPass.CullingViewParametersOverride = cullingViewParameters;
-            set.GPUCullingPass.ContextIndex = contextIndex;
-            set.DrawShadowsPass.ShadowLightIndex = shadowLightIndex;
-            set.DrawShadowsPass.SplitIndex = splitIndex;
-            set.DrawShadowsPass.ContextIndex = contextIndex;
-            ++_setsOffset;
-            return set;
+            DrawShadowsPass pass = _drawShadowsPasses[_drawPassOffset];
+            pass.ShadowLightIndex = shadowLightIndex;
+            pass.SplitIndex = splitIndex;
+            pass.ContextIndex = contextIndex;
+            ++_drawPassOffset;
+            return pass;
+        }
+
+        public GPUCullingPass RequestCullingPass(List<GPUCullingPass.CullingViewParameters> cullingContexts)
+        {
+            while (_cullingPassOffset >= _cullingPasses.Count)
+            {
+                _cullingPasses.Add(new GPUCullingPass(GPUCullingPass.PassType.Basic, _renderPassEvent, _shaders, _rawBufferClear, _debugSettings, NameTag));
+            }
+
+            GPUCullingPass pass = _cullingPasses[_cullingPassOffset];
+            pass.CullingContextParameterList.Clear();
+            pass.CullingContextParameterList.AddRange(cullingContexts);
+            ++_cullingPassOffset;
+            return pass;
         }
 
         public void Reset()
         {
-            _setsOffset = 0;
+            _drawPassOffset = 0;
+            _cullingPassOffset = 0;
         }
 
         public struct PassSet

@@ -20,9 +20,9 @@ struct AAAAMeshletRenderRequest
     uint MeshletID;
 };
 
-AAAAMeshletRenderRequest PullMeshletRenderRequest(ByteAddressBuffer renderRequests, const uint index)
+AAAAMeshletRenderRequest PullMeshletRenderRequest(ByteAddressBuffer renderRequests, const uint loadOffset, const uint index)
 {
-    const uint  address = MeshletRenderRequestIndexToAddress(index);
+    const uint  address = loadOffset + MeshletRenderRequestIndexToAddress(index);
     const uint2 value = renderRequests.Load2(address);
 
     AAAAMeshletRenderRequest renderRequest;

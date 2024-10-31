@@ -7,7 +7,11 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VisibilityBuffer/GPUCullingContexts.hlsl"
 
+#define THREADS_GROUP_SIZE MAX_CULLING_CONTEXTS_PER_BATCH
+
 ConstantBuffer<GPUCullingContextArray> _CullingContexts;
+
+uint _CullingContextCount;
 
 ByteAddressBuffer   _RequestCounter;
 RWByteAddressBuffer _IndirectArgs;
@@ -17,10 +21,16 @@ uint _IndirectDrawArgsOffset;
 ByteAddressBuffer   _RendererListMeshletCounts;
 RWByteAddressBuffer _IndirectDrawArgs;
 
-[numthreads(1, 1, 1)]
-void CS(const uint3 groupID : SV_GroupID)
+[numthreads(THREADS_GROUP_SIZE, 1, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint contextIndex = groupID.x;
+    const uint contextIndex = dispatchThreadID.x;
+
+    UNITY_BRANCH
+    if (contextIndex >= _CullingContextCount)
+    {
+        return;
+    }
 
     // Part 1. Fixup meshlet culling indirect args.
     {

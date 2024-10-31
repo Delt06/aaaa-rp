@@ -23,6 +23,11 @@ namespace DELTation.AAAARP.Passes
         public int CameraIsPerspective;
         public uint BaseStartInstance;
         public uint MeshletListBuildJobsOffset;
+        public uint MeshletRenderRequestsOffset;
+
+        public uint Padding0;
+        public uint Padding1;
+        public uint Padding2;
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]
@@ -34,5 +39,8 @@ namespace DELTation.AAAARP.Passes
         public float4 CameraUp;
         public float4 CameraRight;
         public float2 ScreenSizePixels;
+
+        public uint Padding0;
+        public uint Padding1;
     }
 }

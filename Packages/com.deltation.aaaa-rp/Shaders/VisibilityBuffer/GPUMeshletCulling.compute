@@ -122,7 +122,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     const GPUCullingContext cullingContext = _CullingContexts.Items[_CullingContextIndex];
 
-    const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(_SourceMeshlets, sourceMeshletID);
+    const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(_SourceMeshlets, cullingContext.MeshletRenderRequestsOffset, sourceMeshletID);
     const AAAAInstanceData         instanceData = PullInstanceData(meshletRenderRequest.InstanceID);
     const AAAAMaterialData         materialData = PullMaterialData(instanceData.MaterialIndex);
     const uint                     rendererListID = GetRendererListID(instanceData, materialData);
