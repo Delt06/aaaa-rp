@@ -216,7 +216,7 @@ namespace DELTation.AAAARP.Passes
             );
             passData.MeshletListBuildIndirectDispatchArgsBuffer = builder.CreateTransientBuffer(
                 new BufferDesc(
-                    GPUCullingContext.MaxCullingContextsPerBatch * UnsafeUtility.SizeOf<IndirectDispatchArgs>() / sizeof(uint), sizeof(uint),
+                    UnsafeUtility.SizeOf<IndirectDispatchArgs>() / sizeof(uint), sizeof(uint),
                     GraphicsBuffer.Target.IndirectArguments | GraphicsBuffer.Target.Raw
                 )
                 {
@@ -230,6 +230,15 @@ namespace DELTation.AAAARP.Passes
                 )
                 {
                     name = nameof(PassData.MeshletListBuildJobsBuffer),
+                }
+            );
+            passData.MeshletListBuildJobCountersBuffer = builder.CreateTransientBuffer(
+                new BufferDesc(GPUCullingContext.MaxCullingContextsPerBatch,
+                    sizeof(uint),
+                    GraphicsBuffer.Target.Raw | GraphicsBuffer.Target.CopyDestination
+                )
+                {
+                    name = nameof(PassData.MeshletListBuildJobCountersBuffer),
                 }
             );
 
@@ -312,7 +321,7 @@ namespace DELTation.AAAARP.Passes
 
                 {
                     var initialIndirectDispatchArgs =
-                        new NativeArray<IndirectDispatchArgs>(data.CullingContextCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                        new NativeArray<IndirectDispatchArgs>(1, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
 
                     for (int i = 0; i < initialIndirectDispatchArgs.Length; i++)
                     {
@@ -324,6 +333,8 @@ namespace DELTation.AAAARP.Passes
                         };
                     }
                     context.cmd.SetBufferData(data.MeshletListBuildIndirectDispatchArgsBuffer, initialIndirectDispatchArgs);
+
+                    _rawBufferClear.FastZeroClear(context.cmd, data.MeshletListBuildJobCountersBuffer, GPUCullingContext.MaxCullingContextsPerBatch);
                 }
 
                 {
@@ -381,11 +392,11 @@ namespace DELTation.AAAARP.Passes
                 context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
                     ShaderID.GPUInstanceCulling._Jobs, data.MeshletListBuildJobsBuffer
                 );
-
-                // Meshlet list build indirect args ThreadGroupsX is the same as job counter.
-                // Bind it directly to avoid a separate dispatch for indirect args fixup.
                 context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
-                    ShaderID.GPUInstanceCulling._JobCounter, data.MeshletListBuildIndirectDispatchArgsBuffer
+                    ShaderID.GPUInstanceCulling._JobCounters, data.MeshletListBuildJobCountersBuffer
+                );
+                context.cmd.SetComputeBufferParam(_gpuInstanceCullingCS, kernelIndex,
+                    ShaderID.GPUInstanceCulling._MeshletListBuildIndirectArgs, data.MeshletListBuildIndirectDispatchArgsBuffer
                 );
 
                 if (data.DebugDataBuffer.IsValid())
@@ -418,6 +429,9 @@ namespace DELTation.AAAARP.Passes
                     ShaderID.MeshletListBuild._Jobs, data.MeshletListBuildJobsBuffer
                 );
                 context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex,
+                    ShaderID.MeshletListBuild._JobCounters, data.MeshletListBuildJobCountersBuffer
+                );
+                context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex,
                     ShaderID.MeshletListBuild._DestinationMeshletsCounter, data.InitialMeshletListCounterBuffer
                 );
                 context.cmd.SetComputeBufferParam(_meshletListBuildCS, kernelIndex,
@@ -427,16 +441,7 @@ namespace DELTation.AAAARP.Passes
                     ShaderID.MeshletListBuild._RendererListMeshletCounts, data.RendererListMeshletCountsBuffer
                 );
 
-                for (int cullingContextIndex = 0; cullingContextIndex < data.CullingContextCount; cullingContextIndex++)
-                {
-                    context.cmd.SetComputeIntParam(_meshletListBuildCS,
-                        ShaderID.MeshletListBuild._CullingContextIndex, cullingContextIndex
-                    );
-                    uint argsOffset = (uint) (cullingContextIndex * UnsafeUtility.SizeOf<IndirectDispatchArgs>());
-                    context.cmd.DispatchCompute(_meshletListBuildCS, kernelIndex,
-                        data.MeshletListBuildIndirectDispatchArgsBuffer, argsOffset
-                    );
-                }
+                context.cmd.DispatchCompute(_meshletListBuildCS, kernelIndex, data.MeshletListBuildIndirectDispatchArgsBuffer, 0);
             }
 
             using (new ProfilingScope(context.cmd, Profiling.FixupMeshletCullingIndirectDispatchArgs))
@@ -605,6 +610,7 @@ namespace DELTation.AAAARP.Passes
             public BufferHandle InstanceIndices;
 
             public BufferHandle MeshletListBuildIndirectDispatchArgsBuffer;
+            public BufferHandle MeshletListBuildJobCountersBuffer;
             public BufferHandle MeshletListBuildJobsBuffer;
 
             public BufferHandle OcclusionCullingInstanceVisibilityMask;
@@ -678,16 +684,17 @@ namespace DELTation.AAAARP.Passes
                 public static int _InstanceIndicesCount = Shader.PropertyToID(nameof(_InstanceIndicesCount));
 
                 public static int _Jobs = Shader.PropertyToID(nameof(_Jobs));
-                public static int _JobCounter = Shader.PropertyToID(nameof(_JobCounter));
+                public static int _JobCounters = Shader.PropertyToID(nameof(_JobCounters));
+                public static int _MeshletListBuildIndirectArgs = Shader.PropertyToID(nameof(_MeshletListBuildIndirectArgs));
             }
 
             public static class MeshletListBuild
             {
                 public static int _CullingContexts = Shader.PropertyToID(nameof(_CullingContexts));
                 public static int _LODSelectionContexts = Shader.PropertyToID(nameof(_LODSelectionContexts));
-                public static int _CullingContextIndex = Shader.PropertyToID(nameof(_CullingContextIndex));
 
                 public static int _Jobs = Shader.PropertyToID(nameof(_Jobs));
+                public static int _JobCounters = Shader.PropertyToID(nameof(_JobCounters));
 
                 public static int _DestinationMeshletsCounter = Shader.PropertyToID(nameof(_DestinationMeshletsCounter));
                 public static int _DestinationMeshlets = Shader.PropertyToID(nameof(_DestinationMeshlets));

@@ -27,7 +27,8 @@ ByteAddressBuffer _InstanceIndices;
 uint              _InstanceIndicesCount;
 
 RWStructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
-RWByteAddressBuffer                         _JobCounter;
+RWByteAddressBuffer                         _JobCounters;
+RWByteAddressBuffer                         _MeshletListBuildIndirectArgs;
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupID : SV_GroupID)
@@ -96,7 +97,8 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupID 
     const uint totalMeshLODCount = instanceData.TotalMeshLODCount;
     const uint jobCount = ceil((float)totalMeshLODCount / MAX_LODNODES_PER_THREAD_GROUP);
     uint       jobWriteOffset;
-    _JobCounter.InterlockedAdd(contextIndex * IndirectArgs::DispatchArgsStride(), jobCount, jobWriteOffset);
+    _JobCounters.InterlockedAdd(contextIndex * 4, jobCount, jobWriteOffset);
+    _MeshletListBuildIndirectArgs.InterlockedAdd(0, jobCount);
 
     for (uint jobIndex = 0; jobIndex < jobCount; ++jobIndex)
     {

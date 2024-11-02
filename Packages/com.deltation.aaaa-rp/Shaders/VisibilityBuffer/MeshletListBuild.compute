@@ -19,12 +19,12 @@
 
 uint  _ForcedMeshLODNodeDepth;
 float _MeshLODErrorThreshold;
-uint  _CullingContextIndex;
 
 ConstantBuffer<GPUCullingContextArray>      _CullingContexts;
 ConstantBuffer<GPULODSelectionContextArray> _LODSelectionContexts;
 
 StructuredBuffer<AAAAMeshletListBuildJob> _Jobs;
+ByteAddressBuffer                         _JobCounters;
 
 RWByteAddressBuffer _DestinationMeshletsCounter;
 RWByteAddressBuffer _DestinationMeshlets;
@@ -73,8 +73,8 @@ bool ShouldPushMeshletRenderRequests(const GPULODSelectionContext lodSelectionCo
         const float4 parentBoundsWS = TransformBoundingSphere(meshLODNode.ParentBounds, instanceData.ObjectToWorldMatrix);
         const float  error = meshLODNode.Error * GetScreenBoundRadiusSq(lodSelectionContext, boundsWS);
         const float  parentError = meshLODNode.ParentError >= 0
-                                      ? meshLODNode.ParentError * GetScreenBoundRadiusSq(lodSelectionContext, parentBoundsWS)
-                                      : FLT_INF;
+                                       ? meshLODNode.ParentError * GetScreenBoundRadiusSq(lodSelectionContext, parentBoundsWS)
+                                       : FLT_INF;
         const float threshold = _MeshLODErrorThreshold * distanceToViewSq * instanceData.LODErrorScale;
         result = parentError > threshold && error <= threshold;
     }
@@ -91,6 +91,35 @@ groupshared uint g_PassedNodeCount;
 
 groupshared uint g_MeshletWriteOffset;
 
+void GroupIDToContextJob(const uint3 groupID, out uint contextIndex, out uint contextJobID)
+{
+    contextIndex = 0;
+    contextJobID = groupID.x;
+
+    uint jobCounts[MAX_CULLING_CONTEXTS_PER_BATCH];
+
+    for (uint i = 0; i < MAX_CULLING_CONTEXTS_PER_BATCH; i += 4)
+    {
+        const uint4 loadedJobCounts = _JobCounters.Load4(i * 4);
+        jobCounts[i + 0] = loadedJobCounts[0];
+        jobCounts[i + 1] = loadedJobCounts[1];
+        jobCounts[i + 2] = loadedJobCounts[2];
+        jobCounts[i + 3] = loadedJobCounts[3];
+    }
+
+    for (uint i = 0; i < MAX_CULLING_CONTEXTS_PER_BATCH; ++i)
+    {
+        const uint jobCount = jobCounts[i];
+        if (contextJobID < jobCount)
+        {
+            break;
+        }
+
+        ++contextIndex;
+        contextJobID -= jobCount;
+    }
+}
+
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_GroupID)
 {
@@ -102,10 +131,12 @@ void CS(const uint3 groupThreadID : SV_GroupThreadID, const uint3 groupID : SV_G
 
     GroupMemoryBarrierWithGroupSync();
 
-    const uint                    contextIndex = _CullingContextIndex;
+    uint contextIndex, contextJobID;
+    GroupIDToContextJob(groupID, contextIndex, contextJobID);
+
     const GPUCullingContext       cullingContext = _CullingContexts.Items[contextIndex];
     const GPULODSelectionContext  lodSelectionContext = _LODSelectionContexts.Items[contextIndex];
-    const AAAAMeshletListBuildJob job = _Jobs[cullingContext.MeshletListBuildJobsOffset + groupID.x];
+    const AAAAMeshletListBuildJob job = _Jobs[cullingContext.MeshletListBuildJobsOffset + contextJobID];
     const AAAAInstanceData        instanceData = PullInstanceData(job.InstanceID);
     const AAAAMaterialData        materialData = PullMaterialData(instanceData.MaterialIndex);
 
