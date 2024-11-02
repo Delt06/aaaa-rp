@@ -11,8 +11,9 @@ namespace DELTation.AAAARP.Lighting
 {
     public static class AAAAShadowUtils
     {
-        public static void ComputeDirectionalLightShadowMatrices(NativeArray<float3> cameraFrustumCorners, int resolution, float farPlane, float splitNear,
-            float splitFar, quaternion lightRotation, out float4x4 lightView, out float4x4 lightProjection)
+        public static void ComputeDirectionalLightShadowMatrices(NativeArray<float3> cameraFrustumCorners, float3 cameraPosition, float cameraFarPlane,
+            int resolution, quaternion lightRotation, float splitNear, float splitFar,
+            out float4x4 lightView, out float4x4 lightProjection)
         {
             // From Wicked Engine: https://github.com/turanszkij/WickedEngine/blob/84adc794752a4b12d2551fef383d4872726a9255/WickedEngine/wiRenderer.cpp#L2735
             quaternion invLightRotation = inverse(lightRotation);
@@ -20,8 +21,14 @@ namespace DELTation.AAAARP.Lighting
             float3 lightUp = normalize(rotate(invLightRotation, float3(0, 1, 0)));
             lightView = LookRotation(lightForward, lightUp);
 
-            float splitNearNormalized = splitNear / farPlane;
-            float splitFarNormalized = splitFar / farPlane;
+            // Unity view space Z is reversed.
+            lightView = mul(float4x4.Scale(float3(1, 1, -1)), lightView);
+
+            float perspectiveNearPlane = distance(cameraFrustumCorners[0], cameraPosition);
+            float perspectiveFarPlane = distance(cameraFrustumCorners[1], cameraPosition);
+            float splitNearNormalized = (splitNear - perspectiveNearPlane) / (perspectiveFarPlane - perspectiveNearPlane);
+            float splitFarNormalized = (splitFar - perspectiveNearPlane) / (perspectiveFarPlane - perspectiveNearPlane);
+
             var corners = new NativeArray<float3>(8, Allocator.Temp)
             {
                 [0] = transform(lightView, lerp(cameraFrustumCorners[0], cameraFrustumCorners[1], splitNearNormalized)),
@@ -62,12 +69,11 @@ namespace DELTation.AAAARP.Lighting
 
             // Extrude bounds to avoid early shadow clipping:
             float extrusion = abs(center.z - aabbMin.z);
-            extrusion = max(extrusion, min(1500.0f, farPlane) * 0.5f);
+            extrusion = max(extrusion, min(1500.0f, cameraFarPlane) * 0.5f);
             aabbMin.z = center.z - extrusion;
             aabbMax.z = center.z + extrusion;
 
-            // notice reversed Z!
-            lightProjection = float4x4.OrthoOffCenter(aabbMin.x, aabbMax.x, aabbMin.y, aabbMax.y, aabbMax.z, aabbMin.z);
+            lightProjection = float4x4.OrthoOffCenter(aabbMin.x, aabbMax.x, aabbMin.y, aabbMax.y, aabbMin.z, aabbMax.z);
         }
 
         private static float4x4 LookRotation(float3 forward, float3 up)

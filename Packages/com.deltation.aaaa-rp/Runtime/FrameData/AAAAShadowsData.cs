@@ -112,9 +112,8 @@ namespace DELTation.AAAARP.FrameData
                             float splitFar = cascadeIndex == cascadeCount - 1 ? shadowDistance : shadowDistance * cascadeDistances[cascadeIndex];
 
                             AAAAShadowUtils.ComputeDirectionalLightShadowMatrices(
-                                cameraFrustumCorners, shadowMapResolution, cameraFarPlane,
-                                splitNear, splitFar,
-                                lightRotation, out float4x4 lightView, out float4x4 lightProjection
+                                cameraFrustumCorners, cameraPosition, cameraFarPlane,
+                                shadowMapResolution, lightRotation, splitNear, splitFar, out float4x4 lightView, out float4x4 lightProjection
                             );
 
                             Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);

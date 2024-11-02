@@ -163,8 +163,8 @@ bool DoLightSphereCulling(const float4 receiverBoundingSphereLS, const float4 ca
     const float3 receiverToCasterLS = casterCenterLS - receiverCenterLS;
 
     // compute the light space z coordinate where the caster sphere and receiver sphere just intersect
-    const float sphereIntersectionMaxDistance = casterRadius + receiverRadius;
-    const float zSqAtSphereIntersection = sphereIntersectionMaxDistance * sphereIntersectionMaxDistance - dot(receiverToCasterLS.xy, receiverToCasterLS.xy);
+    const float intersectionMaxDistance = casterRadius + receiverRadius;
+    const float zSqAtSphereIntersection = intersectionMaxDistance * intersectionMaxDistance - dot(receiverToCasterLS.xy, receiverToCasterLS.xy);
 
     // if this is negative, the spheres do not overlap as circles in the XY plane, so cull the caster
     UNITY_FLATTEN
@@ -173,7 +173,7 @@ bool DoLightSphereCulling(const float4 receiverBoundingSphereLS, const float4 ca
 
     // if the caster is outside the receiver sphere in the light direction, it cannot cast a shadow on it, so cull it
     UNITY_FLATTEN
-    if (receiverToCasterLS.z > 0.0f && receiverToCasterLS.z * receiverToCasterLS.z > zSqAtSphereIntersection)
+    if (receiverToCasterLS.z < 0.0f && receiverToCasterLS.z * receiverToCasterLS.z > zSqAtSphereIntersection)
         return false;
 
     return true;

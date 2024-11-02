@@ -50,7 +50,7 @@ bool Culling(const GPUCullingContext cullingContext, const AAAAInstanceData inst
     if (FrustumVsSphereCulling(cullingContext.FrustumPlanes, boundingSphereWS) &&
         LightSphereCulling(cullingContext.CullingSphereLS, cullingContext.ViewMatrix, boundingSphereWS))
     {
-        const float3 viewForwardDirWS = -GetViewForwardDir(cullingContext.ViewMatrix);
+        const float3 viewForwardDirWS = GetViewForwardDir(cullingContext.ViewMatrix);
         const bool   isPerspective = cullingContext.CameraIsPerspective;
 
         UNITY_BRANCH
@@ -122,11 +122,12 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     const GPUCullingContext cullingContext = _CullingContexts.Items[_CullingContextIndex];
 
-    const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(_SourceMeshlets, cullingContext.MeshletRenderRequestsOffset, sourceMeshletID);
-    const AAAAInstanceData         instanceData = PullInstanceData(meshletRenderRequest.InstanceID);
-    const AAAAMaterialData         materialData = PullMaterialData(instanceData.MaterialIndex);
-    const uint                     rendererListID = GetRendererListID(instanceData, materialData);
-    const AAAAMeshlet              meshlet = PullMeshletData(meshletRenderRequest.MeshletID);
+    const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(_SourceMeshlets, cullingContext.MeshletRenderRequestsOffset,
+                                                                                   sourceMeshletID);
+    const AAAAInstanceData instanceData = PullInstanceData(meshletRenderRequest.InstanceID);
+    const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
+    const uint             rendererListID = GetRendererListID(instanceData, materialData);
+    const AAAAMeshlet      meshlet = PullMeshletData(meshletRenderRequest.MeshletID);
 
     if (!Culling(cullingContext, instanceData, rendererListID, meshlet))
     {
