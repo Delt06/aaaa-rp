@@ -130,7 +130,7 @@ namespace DELTation.AAAARP
                     float deltaTime = Time.deltaTime;
                     float smoothDeltaTime = Time.smoothDeltaTime;
 
-                    ClearRenderingState(cmd);
+                    data.Renderer.ClearRenderingState(cmd);
                     SetShaderTimeValues(cmd, time, deltaTime, smoothDeltaTime);
                 }
             );

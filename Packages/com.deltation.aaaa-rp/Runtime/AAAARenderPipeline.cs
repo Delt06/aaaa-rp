@@ -1,4 +1,6 @@
-﻿using DELTation.AAAARP.Data;
+﻿using System;
+using System.Collections.Generic;
+using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
@@ -60,6 +62,11 @@ namespace DELTation.AAAARP
         }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
+        {
+            throw new InvalidOperationException("The variant with the List<> is used instead.");
+        }
+
+        protected override void Render(ScriptableRenderContext context, List<Camera> cameras)
         {
             _shadowMapPool.Reset();
             _rendererContainer.PreRender(context);
@@ -244,7 +251,7 @@ namespace DELTation.AAAARP
                 cameraData.VolumeStack.GetComponent<AAAAPostProcessingOptionsVolumeComponent>().AnyEnabled();
             cameraData.AmbientOcclusionTechnique = lightingSettings?.AmbientOcclusion ?? AAAAAmbientOcclusionTechnique.Off;
             if (cameraData.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO &&
-                cameraData.VolumeStack.GetComponent<AAAAGtaoVolumeComponent>().FinalValuePower == 0.0f)
+                cameraData.VolumeStack.GetComponent<AAAAGtaoVolumeComponent>().FinalValuePower.value == 0.0f)
             {
                 cameraData.AmbientOcclusionTechnique = AAAAAmbientOcclusionTechnique.Off;
             }
