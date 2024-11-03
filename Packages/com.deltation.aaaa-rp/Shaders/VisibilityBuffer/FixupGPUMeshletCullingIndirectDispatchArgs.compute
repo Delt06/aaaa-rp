@@ -13,7 +13,7 @@ ConstantBuffer<GPUCullingContextArray> _CullingContexts;
 
 uint _CullingContextCount;
 
-ByteAddressBuffer   _RequestCounter;
+ByteAddressBuffer   _RequestCounters;
 RWByteAddressBuffer _IndirectArgs;
 
 uint _IndirectDrawArgsOffset;
@@ -21,29 +21,40 @@ uint _IndirectDrawArgsOffset;
 ByteAddressBuffer   _RendererListMeshletCounts;
 RWByteAddressBuffer _IndirectDrawArgs;
 
+groupshared uint g_TotalThreadGroupsX;
+
 [numthreads(THREADS_GROUP_SIZE, 1, 1)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     const uint contextIndex = dispatchThreadID.x;
 
-    UNITY_BRANCH
-    if (contextIndex >= _CullingContextCount)
-    {
-        return;
-    }
-
     // Part 1. Fixup meshlet culling indirect args.
     {
-        const uint requestCount = _RequestCounter.Load(contextIndex * 4);
+        if (contextIndex == 0)
+        {
+            g_TotalThreadGroupsX = 0;
+        }
 
-        IndirectDispatchArgs indirectDispatchArgs;
-        indirectDispatchArgs.ThreadGroupsX = (uint)AlignUp(requestCount, GPUMESHLET_CULLING_THREAD_GROUP_SIZE) / GPUMESHLET_CULLING_THREAD_GROUP_SIZE;
-        indirectDispatchArgs.ThreadGroupsY = 1;
-        indirectDispatchArgs.ThreadGroupsZ = 1;
-        _IndirectArgs.Store3(IndirectArgs::DispatchArgsStride() * contextIndex, IndirectArgs::PackDispatchArgs(indirectDispatchArgs));
+        GroupMemoryBarrierWithGroupSync();
+
+        const uint contextRequestCount = _RequestCounters.Load(contextIndex * 4);
+        const uint contextThreadGroupsX = (uint)AlignUp(contextRequestCount, GPUMESHLET_CULLING_THREAD_GROUP_SIZE) / GPUMESHLET_CULLING_THREAD_GROUP_SIZE;
+        InterlockedAdd(g_TotalThreadGroupsX, contextThreadGroupsX);
+
+        GroupMemoryBarrierWithGroupSync();
+
+        if (contextIndex == 0)
+        {
+            IndirectDispatchArgs indirectDispatchArgs;
+            indirectDispatchArgs.ThreadGroupsX = g_TotalThreadGroupsX;
+            indirectDispatchArgs.ThreadGroupsY = 1;
+            indirectDispatchArgs.ThreadGroupsZ = 1;
+            _IndirectArgs.Store3(0, IndirectArgs::PackDispatchArgs(indirectDispatchArgs));
+        }
     }
 
     // Part 2. Compute meshlet render request offsets for all renderer lists. They will be stored sequentially.
+    if (contextIndex < _CullingContextCount)
     {
         const GPUCullingContext cullingContext = _CullingContexts.Items[contextIndex];
 

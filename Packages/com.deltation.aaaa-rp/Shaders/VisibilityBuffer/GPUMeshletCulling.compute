@@ -30,14 +30,43 @@
 
 ConstantBuffer<GPUCullingContextArray> _CullingContexts;
 
-uint _CullingContextIndex;
-
-ByteAddressBuffer _SourceMeshletsCounter;
+ByteAddressBuffer _SourceMeshletsCounters;
 ByteAddressBuffer _SourceMeshlets;
 
 RWByteAddressBuffer _IndirectDrawArgs;
 uint                _IndirectDrawArgsOffset;
 RWByteAddressBuffer _DestinationMeshlets;
+
+void DispatchThreadIDToContextMeshletID(const uint3 dispatchThreadID, out uint contextIndex, out uint contextMeshletID, out uint contextMeshletCount)
+{
+    contextIndex = 0;
+    contextMeshletID = dispatchThreadID.x;
+
+    uint contextMeshletCounts[MAX_CULLING_CONTEXTS_PER_BATCH];
+
+    for (uint i = 0; i < MAX_CULLING_CONTEXTS_PER_BATCH; i += 4)
+    {
+        const uint4 loadedContextMeshletCounts = _SourceMeshletsCounters.Load4(i * 4);
+        contextMeshletCounts[i + 0] = loadedContextMeshletCounts[0];
+        contextMeshletCounts[i + 1] = loadedContextMeshletCounts[1];
+        contextMeshletCounts[i + 2] = loadedContextMeshletCounts[2];
+        contextMeshletCounts[i + 3] = loadedContextMeshletCounts[3];
+    }
+
+    for (uint i = 0; i < MAX_CULLING_CONTEXTS_PER_BATCH; ++i)
+    {
+        const uint alignedContextMeshletCounts = AlignUp(contextMeshletCounts[i], THREAD_GROUP_SIZE);
+        if (contextMeshletID < alignedContextMeshletCounts)
+        {
+            break;
+        }
+
+        ++contextIndex;
+        contextMeshletID -= alignedContextMeshletCounts;
+    }
+
+    contextMeshletCount = contextMeshletCounts[contextIndex];
+}
 
 bool Culling(const GPUCullingContext cullingContext, const AAAAInstanceData instanceData, const uint rendererListID, const AAAAMeshlet meshletData)
 {
@@ -111,19 +140,19 @@ uint GetRendererListID(const AAAAInstanceData instanceData, const AAAAMaterialDa
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint meshletsCount = _SourceMeshletsCounter.Load(_CullingContextIndex * 4);
-    const uint sourceMeshletID = dispatchThreadID.x;
+    uint contextIndex, contextMeshletID, contextMeshletCount;
+    DispatchThreadIDToContextMeshletID(dispatchThreadID, contextIndex, contextMeshletID, contextMeshletCount);
 
     UNITY_BRANCH
-    if (sourceMeshletID >= meshletsCount)
+    if (contextMeshletID >= contextMeshletCount)
     {
         return;
     }
 
-    const GPUCullingContext cullingContext = _CullingContexts.Items[_CullingContextIndex];
+    const GPUCullingContext cullingContext = _CullingContexts.Items[contextIndex];
 
     const AAAAMeshletRenderRequest meshletRenderRequest = PullMeshletRenderRequest(_SourceMeshlets, cullingContext.MeshletRenderRequestsOffset,
-                                                                                   sourceMeshletID);
+                                                                                   contextMeshletID);
     const AAAAInstanceData instanceData = PullInstanceData(meshletRenderRequest.InstanceID);
     const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
     const uint             rendererListID = GetRendererListID(instanceData, materialData);
@@ -134,9 +163,9 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    uint       localRenderRequestWriteOffset = 0;
-    const uint drawArgsOffset = _IndirectDrawArgsOffset + IndirectArgs::DrawArgsStride() * (_CullingContextIndex * AAAARENDERERLISTID_COUNT +
-        rendererListID);
+    uint localRenderRequestWriteOffset = 0;
+    uint drawArgsOffset = _IndirectDrawArgsOffset;
+    drawArgsOffset += IndirectArgs::DrawArgsStride() * (contextIndex * AAAARENDERERLISTID_COUNT + rendererListID);
 
     // Instance count is the second field.
     _IndirectDrawArgs.InterlockedAdd(drawArgsOffset + 4, 1, localRenderRequestWriteOffset);
