@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Tests/Scenes/DirectionalShadowsTest.unity
+    guid: 08d20cbfd79d54f4886ffa7f91d5376a
+  - enabled: 1
     path: Assets/Tests/Scenes/ClusteredLightingTest.unity
     guid: 7570953749865ef43b585cd193ba71da
   m_configObjects:
