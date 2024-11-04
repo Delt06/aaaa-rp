@@ -28,15 +28,14 @@ namespace DELTation.AAAARP.Passes.IBL
         {
             AAAAImageBasedLightingData imageBasedLightingData = frameData.Get<AAAAImageBasedLightingData>();
 
-            SphericalHarmonicsL2 ambientProbe = RenderSettings.ambientProbe;
-            if (imageBasedLightingData.DiffuseIrradianceAmbientProbe == ambientProbe)
+            if (!imageBasedLightingData.DiffuseIrradianceIsDirty)
             {
                 passData.CullPass = true;
                 return;
             }
 
             passData.CullPass = false;
-            imageBasedLightingData.DiffuseIrradianceAmbientProbe = ambientProbe;
+            imageBasedLightingData.DiffuseIrradianceIsDirty = false;
 
             passData.Source = ReflectionProbe.defaultTexture;
             passData.SourceHDRDecodeValues = ReflectionProbe.defaultTextureHDRDecodeValues;

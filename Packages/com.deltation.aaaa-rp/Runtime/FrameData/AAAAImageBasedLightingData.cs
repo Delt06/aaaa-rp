@@ -9,12 +9,14 @@ namespace DELTation.AAAARP.FrameData
 {
     public class AAAAImageBasedLightingData : ContextItem
     {
+        private SphericalHarmonicsL2 _previousAmbientProbe;
+
         public TextureHandle BRDFLut;
         public bool BRDFLutIsDirty;
 
         public TextureHandle DiffuseIrradiance;
-        public SphericalHarmonicsL2? DiffuseIrradianceAmbientProbe;
         public RenderTextureDescriptor DiffuseIrradianceDesc;
+        public bool DiffuseIrradianceIsDirty;
 
         public TextureHandle PreFilteredEnvironmentMap;
         public RenderTextureDescriptor PreFilteredEnvironmentMapDesc;
@@ -22,6 +24,14 @@ namespace DELTation.AAAARP.FrameData
 
         public void Init(AAAAImageBasedLightingSettings settings, RenderGraph renderGraph)
         {
+            SphericalHarmonicsL2 currentAmbientProbe = RenderSettings.ambientProbe;
+            if (_previousAmbientProbe != currentAmbientProbe)
+            {
+                DiffuseIrradianceIsDirty = true;
+                PreFilteredEnvironmentMapIsDirty = true;
+                _previousAmbientProbe = currentAmbientProbe;
+            }
+
             if (!DiffuseIrradiance.IsValid())
             {
                 int resolution = (int) settings.DiffuseIrradianceResolution;
@@ -32,7 +42,7 @@ namespace DELTation.AAAARP.FrameData
                     dimension = TextureDimension.Cube,
                 };
                 DiffuseIrradiance = renderGraph.CreateSharedTexture(AAAARenderingUtils.CreateTextureDesc(nameof(DiffuseIrradiance), DiffuseIrradianceDesc));
-                DiffuseIrradianceAmbientProbe = default;
+                DiffuseIrradianceIsDirty = true;
             }
 
             if (!BRDFLut.IsValid())
@@ -76,7 +86,7 @@ namespace DELTation.AAAARP.FrameData
         {
             DiffuseIrradiance = TextureHandle.nullHandle;
             DiffuseIrradianceDesc = default;
-            DiffuseIrradianceAmbientProbe = default;
+            DiffuseIrradianceIsDirty = true;
 
             BRDFLut = TextureHandle.nullHandle;
             BRDFLutIsDirty = true;
