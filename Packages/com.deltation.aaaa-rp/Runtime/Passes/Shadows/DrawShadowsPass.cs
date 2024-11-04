@@ -27,12 +27,28 @@ namespace DELTation.AAAARP.Passes.Shadows
             ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowLights.ElementAtRef(ShadowLightIndex);
             ref readonly AAAAShadowsData.ShadowLightSplit shadowLightSplit = ref shadowLight.Splits.ElementAtRef(SplitIndex);
 
+
             passData.SlopeBias = shadowLight.SlopeBias;
+            Vector4 shadowLightDirection;
+
+            if (shadowLight.LightType == LightType.Directional)
+            {
+                shadowLightDirection = -shadowLightSplit.CullingView.CameraForward;
+                shadowLightDirection.w = 0.0f;
+            }
+            else
+            {
+                shadowLightDirection = shadowLightSplit.CullingView.CameraPosition;
+                shadowLightDirection.w = 1.0f;
+            }
+
             passData.ShadowRenderingConstantBuffer = new AAAAShadowRenderingConstantBuffer
             {
                 ShadowViewMatrix = shadowLightSplit.CullingView.ViewMatrix,
                 ShadowProjectionMatrix = shadowLightSplit.GPUProjectionMatrix,
                 ShadowViewProjection = shadowLightSplit.CullingView.GPUViewProjectionMatrix,
+                ShadowLightDirection = shadowLightDirection,
+                ShadowBiases = new Vector4(shadowLight.DepthBias, 0, 0, 0),
             };
             passData.RendererContainer = renderingData.RendererContainer;
             passData.CameraType = cameraData.CameraType;

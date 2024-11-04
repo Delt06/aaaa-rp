@@ -100,6 +100,7 @@ namespace DELTation.AAAARP.Passes
             Matrix4x4 gpuViewProjectionMatrix = GL.GetGPUProjectionMatrix(viewProjectionMatrix, true);
 
             var pixelSize = new Vector2(cameraData.ScaledWidth, cameraData.ScaledHeight);
+            Vector3 cameraForward = cameraTransform.forward;
             Vector3 cameraRight = cameraTransform.right;
             Vector3 cameraUp = cameraTransform.up;
 
@@ -116,6 +117,7 @@ namespace DELTation.AAAARP.Passes
                         ViewProjectionMatrix = viewProjectionMatrix,
                         GPUViewProjectionMatrix = gpuViewProjectionMatrix,
                         CameraPosition = cameraPosition,
+                        CameraForward = cameraForward,
                         CameraRight = cameraRight,
                         CameraUp = cameraUp,
                         PixelSize = pixelSize,
@@ -566,6 +568,7 @@ namespace DELTation.AAAARP.Passes
         public struct CullingViewParameters
         {
             public Vector3 CameraPosition;
+            public Vector3 CameraForward;
             public Vector3 CameraUp;
             public Vector3 CameraRight;
             public Vector2 PixelSize;

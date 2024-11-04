@@ -63,6 +63,64 @@ MonoBehaviour:
   - {fileID: -1804082683034774414}
   - {fileID: 4689579817852896042}
   - {fileID: -8400469760154769258}
+  - {fileID: 3626235199010158688}
+  - {fileID: 3848711672264475698}
+--- !u!114 &3626235199010158688
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87bd8bde3a9a4b729254631f3ca1b2eb, type: 3}
+  m_Name: AAAAGtaoVolumeComponent
+  m_EditorClassIdentifier: 
+  active: 1
+  Enabled:
+    m_OverrideState: 1
+    m_Value: 1
+  FinalValuePower:
+    m_OverrideState: 0
+    m_Value: 1
+  FalloffRange:
+    m_OverrideState: 0
+    m_Value: 0.1
+--- !u!114 &3848711672264475698
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb752e2ddb2d4bceb8258cd49da57425, type: 3}
+  m_Name: AAAAShadowSettingsComponent
+  m_EditorClassIdentifier: 
+  active: 1
+  Resolution:
+    m_OverrideState: 1
+    m_Value: 1024
+  MaxDistance:
+    m_OverrideState: 1
+    m_Value: 40
+  DirectionalLightCascades:
+    m_OverrideState: 0
+    m_Value: 4
+  DirectionalLightCascadeDistance1:
+    m_OverrideState: 0
+    m_Value: 0.25
+  DirectionalLightCascadeDistance2:
+    m_OverrideState: 0
+    m_Value: 0.5
+  DirectionalLightCascadeDistance3:
+    m_OverrideState: 0
+    m_Value: 0.75
+  ShadowFade:
+    m_OverrideState: 0
+    m_Value: 0.2
 --- !u!114 &4689579817852896042
 MonoBehaviour:
   m_ObjectHideFlags: 3

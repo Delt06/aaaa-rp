@@ -9,5 +9,7 @@ namespace DELTation.AAAARP.Lighting
         public Matrix4x4 ShadowProjectionMatrix;
         public Matrix4x4 ShadowViewMatrix;
         public Matrix4x4 ShadowViewProjection;
+        public Vector4 ShadowLightDirection;
+        public Vector4 ShadowBiases;
     }
 }

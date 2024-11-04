@@ -59,7 +59,7 @@ AAAAMeshletVertex PullVertexChecked(const AAAAMeshlet meshlet, const uint index)
     return PullVertex(meshlet, index);
 }
 
-Varyings VS(const uint svInstanceID : SV_InstanceID, const uint svIndexID : SV_VertexID)
+Varyings VSBase(const uint svInstanceID, const uint svIndexID, out float3 positionWS, out AAAAInstanceData instanceData, out AAAAMeshletVertex vertex)
 {
     InitIndirectDrawArgs(0);
 
@@ -69,14 +69,13 @@ Varyings VS(const uint svInstanceID : SV_InstanceID, const uint svIndexID : SV_V
         _MeshletRenderRequests, 0, GetIndirectInstanceID_Base(svInstanceID));
     const uint indexID = GetIndirectVertexID_Base(svIndexID);
 
-    const AAAAInstanceData perInstanceData = PullInstanceData(meshletRenderRequest.InstanceID);
+    instanceData = PullInstanceData(meshletRenderRequest.InstanceID);
 
     const AAAAMeshlet       meshlet = PullMeshletData(meshletRenderRequest.MeshletID);
     const uint              index = PullIndexChecked(meshlet, indexID);
-    const AAAAMeshletVertex vertex = PullVertexChecked(meshlet, index);
+    vertex = PullVertexChecked(meshlet, index);
 
-
-    const float3 positionWS = mul(perInstanceData.ObjectToWorldMatrix, float4(vertex.Position.xyz, 1.0f)).xyz;
+    positionWS = mul(instanceData.ObjectToWorldMatrix, float4(vertex.Position.xyz, 1.0f)).xyz;
 
     OUT.positionCS = TransformWorldToHClip(positionWS);
 
@@ -86,13 +85,21 @@ Varyings VS(const uint svInstanceID : SV_InstanceID, const uint svIndexID : SV_V
     visibilityBufferValue.indexID = indexID;
     OUT.visibilityValue = PackVisibilityBufferValue(visibilityBufferValue);
 
-    const AAAAMaterialData materialData = PullMaterialData(perInstanceData.MaterialIndex);
+    const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
 
     #ifdef _ALPHATEST_ON
     WriteUV(vertex, materialData, OUT.uv0);
     #endif
 
     return OUT;
+}
+
+Varyings VS(const uint svInstanceID : SV_InstanceID, const uint svIndexID : SV_VertexID)
+{
+    float3 positionWS;
+    AAAAInstanceData instanceData;
+    AAAAMeshletVertex vertex;
+    return VSBase(svInstanceID, svIndexID, positionWS, instanceData, vertex);
 }
 
 uint2 PS(const Varyings IN) : SV_TARGET

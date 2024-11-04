@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Volumes
 {
-    [Serializable] [VolumeComponentMenu("AAAA/Post Processing Options")] [SupportedOnRenderPipeline(typeof(AAAARenderPipelineAsset))]
+    [Serializable] [VolumeComponentMenu("AAAA/Post-Processing/Post Processing Options")] [SupportedOnRenderPipeline(typeof(AAAARenderPipelineAsset))]
     public class AAAAPostProcessingOptionsVolumeComponent : VolumeComponent
     {
         public ClampedFloatParameter Exposure = new(1.0f, 0.1f, 10.0f);

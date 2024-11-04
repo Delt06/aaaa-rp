@@ -248,7 +248,7 @@ MonoBehaviour:
     PerPixelGammaThreshold: 0.003921569
     PerPixelAlphaThreshold: 0.003921569
     RMSEThreshold: 0
-    AverageCorrectnessThreshold: 0.0001
+    AverageCorrectnessThreshold: 0
     IncorrectPixelsThreshold: 0.0000038146973
     UseHDR: 0
     UseBackBuffer: 0
@@ -402,7 +402,7 @@ Light:
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
   m_Shadows:
-    m_Type: 2
+    m_Type: 0
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1

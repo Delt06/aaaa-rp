@@ -10,6 +10,8 @@ CBUFFER_START(AAAAShadowRenderingConstantBuffer)
     float4x4 ShadowProjectionMatrix;
     float4x4 ShadowViewMatrix;
     float4x4 ShadowViewProjection;
+    float4 ShadowLightDirection;
+    float4 ShadowBiases;
 CBUFFER_END
 
 

@@ -4,7 +4,7 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Volumes
 {
-    [Serializable] [VolumeComponentMenu("AAAA/Screen-Space Reflections")] [SupportedOnRenderPipeline(typeof(AAAARenderPipelineAsset))]
+    [Serializable] [VolumeComponentMenu("AAAA/Lighting/Screen-Space Reflections")] [SupportedOnRenderPipeline(typeof(AAAARenderPipelineAsset))]
     public class AAAASsrVolumeComponent : VolumeComponent
     {
         public enum ResolutionScale

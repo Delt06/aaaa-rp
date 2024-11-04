@@ -43,7 +43,10 @@ namespace DELTation.AAAARP.FrameData
                     ResolveValue(volumeComponent.DirectionalLightCascadeDistance3, shadowSettings.DirectionalLightCascadeDistance3),
                 ShadowFade =
                     ResolveValue(volumeComponent.ShadowFade, shadowSettings.ShadowFade),
-                SlopeBias = shadowSettings.SlopeBias,
+                DepthBias =
+                    ResolveValue(volumeComponent.DepthBias, shadowSettings.DepthBias),
+                SlopeBias =
+                    ResolveValue(volumeComponent.SlopeBias, shadowSettings.SlopeBias),
             };
             CollectShadowLights(cullingResults, cameraData, shadowSettingsData, ShadowLights);
 
@@ -115,6 +118,7 @@ namespace DELTation.AAAARP.FrameData
                     Quaternion lightRotation = visibleLight.localToWorldMatrix.rotation;
                     int shadowMapResolution = (int) ShadowMapResolution;
                     Vector3 lightPosition = visibleLight.localToWorldMatrix.GetPosition();
+                    Vector3 lightForward = lightRotation * Vector3.forward;
                     Vector3 lightRight = lightRotation * Vector3.right;
                     Vector3 lightUp = lightRotation * Vector3.up;
 
@@ -150,6 +154,7 @@ namespace DELTation.AAAARP.FrameData
                                         GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(lightViewProjection, renderIntoTexture),
                                         BoundingSphereWS = math.float4(cameraPosition, splitFar),
                                         CameraPosition = lightPosition,
+                                        CameraForward = lightForward,
                                         CameraRight = lightRight,
                                         CameraUp = lightUp,
                                         PixelSize = new Vector2(shadowMapResolution, shadowMapResolution),
@@ -171,6 +176,7 @@ namespace DELTation.AAAARP.FrameData
                         shadowLight.FadeParams = math.float2(0.0f, 0.0f);
                     }
 
+                    shadowLight.DepthBias = -shadowSettings.DepthBias;
                     shadowLight.SlopeBias = AAAAShadowUtils.GetBaseShadowBias(false, 0.0f) * shadowSettings.SlopeBias;
                 }
             }
@@ -191,6 +197,7 @@ namespace DELTation.AAAARP.FrameData
             public float DirectionalLightCascadeDistance2;
             public float DirectionalLightCascadeDistance3;
             public float ShadowFade;
+            public float DepthBias;
             public float SlopeBias;
         }
 
@@ -201,6 +208,7 @@ namespace DELTation.AAAARP.FrameData
             public LightType LightType;
             public bool IsSoftShadow;
             public float ShadowStrength;
+            public float DepthBias;
             public float SlopeBias;
             public float2 FadeParams;
             public int Resolution;

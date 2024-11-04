@@ -4,9 +4,10 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Volumes
 {
-    [Serializable] [VolumeComponentMenu("AAAA/Ground Truth Ambient Occlusion")] [SupportedOnRenderPipeline(typeof(AAAARenderPipelineAsset))]
+    [Serializable] [VolumeComponentMenu("AAAA/Lighting/Ground Truth Ambient Occlusion")] [SupportedOnRenderPipeline(typeof(AAAARenderPipelineAsset))]
     public class AAAAGtaoVolumeComponent : VolumeComponent
     {
+        public BoolParameter Enabled = new(false);
         public ClampedFloatParameter FinalValuePower = new(1.0f, 0.0f, 5.0f);
         public ClampedFloatParameter FalloffRange = new(0.1f, 0.0f, 10.0f);
 

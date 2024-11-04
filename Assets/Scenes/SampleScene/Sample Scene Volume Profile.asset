@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: AAAAGtaoVolumeComponent
   m_EditorClassIdentifier: 
   active: 1
+  Enabled:
+    m_OverrideState: 1
+    m_Value: 1
   FinalValuePower:
     m_OverrideState: 0
     m_Value: 1

@@ -8,4 +8,19 @@
 #define UNITY_MATRIX_V (ShadowViewMatrix)
 #define UNITY_MATRIX_VP (ShadowViewProjection)
 
+float3 GetShadowLightDirection(const float3 positionWS)
+{
+    return SafeNormalize(ShadowLightDirection.xyz - positionWS * ShadowLightDirection.w);
+}
+
+float3 ApplyShadowBias(float3 positionWS, const float3 normalWS, const float3 lightDirection, const float depthBias, const float normalBias)
+{
+    const float invNdotL = 1.0 - saturate(dot(lightDirection, normalWS));
+    const float normalBiasScale = invNdotL * normalBias;
+
+    positionWS = lightDirection * depthBias.xxx + positionWS;
+    positionWS = normalWS * normalBiasScale.xxx + positionWS;
+    return positionWS;
+}
+
 #endif // AAAA_SHADOW_RENDERING_INCLUDED

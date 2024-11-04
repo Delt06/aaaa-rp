@@ -15,10 +15,19 @@ struct ShadowCasterVaryings
 
 ShadowCasterVaryings ShadowCasterVS(const uint svInstanceID : SV_InstanceID, const uint svIndexID : SV_VertexID)
 {
-    const Varyings varyings = VS(svInstanceID, svIndexID);
+    float3            positionWS;
+    AAAAInstanceData  instanceData;
+    AAAAMeshletVertex vertex;
+    const Varyings    varyings = VSBase(svInstanceID, svIndexID, positionWS, instanceData, vertex);
+
+    const float3 lightDirection = GetShadowLightDirection(positionWS);
+    const float3 normalWS = TransformObjectToWorldNormal(SafeNormalize(vertex.Normal), instanceData.WorldToObjectMatrix);
+    const float  depthBias = ShadowBiases.x;
+    const float  normalBias = ShadowBiases.y;
+    positionWS = ApplyShadowBias(positionWS, normalWS, lightDirection, depthBias, normalBias);
 
     ShadowCasterVaryings OUT;
-    OUT.positionCS = varyings.positionCS;
+    OUT.positionCS = TransformWorldToHClip(positionWS);
 
     #ifdef _ALPHATEST_ON
     OUT.visibilityValue = varyings.visibilityValue;
