@@ -8,6 +8,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
+using AAAAShadowSettingsComponent = DELTation.AAAARP.Volumes.AAAAShadowSettingsComponent;
 
 namespace DELTation.AAAARP.FrameData
 {
@@ -22,10 +23,29 @@ namespace DELTation.AAAARP.FrameData
         public void Init(AAAARenderingData renderingData, AAAACameraData cameraData, AAAALightingSettings.ShadowSettings shadowSettings)
         {
             ref readonly CullingResults cullingResults = ref renderingData.CullingResults;
-            ShadowMapResolution = shadowSettings.Resolution;
+            AAAAShadowSettingsComponent volumeComponent = cameraData.VolumeStack.GetComponent<AAAAShadowSettingsComponent>();
+
+            ShadowMapResolution = ResolveValue(volumeComponent.Resolution, shadowSettings.Resolution);
             ShadowLights = new NativeList<ShadowLight>(cullingResults.visibleLights.Length, Allocator.Temp);
             VisibleToShadowLightMapping = new NativeHashMap<int, int>(ShadowLights.Capacity, Allocator.Temp);
-            CollectShadowLights(cullingResults, cameraData, shadowSettings, ShadowLights);
+
+            var shadowSettingsData = new ShadowSettingsData
+            {
+                MaxDistance =
+                    ResolveValue(volumeComponent.MaxDistance, shadowSettings.MaxDistance),
+                DirectionalLightCascades =
+                    ResolveValue(volumeComponent.DirectionalLightCascades, shadowSettings.DirectionalLightCascades),
+                DirectionalLightCascadeDistance1 =
+                    ResolveValue(volumeComponent.DirectionalLightCascadeDistance1, shadowSettings.DirectionalLightCascadeDistance1),
+                DirectionalLightCascadeDistance2 =
+                    ResolveValue(volumeComponent.DirectionalLightCascadeDistance2, shadowSettings.DirectionalLightCascadeDistance2),
+                DirectionalLightCascadeDistance3 =
+                    ResolveValue(volumeComponent.DirectionalLightCascadeDistance3, shadowSettings.DirectionalLightCascadeDistance3),
+                ShadowFade =
+                    ResolveValue(volumeComponent.ShadowFade, shadowSettings.ShadowFade),
+                SlopeBias = shadowSettings.SlopeBias,
+            };
+            CollectShadowLights(cullingResults, cameraData, shadowSettingsData, ShadowLights);
 
             ShadowLightSlicesBuffer = renderingData.RenderGraph.CreateBuffer(
                 new BufferDesc(shadowSettings.MaxShadowLightSlices, UnsafeUtility.SizeOf<AAAAShadowLightSlice>(), GraphicsBuffer.Target.Structured)
@@ -35,8 +55,10 @@ namespace DELTation.AAAARP.FrameData
             );
         }
 
+        private static T ResolveValue<T>(VolumeParameter<T> parameter, T fallbackValue) => parameter.overrideState ? parameter.value : fallbackValue;
+
         private void CollectShadowLights(in CullingResults cullingResults, AAAACameraData cameraData,
-            AAAALightingSettings.ShadowSettings shadowSettings,
+            in ShadowSettingsData shadowSettings,
             NativeList<ShadowLight> shadowLights)
         {
             NativeArray<VisibleLight> visibleLights = cullingResults.visibleLights;
@@ -159,6 +181,17 @@ namespace DELTation.AAAARP.FrameData
             ShadowMapResolution = 0;
             ShadowLights = default;
             ShadowLightSlicesBuffer = BufferHandle.nullHandle;
+        }
+
+        private struct ShadowSettingsData
+        {
+            public float MaxDistance;
+            public int DirectionalLightCascades;
+            public float DirectionalLightCascadeDistance1;
+            public float DirectionalLightCascadeDistance2;
+            public float DirectionalLightCascadeDistance3;
+            public float ShadowFade;
+            public float SlopeBias;
         }
 
         public struct ShadowLight

@@ -110,20 +110,19 @@ namespace DELTation.AAAARP.Data
         [Serializable]
         public class ShadowSettings
         {
+            public const float DefaultMaxDistance = 100.0f;
+            public const int MaxCascades = 4;
+            public const float DefaultShadowFade = 0.2f;
+
             public AAAATextureSize Resolution = AAAATextureSize._1024;
-            [Range(16, 512)]
-            public int MaxShadowLightSlices = 128;
-            [Min(1.0f)]
-            public float MaxDistance = 100.0f;
-            [Range(1, 4)]
-            public int DirectionalLightCascades = 4;
+            [Range(16, 512)] public int MaxShadowLightSlices = 128;
+            [Min(1.0f)] public float MaxDistance = DefaultMaxDistance;
+            [Range(1, MaxCascades)] public int DirectionalLightCascades = MaxCascades;
             [Range(0.0f, 1.0f)] public float DirectionalLightCascadeDistance1 = 0.25f;
             [Range(0.0f, 1.0f)] public float DirectionalLightCascadeDistance2 = 0.5f;
             [Range(0.0f, 1.0f)] public float DirectionalLightCascadeDistance3 = 0.75f;
-            [Range(0.0f, 1.0f)]
-            public float ShadowFade = 0.2f;
-            [Range(0.0f, 1.0f)]
-            public float SlopeBias = 0.5f;
+            [Range(0.0f, 1.0f)] public float ShadowFade = DefaultShadowFade;
+            [Range(0.0f, 1.0f)] public float SlopeBias = 0.5f;
         }
 
         [Serializable]

@@ -23,13 +23,13 @@ MonoBehaviour:
   _lightingSettings:
     MaxPunctualLights: 1024
     Shadows:
-      Resolution: 4096
+      Resolution: 1024
       MaxShadowLightSlices: 128
       MaxDistance: 100
       DirectionalLightCascades: 4
-      DirectionalLightCascadeDistance1: 0.239
-      DirectionalLightCascadeDistance2: 0.501
-      DirectionalLightCascadeDistance3: 0.795
+      DirectionalLightCascadeDistance1: 0.25
+      DirectionalLightCascadeDistance2: 0.50
+      DirectionalLightCascadeDistance3: 0.75
       ShadowFade: 0.2
       SlopeBias: 0.5
     AmbientOcclusion: 1
