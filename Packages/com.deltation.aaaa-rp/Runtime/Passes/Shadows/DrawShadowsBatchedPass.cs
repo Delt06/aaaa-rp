@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
@@ -10,9 +11,9 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes.Shadows
 {
-    public class DrawShadowsPass : AAAARenderPass<DrawShadowsPass.PassData>
+    public class DrawShadowsBatchedPass : AAAARenderPass<DrawShadowsBatchedPass.PassData>
     {
-        public DrawShadowsPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
+        public DrawShadowsBatchedPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
 
         public int ShadowLightIndex { get; set; }
         public int SplitIndex { get; set; }
@@ -62,6 +63,8 @@ namespace DELTation.AAAARP.Passes.Shadows
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
+            using var _ = new ProfilingScope(context.cmd, Profiling.GetShadowLightPassSampler(ShadowLightIndex, SplitIndex));
+
             context.cmd.SetRenderTarget(data.ShadowMap);
             context.cmd.ClearRenderTarget(RTClearFlags.Depth, Color.clear, 1.0f, 0);
 
@@ -73,6 +76,22 @@ namespace DELTation.AAAARP.Passes.Shadows
             data.RendererContainer.Draw(data.CameraType, context.cmd, AAAARendererContainer.PassType.ShadowCaster, ContextIndex);
 
             context.cmd.SetGlobalDepthBias(0.0f, 0.0f);
+        }
+
+        private static class Profiling
+        {
+            private static readonly Dictionary<(int, int), ProfilingSampler> ProfilingSamplersCache = new();
+
+            public static ProfilingSampler GetShadowLightPassSampler(int shadowLightIndex, int splitIndex)
+            {
+                (int, int) key = (shadowLightIndex, splitIndex);
+                if (!ProfilingSamplersCache.TryGetValue(key, out ProfilingSampler profilingSampler))
+                {
+                    ProfilingSamplersCache[key] = profilingSampler = new ProfilingSampler($"ShadowLightPass_{shadowLightIndex:0000}:{splitIndex}");
+                }
+
+                return profilingSampler;
+            }
         }
 
         public class PassData : PassDataBase

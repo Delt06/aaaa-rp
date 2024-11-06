@@ -12,7 +12,7 @@ namespace DELTation.AAAARP.Passes.Shadows
 
         private readonly List<GPUCullingPass> _cullingPasses = new();
         private readonly AAAARenderPipelineDebugDisplaySettings _debugSettings;
-        private readonly List<DrawShadowsPass> _drawShadowsPasses = new();
+        private readonly List<DrawShadowsBatchedPass> _drawShadowsPasses = new();
         private readonly AAAARawBufferClear _rawBufferClear;
         private readonly AAAARenderPassEvent _renderPassEvent;
         private readonly AAAARenderPipelineRuntimeShaders _shaders;
@@ -39,14 +39,14 @@ namespace DELTation.AAAARP.Passes.Shadows
             _cullingPasses.Clear();
         }
 
-        public DrawShadowsPass RequestDrawPass(int shadowLightIndex, int splitIndex, int contextIndex)
+        public DrawShadowsBatchedPass RequestDrawPass(int shadowLightIndex, int splitIndex, int contextIndex)
         {
             while (_drawPassOffset >= _drawShadowsPasses.Count)
             {
-                _drawShadowsPasses.Add(new DrawShadowsPass(_renderPassEvent));
+                _drawShadowsPasses.Add(new DrawShadowsBatchedPass(_renderPassEvent));
             }
 
-            DrawShadowsPass pass = _drawShadowsPasses[_drawPassOffset];
+            DrawShadowsBatchedPass pass = _drawShadowsPasses[_drawPassOffset];
             pass.ShadowLightIndex = shadowLightIndex;
             pass.SplitIndex = splitIndex;
             pass.ContextIndex = contextIndex;
@@ -77,7 +77,7 @@ namespace DELTation.AAAARP.Passes.Shadows
         public struct PassSet
         {
             public GPUCullingPass GPUCullingPass;
-            public DrawShadowsPass DrawShadowsPass;
+            public DrawShadowsBatchedPass DrawShadowsPass;
         }
     }
 }

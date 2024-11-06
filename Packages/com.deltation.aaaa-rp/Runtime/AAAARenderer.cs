@@ -190,7 +190,7 @@ namespace DELTation.AAAARP
 
         private void EnqueueShadowPasses(AAAAShadowsData shadowsData)
         {
-            using (ListPool<DrawShadowsPass>.Get(out List<DrawShadowsPass> drawPasses))
+            using (ListPool<DrawShadowsBatchedPass>.Get(out List<DrawShadowsBatchedPass> drawPasses))
             {
                 using (ListPool<GPUCullingPass.CullingViewParameters>.Get(out List<GPUCullingPass.CullingViewParameters> cullingViewParameters))
                 {
@@ -201,7 +201,7 @@ namespace DELTation.AAAARP
                         {
                             ref readonly AAAAShadowsData.ShadowLightSplit shadowLightSplit = ref shadowLight.Splits.ElementAtRef(splitIndex);
                             int contextIndex = cullingViewParameters.Count;
-                            DrawShadowsPass drawPass = _shadowPassPool.RequestDrawPass(shadowLightIndex, splitIndex, contextIndex);
+                            DrawShadowsBatchedPass drawPass = _shadowPassPool.RequestDrawPass(shadowLightIndex, splitIndex, contextIndex);
                             drawPasses.Add(drawPass);
                             cullingViewParameters.Add(shadowLightSplit.CullingView);
 
@@ -220,12 +220,12 @@ namespace DELTation.AAAARP
             }
         }
 
-        private void FlushShadowPasses(List<DrawShadowsPass> drawPasses, List<GPUCullingPass.CullingViewParameters> cullingViewParameters)
+        private void FlushShadowPasses(List<DrawShadowsBatchedPass> drawPasses, List<GPUCullingPass.CullingViewParameters> cullingViewParameters)
         {
             GPUCullingPass gpuCullingPass = _shadowPassPool.RequestCullingPass(cullingViewParameters);
             EnqueuePass(gpuCullingPass);
 
-            foreach (DrawShadowsPass drawPass in drawPasses)
+            foreach (DrawShadowsBatchedPass drawPass in drawPasses)
             {
                 EnqueuePass(drawPass);
             }
