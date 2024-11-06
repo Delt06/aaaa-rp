@@ -14,6 +14,7 @@ namespace DELTation.AAAARP.Passes.Lighting
 {
     public sealed class SetupLightingPass : AAAARenderPass<SetupLightingPass.PassData>
     {
+        private const int NoShadowMapIndex = -1;
         private readonly GlobalKeywords _globalKeywords;
 
         public SetupLightingPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) => _globalKeywords = GlobalKeywords.Create();
@@ -70,7 +71,21 @@ namespace DELTation.AAAARP.Passes.Lighting
                     if (visibleLight.lightType is LightType.Point or LightType.Spot &&
                         punctualLights.Length < maxPunctualLights)
                     {
-                        AAAAPunctualLightData punctualLightData = ExtractPunctualLightData(visibleLight);
+                        AAAAShadowsData.ShadowLight shadowLight = default;
+                        int shadowSplitIndex = -1;
+
+                        if (shadowsData.VisibleToShadowLightMapping.TryGetValue(visibleLightIndex, out int shadowLightIndex))
+                        {
+                            shadowLight = shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
+                            shadowSplitIndex = shadowLightSlices.Length;
+
+                            foreach (AAAAShadowsData.ShadowLightSplit shadowLightSplit in shadowLight.Splits)
+                            {
+                                shadowLightSlices.Add(BuildShadowLightSlice(shadowsData, shadowLightSplit));
+                            }
+                        }
+
+                        AAAAPunctualLightData punctualLightData = ExtractPunctualLightData(visibleLight, shadowLight, shadowSplitIndex);
                         punctualLights.Add(punctualLightData);
                     }
 
@@ -78,7 +93,6 @@ namespace DELTation.AAAARP.Passes.Lighting
                         lightingConstantBuffer.DirectionalLightCount < AAAALightingConstantBuffer.MaxDirectionalLights)
                     {
                         int index = (int) lightingConstantBuffer.DirectionalLightCount++;
-                        const int noShadowMapIndex = -1;
                         var shadowSliceRangeFadeParams = new float4(0, 0, 0, 0);
                         bool isSoftShadow = false;
                         float shadowStrength = 1.0f;
@@ -94,20 +108,7 @@ namespace DELTation.AAAARP.Passes.Lighting
 
                             foreach (AAAAShadowsData.ShadowLightSplit shadowLightSplit in shadowLight.Splits)
                             {
-                                float2 resolution = shadowLightSplit.CullingView.PixelSize;
-                                float4 boundingSphere = shadowLightSplit.CullingView.BoundingSphereWS;
-                                shadowLightSlices.Add(new AAAAShadowLightSlice
-                                    {
-                                        BoundingSphere = math.float4(boundingSphere.xyz, boundingSphere.w * boundingSphere.w),
-                                        AtlasSize = math.float4(1.0f / resolution, resolution),
-                                        WorldToShadowCoords =
-                                            AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLightSplit.CullingView.ViewProjectionMatrix),
-                                        BindlessShadowMapIndex =
-                                            shadowsData.ShadowMapPool.GetBindlessSRVIndexOrDefault(shadowLightSplit.ShadowMapAllocation,
-                                                noShadowMapIndex
-                                            ),
-                                    }
-                                );
+                                shadowLightSlices.Add(BuildShadowLightSlice(shadowsData, shadowLightSplit));
                             }
                         }
 
@@ -118,7 +119,7 @@ namespace DELTation.AAAARP.Passes.Lighting
                         UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightShadowSliceRanges_ShadowFadeParams, index) =
                             shadowSliceRangeFadeParams;
                         UnsafeUtility.ArrayElementAsRef<float4>(pConstantBuffer->DirectionalLightShadowParams, index) =
-                            math.float4(isSoftShadow ? 1 : 0, shadowStrength, 0, 0);
+                            PackShadowParams(isSoftShadow, shadowStrength);
                     }
                 }
 
@@ -134,7 +135,24 @@ namespace DELTation.AAAARP.Passes.Lighting
             lightingConstantBuffer.PunctualLightCount = (uint) punctualLights.Length;
         }
 
-        private static AAAAPunctualLightData ExtractPunctualLightData(VisibleLight visibleLight)
+        private static AAAAShadowLightSlice BuildShadowLightSlice(AAAAShadowsData shadowsData, in AAAAShadowsData.ShadowLightSplit shadowLightSplit)
+        {
+            float2 resolution = shadowLightSplit.CullingView.PixelSize;
+            float4 boundingSphere = shadowLightSplit.CullingView.BoundingSphereWS;
+            return new AAAAShadowLightSlice
+            {
+                BoundingSphere = math.float4(boundingSphere.xyz, boundingSphere.w * boundingSphere.w),
+                AtlasSize = math.float4(1.0f / resolution, resolution),
+                WorldToShadowCoords =
+                    AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLightSplit.CullingView.ViewProjectionMatrix),
+                BindlessShadowMapIndex =
+                    shadowsData.ShadowMapPool.GetBindlessSRVIndexOrDefault(shadowLightSplit.ShadowMapAllocation,
+                        NoShadowMapIndex
+                    ),
+            };
+        }
+
+        private static AAAAPunctualLightData ExtractPunctualLightData(in VisibleLight visibleLight, in AAAAShadowsData.ShadowLight shadowLight, int sliceIndex)
         {
             Matrix4x4 lightLocalToWorld = visibleLight.localToWorldMatrix;
             var punctualLightData = new AAAAPunctualLightData();
@@ -161,8 +179,21 @@ namespace DELTation.AAAARP.Passes.Lighting
                 out punctualLightData.Attenuations.z
             );
 
+            if (sliceIndex != -1)
+            {
+                punctualLightData.ShadowSliceIndex_ShadowFadeParams.x = sliceIndex;
+                punctualLightData.ShadowSliceIndex_ShadowFadeParams.zw = shadowLight.FadeParams;
+                punctualLightData.ShadowParams = PackShadowParams(shadowLight.IsSoftShadow, shadowLight.ShadowStrength);
+            }
+            else
+            {
+                punctualLightData.ShadowSliceIndex_ShadowFadeParams.x = -1;
+            }
+
             return punctualLightData;
         }
+
+        private static float4 PackShadowParams(bool isSoftShadow, float shadowStrength) => math.float4(isSoftShadow ? 1 : 0, shadowStrength, 0, 0);
 
         protected override void Render(PassData data, RenderGraphContext context)
         {

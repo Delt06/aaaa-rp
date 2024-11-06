@@ -16,13 +16,7 @@ namespace DELTation.AAAARP.Lighting
             out float4x4 lightView, out float4x4 lightProjection)
         {
             // From Wicked Engine: https://github.com/turanszkij/WickedEngine/blob/84adc794752a4b12d2551fef383d4872726a9255/WickedEngine/wiRenderer.cpp#L2735
-            quaternion invLightRotation = inverse(lightRotation);
-            float3 lightForward = normalize(rotate(invLightRotation, float3(0, 0, 1)));
-            float3 lightUp = normalize(rotate(invLightRotation, float3(0, 1, 0)));
-            lightView = LookRotation(lightForward, lightUp);
-
-            // Unity view space Z is reversed.
-            lightView = mul(float4x4.Scale(float3(1, 1, -1)), lightView);
+            lightView = ConstructLightView(lightRotation);
 
             float perspectiveNearPlane = distance(cameraFrustumCorners[0], cameraPosition);
             float perspectiveFarPlane = distance(cameraFrustumCorners[1], cameraPosition);
@@ -76,17 +70,42 @@ namespace DELTation.AAAARP.Lighting
             lightProjection = float4x4.OrthoOffCenter(aabbMin.x, aabbMax.x, aabbMin.y, aabbMax.y, aabbMin.z, aabbMax.z);
         }
 
-        private static float4x4 LookRotation(float3 forward, float3 up)
+        public static void ComputeSpotLightShadowMatrices(quaternion lightRotation, float3 lightPosition, float outerSpotAngle, float nearPlane, float farPlane,
+            out float4x4 lightView, out float4x4 lightProjection
+        )
         {
-            var rot = float3x3.LookRotation(forward, up);
+            lightView = float4x4.TRS(lightPosition, lightRotation, new float3(1, 1, 1));
+            lightView = fastinverse(lightView);
+            lightView = ToGPUView(lightView);
 
-            float4x4 matrix;
-            matrix.c0 = float4(rot.c0, 0.0f);
-            matrix.c1 = float4(rot.c1, 0.0f);
-            matrix.c2 = float4(rot.c2, 0.0f);
-            matrix.c3 = float4(0.0f, 0.0f, 0.0f, 1.0f);
-            return matrix;
+            const float aspect = 1.0f;
+            lightProjection = float4x4.PerspectiveFov(radians(outerSpotAngle), aspect, nearPlane, farPlane);
         }
+
+        private static float4x4 ConstructLightView(quaternion lightRotation)
+        {
+            quaternion invLightRotation = inverse(lightRotation);
+            float3 lightForward = normalize(rotate(invLightRotation, float3(0, 0, 1)));
+            float3 lightUp = normalize(rotate(invLightRotation, float3(0, 1, 0)));
+            float4x4 lightView = LookRotation(lightForward, lightUp);
+
+            return ToGPUView(lightView);
+
+            static float4x4 LookRotation(float3 forward, float3 up)
+            {
+                var rot = float3x3.LookRotation(forward, up);
+
+                float4x4 matrix;
+                matrix.c0 = float4(rot.c0, 0.0f);
+                matrix.c1 = float4(rot.c1, 0.0f);
+                matrix.c2 = float4(rot.c2, 0.0f);
+                matrix.c3 = float4(0.0f, 0.0f, 0.0f, 1.0f);
+                return matrix;
+            }
+        }
+
+        /// Unity view space Z is reversed.
+        private static float4x4 ToGPUView(float4x4 viewMatrix) => mul(float4x4.Scale(float3(1, 1, -1)), viewMatrix);
 
         public static Matrix4x4 GetWorldToShadowCoordsMatrix(Matrix4x4 projectionMatrix)
         {

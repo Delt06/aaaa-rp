@@ -32,7 +32,8 @@ Shader "Hidden/AAAA/VisibilityBuffer"
 
         Pass
         {
-            ZClip Off
+            // Set as a global value
+            ZClip [_ZClip]
 
             Name "Visibility Buffer: Shadow Caster"
             Tags

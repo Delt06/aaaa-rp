@@ -12,5 +12,7 @@ namespace DELTation.AAAARP.Lighting
         public float4 PositionWS;
         public float4 SpotDirection_Angle;
         public float4 Attenuations;
+        public float4 ShadowSliceIndex_ShadowFadeParams;
+        public float4 ShadowParams;
     }
 }

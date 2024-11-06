@@ -1,6 +1,7 @@
 ﻿using System;
 using DELTation.AAAARP.Data;
 using UnityEngine.Rendering;
+using static DELTation.AAAARP.Data.AAAALightingSettings.ShadowSettings;
 
 namespace DELTation.AAAARP.Volumes
 {
@@ -8,10 +9,6 @@ namespace DELTation.AAAARP.Volumes
     public class AAAAShadowSettingsComponent : VolumeComponent
     {
         private const int MaxCascades = AAAALightingSettings.ShadowSettings.MaxCascades;
-        private const float DefaultMaxDistance = AAAALightingSettings.ShadowSettings.DefaultMaxDistance;
-        private const float DefaultDepthBias = AAAALightingSettings.ShadowSettings.DefaultDepthBias;
-        private const float DefaultSlopeBias = AAAALightingSettings.ShadowSettings.DefaultSlopeBias;
-        private const float DefaultShadowFade = AAAALightingSettings.ShadowSettings.DefaultShadowFade;
 
         public EnumParameter<AAAATextureSize> Resolution = new(AAAATextureSize._1024);
 
@@ -21,6 +18,7 @@ namespace DELTation.AAAARP.Volumes
         public ClampedFloatParameter DirectionalLightCascadeDistance2 = new(0.5f, 0.0f, 1.0f);
         public ClampedFloatParameter DirectionalLightCascadeDistance3 = new(0.75f, 0.0f, 1.0f);
         public ClampedFloatParameter DepthBias = new(DefaultDepthBias, 0.0f, 1.0f);
+        public ClampedFloatParameter PunctualDepthBias = new(DefaultPunctualDepthBias, 0.0f, 1.0f);
         public ClampedFloatParameter SlopeBias = new(DefaultSlopeBias, 0.0f, 1.0f);
         public ClampedFloatParameter ShadowFade = new(DefaultShadowFade, 0.0f, 1.0f);
 

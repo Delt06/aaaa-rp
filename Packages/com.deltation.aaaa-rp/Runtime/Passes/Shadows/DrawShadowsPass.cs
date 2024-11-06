@@ -1,4 +1,5 @@
-﻿using DELTation.AAAARP.Core;
+﻿using System.Diagnostics.CodeAnalysis;
+using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
 using DELTation.AAAARP.Renderers;
@@ -52,6 +53,7 @@ namespace DELTation.AAAARP.Passes.Shadows
             };
             passData.RendererContainer = renderingData.RendererContainer;
             passData.CameraType = cameraData.CameraType;
+            passData.ZClip = shadowLightSplit.CullingView.IsPerspective ? 1.0f : 0.0f;
 
             RenderTexture shadowMap = shadowsData.ShadowMapPool.LookupRenderTexture(shadowLightSplit.ShadowMapAllocation);
             passData.ShadowMap = shadowMap;
@@ -65,6 +67,7 @@ namespace DELTation.AAAARP.Passes.Shadows
 
             // these values match HDRP defaults (see https://github.com/Unity-Technologies/Graphics/blob/9544b8ed2f98c62803d285096c91b44e9d8cbc47/com.unity.render-pipelines.high-definition/Runtime/Lighting/Shadow/HDShadowAtlas.cs#L197 )
             context.cmd.SetGlobalDepthBias(1.0f, data.SlopeBias);
+            context.cmd.SetGlobalFloat(ShaderIDs._ZClip, data.ZClip);
 
             ConstantBuffer.PushGlobal(context.cmd, data.ShadowRenderingConstantBuffer, ShaderIDs.ShadowRenderingConstantBuffer);
             data.RendererContainer.Draw(data.CameraType, context.cmd, AAAARendererContainer.PassType.ShadowCaster, ContextIndex);
@@ -79,11 +82,14 @@ namespace DELTation.AAAARP.Passes.Shadows
             public RenderTexture ShadowMap;
             public AAAAShadowRenderingConstantBuffer ShadowRenderingConstantBuffer;
             public float SlopeBias;
+            public float ZClip;
         }
 
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static class ShaderIDs
         {
             public static readonly int ShadowRenderingConstantBuffer = Shader.PropertyToID(nameof(AAAAShadowRenderingConstantBuffer));
+            public static readonly int _ZClip = Shader.PropertyToID(nameof(_ZClip));
         }
     }
 }

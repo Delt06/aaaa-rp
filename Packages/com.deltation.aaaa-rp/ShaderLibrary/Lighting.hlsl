@@ -32,7 +32,21 @@ struct Light
     float3 directionWS;
     float  distanceAttenuation;
     float  shadowAttenuation;
+    float  shadowStrength;
+};
+
+struct ShadowParams
+{
+    bool  isSoftShadow;
     float shadowStrength;
+
+    static ShadowParams Unpack(const float4 packedParams)
+    {
+        ShadowParams shadowParams;
+        shadowParams.isSoftShadow = packedParams.x;
+        shadowParams.shadowStrength = packedParams.y;
+        return shadowParams;
+    }
 };
 
 Light GetDirectionalLight(const uint index, const float3 positionWS)
@@ -42,14 +56,14 @@ Light GetDirectionalLight(const uint index, const float3 positionWS)
     light.directionWS = DirectionalLightDirections[index].xyz;
     light.distanceAttenuation = 1.0;
 
-    const float4                               shadowParams = DirectionalLightShadowParams[index];
-    const bool                                 isSoftShadow = shadowParams.x;
-    const float                                shadowStrength = shadowParams.y;
+    const ShadowParams                         shadowParams = ShadowParams::Unpack(DirectionalLightShadowParams[index]);
     const float4                               shadowSliceRange_shadowFadeParams = DirectionalLightShadowSliceRanges_ShadowFadeParams[index];
+    const float2                               sliceRange = shadowSliceRange_shadowFadeParams.xy;
+    const float2                               fadeParams = shadowSliceRange_shadowFadeParams.zw;
     const CascadedDirectionalLightShadowSample shadowSample = SampleCascadedDirectionalLightShadow(
-        positionWS, shadowSliceRange_shadowFadeParams.xy, shadowSliceRange_shadowFadeParams.zw, isSoftShadow, shadowStrength);
+        positionWS, sliceRange, fadeParams, shadowParams.isSoftShadow, shadowParams.shadowStrength);
     light.shadowAttenuation = shadowSample.shadowAttenuation;
-    light.shadowStrength = shadowStrength;
+    light.shadowStrength = shadowParams.shadowStrength;
 
     return light;
 }
@@ -73,8 +87,33 @@ Light GetPunctualLight(const uint index, const float3 positionWS)
     light.color = punctualLightData.Color_Radius.xyz;
     light.directionWS = lightDirection;
     light.distanceAttenuation = distanceAttenuation * angleAttenuation;
-    light.shadowAttenuation = 1;
-    light.shadowStrength = 1;
+
+    const bool isSpot = punctualLightData.SpotDirection_Angle.w > 0.0f;
+    UNITY_BRANCH
+    if (isSpot)
+    {
+        const ShadowParams shadowParams = ShadowParams::Unpack(punctualLightData.ShadowParams);
+        const float        sliceIndex = punctualLightData.ShadowSliceIndex_ShadowFadeParams.x;
+        if (sliceIndex != -1)
+        {
+            const float2       fadeParams = punctualLightData.ShadowSliceIndex_ShadowFadeParams.zw;
+            const ShadowSample shadowSample = SampleSpotLightShadow(positionWS, sliceIndex, fadeParams, shadowParams.isSoftShadow,
+                                                                    shadowParams.shadowStrength);
+            light.shadowAttenuation = shadowSample.shadowAttenuation;
+            light.shadowStrength = shadowParams.shadowStrength;
+        }
+        else
+        {
+            light.shadowAttenuation = 1;
+            light.shadowStrength = 1;
+        }
+    }
+    else
+    {
+        light.shadowAttenuation = 1;
+        light.shadowStrength = 1;
+    }
+
     return light;
 }
 

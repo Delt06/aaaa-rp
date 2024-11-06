@@ -12,6 +12,8 @@ struct AAAAPunctualLightData
     float4 PositionWS;
     float4 SpotDirection_Angle;
     float4 Attenuations;
+    float4 ShadowSliceIndex_ShadowFadeParams;
+    float4 ShadowParams;
 };
 
 

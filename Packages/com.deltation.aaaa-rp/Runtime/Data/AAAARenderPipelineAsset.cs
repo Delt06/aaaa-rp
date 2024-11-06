@@ -113,6 +113,7 @@ namespace DELTation.AAAARP.Data
             public const float DefaultMaxDistance = 100.0f;
             public const int MaxCascades = 4;
             public const float DefaultDepthBias = 0.1f;
+            public const float DefaultPunctualDepthBias = 0.05f;
             public const float DefaultSlopeBias = 0.5f;
             public const float DefaultShadowFade = 0.2f;
 
@@ -125,6 +126,7 @@ namespace DELTation.AAAARP.Data
             [Range(0.0f, 1.0f)] public float DirectionalLightCascadeDistance3 = 0.75f;
             [Range(0.0f, 1.0f)] public float ShadowFade = DefaultShadowFade;
             [Range(0.0f, 1.0f)] public float DepthBias = DefaultDepthBias;
+            [Range(0.0f, 1.0f)] public float PunctualDepthBias = DefaultPunctualDepthBias;
             [Range(0.0f, 1.0f)] public float SlopeBias = DefaultSlopeBias;
         }
 

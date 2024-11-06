@@ -45,6 +45,8 @@ namespace DELTation.AAAARP.FrameData
                     ResolveValue(volumeComponent.ShadowFade, shadowSettings.ShadowFade),
                 DepthBias =
                     ResolveValue(volumeComponent.DepthBias, shadowSettings.DepthBias),
+                PunctualDepthBias =
+                    ResolveValue(volumeComponent.PunctualDepthBias, shadowSettings.PunctualDepthBias),
                 SlopeBias =
                     ResolveValue(volumeComponent.SlopeBias, shadowSettings.SlopeBias),
             };
@@ -69,26 +71,36 @@ namespace DELTation.AAAARP.FrameData
             for (int visibleLightIndex = 0; visibleLightIndex < visibleLights.Length; visibleLightIndex++)
             {
                 ref readonly VisibleLight visibleLight = ref visibleLights.ElementAtRefReadonly(visibleLightIndex);
-
-                if (visibleLight.lightType == LightType.Directional)
+                Light light = visibleLight.light;
+                LightShadows lightShadowsType = light.shadows;
+                if (lightShadowsType == LightShadows.None)
                 {
-                    Light light = visibleLight.light;
-                    LightShadows lightShadowsType = light.shadows;
-                    if (lightShadowsType != LightShadows.None)
-                    {
-                        shadowLights.Add(new ShadowLight
-                            {
-                                LightType = visibleLight.lightType,
-                                IsSoftShadow = lightShadowsType == LightShadows.Soft,
-                                ShadowStrength = light.shadowStrength,
-                                VisibleLightIndex = visibleLightIndex,
-                                NearPlaneOffset = light.shadowNearPlane,
-                                Splits = new NativeList<ShadowLightSplit>(4, Allocator.Temp),
-                            }
-                        );
-                        VisibleToShadowLightMapping.Add(visibleLightIndex, shadowLights.Length - 1);
-                    }
+                    continue;
                 }
+
+                int splitCapacity = visibleLight.lightType switch
+                {
+                    LightType.Directional => AAAALightingSettings.ShadowSettings.MaxCascades,
+                    LightType.Spot => 1,
+                    var _ => 0,
+                };
+
+                if (splitCapacity == 0)
+                {
+                    continue;
+                }
+
+                shadowLights.Add(new ShadowLight
+                    {
+                        LightType = visibleLight.lightType,
+                        IsSoftShadow = lightShadowsType == LightShadows.Soft,
+                        ShadowStrength = light.shadowStrength,
+                        VisibleLightIndex = visibleLightIndex,
+                        NearPlaneOffset = light.shadowNearPlane,
+                        Splits = new NativeList<ShadowLightSplit>(splitCapacity, Allocator.Temp),
+                    }
+                );
+                VisibleToShadowLightMapping.Add(visibleLightIndex, shadowLights.Length - 1);
             }
 
             if (shadowLights.Length > 0)
@@ -122,6 +134,8 @@ namespace DELTation.AAAARP.FrameData
                     Vector3 lightRight = lightRotation * Vector3.right;
                     Vector3 lightUp = lightRotation * Vector3.up;
 
+                    const bool renderIntoTexture = true;
+
                     if (shadowLight.LightType == LightType.Directional)
                     {
                         var cascadeDistances = new Vector4(
@@ -143,7 +157,6 @@ namespace DELTation.AAAARP.FrameData
                             );
 
                             Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
-                            const bool renderIntoTexture = true;
                             shadowLight.Splits.Add(new ShadowLightSplit
                                 {
                                     ShadowMapAllocation = ShadowMapPool.Allocate(shadowMapResolution),
@@ -171,12 +184,46 @@ namespace DELTation.AAAARP.FrameData
                         );
                         shadowLight.FadeParams = math.float2(shadowFadeScale, shadowFadeBias);
                     }
+                    else if (shadowLight.LightType == LightType.Spot)
+                    {
+                        AAAAShadowUtils.ComputeSpotLightShadowMatrices(
+                            lightRotation, lightPosition, visibleLight.spotAngle, shadowLight.NearPlaneOffset, visibleLight.range,
+                            out float4x4 lightView, out float4x4 lightProjection
+                        );
+
+                        Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
+                        shadowLight.Splits.Add(new ShadowLightSplit
+                            {
+                                ShadowMapAllocation = ShadowMapPool.Allocate(shadowMapResolution),
+                                CullingView = new GPUCullingPass.CullingViewParameters
+                                {
+                                    ViewMatrix = lightView,
+                                    ViewProjectionMatrix = lightViewProjection,
+                                    GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(lightViewProjection, renderIntoTexture),
+                                    BoundingSphereWS = default,
+                                    CameraPosition = lightPosition,
+                                    CameraForward = lightForward,
+                                    CameraRight = lightRight,
+                                    CameraUp = lightUp,
+                                    PixelSize = new Vector2(shadowMapResolution, shadowMapResolution),
+                                    IsPerspective = true,
+                                    PassMask = AAAAInstancePassMask.Shadows,
+                                },
+                                GPUProjectionMatrix = GL.GetGPUProjectionMatrix(lightProjection, renderIntoTexture),
+                            }
+                        );
+
+                        AAAAShadowUtils.GetScaleAndBiasForLinearDistanceFade(
+                            shadowDistance * shadowDistance, shadowSettings.ShadowFade, out float shadowFadeScale, out float shadowFadeBias
+                        );
+                        shadowLight.FadeParams = math.float2(shadowFadeScale, shadowFadeBias);
+                    }
                     else
                     {
                         shadowLight.FadeParams = math.float2(0.0f, 0.0f);
                     }
 
-                    shadowLight.DepthBias = -shadowSettings.DepthBias;
+                    shadowLight.DepthBias = -(shadowLight.LightType == LightType.Directional ? shadowSettings.DepthBias : shadowSettings.PunctualDepthBias);
                     shadowLight.SlopeBias = AAAAShadowUtils.GetBaseShadowBias(false, 0.0f) * shadowSettings.SlopeBias;
                 }
             }
@@ -198,6 +245,7 @@ namespace DELTation.AAAARP.FrameData
             public float DirectionalLightCascadeDistance3;
             public float ShadowFade;
             public float DepthBias;
+            public float PunctualDepthBias;
             public float SlopeBias;
         }
 

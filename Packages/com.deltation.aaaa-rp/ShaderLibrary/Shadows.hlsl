@@ -8,14 +8,18 @@
 
 StructuredBuffer<AAAAShadowLightSlice> _ShadowLightSlices;
 
-struct CascadedDirectionalLightShadowSample
+struct ShadowSample
 {
     float shadowAttenuation;
     float shadowFade;
+};
+
+struct CascadedDirectionalLightShadowSample : ShadowSample
+{
     float cascadeIndex;
 };
 
-float SampleDirectionalLightShadowMap(const uint index, const float4 atlasSize, const float3 shadowCoords, const bool isSoftShadow)
+float SampleShadowMap(const uint index, const float4 atlasSize, const float3 shadowCoords, const bool isSoftShadow)
 {
     const Texture2D<float>       shadowMap = GetBindlessTexture2DFloat(index);
     const SamplerComparisonState shadowMapSampler = sampler_LinearClampCompare;
@@ -98,13 +102,21 @@ float GetLightShadowFade(const float3 positionWS, const float2 shadowFadeParams)
     return saturate(distanceCamToPixel2 * shadowFadeParams.x + shadowFadeParams.y);
 }
 
+void ApplyShadowFadeAndStrength(out float   shadowFade, inout float      shadowAttenuation,
+                                const float shadowStrength, const float3 positionWS, const float2 fadeParams)
+{
+    shadowFade = GetLightShadowFade(positionWS, fadeParams);
+    shadowAttenuation = lerp(1, shadowAttenuation, shadowStrength);
+    shadowAttenuation = lerp(shadowAttenuation, 1, shadowFade);
+}
+
 CascadedDirectionalLightShadowSample SampleCascadedDirectionalLightShadow(const float3 positionWS, const float2  sliceRange, const float2 fadeParams,
                                                                           const bool   isSoftShadow, const float shadowStrength = 1)
 {
-    CascadedDirectionalLightShadowSample shadowAttenuationValue;
-    shadowAttenuationValue.shadowFade = 0;
-    shadowAttenuationValue.cascadeIndex = -1;
-    shadowAttenuationValue.shadowAttenuation = 1;
+    CascadedDirectionalLightShadowSample shadowSample;
+    shadowSample.shadowFade = 0;
+    shadowSample.cascadeIndex = -1;
+    shadowSample.shadowAttenuation = 1;
 
     UNITY_BRANCH
     if (sliceRange.y > 0)
@@ -121,20 +133,39 @@ CascadedDirectionalLightShadowSample SampleCascadedDirectionalLightShadow(const 
         const int bindlessShadowMapIndex = selectedCascadeSlice.BindlessShadowMapIndex;
         if (bindlessShadowMapIndex != -1)
         {
-            shadowAttenuationValue.cascadeIndex = selectedCascadeIndex;
+            shadowSample.cascadeIndex = selectedCascadeIndex;
 
             const bool   isPerspective = false;
             const float3 shadowCoords = TransformWorldToShadowCoords(positionWS, selectedCascadeSlice.WorldToShadowCoords, isPerspective);
-            shadowAttenuationValue.shadowAttenuation = SampleDirectionalLightShadowMap(NonUniformResourceIndex(bindlessShadowMapIndex),
-                                                                                       selectedCascadeSlice.AtlasSize, shadowCoords, isSoftShadow);
-
-            shadowAttenuationValue.shadowFade = GetLightShadowFade(positionWS, fadeParams);
-            shadowAttenuationValue.shadowAttenuation = lerp(1, shadowAttenuationValue.shadowAttenuation, shadowStrength);
-            shadowAttenuationValue.shadowAttenuation = lerp(shadowAttenuationValue.shadowAttenuation, 1, shadowAttenuationValue.shadowFade);
+            shadowSample.shadowAttenuation = SampleShadowMap(NonUniformResourceIndex(bindlessShadowMapIndex),
+                                                             selectedCascadeSlice.AtlasSize, shadowCoords, isSoftShadow);
+            ApplyShadowFadeAndStrength(shadowSample.shadowFade, shadowSample.shadowAttenuation, shadowStrength, positionWS, fadeParams);
         }
     }
 
-    return shadowAttenuationValue;
+    return shadowSample;
+}
+
+ShadowSample SampleSpotLightShadow(const float3 positionWS, const float   sliceIndex, const float2 fadeParams,
+                                   const bool   isSoftShadow, const float shadowStrength = 1)
+{
+    ShadowSample shadowSample;
+    shadowSample.shadowFade = 0;
+    shadowSample.shadowAttenuation = 1;
+
+    const AAAAShadowLightSlice shadowLightSlice = _ShadowLightSlices[sliceIndex];
+
+    const int bindlessShadowMapIndex = shadowLightSlice.BindlessShadowMapIndex;
+    if (bindlessShadowMapIndex != -1)
+    {
+        const bool   isPerspective = true;
+        const float3 shadowCoords = TransformWorldToShadowCoords(positionWS, shadowLightSlice.WorldToShadowCoords, isPerspective);
+        shadowSample.shadowAttenuation = SampleShadowMap(NonUniformResourceIndex(bindlessShadowMapIndex),
+                                                         shadowLightSlice.AtlasSize, shadowCoords, isSoftShadow);
+        ApplyShadowFadeAndStrength(shadowSample.shadowFade, shadowSample.shadowAttenuation, shadowStrength, positionWS, fadeParams);
+    }
+
+    return shadowSample;
 }
 
 #endif // AAAA_SHADOWS_INCLUDED
