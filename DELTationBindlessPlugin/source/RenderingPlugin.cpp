@@ -1,7 +1,7 @@
 // Example low level rendering Unity plugin
 
 #include "PlatformBase.h"
-#include "RenderAPI.h"
+#include "Unity/IUnityGraphics.h"
 #include "Unity/IUnityLog.h"
 #include "HookWrapper.h"
 
@@ -282,16 +282,10 @@ extern "C" void	UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
     }
 
     LocalFree(static_cast<void*>(argv));
-    
+
+    // Make sure the dll is loaded before creating the hooks.
+    LoadLibraryW(L"d3d12.dll");
 	s_Graphics->RegisterDeviceEventCallback(OnGraphicsDeviceEvent);
-	
-#if SUPPORT_VULKAN
-	if (s_Graphics->GetRenderer() == kUnityGfxRendererNull)
-	{
-		extern void RenderAPI_Vulkan_OnPluginLoad(IUnityInterfaces*);
-		RenderAPI_Vulkan_OnPluginLoad(unityInterfaces);
-	}
-#endif // SUPPORT_VULKAN
 
 	if (MH_Initialize() == MH_OK)
 	{
@@ -347,7 +341,6 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API RegisterPlugin()
 // GraphicsDeviceEvent
 
 
-static RenderAPI* s_CurrentAPI = NULL;
 static UnityGfxRenderer s_DeviceType = kUnityGfxRendererNull;
 
 
@@ -368,22 +361,12 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
 		    UNITY_LOG(s_Log, "Hooked CreateDescriptorHeap");
 		}
 		
-		assert(s_CurrentAPI == NULL);
 		s_DeviceType = s_Graphics->GetRenderer();
-		s_CurrentAPI = CreateRenderAPI(s_DeviceType);
-	}
-
-	// Let the implementation process the device related events
-	if (s_CurrentAPI)
-	{
-		s_CurrentAPI->ProcessDeviceEvent(eventType, s_UnityInterfaces);
 	}
 
 	// Cleanup graphics API implementation upon shutdown
 	if (eventType == kUnityGfxDeviceEventShutdown)
 	{
-		delete s_CurrentAPI;
-		s_CurrentAPI = NULL;
 		s_DeviceType = kUnityGfxRendererNull;
 
 		if (s_pCreateDescriptorHeapHook != nullptr)
@@ -397,9 +380,6 @@ static void UNITY_INTERFACE_API OnGraphicsDeviceEvent(UnityGfxDeviceEventType ev
 
 static void UNITY_INTERFACE_API OnRenderEvent(int eventID)
 {
-	// Unknown / unsupported graphics device type? Do nothing
-	if (s_CurrentAPI == NULL)
-		return;
 }
 
 // --------------------------------------------------------------------------
@@ -408,43 +388,4 @@ static void UNITY_INTERFACE_API OnRenderEvent(int eventID)
 extern "C" UnityRenderingEvent UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API GetRenderEventFunc()
 {
 	return OnRenderEvent;
-}
-
-// --------------------------------------------------------------------------
-// DX12 plugin specific
-// --------------------------------------------------------------------------
-
-extern "C" UNITY_INTERFACE_EXPORT void* UNITY_INTERFACE_API GetRenderTexture()
-{
-	return s_CurrentAPI->getRenderTexture();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API SetRenderTexture(UnityRenderBuffer rb)
-{
-	s_CurrentAPI->setRenderTextureResource(rb);
-}
-
-extern "C" UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API IsSwapChainAvailable()
-{
-	return s_CurrentAPI->isSwapChainAvailable();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT unsigned int UNITY_INTERFACE_API GetPresentFlags()
-{
-	return s_CurrentAPI->getPresentFlags();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT unsigned int UNITY_INTERFACE_API GetSyncInterval()
-{
-	return s_CurrentAPI->getSyncInterval();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT unsigned int UNITY_INTERFACE_API GetBackBufferWidth()
-{
-	return s_CurrentAPI->getBackbufferHeight();
-}
-
-extern "C" UNITY_INTERFACE_EXPORT unsigned int UNITY_INTERFACE_API GetBackBufferHeight()
-{
-	return s_CurrentAPI->getBackbufferWidth();
 }
