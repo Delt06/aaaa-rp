@@ -15,7 +15,7 @@ The main goals of the project are:
 
 > 🔨 Developed with Unity 6000.0.23f1.
 
-> ❎ Only DirectX 12 is supported at the moment.
+> ❎ Only Windows/DirectX 12 configuration is supported at the moment.
 
 ## Rendering Techniques
 
