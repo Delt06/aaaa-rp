@@ -1,23 +1,30 @@
 // Example low level rendering Unity plugin
 
+#include "winapifamily.h"
+
 #include "PlatformBase.h"
 #include "Unity/IUnityGraphics.h"
 #include "Unity/IUnityLog.h"
 #include "HookWrapper.h"
 
 #include <MinHook.h>
-#define USE_PIX
+#ifdef USE_PIX
 #include <pix3.h>
+#include <shlobj.h>
+#endif
 
 #include <assert.h>
+#if WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP
+#undef WINVER
+#define WINVER 0x0499
+#endif
+#include <dxgi.h>
 #include <d3d12.h>
 #include <d3dx12.h>
-#include <dxgi.h>
 #include <math.h>
 #include <vector>
 #include <map>
 #include <set>
-#include <shlobj.h>
 #include <strsafe.h>
 
 #include "Unity/IUnityGraphicsD3D12.h"
@@ -38,6 +45,7 @@ bool ShouldLoadWinPixDLL(int argc, LPWSTR* argv)
     return false;
 }
 
+#ifdef USE_PIX
 static std::wstring GetLatestWinPixGpuCapturerPath()
 {
     LPWSTR programFilesPath = nullptr;
@@ -81,32 +89,45 @@ static std::wstring GetLatestWinPixGpuCapturerPath()
 
     return &output[0];
 }
+#endif
 
 extern "C" uint32_t UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API IsPixLoaded()
 {
     return GetModuleHandleW(L"WinPixGpuCapturer.dll") != 0;
 }
 
+
 extern "C" uint32_t UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API BeginPixCapture(IN LPWSTR filePath)
 {
+    #ifdef USE_PIX
     PIXCaptureParameters pixCaptureParameters = {};
     pixCaptureParameters.GpuCaptureParameters.FileName = filePath;
     return PIXBeginCapture(PIX_CAPTURE_GPU, &pixCaptureParameters);
+    #else
+    return S_OK;
+    #endif
+    
 }
 
 extern "C" uint32_t UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API EndPixCapture()
 {
+    #ifdef USE_PIX
     HRESULT result;
     while ((result = PIXEndCapture(FALSE)) == E_PENDING)
     {
         // Keep running
     }
     return result;
+    #else
+    return S_OK;
+    #endif
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API OpenPixCapture(IN LPWSTR filePath)
 {
+    #ifdef USE_PIX
     PIXOpenCaptureInUI(filePath);
+    #endif
 }
 
 // --------------------------------------------------------------------------
@@ -216,7 +237,7 @@ extern "C" int32_t UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API CreateSRVDescripto
 	const SIZE_T                ptrOffset = static_cast<SIZE_T>(index) * s_descriptorHeap_CBV_SRV_UAV_IncrementSize;
 	D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle =
 	{
-		.ptr = s_descriptorHeap_CBV_SRV_UAV_CPUDescriptorHandleForHeapStart + ptrOffset
+		s_descriptorHeap_CBV_SRV_UAV_CPUDescriptorHandleForHeapStart + ptrOffset
 	};
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -259,6 +280,7 @@ extern "C" void	UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
     const auto pUnityProfiler = unityInterfaces->Get<IUnityProfiler>();
     s_IsDevelopmentBuild = pUnityProfiler != nullptr ? pUnityProfiler->IsAvailable() : false;
 
+    #ifdef USE_PIX
     const LPWSTR commandLine = GetCommandLineW();
     int argc = 0;
     LPWSTR* argv = CommandLineToArgvW(commandLine, &argc);
@@ -282,6 +304,8 @@ extern "C" void	UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
     }
 
     LocalFree(static_cast<void*>(argv));
+
+    #endif
 
     // Make sure the dll is loaded before creating the hooks.
     LoadLibraryW(L"d3d12.dll");

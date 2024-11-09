@@ -2,7 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="..\..\source\PlatformBase.h" />
-    <ClInclude Include="..\..\source\RenderAPI.h" />
     <ClInclude Include="..\..\source\Unity\IUnityGraphics.h">
       <Filter>Unity</Filter>
     </ClInclude>
@@ -14,7 +13,6 @@
     </ClInclude>
     <ClInclude Include="..\..\source\HookWrapper.h" />
     <ClInclude Include="..\..\source\Unity\IUnityEventQueue.h" />
-    <ClInclude Include="..\..\source\Unity\IUnityGraphicsVulkan.h" />
     <ClInclude Include="..\..\source\Unity\IUnityLog.h" />
     <ClInclude Include="..\..\source\Unity\IUnityMemoryManager.h" />
     <ClInclude Include="..\..\source\Unity\IUnityProfiler.h" />

@@ -5,12 +5,16 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Tests/Scenes/DirectionalShadowsTest.unity
     guid: 08d20cbfd79d54f4886ffa7f91d5376a
-  - enabled: 1
+  - enabled: 0
     path: Assets/Tests/Scenes/ClusteredLightingTest.unity
     guid: 7570953749865ef43b585cd193ba71da
+  - enabled: 1
+    path: Assets/Scenes/SampleScene.unity
+    guid: 0e87f94dd8228e742805d6a1901edabf
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 0a9418da251ba074780f7c04b34c7f8a, type: 2}
   m_UseUCBPForAssetBundles: 0

@@ -1,0 +1,3 @@
+[submodule "DELTationBindlessPlugin/minhook"]
+	path = DELTationBindlessPlugin/minhook
+	url = https://github.com/TsudaKageyu/minhook.git
