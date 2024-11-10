@@ -5,7 +5,7 @@
 The main goals of the project are:
 
 - GPU Driven pipeline.
-- Modern high-fidelity rendering techniques.
+- Modern high fidelity rendering techniques.
 - Minimal reliance on temporal algorithms.
 - Pushing technical constraints of Unity. 
 
