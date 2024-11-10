@@ -42,7 +42,8 @@ RenderSettings:
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 12
+  serializedVersion: 13
+  m_BakeOnSceneLoad: 0
   m_GISettings:
     serializedVersion: 2
     m_BounceScale: 1
@@ -276,6 +277,7 @@ GameObject:
   - component: {fileID: 980834734}
   - component: {fileID: 980834733}
   - component: {fileID: 980834736}
+  - component: {fileID: 980834737}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -374,6 +376,21 @@ MonoBehaviour:
   m_MoveSpeed: 10
   m_MoveSpeedIncrement: 2.5
   m_Turbo: 10
+--- !u!114 &980834737
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 980834732}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef68c895ae0241a3a3b611352a352b71, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _antiAliasing: 1
+  _smaaSettings:
+    Preset: 2
 --- !u!1 &1082070199
 GameObject:
   m_ObjectHideFlags: 0

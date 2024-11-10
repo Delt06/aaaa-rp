@@ -20,12 +20,6 @@ namespace DELTation.AAAARP.Data
         _8192 = 8192,
     }
 
-    public enum AAAAAntiAliasingTechnique
-    {
-        Off,
-        SMAA,
-    }
-
     public enum AAAAUpscalingTechnique
     {
         Off,
@@ -41,29 +35,11 @@ namespace DELTation.AAAARP.Data
     [Serializable]
     public class AAAAImageQualitySettings
     {
-        public enum SMAAPreset
-        {
-            Low,
-            Medium,
-            High,
-            Ultra,
-        }
-
         [Range(0.5f, 2.0f)]
         public float RenderScale = 1.0f;
 
         [EnumButtons]
-        public AAAAAntiAliasingTechnique AntiAliasing;
-        public SMAASettings SMAA = new();
-
-        [EnumButtons]
         public AAAAUpscalingTechnique Upscaling;
-
-        [Serializable]
-        public class SMAASettings
-        {
-            public SMAAPreset Preset = SMAAPreset.High;
-        }
     }
 
     [Serializable]

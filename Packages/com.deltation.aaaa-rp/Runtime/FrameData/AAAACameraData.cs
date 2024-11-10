@@ -11,6 +11,7 @@ namespace DELTation.AAAARP.FrameData
         public float AspectRatio;
         public Color BackgroundColor;
         public Camera Camera;
+        public AAAAAdditionalCameraData AdditionalCameraData;
         public RenderTextureDescriptor CameraTargetDescriptor;
         public CameraType CameraType;
         public bool ClearColor;

@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
-using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
@@ -8,6 +7,7 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
+using static DELTation.AAAARP.AAAAAdditionalCameraData;
 
 namespace DELTation.AAAARP.Passes.AntiAliasing
 {
@@ -42,11 +42,11 @@ namespace DELTation.AAAARP.Passes.AntiAliasing
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
-            AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
 
             TextureDesc cameraColorDesc = resourceData.CameraScaledColorDesc;
 
-            passData.Preset = renderingData.PipelineAsset.ImageQualitySettings.SMAA.Preset;
+            passData.Preset = cameraData.AdditionalCameraData.SMAA.Preset;
 
             {
                 passData.ColorBuffer = builder.ReadWriteTexture(resourceData.CameraScaledColorBuffer);
@@ -96,10 +96,10 @@ namespace DELTation.AAAARP.Passes.AntiAliasing
             _propertyBlock.Clear();
             _propertyBlock.SetVector(ShaderIDs._BlitScaleBias, new Vector4(1, 1, 0, 0));
 
-            context.cmd.SetKeyword(_material, _presetLowKeyword, data.Preset == AAAAImageQualitySettings.SMAAPreset.Low);
-            context.cmd.SetKeyword(_material, _presetMediumKeyword, data.Preset == AAAAImageQualitySettings.SMAAPreset.Medium);
-            context.cmd.SetKeyword(_material, _presetHighKeyword, data.Preset == AAAAImageQualitySettings.SMAAPreset.High);
-            context.cmd.SetKeyword(_material, _presetUltraKeyword, data.Preset == AAAAImageQualitySettings.SMAAPreset.Ultra);
+            context.cmd.SetKeyword(_material, _presetLowKeyword, data.Preset == SMAAPreset.Low);
+            context.cmd.SetKeyword(_material, _presetMediumKeyword, data.Preset == SMAAPreset.Medium);
+            context.cmd.SetKeyword(_material, _presetHighKeyword, data.Preset == SMAAPreset.High);
+            context.cmd.SetKeyword(_material, _presetUltraKeyword, data.Preset == SMAAPreset.Ultra);
 
             using (new ProfilingScope(context.cmd, Profiling.EdgeDetection))
             {
@@ -144,7 +144,7 @@ namespace DELTation.AAAARP.Passes.AntiAliasing
             public TextureHandle ColorBuffer;
             public TextureHandle EdgeDepth;
             public TextureHandle Edges;
-            public AAAAImageQualitySettings.SMAAPreset Preset;
+            public SMAAPreset Preset;
             public TextureHandle Target;
             public TextureHandle Weights;
         }

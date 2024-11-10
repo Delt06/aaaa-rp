@@ -177,14 +177,16 @@ namespace DELTation.AAAARP
         private static AAAACameraData CreateCameraData(ContextContainer frameData, Camera camera, AAAARendererBase renderer, AAAARenderingData renderingData)
         {
             AAAACameraData cameraData = frameData.GetOrCreate<AAAACameraData>();
-            AAAAImageQualitySettings imageQualitySettings = camera.cameraType == CameraType.Game ? renderingData.PipelineAsset.ImageQualitySettings : null;
-            AAAALightingSettings lightingSettings =
-                camera.cameraType is CameraType.Game or CameraType.SceneView ? renderingData.PipelineAsset.LightingSettings : null;
 
             cameraData.Renderer = renderer;
             cameraData.Camera = camera;
+            cameraData.AdditionalCameraData = AAAAAdditionalCameraData.GetOrAdd(camera);
             cameraData.IsHdrEnabled = camera.allowHDR;
             cameraData.CameraType = camera.cameraType;
+            
+            AAAAImageQualitySettings imageQualitySettings = cameraData.CameraType is CameraType.Game ? renderingData.PipelineAsset.ImageQualitySettings : null;
+            AAAALightingSettings lightingSettings =
+                cameraData.CameraType is CameraType.Game or CameraType.SceneView ? renderingData.PipelineAsset.LightingSettings : null;
 
             Rect cameraRect = camera.rect;
             cameraData.PixelRect = camera.pixelRect;
@@ -235,7 +237,8 @@ namespace DELTation.AAAARP
             cameraData.WorldSpaceCameraPos = camera.transform.position;
 
             cameraData.VolumeStack = VolumeManager.instance.stack;
-            cameraData.AntiAliasingTechnique = imageQualitySettings?.AntiAliasing ?? AAAAAntiAliasingTechnique.Off;
+            cameraData.AntiAliasingTechnique =
+                cameraData.CameraType is CameraType.Game ? cameraData.AdditionalCameraData.AntiAliasing : AAAAAntiAliasingTechnique.Off;
             cameraData.UpscalingTechnique = imageQualitySettings?.Upscaling ?? AAAAUpscalingTechnique.Off;
             cameraData.FSRSharpness = cameraData.VolumeStack.GetComponent<AAAAFsrSharpnessVolumeComponent>().Sharpness.value;
             if (cameraData.RenderScale > 1)
