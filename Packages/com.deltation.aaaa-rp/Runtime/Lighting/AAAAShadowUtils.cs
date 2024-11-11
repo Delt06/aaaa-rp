@@ -1,11 +1,11 @@
 using System.Runtime.CompilerServices;
 using Unity.Collections;
-using Unity.Mathematics;
 using UnityEngine;
 using static Unity.Mathematics.math;
 using float3 = Unity.Mathematics.float3;
 using float3x3 = Unity.Mathematics.float3x3;
 using float4x4 = Unity.Mathematics.float4x4;
+using quaternion = Unity.Mathematics.quaternion;
 
 namespace DELTation.AAAARP.Lighting
 {
@@ -168,6 +168,49 @@ namespace DELTation.AAAARP.Lighting
             float distanceFadeNear = border * fadeDistance;
             scale = 1.0f / (fadeDistance - distanceFadeNear);
             bias = -distanceFadeNear / (fadeDistance - distanceFadeNear);
+        }
+
+        public static void ComputePointLightShadowMatrices(float3 lightPosition, float nearPlane, float farPlane, int faceIndex,
+            out float4x4 lightView, out float4x4 lightProjection, out TetrahedronFace tetrahedronFace)
+        {
+            tetrahedronFace = TetrahedronFace.Get(faceIndex);
+
+            var faceRotation = quaternion.LookRotation(tetrahedronFace.Forward, tetrahedronFace.Up);
+            lightView = float4x4.TRS(lightPosition, faceRotation, float3(1, 1, 1));
+            lightView = fastinverse(lightView);
+            lightView = ToGPUView(lightView);
+
+            const float aspect = 1.0f;
+
+            // FOV is a handpicked value.
+            const float fov = 150.0f;
+            lightProjection = float4x4.PerspectiveFov(radians(fov), aspect, nearPlane, farPlane);
+        }
+
+        public struct TetrahedronFace
+        {
+            private static readonly TetrahedronFace[] Faces =
+            {
+                new(float3(0.0f, 0.816497f, -0.57735f), float3(0, 1, 0)),
+                new(float3(-0.816497f, 0.0f, 0.57735f), float3(0, 1, 0)),
+                new(float3(0.816497f, 0.0f, 0.57735f), float3(0, 1, 0)),
+                new(float3(0.0f, -0.816497f, -0.57735f), float3(0, -1, 0)),
+            };
+
+            public const int Count = 4;
+
+            public TetrahedronFace(float3 forward, float3 up)
+            {
+                Forward = normalize(forward);
+                Right = normalize(cross(forward, normalize(up)));
+                Up = normalize(cross(Right, Forward));
+            }
+
+            public float3 Forward;
+            public float3 Right;
+            public float3 Up;
+
+            public static ref readonly TetrahedronFace Get(int faceIndex) => ref Faces[faceIndex];
         }
     }
 }

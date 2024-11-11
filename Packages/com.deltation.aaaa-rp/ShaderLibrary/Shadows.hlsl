@@ -6,6 +6,51 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows/PCF.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAAShadowLightSlice.cs.hlsl"
 
+#define SHADOW_TETRAHEDRON_FACE_COUNT (4)
+
+static const float3 ShadowTetrahedronFaceNormals[SHADOW_TETRAHEDRON_FACE_COUNT] =
+{
+    float3(0., 0.816497, -0.57735),
+    float3(-0.816497, 0., 0.57735),
+    float3(0.816497, 0., 0.57735),
+    float3(0., -0.816497, -0.57735)
+};
+
+uint SelectShadowTetrahedronFace(const float3 normalWS)
+{
+    float4 dotProducts;
+
+    UNITY_UNROLL
+    for (uint i = 0; i < SHADOW_TETRAHEDRON_FACE_COUNT; ++i)
+    {
+        dotProducts[i] = dot(normalWS, ShadowTetrahedronFaceNormals[i]);
+    }
+
+    uint  index = 0;
+    float maxValue = dotProducts.x;
+    UNITY_FLATTEN
+    if (dotProducts.y > maxValue)
+    {
+        index = 1;
+        maxValue = dotProducts.y;
+    }
+
+    UNITY_FLATTEN
+    if (dotProducts.z > maxValue)
+    {
+        index = 2;
+        maxValue = dotProducts.z;
+    }
+
+    UNITY_FLATTEN
+    if (dotProducts.w > maxValue)
+    {
+        index = 3;
+    }
+
+    return index;
+}
+
 StructuredBuffer<AAAAShadowLightSlice> _ShadowLightSlices;
 
 struct ShadowSample
@@ -154,6 +199,30 @@ ShadowSample SampleSpotLightShadow(const float3 positionWS, const float   sliceI
     shadowSample.shadowAttenuation = 1;
 
     const AAAAShadowLightSlice shadowLightSlice = _ShadowLightSlices[sliceIndex];
+
+    const int bindlessShadowMapIndex = shadowLightSlice.BindlessShadowMapIndex;
+    if (bindlessShadowMapIndex != -1)
+    {
+        const bool   isPerspective = true;
+        const float3 shadowCoords = TransformWorldToShadowCoords(positionWS, shadowLightSlice.WorldToShadowCoords, isPerspective);
+        shadowSample.shadowAttenuation = SampleShadowMap(NonUniformResourceIndex(bindlessShadowMapIndex),
+                                                         shadowLightSlice.AtlasSize, shadowCoords, isSoftShadow);
+        ApplyShadowFadeAndStrength(shadowSample.shadowFade, shadowSample.shadowAttenuation, shadowStrength, positionWS, fadeParams);
+    }
+
+    return shadowSample;
+}
+
+ShadowSample SamplePointLightShadow(const float3 positionWS, const float3  lightDirection, const float sliceIndex, const float2 fadeParams,
+                                    const bool   isSoftShadow, const float shadowStrength = 1)
+{
+    const uint faceIndex = SelectShadowTetrahedronFace(-lightDirection);
+
+    ShadowSample shadowSample;
+    shadowSample.shadowFade = 0;
+    shadowSample.shadowAttenuation = 1;
+
+    const AAAAShadowLightSlice shadowLightSlice = _ShadowLightSlices[sliceIndex + faceIndex];
 
     const int bindlessShadowMapIndex = shadowLightSlice.BindlessShadowMapIndex;
     if (bindlessShadowMapIndex != -1)

@@ -87,31 +87,34 @@ Light GetPunctualLight(const uint index, const float3 positionWS)
     light.color = punctualLightData.Color_Radius.xyz;
     light.directionWS = lightDirection;
     light.distanceAttenuation = distanceAttenuation * angleAttenuation;
+    light.shadowAttenuation = 1;
+    light.shadowStrength = 1;
 
-    const bool isSpot = punctualLightData.SpotDirection_Angle.w > 0.0f;
+    const float sliceIndex = punctualLightData.ShadowSliceIndex_ShadowFadeParams.x;
+
     UNITY_BRANCH
-    if (isSpot)
+    if (sliceIndex != -1)
     {
+        const bool         isSpot = punctualLightData.SpotDirection_Angle.w > 0.0f;
         const ShadowParams shadowParams = ShadowParams::Unpack(punctualLightData.ShadowParams);
-        const float        sliceIndex = punctualLightData.ShadowSliceIndex_ShadowFadeParams.x;
-        if (sliceIndex != -1)
+        const float2       fadeParams = punctualLightData.ShadowSliceIndex_ShadowFadeParams.zw;
+
+        ShadowSample shadowSample;
+
+        UNITY_BRANCH
+        if (isSpot)
         {
-            const float2       fadeParams = punctualLightData.ShadowSliceIndex_ShadowFadeParams.zw;
-            const ShadowSample shadowSample = SampleSpotLightShadow(positionWS, sliceIndex, fadeParams, shadowParams.isSoftShadow,
-                                                                    shadowParams.shadowStrength);
-            light.shadowAttenuation = shadowSample.shadowAttenuation;
-            light.shadowStrength = shadowParams.shadowStrength;
+            shadowSample = SampleSpotLightShadow(positionWS, sliceIndex, fadeParams, shadowParams.isSoftShadow,
+                                                 shadowParams.shadowStrength);
         }
         else
         {
-            light.shadowAttenuation = 1;
-            light.shadowStrength = 1;
+            shadowSample = SamplePointLightShadow(positionWS, lightDirection, sliceIndex, fadeParams, shadowParams.isSoftShadow,
+                                                  shadowParams.shadowStrength);
         }
-    }
-    else
-    {
-        light.shadowAttenuation = 1;
-        light.shadowStrength = 1;
+
+        light.shadowAttenuation = shadowSample.shadowAttenuation;
+        light.shadowStrength = shadowParams.shadowStrength;
     }
 
     return light;
