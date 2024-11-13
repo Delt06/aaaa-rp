@@ -12,6 +12,7 @@ Shader "Hidden/AAAA/DeferredReflections"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+    #include "Packages/com.deltation.aaaa-rp/Runtime/AAAAStructs.cs.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GTAO.hlsl"
@@ -66,9 +67,14 @@ Shader "Hidden/AAAA/DeferredReflections"
 
             float4 Frag(const Varyings IN) : SV_Target
             {
-                const float        deviceDepth = SampleDeviceDepth(IN.texcoord);
                 const GBufferValue gbuffer = SampleGBuffer(IN.texcoord);
-                SurfaceData        surfaceData;
+                if (gbuffer.materialFlags & AAAAMATERIALFLAGS_UNLIT)
+                {
+                    return 0;
+                }
+
+                const float deviceDepth = SampleDeviceDepth(IN.texcoord);
+                SurfaceData surfaceData;
                 InitializeSurfaceData(gbuffer, IN, deviceDepth, surfaceData);
 
                 const float3 cameraPositionWS = GetCameraPositionWS();
@@ -111,9 +117,14 @@ Shader "Hidden/AAAA/DeferredReflections"
 
             float4 Frag(const Varyings IN) : SV_Target
             {
-                const float        deviceDepth = SampleDeviceDepth(IN.texcoord);
                 const GBufferValue gbuffer = SampleGBuffer(IN.texcoord);
-                SurfaceData        surfaceData;
+                if (gbuffer.materialFlags & AAAAMATERIALFLAGS_UNLIT)
+                {
+                    return 0;
+                }
+
+                const float deviceDepth = SampleDeviceDepth(IN.texcoord);
+                SurfaceData surfaceData;
                 InitializeSurfaceData(gbuffer, IN, deviceDepth, surfaceData);
 
                 const float3 reflections = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, IN.texcoord).rgb;

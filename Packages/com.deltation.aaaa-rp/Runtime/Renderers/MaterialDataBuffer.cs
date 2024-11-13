@@ -112,19 +112,32 @@ namespace DELTation.AAAARP.Renderers
                 SpecularAAScreenSpaceVariance = material.SpecularAAScreenSpaceVariance,
                 SpecularAAThreshold = material.SpecularAAThreshold,
 
+                GeometryFlags = ExtractGeometryFlags(material),
                 MaterialFlags = ExtractMaterialFlags(material),
                 RendererListID = ConstructRendererListID(material),
                 AlphaClipThreshold = material.AlphaClipThreshold,
             };
 
-        private static AAAAMaterialFlags ExtractMaterialFlags(AAAAMaterialAsset material)
+        private static AAAAGeometryFlags ExtractGeometryFlags(AAAAMaterialAsset material)
         {
-            AAAAMaterialFlags flags = AAAAMaterialFlags.None;
+            AAAAGeometryFlags flags = AAAAGeometryFlags.None;
 
             if (material.SpecularAA)
             {
-                flags |= AAAAMaterialFlags.SpecularAA;
+                flags |= AAAAGeometryFlags.SpecularAA;
             }
+
+            return flags;
+        }
+
+        private static AAAAMaterialFlags ExtractMaterialFlags(AAAAMaterialAsset material)
+        {
+            if (material.DisableLighting)
+            {
+                return AAAAMaterialFlags.Unlit;
+            }
+
+            AAAAMaterialFlags flags = AAAAMaterialFlags.None;
 
             return flags;
         }

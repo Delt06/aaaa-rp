@@ -5,6 +5,12 @@
 #ifndef AAAASTRUCTS_CS_HLSL
 #define AAAASTRUCTS_CS_HLSL
 //
+// DELTation.AAAARP.AAAAGeometryFlags:  static fields
+//
+#define AAAAGEOMETRYFLAGS_NONE (0)
+#define AAAAGEOMETRYFLAGS_SPECULAR_AA (1)
+
+//
 // DELTation.AAAARP.AAAAInstanceFlags:  static fields
 //
 #define AAAAINSTANCEFLAGS_NONE (0)
@@ -21,7 +27,7 @@
 // DELTation.AAAARP.AAAAMaterialFlags:  static fields
 //
 #define AAAAMATERIALFLAGS_NONE (0)
-#define AAAAMATERIALFLAGS_SPECULAR_AA (1)
+#define AAAAMATERIALFLAGS_UNLIT (1)
 
 //
 // DELTation.AAAARP.AAAARendererListID:  static fields
@@ -77,10 +83,10 @@ struct AAAAMaterialData
     float Metallic;
     float SpecularAAScreenSpaceVariance;
     float SpecularAAThreshold;
+    int GeometryFlags;
     int MaterialFlags;
     int RendererListID;
     float AlphaClipThreshold;
-    uint Padding0;
 };
 
 // Generated from DELTation.AAAARP.AAAAMeshlet

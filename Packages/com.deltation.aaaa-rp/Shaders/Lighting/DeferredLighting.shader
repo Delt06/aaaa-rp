@@ -12,6 +12,7 @@ Shader "Hidden/AAAA/DeferredLighting"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+    #include "Packages/com.deltation.aaaa-rp/Runtime/AAAAStructs.cs.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GTAO.hlsl"
@@ -67,9 +68,15 @@ Shader "Hidden/AAAA/DeferredLighting"
 
             float4 Frag(const Varyings IN) : SV_Target
             {
-                const float        deviceDepth = SampleDeviceDepth(IN.texcoord);
                 const GBufferValue gbuffer = SampleGBuffer(IN.texcoord);
-                SurfaceData        surfaceData;
+
+                if (gbuffer.materialFlags & AAAAMATERIALFLAGS_UNLIT)
+                {
+                    return float4(gbuffer.albedo, 1);
+                }
+
+                const float deviceDepth = SampleDeviceDepth(IN.texcoord);
+                SurfaceData surfaceData;
                 InitializeSurfaceData(gbuffer, IN, deviceDepth, surfaceData);
 
                 float3     lighting = 0;
@@ -138,9 +145,15 @@ Shader "Hidden/AAAA/DeferredLighting"
 
             float4 Frag(const Varyings IN) : SV_Target
             {
-                const float        deviceDepth = SampleDeviceDepth(IN.texcoord);
                 const GBufferValue gbuffer = SampleGBuffer(IN.texcoord);
-                SurfaceData        surfaceData;
+
+                if (gbuffer.materialFlags & AAAAMATERIALFLAGS_UNLIT)
+                {
+                    return 0;
+                }
+
+                const float deviceDepth = SampleDeviceDepth(IN.texcoord);
+                SurfaceData surfaceData;
                 InitializeSurfaceData(gbuffer, IN, deviceDepth, surfaceData);
 
                 const float3 lighting = ComputeLightingIndirect(surfaceData);

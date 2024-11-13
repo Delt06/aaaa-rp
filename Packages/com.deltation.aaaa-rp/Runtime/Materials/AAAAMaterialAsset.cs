@@ -29,6 +29,7 @@ namespace DELTation.AAAARP.Materials
         public float Metallic;
 
         [Header("Misc")]
+        public bool DisableLighting;
         public bool SpecularAA;
         [Range(0.0f, 1.0f)]
         public float SpecularAAScreenSpaceVariance = 0.1f;

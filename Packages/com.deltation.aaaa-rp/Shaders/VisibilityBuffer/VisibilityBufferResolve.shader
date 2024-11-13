@@ -119,7 +119,7 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 if (materialData.NormalsIndex != (uint)NO_TEXTURE_INDEX)
                 {
                     const float4 tangentOS = InterpolateWithBarycentricNoDerivatives(barycentric,
-                                                vertices[0].Tangent, vertices[1].Tangent, vertices[2].Tangent);
+                                               vertices[0].Tangent, vertices[1].Tangent, vertices[2].Tangent);
                     const float4 tangentWS = float4(TransformObjectToWorldDir(tangentOS.xyz, instanceData.ObjectToWorldMatrix), tangentOS.w);
                     const float3 bitangentWS = tangentWS.w * cross(normalWS, tangentWS.xyz);
 
@@ -135,14 +135,15 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
                 gbufferValue.normalWS = normalWS;
                 gbufferValue.roughness = materialMasks.roughness;
                 gbufferValue.metallic = materialMasks.metallic;
+                gbufferValue.materialFlags = materialData.MaterialFlags;
 
                 UNITY_BRANCH
-                if (materialData.MaterialFlags & AAAAMATERIALFLAGS_SPECULAR_AA)
+                if (materialData.GeometryFlags & AAAAGEOMETRYFLAGS_SPECULAR_AA)
                 {
                     const float screenSpaceVariance = materialData.SpecularAAScreenSpaceVariance;
                     const float threshold = materialData.SpecularAAThreshold;
                     gbufferValue.roughness = GeometricNormalFiltering(gbufferValue.roughness, barycentricVertexNormalWS,
-                           screenSpaceVariance, threshold);
+                             screenSpaceVariance, threshold);
                 }
 
                 return PackGBufferOutput(gbufferValue);
