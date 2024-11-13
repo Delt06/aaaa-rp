@@ -26,7 +26,8 @@ namespace DELTation.AAAARP.Passes.Lighting
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
-            passData.ApplyDirect = lightingData.LightingConstantBuffer is { DirectionalLightCount: > 0 } or { PunctualLightCount: > 0 };
+            // Always run the direct lighting pass - for unlit materials.
+            passData.ApplyDirect = true;
             passData.ApplyIndirect = lightingData.AmbientIntensity > 0;
 
             passData.ScaleBias = new Vector4(1, 1, 0, 0);

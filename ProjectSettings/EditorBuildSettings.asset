@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Tests/Scenes/BindlessTexturesTest.unity
+    guid: 639e87830da15e445b3dc448ba108f65
+  - enabled: 1
     path: Assets/Tests/Scenes/ClusteredLightingTest.unity
     guid: 7570953749865ef43b585cd193ba71da
   - enabled: 1
