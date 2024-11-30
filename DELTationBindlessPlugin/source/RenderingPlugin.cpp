@@ -168,7 +168,12 @@ static HRESULT WINAPI DetourD3D12SerializeRootSignature(
 			_Always_(_Outptr_opt_result_maybenull_) ID3DBlob** ppErrorBlob)
 {
 	D3D12_ROOT_SIGNATURE_DESC desc = *pRootSignature;
-	desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+    // Local Root Signature does not support any other flags.
+    // Source: https://github.com/microsoft/DirectX-Specs/blob/master/d3d/Raytracing.md#additional-root-signature-flags
+    if (!(desc.Flags & D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE))
+    {
+        desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;   
+    }
 	const HRESULT result = s_pSerializeRootSignatureHook->GetOriginalPtr()(&desc, Version, ppBlob, ppErrorBlob);
 	if (FAILED(result))
     {
