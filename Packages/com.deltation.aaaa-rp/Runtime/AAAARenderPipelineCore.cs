@@ -107,17 +107,23 @@ namespace DELTation.AAAARP
             public static readonly int unity_CameraToWorld = Shader.PropertyToID(nameof(unity_CameraToWorld));
 
             public static readonly int unity_CameraWorldClipPlanes = Shader.PropertyToID(nameof(unity_CameraWorldClipPlanes));
+
+            public static readonly int _EnableProbeVolumes = Shader.PropertyToID(nameof(_EnableProbeVolumes));
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         internal static class ShaderGlobalKeywords
         {
             public static GlobalKeyword SCREEN_COORD_OVERRIDE;
+            public static GlobalKeyword PROBE_VOLUMES_L1;
+            public static GlobalKeyword PROBE_VOLUMES_L2;
 
             public static void InitializeShaderGlobalKeywords()
             {
                 // Init all keywords upfront
                 SCREEN_COORD_OVERRIDE = GlobalKeyword.Create(ShaderKeywordStrings.SCREEN_COORD_OVERRIDE);
+                PROBE_VOLUMES_L1 = GlobalKeyword.Create(ShaderKeywordStrings.PROBE_VOLUMES_L1);
+                PROBE_VOLUMES_L2 = GlobalKeyword.Create(ShaderKeywordStrings.PROBE_VOLUMES_L2);
             }
         }
 
@@ -125,6 +131,8 @@ namespace DELTation.AAAARP
         internal static class ShaderKeywordStrings
         {
             public const string SCREEN_COORD_OVERRIDE = nameof(SCREEN_COORD_OVERRIDE);
+            public const string PROBE_VOLUMES_L1 = nameof(PROBE_VOLUMES_L1);
+            public const string PROBE_VOLUMES_L2 = nameof(PROBE_VOLUMES_L2);
         }
     }
 }

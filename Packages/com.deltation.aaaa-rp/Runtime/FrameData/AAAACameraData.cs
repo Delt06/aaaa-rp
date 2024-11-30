@@ -37,6 +37,7 @@ namespace DELTation.AAAARP.FrameData
         public Matrix4x4 ViewMatrix;
         public Vector3 WorldSpaceCameraPos;
         public VolumeStack VolumeStack;
+        public bool SupportsProbeVolumes;
 
         public int ScaledWidth => Mathf.Max(1, (int) (Camera.pixelWidth * RenderScale));
         public int ScaledHeight => Mathf.Max(1, (int) (Camera.pixelHeight * RenderScale));
@@ -75,6 +76,7 @@ namespace DELTation.AAAARP.FrameData
             UpscalingTechnique = default;
             PostProcessingEnabled = false;
             VolumeStack = default;
+            SupportsProbeVolumes = default;
         }
 
         internal void SetViewProjectionAndJitterMatrix(Matrix4x4 viewMatrix, Matrix4x4 projectionMatrix)

@@ -52,6 +52,12 @@ namespace DELTation.AAAARP.Data
     [Serializable]
     public class AAAALightingSettings
     {
+        public enum LightProbeSystem
+        {
+            Off,
+            AdaptiveProbeVolumes,
+        }
+
         public enum XeGTAODenoisingLevel
         {
             Disabled = 0,
@@ -79,9 +85,10 @@ namespace DELTation.AAAARP.Data
         public int MaxPunctualLights = 1024;
         public ShadowSettings Shadows = new();
 
-        [EnumButtons]
-        public AAAAAmbientOcclusionTechnique AmbientOcclusion = AAAAAmbientOcclusionTechnique.XeGTAO;
+        [EnumButtons] public AAAAAmbientOcclusionTechnique AmbientOcclusion = AAAAAmbientOcclusionTechnique.XeGTAO;
         public XeGTAOSettings GTAOSettings = new();
+        [EnumButtons] public LightProbeSystem LightProbes = LightProbeSystem.AdaptiveProbeVolumes;
+        public ProbeVolumesSettings ProbeVolumes = new();
 
         [Serializable]
         public class ShadowSettings
@@ -115,6 +122,18 @@ namespace DELTation.AAAARP.Data
             public bool BentNormals;
             public bool DirectLightingMicroshadows;
         }
+
+        [Serializable]
+        public class ProbeVolumesSettings
+        {
+            public ProbeVolumeTextureMemoryBudget MemoryBudget = ProbeVolumeTextureMemoryBudget.MemoryBudgetMedium;
+            public ProbeVolumeBlendingTextureMemoryBudget BlendingMemoryBudget = ProbeVolumeBlendingTextureMemoryBudget.MemoryBudgetMedium;
+            public ProbeVolumeSHBands SHBands = ProbeVolumeSHBands.SphericalHarmonicsL1;
+            public bool SupportGPUStreaming;
+            public bool SupportDiskStreaming;
+            public bool SupportScenarios;
+            public bool SupportScenarioBlending;
+        }
     }
 
     [Serializable]
@@ -135,7 +154,7 @@ namespace DELTation.AAAARP.Data
     }
 
     [CreateAssetMenu(menuName = "AAAA RP/AAAA Render Pipeline Asset")]
-    public sealed class AAAARenderPipelineAsset : RenderPipelineAsset<AAAARenderPipeline>, IRenderGraphEnabledRenderPipeline
+    public sealed class AAAARenderPipelineAsset : RenderPipelineAsset<AAAARenderPipeline>, IRenderGraphEnabledRenderPipeline, IProbeVolumeEnabledRenderPipeline
     {
         [SerializeField]
         private AAAAImageQualitySettings _imageQualitySettings = new();
@@ -155,6 +174,16 @@ namespace DELTation.AAAARP.Data
         public AAAAImageBasedLightingSettings ImageBasedLightingSettings => _imageBasedLightingSettings;
 
         public override string renderPipelineShaderTag => AAAARenderPipeline.ShaderTagName;
+
+        bool IProbeVolumeEnabledRenderPipeline.supportProbeVolume => LightingSettings.LightProbes == AAAALightingSettings.LightProbeSystem.AdaptiveProbeVolumes;
+
+        ProbeVolumeSHBands IProbeVolumeEnabledRenderPipeline.maxSHBands =>
+            LightingSettings.LightProbes == AAAALightingSettings.LightProbeSystem.AdaptiveProbeVolumes
+                ? LightingSettings.ProbeVolumes.SHBands
+                : ProbeVolumeSHBands.SphericalHarmonicsL1;
+
+        [Obsolete("This property is no longer necessary.")]
+        ProbeVolumeSceneData IProbeVolumeEnabledRenderPipeline.probeVolumeSceneData => null;
 
         public bool isImmediateModeSupported => false;
 

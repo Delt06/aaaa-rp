@@ -42,6 +42,7 @@ namespace DELTation.AAAARP
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly SetupLightingPass _setupLightingPass;
+        private readonly SetupProbeVolumesPass _setupProbeVolumesPass;
         private readonly ShadowPassPool _shadowPassPool;
         private readonly SkyboxPass _skyboxPass;
         private readonly SMAAPass _smaaPass;
@@ -96,6 +97,7 @@ namespace DELTation.AAAARP
             _xeGTAOPass = new XeGTAOPass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
             _colorHistoryPass = new ColorHistoryPass(AAAARenderPassEvent.AfterRenderingTransparents);
+            _setupProbeVolumesPass = new SetupProbeVolumesPass(AAAARenderPassEvent.BeforeRendering);
 
             _smaaPass = new SMAAPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders, textures);
             _uberPostProcessingPass = new UberPostProcessingPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders);
@@ -113,6 +115,8 @@ namespace DELTation.AAAARP
 
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAAShadowsData shadowsData = frameData.Get<AAAAShadowsData>();
+
+            EnqueuePass(_setupProbeVolumesPass);
 
             EnqueuePass(_convolveDiffuseIrradiancePass);
             EnqueuePass(_brdfIntegrationPass);

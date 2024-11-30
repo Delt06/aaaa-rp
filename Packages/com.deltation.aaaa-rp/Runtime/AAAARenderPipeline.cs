@@ -20,6 +20,7 @@ namespace DELTation.AAAARP
     {
         public const string ShaderTagName = "AAAAPipeline";
         private static ShadowMapPool _shadowMapPool;
+        private readonly bool _areAPVEnabled;
         private readonly BindlessTextureContainer _bindlessTextureContainer;
         private readonly DebugDisplaySettingsUI _debugDisplaySettingsUI = new();
 
@@ -59,6 +60,25 @@ namespace DELTation.AAAARP
             _shadowMapPool = new ShadowMapPool(_bindlessTextureContainer);
             _rendererContainer =
                 new AAAARendererContainer(_bindlessTextureContainer, pipelineAsset.MeshLODSettings, _rawBufferClear, pipelineDebugDisplaySettings);
+
+            _areAPVEnabled = pipelineAsset.LightingSettings.LightProbes == AAAALightingSettings.LightProbeSystem.AdaptiveProbeVolumes;
+            SupportedRenderingFeatures.active.overridesLightProbeSystem = _areAPVEnabled;
+            SupportedRenderingFeatures.active.skyOcclusion = _areAPVEnabled;
+            if (_areAPVEnabled)
+            {
+                AAAALightingSettings.ProbeVolumesSettings probeVolumesSettings = pipelineAsset.LightingSettings.ProbeVolumes;
+                ProbeReferenceVolume.instance.Initialize(new ProbeVolumeSystemParameters
+                    {
+                        memoryBudget = probeVolumesSettings.MemoryBudget,
+                        blendingMemoryBudget = probeVolumesSettings.BlendingMemoryBudget,
+                        shBands = probeVolumesSettings.SHBands,
+                        supportGPUStreaming = probeVolumesSettings.SupportGPUStreaming,
+                        supportDiskStreaming = probeVolumesSettings.SupportDiskStreaming,
+                        supportScenarios = probeVolumesSettings.SupportScenarios,
+                        supportScenarioBlending = probeVolumesSettings.SupportScenarioBlending,
+                    }
+                );
+            }
         }
 
         protected override void Render(ScriptableRenderContext context, Camera[] cameras)
@@ -73,6 +93,11 @@ namespace DELTation.AAAARP
 
             foreach (Camera camera in cameras)
             {
+                if (camera.cameraType == CameraType.Preview)
+                {
+                    // Don't support previews at the moment.
+                    continue;
+                }
                 UpdateVolumeFramework(camera);
                 RenderSingleCamera(context, _renderer, camera);
             }
@@ -138,6 +163,10 @@ namespace DELTation.AAAARP
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
             _debugDisplaySettingsUI.UnregisterDebug();
 #endif
+            if (_areAPVEnabled)
+            {
+                ProbeReferenceVolume.instance.Cleanup();
+            }
 
             _rendererContainer.Dispose();
             _shadowMapPool.Dispose();
@@ -183,7 +212,7 @@ namespace DELTation.AAAARP
             cameraData.AdditionalCameraData = AAAAAdditionalCameraData.GetOrAdd(camera);
             cameraData.IsHdrEnabled = camera.allowHDR;
             cameraData.CameraType = camera.cameraType;
-            
+
             AAAAImageQualitySettings imageQualitySettings = cameraData.CameraType is CameraType.Game ? renderingData.PipelineAsset.ImageQualitySettings : null;
             AAAALightingSettings lightingSettings =
                 cameraData.CameraType is CameraType.Game or CameraType.SceneView ? renderingData.PipelineAsset.LightingSettings : null;
@@ -261,6 +290,9 @@ namespace DELTation.AAAARP
                     cameraData.AmbientOcclusionTechnique = AAAAAmbientOcclusionTechnique.Off;
                 }
             }
+
+            cameraData.SupportsProbeVolumes =
+                renderingData.PipelineAsset.LightingSettings.LightProbes == AAAALightingSettings.LightProbeSystem.AdaptiveProbeVolumes;
 
             return cameraData;
         }
