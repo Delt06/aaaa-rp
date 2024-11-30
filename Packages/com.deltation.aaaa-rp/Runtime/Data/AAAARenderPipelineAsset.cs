@@ -3,6 +3,9 @@ using DELTation.AAAARP.RenderPipelineResources;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace DELTation.AAAARP.Data
 {
@@ -174,6 +177,19 @@ namespace DELTation.AAAARP.Data
         public AAAAImageBasedLightingSettings ImageBasedLightingSettings => _imageBasedLightingSettings;
 
         public override string renderPipelineShaderTag => AAAARenderPipeline.ShaderTagName;
+
+        public override Shader defaultShader => Shader.Find("AAAA/Lit");
+        public override Material defaultMaterial
+        {
+            get
+            {
+#if UNITY_EDITOR
+                return AssetDatabase.LoadAssetAtPath<Material>("Packages/com.deltation.aaaa-rp/Assets/Materials/AAAA Lit.mat");
+#else
+                return new Material(defaultShader);
+#endif
+            }
+        }
 
         bool IProbeVolumeEnabledRenderPipeline.supportProbeVolume => LightingSettings.LightProbes == AAAALightingSettings.LightProbeSystem.AdaptiveProbeVolumes;
 

@@ -32,6 +32,7 @@ namespace DELTation.AAAARP
         private readonly DeferredReflectionsComposePass _deferredReflectionsComposePass;
         private readonly Material _deferredReflectionsMaterial;
         private readonly DeferredReflectionsSetupPass _deferredReflectionsSetupPass;
+        private readonly DrawGBufferPass _drawGBufferPass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferFalseNegativePass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferMainPass;
         private readonly FinalBlitPass _finalBlitPass;
@@ -81,6 +82,7 @@ namespace DELTation.AAAARP
             _drawVisibilityBufferFalseNegativePass =
                 new DrawVisibilityBufferPass(DrawVisibilityBufferPass.PassType.FalseNegative, AAAARenderPassEvent.BeforeRenderingGbuffer);
             _resolveVisibilityBufferPass = new ResolveVisibilityBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer, shaders);
+            _drawGBufferPass = new DrawGBufferPass(AAAARenderPassEvent.BeforeRenderingGbuffer);
 
             _deferredReflectionsMaterial = CoreUtils.CreateEngineMaterial(shaders.DeferredReflectionsPS);
             const AAAARenderPassEvent deferredReflectionsRenderPassEvent = AAAARenderPassEvent.AfterRenderingGbuffer;
@@ -134,6 +136,7 @@ namespace DELTation.AAAARP
             EnqueuePass(_gpuCullingFalseNegativePass);
             EnqueuePass(_drawVisibilityBufferFalseNegativePass);
             EnqueuePass(_resolveVisibilityBufferPass);
+            EnqueuePass(_drawGBufferPass);
 
             EnqueuePass(_clusteredLightingPass);
             if (cameraData.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO)

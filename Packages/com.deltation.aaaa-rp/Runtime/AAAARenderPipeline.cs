@@ -88,6 +88,10 @@ namespace DELTation.AAAARP
 
         protected override void Render(ScriptableRenderContext context, List<Camera> cameras)
         {
+            GraphicsSettings.lightsUseLinearIntensity = QualitySettings.activeColorSpace == ColorSpace.Linear;
+            GraphicsSettings.lightsUseColorTemperature = true;
+            GraphicsSettings.useScriptableRenderPipelineBatching = true;
+
             _shadowMapPool.Reset();
             _rendererContainer.PreRender(context);
 

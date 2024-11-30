@@ -19,7 +19,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
             }
 
             var modelSettings = AAAAModelSettings.Deserialize(assetImporter.userData);
-            if (!modelSettings.GenerateMaterialAssets)
+            if (!modelSettings.GenerateMeshlets || !modelSettings.GenerateMaterialAssets)
             {
                 return;
             }

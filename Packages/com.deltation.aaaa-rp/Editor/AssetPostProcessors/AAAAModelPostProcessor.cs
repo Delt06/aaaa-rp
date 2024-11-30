@@ -24,10 +24,15 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                 return;
             }
 
+            var modelSettings = AAAAModelSettings.Deserialize(assetImporter.userData);
+            if (!modelSettings.GenerateMeshlets)
+            {
+                return;
+            }
+
             var assetObjects = new List<Object>();
             var allMaterials = new List<Material>();
             var allMeshes = new Dictionary<SubMeshKey, AAAAMeshletCollectionAsset>();
-            var modelSettings = AAAAModelSettings.Deserialize(assetImporter.userData);
 
             context.GetObjects(assetObjects);
 

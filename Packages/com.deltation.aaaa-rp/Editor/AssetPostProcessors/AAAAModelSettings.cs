@@ -12,6 +12,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
     {
         [Header("Mesh")]
         [Min(0.000001f)]
+        public bool GenerateMeshlets = true;
         public float LODErrorScale = 1.0f;
         [Header("Materials")]
         public bool GenerateMaterialAssets = true;
