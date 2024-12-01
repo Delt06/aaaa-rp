@@ -75,6 +75,7 @@ struct AAAAMaterialData
 {
     float4 AlbedoColor;
     float4 TextureTilingOffset;
+    float4 Emission;
     uint AlbedoIndex;
     uint NormalsIndex;
     float NormalsStrength;

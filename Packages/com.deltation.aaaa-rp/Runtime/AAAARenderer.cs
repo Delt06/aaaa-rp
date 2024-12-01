@@ -33,6 +33,7 @@ namespace DELTation.AAAARP
         private readonly Material _deferredReflectionsMaterial;
         private readonly DeferredReflectionsSetupPass _deferredReflectionsSetupPass;
         private readonly DrawGBufferPass _drawGBufferPass;
+        private readonly DrawTransparentPass _drawTransparentPass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferFalseNegativePass;
         private readonly DrawVisibilityBufferPass _drawVisibilityBufferMainPass;
         private readonly FinalBlitPass _finalBlitPass;
@@ -101,6 +102,8 @@ namespace DELTation.AAAARP
             _colorHistoryPass = new ColorHistoryPass(AAAARenderPassEvent.AfterRenderingTransparents);
             _setupProbeVolumesPass = new SetupProbeVolumesPass(AAAARenderPassEvent.BeforeRendering);
 
+            _drawTransparentPass = new DrawTransparentPass(AAAARenderPassEvent.BeforeRenderingTransparents);
+
             _smaaPass = new SMAAPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders, textures);
             _uberPostProcessingPass = new UberPostProcessingPass(AAAARenderPassEvent.BeforeRenderingPostProcessing, shaders);
 
@@ -145,6 +148,7 @@ namespace DELTation.AAAARP
             }
             EnqueuePass(_deferredLightingPass);
             EnqueuePass(_skyboxPass);
+            EnqueuePass(_drawTransparentPass);
 
             {
                 AAAASsrVolumeComponent ssr = cameraData.VolumeStack.GetComponent<AAAASsrVolumeComponent>();

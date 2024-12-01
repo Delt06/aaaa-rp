@@ -342,6 +342,7 @@ namespace DELTation.AAAARP.FrameData
             public static readonly int _GBuffer_Albedo = Shader.PropertyToID(nameof(_GBuffer_Albedo));
             public static readonly int _GBuffer_Normals = Shader.PropertyToID(nameof(_GBuffer_Normals));
             public static readonly int _GBuffer_Masks = Shader.PropertyToID(nameof(_GBuffer_Masks));
+            public static readonly int _GBuffer_Emission = Shader.PropertyToID(nameof(_GBuffer_Emission));
 
             public static readonly int _CameraDepth = Shader.PropertyToID(nameof(_CameraDepth));
         }

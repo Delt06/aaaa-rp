@@ -61,7 +61,7 @@ float4 SampleAlbedo(const float2 uv, const AAAAMaterialData materialData)
     return materialData.AlbedoColor * textureAlbedo;
 }
 
-float4 SampleAlbedoGrad(const InterpolatedUV uv, const AAAAMaterialData materialData)
+float4 SampleAlbedoTextureGrad(const InterpolatedUV uv, const AAAAMaterialData materialData)
 {
     const uint textureIndex = materialData.AlbedoIndex;
 
@@ -78,7 +78,7 @@ float4 SampleAlbedoGrad(const InterpolatedUV uv, const AAAAMaterialData material
         textureAlbedo = float4(1, 1, 1, 1);
     }
 
-    return materialData.AlbedoColor * textureAlbedo;
+    return textureAlbedo;
 }
 
 float3 SampleNormalTSGrad(const InterpolatedUV uv, const AAAAMaterialData materialData)

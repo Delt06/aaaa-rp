@@ -16,11 +16,13 @@ struct GBufferOutput
     float4 albedo : SV_Target0;
     float2 packedNormalWS : SV_Target1;
     float4 masks : SV_Target2;
+    float4 emission : SV_Target3;
 };
 
 struct GBufferValue
 {
     float3 albedo;
+    float3 emission;
     float3 normalWS;
     float  roughness;
     float  metallic;
@@ -41,6 +43,7 @@ GBufferOutput PackGBufferOutput(const GBufferValue value)
 {
     GBufferOutput output;
     output.albedo = float4(value.albedo, 1.0f);
+    output.emission = float4(value.emission, 1.0f);
     output.packedNormalWS = PackGBufferNormal(value.normalWS);
     output.masks = float4(value.roughness, value.metallic, 0, PackByte(value.materialFlags));
     return output;
@@ -51,6 +54,7 @@ GBufferValue SampleGBuffer(const float2 screenUV)
     GBufferValue output;
 
     output.albedo = SAMPLE_TEXTURE2D_LOD(_GBuffer_Albedo, sampler_GBuffer_Albedo, screenUV, 0).rgb;
+    output.emission = 0;
     output.normalWS = UnpackGBufferNormal(SAMPLE_TEXTURE2D_LOD(_GBuffer_Normals, sampler_GBuffer_Normals, screenUV, 0).xy);
 
     const float4 masks = SAMPLE_TEXTURE2D_LOD(_GBuffer_Masks, sampler_GBuffer_Masks, screenUV, 0);

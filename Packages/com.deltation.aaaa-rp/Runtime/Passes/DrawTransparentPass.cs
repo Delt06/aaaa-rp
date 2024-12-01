@@ -4,22 +4,19 @@ using UnityEngine.Rendering.RenderGraphModule;
 
 namespace DELTation.AAAARP.Passes
 {
-    public sealed class DrawGBufferPass : AAAARasterRenderPass<DrawGBufferPass.PassData>
+    public sealed class DrawTransparentPass : AAAARasterRenderPass<DrawTransparentPass.PassData>
     {
-        public DrawGBufferPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
+        public DrawTransparentPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent) { }
 
         protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAARendererListData rendererListData = frameData.Get<AAAARendererListData>();
 
-            passData.RendererListHandle = rendererListData.GBuffer.Handle;
+            passData.RendererListHandle = rendererListData.Transparent.Handle;
 
             builder.UseRendererList(passData.RendererListHandle);
-            builder.SetRenderAttachment(resourceData.GBufferAlbedo, 0, AccessFlags.ReadWrite);
-            builder.SetRenderAttachment(resourceData.GBufferNormals, 1, AccessFlags.ReadWrite);
-            builder.SetRenderAttachment(resourceData.GBufferMasks, 2, AccessFlags.ReadWrite);
-            builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 3, AccessFlags.ReadWrite);
+            builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.ReadWrite);
             builder.SetRenderAttachmentDepth(resourceData.CameraScaledDepthBuffer, AccessFlags.Read);
         }
 

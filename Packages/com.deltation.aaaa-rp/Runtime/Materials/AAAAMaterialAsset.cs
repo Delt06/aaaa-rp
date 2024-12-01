@@ -15,6 +15,8 @@ namespace DELTation.AAAARP.Materials
         public Texture2D Albedo;
         public Color AlbedoColor = Color.white;
         public Vector4 TextureTilingOffset = new(1, 1, 0, 0);
+        [ColorUsage(hdr: true, showAlpha: false)]
+        public Color Emission = Color.black;
 
         [Header("Normals")]
         public Texture2D Normals;

@@ -76,6 +76,7 @@ namespace DELTation.AAAARP
     {
         public float4 AlbedoColor;
         public float4 TextureTilingOffset;
+        public float4 Emission;
 
         public uint AlbedoIndex;
         public uint NormalsIndex;

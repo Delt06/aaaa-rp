@@ -5,7 +5,7 @@
 
 #include "Packages/com.deltation.aaaa-rp/Shaders/Lit/LitInput.hlsl"
 
-struct AppData
+struct Attributes
 {
     float3 vertexOS : POSITION;
     float3 normalOS : NORMAL;
@@ -15,26 +15,32 @@ struct AppData
 struct Varyings
 {
     float4 positionCS : SV_POSITION;
+    float2 uv : TEXCOORD0;
     float3 normalWS : NORMAL_WS;
 };
 
-Varyings VS(const AppData IN)
+Varyings VS(const Attributes IN)
 {
     Varyings OUT;
 
     OUT.positionCS = TransformObjectToHClip(IN.vertexOS);
+    OUT.uv = TransformBaseMapUV(IN.texcoord0.xy);
     OUT.normalWS = TransformObjectToWorldNormal(IN.normalOS);
 
-    return  OUT;
+    return OUT;
 }
 
 GBufferOutput PS(const Varyings IN)
 {
+    SurfaceData surfaceData = (SurfaceData)0;
+    InitSurfaceData(surfaceData, IN.uv, IN.normalWS);
+
     GBufferValue gbufferValue;
-    gbufferValue.albedo = 1;
-    gbufferValue.metallic = 0;
-    gbufferValue.roughness = 0.5;
-    gbufferValue.normalWS = SafeNormalize(IN.normalWS);
+    gbufferValue.albedo = surfaceData.albedo;
+    gbufferValue.emission = surfaceData.emission;
+    gbufferValue.metallic = surfaceData.metallic;
+    gbufferValue.roughness = surfaceData.roughness;
+    gbufferValue.normalWS = surfaceData.normalWS;
     gbufferValue.materialFlags = AAAAMATERIALFLAGS_NONE;
     return PackGBufferOutput(gbufferValue);
 }

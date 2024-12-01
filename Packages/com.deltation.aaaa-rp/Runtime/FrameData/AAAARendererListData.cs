@@ -15,7 +15,10 @@ namespace DELTation.AAAARP.FrameData
         private static readonly ShaderTagId VisibilityBufferLightMode = new("Visibility");
         private static readonly ShaderTagId GBufferLightMode = new("GBuffer");
 
+        private static readonly ShaderTagId[] ForwardLightModes = { new("SRPDefaultUnlit"), new("ForwardLit") };
+
         public AAAARendererList GBuffer;
+        public AAAARendererList Transparent;
         public AAAARendererList VisibilityBufferFalseNegative;
         public AAAARendererList VisibilityBufferMain;
 
@@ -45,6 +48,17 @@ namespace DELTation.AAAARP.FrameData
                     GBufferLightMode, perObjectData, renderQueueRange, sortingCriteria
                 );
                 GBuffer = Create(renderGraph, desc);
+            }
+
+            {
+                const PerObjectData perObjectData = PerObjectData.None;
+                RenderQueueRange renderQueueRange = RenderQueueRange.transparent;
+                const SortingCriteria sortingCriteria = SortingCriteria.CommonTransparent;
+                RendererListDesc desc = AAAARenderingUtils.CreateRendererListDesc(
+                    cullingResults, cameraData.Camera,
+                    ForwardLightModes, perObjectData, renderQueueRange, sortingCriteria
+                );
+                Transparent = Create(renderGraph, desc);
             }
         }
 

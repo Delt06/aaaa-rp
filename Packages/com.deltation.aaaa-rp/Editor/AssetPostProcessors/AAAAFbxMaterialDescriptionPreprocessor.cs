@@ -82,6 +82,17 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
             }
 
             {
+                if (description.TryGetProperty("EmissiveColor", out Vector4 emissiveColorProperty) && emissiveColorProperty.magnitude > emissiveColorProperty.w)
+                {
+                    if (description.TryGetProperty("EmissiveFactor", out float emissiveFactorProperty))
+                        emissiveColorProperty *= emissiveFactorProperty;
+
+                    emissiveColorProperty.w = 1.0f;
+                    materialAsset.Emission = emissiveColorProperty;
+                }
+            }
+
+            {
                 if (
                     (description.TryGetProperty("Bump", out TexturePropertyDescription normalMapProperty) ||
                      description.TryGetProperty("NormalMap", out normalMapProperty)) &&

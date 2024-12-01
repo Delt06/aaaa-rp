@@ -147,6 +147,12 @@ namespace DELTation.AAAARP
 #endif
                 }
 
+                {
+                    // Must be called before culling because it emits intermediate renderers via Graphics.DrawInstanced.
+                    ProbeVolumesOptions apvOptions = cameraData.VolumeStack?.GetComponent<ProbeVolumesOptions>();
+                    ProbeReferenceVolume.instance.RenderDebug(cameraData.Camera, apvOptions, Texture2D.whiteTexture);
+                }
+
                 RecordAndExecuteRenderGraph(_renderGraph, context, renderer, cmd, cameraMetadata.Name);
                 renderer.FinishRenderGraphRendering(cmd);
             }

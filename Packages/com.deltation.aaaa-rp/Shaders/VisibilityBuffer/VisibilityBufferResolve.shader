@@ -102,7 +102,8 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
 
                 InterpolatedUV interpolatedUV = InterpolateUV(barycentric, vertices[0], vertices[1], vertices[2]);
                 interpolatedUV.AddTilingOffset(materialData.TextureTilingOffset);
-                const float3 albedo = SampleAlbedoGrad(interpolatedUV, materialData).rgb;
+                const float4 textureAlbedo = SampleAlbedoTextureGrad(interpolatedUV, materialData);
+                const float3 albedo = textureAlbedo.rgb * materialData.AlbedoColor.rgb;
 
                 const float  normalFlipSing = ComputeNormalFlipSign(materialData, positionWS);
                 const float3 vertexNormalWS[3] =
@@ -132,6 +133,7 @@ Shader "Hidden/AAAA/VisibilityBufferResolve"
 
                 GBufferValue gbufferValue;
                 gbufferValue.albedo = albedo;
+                gbufferValue.emission = textureAlbedo.rgb * materialData.Emission.rgb;
                 gbufferValue.normalWS = normalWS;
                 gbufferValue.roughness = materialMasks.roughness;
                 gbufferValue.metallic = materialMasks.metallic;
