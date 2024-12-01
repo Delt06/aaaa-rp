@@ -17,7 +17,6 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
         [Header("Materials")]
         public bool GenerateMaterialAssets = true;
         public bool CleanupDefaultMaterials = true;
-        public bool CleanupDefaultMeshes = true;
         public List<MaterialMapping> RemapMaterials = new();
 
         [HideInInspector]

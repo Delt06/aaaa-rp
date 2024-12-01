@@ -131,15 +131,6 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                     Object.DestroyImmediate(material, allowDestroyingAssets);
                 }
             }
-
-            if (modelSettings.CleanupDefaultMeshes)
-            {
-                foreach (SubMeshKey subMeshKey in allMeshes.Keys)
-                {
-                    const bool allowDestroyingAssets = true;
-                    Object.DestroyImmediate(subMeshKey.Mesh, allowDestroyingAssets);
-                }
-            }
         }
 
         public override uint GetVersion() => Version;
