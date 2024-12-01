@@ -29,6 +29,7 @@ Shader "Hidden/AAAA/DeferredLighting"
         surfaceData.metallic = gbuffer.metallic;
         surfaceData.normalWS = gbuffer.normalWS;
         surfaceData.positionWS = ComputeWorldSpacePosition(IN.texcoord, deviceDepth, UNITY_MATRIX_I_VP);
+        surfaceData.positionCS = IN.positionCS;
 
         SampleGTAO(IN.positionCS.xy, surfaceData.normalWS, surfaceData.aoVisibility, surfaceData.bentNormalWS);
     }
@@ -124,21 +125,25 @@ Shader "Hidden/AAAA/DeferredLighting"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
+            #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/ProbeVolumeVariants.hlsl"
+
             static float3 ComputeLightingIndirect(const SurfaceData surfaceData)
             {
+                const float3 cameraPositionWS = GetCameraPositionWS();
+                const float3 eyeWS = normalize(cameraPositionWS - surfaceData.positionWS);
+
                 BRDFInput brdfInput;
                 brdfInput.normalWS = surfaceData.normalWS;
                 brdfInput.positionWS = surfaceData.positionWS;
-                brdfInput.cameraPositionWS = GetCameraPositionWS();
+                brdfInput.cameraPositionWS = cameraPositionWS;
                 brdfInput.diffuseColor = surfaceData.albedo;
                 brdfInput.metallic = surfaceData.metallic;
                 brdfInput.roughness = surfaceData.roughness;
-                brdfInput.irradiance = SampleDiffuseIrradiance(surfaceData.bentNormalWS);
+                brdfInput.irradiance = SampleDiffuseGI(surfaceData.positionWS, surfaceData.bentNormalWS, eyeWS, surfaceData.positionCS.xy, 0xFFFFFFFFu);
                 brdfInput.aoVisibility = surfaceData.aoVisibility;
                 brdfInput.bentNormalWS = surfaceData.bentNormalWS;
                 brdfInput.prefilteredEnvironment = 0;
 
-                const float3 eyeWS = normalize(brdfInput.cameraPositionWS - surfaceData.positionWS);
                 const float3 indirectDiffuse = ComputeBRDFIndirectDiffuse(brdfInput, eyeWS);
                 return aaaa_AmbientIntensity * indirectDiffuse;
             }

@@ -8,13 +8,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PunctualLights.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows.hlsl"
 
-float4 aaaa_SHAr;
-float4 aaaa_SHAg;
-float4 aaaa_SHAb;
-float4 aaaa_SHBr;
-float4 aaaa_SHBg;
-float4 aaaa_SHBb;
-float4 aaaa_SHC;
+#include "Packages/com.unity.render-pipelines.core/Runtime/Lighting/ProbeVolume/ProbeVolume.hlsl"
 
 TEXTURECUBE(aaaa_DiffuseIrradianceCubemap);
 SAMPLER(sampleraaaa_DiffuseIrradianceCubemap);
@@ -120,20 +114,6 @@ Light GetPunctualLight(const uint index, const float3 positionWS)
     return light;
 }
 
-float3 SampleSH_AAAA(const float3 normalWS)
-{
-    real4 shCoefficients[7];
-    shCoefficients[0] = aaaa_SHAr;
-    shCoefficients[1] = aaaa_SHAg;
-    shCoefficients[2] = aaaa_SHAb;
-    shCoefficients[3] = aaaa_SHBr;
-    shCoefficients[4] = aaaa_SHBg;
-    shCoefficients[5] = aaaa_SHBb;
-    shCoefficients[6] = aaaa_SHC;
-
-    return max(float3(0, 0, 0), SampleSH9(shCoefficients, normalWS));
-}
-
 float3 SampleDiffuseIrradiance(const float3 normalWS)
 {
     return SAMPLE_TEXTURECUBE(aaaa_DiffuseIrradianceCubemap, sampleraaaa_DiffuseIrradianceCubemap, normalWS).rgb;
@@ -148,6 +128,36 @@ float3 SamplePrefilteredEnvironment(const float3 reflectionWS, const float rough
 {
     return SAMPLE_TEXTURECUBE_LOD(aaaa_PreFilteredEnvironmentMap, sampler_TrilinearClamp, reflectionWS,
                                   roughness * aaaa_PreFilteredEnvironmentMap_MaxLOD).rgb;
+}
+
+float3 SampleProbeVolumePixel(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float2 positionSS, const uint renderingLayer)
+{
+    #if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
+    float3 bakedGI;
+    if (_EnableProbeVolumes)
+    {
+        EvaluateAdaptiveProbeVolume(absolutePositionWS, normalWS, viewDir, positionSS, renderingLayer, bakedGI);
+    }
+    else
+    {
+        bakedGI = EvaluateAmbientProbe(normalWS);
+    }
+    #ifdef UNITY_COLORSPACE_GAMMA
+    bakedGI = LinearToSRGB(bakedGI);
+    #endif
+    return bakedGI;
+    #else
+    return float3(0, 0, 0);
+    #endif
+}
+
+float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float2 positionSS, const uint renderingLayer)
+{
+    #if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
+    return SampleProbeVolumePixel(absolutePositionWS, normalWS, viewDir, positionSS, renderingLayer);
+    #else
+    return SampleDiffuseIrradiance(normalWS);
+    #endif
 }
 
 #endif // AAAA_GBUFFER_INCLUDED

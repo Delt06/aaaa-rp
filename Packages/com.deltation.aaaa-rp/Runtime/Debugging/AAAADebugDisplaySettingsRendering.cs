@@ -49,6 +49,7 @@ namespace DELTation.AAAARP.Debugging
         DirectionalLightCascades,
         AmbientOcclusion,
         BentNormals,
+        IndirectGI,
     }
 
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData

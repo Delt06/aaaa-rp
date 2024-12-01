@@ -11,6 +11,7 @@ struct SurfaceData
     float  metallic;
     float3 normalWS;
     float3 positionWS;
+    float4 positionCS;
     float  aoVisibility;
     float3 bentNormalWS;
 };

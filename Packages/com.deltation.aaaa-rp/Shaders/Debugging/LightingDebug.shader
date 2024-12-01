@@ -30,8 +30,10 @@ Shader "Hidden/AAAA/LightingDebug"
             #pragma fragment Frag
 
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/GTAOPragma.hlsl"
+            #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/ProbeVolumeVariants.hlsl"
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
+            #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GTAO.hlsl"
@@ -74,9 +76,9 @@ Shader "Hidden/AAAA/LightingDebug"
                 float3 resultColor = 0;
                 float  resultOpacity = OVERLAY_OPACITY;
 
-                const float  deviceDepth = SampleDeviceDepth(IN.texcoord);
-                const float3 positionWS = ComputeWorldSpacePosition(IN.texcoord, deviceDepth, UNITY_MATRIX_I_VP);
                 const float2 screenUV = IN.texcoord;
+                const float  deviceDepth = SampleDeviceDepth(screenUV);
+                const float3 positionWS = ComputeWorldSpacePosition(screenUV, deviceDepth, UNITY_MATRIX_I_VP);
 
                 switch (_LightingDebugMode)
                 {
@@ -129,6 +131,14 @@ Shader "Hidden/AAAA/LightingDebug"
                         SampleGTAO(IN.positionCS.xy, normalWS, visibility, bentNormals);
 
                         resultColor = _LightingDebugMode == AAAALIGHTINGDEBUGMODE_BENT_NORMALS ? bentNormals * 0.5 + 0.5 : visibility;
+                        resultOpacity = 1;
+                        break;
+                    }
+                case AAAALIGHTINGDEBUGMODE_INDIRECT_GI:
+                    {
+                        const GBufferValue gbufferValue = SampleGBuffer(screenUV);
+                        const float3       eyeWS = normalize(GetCameraPositionWS() - positionWS);
+                        resultColor = SampleDiffuseGI(positionWS, gbufferValue.normalWS, eyeWS, IN.positionCS.xy, 0xFFFFFFFFu);
                         resultOpacity = 1;
                         break;
                     }

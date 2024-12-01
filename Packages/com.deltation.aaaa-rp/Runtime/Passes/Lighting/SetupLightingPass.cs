@@ -212,13 +212,13 @@ namespace DELTation.AAAARP.Passes.Lighting
             context.cmd.SetGlobalFloat(ShaderPropertyID.aaaa_PreFilteredEnvironmentMap_MaxLOD, data.PreFilteredEnvironmentMapMaxLOD);
 
             var shCoefficients = new SHCoefficients(RenderSettings.ambientProbe);
-            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHAr, shCoefficients.SHAr);
-            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHAg, shCoefficients.SHAg);
-            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHAb, shCoefficients.SHAb);
-            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBr, shCoefficients.SHBr);
-            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBg, shCoefficients.SHBg);
-            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHBb, shCoefficients.SHBb);
-            context.cmd.SetGlobalVector(ShaderPropertyID.aaaa_SHC, shCoefficients.SHC);
+            context.cmd.SetGlobalVector(ShaderPropertyID.unity_SHAr, shCoefficients.SHAr);
+            context.cmd.SetGlobalVector(ShaderPropertyID.unity_SHAg, shCoefficients.SHAg);
+            context.cmd.SetGlobalVector(ShaderPropertyID.unity_SHAb, shCoefficients.SHAb);
+            context.cmd.SetGlobalVector(ShaderPropertyID.unity_SHBr, shCoefficients.SHBr);
+            context.cmd.SetGlobalVector(ShaderPropertyID.unity_SHBg, shCoefficients.SHBg);
+            context.cmd.SetGlobalVector(ShaderPropertyID.unity_SHBb, shCoefficients.SHBb);
+            context.cmd.SetGlobalVector(ShaderPropertyID.unity_SHC, shCoefficients.SHC);
 
             context.cmd.SetKeyword(_globalKeywords.GTAO, data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO && !data.XeGTAOBentNormals);
             context.cmd.SetKeyword(_globalKeywords.GTAOBentNormals,
@@ -273,13 +273,13 @@ namespace DELTation.AAAARP.Passes.Lighting
             public static readonly int aaaa_PreFilteredEnvironmentMap = Shader.PropertyToID(nameof(aaaa_PreFilteredEnvironmentMap));
             public static readonly int aaaa_PreFilteredEnvironmentMap_MaxLOD = Shader.PropertyToID(nameof(aaaa_PreFilteredEnvironmentMap_MaxLOD));
 
-            public static readonly int aaaa_SHAr = Shader.PropertyToID(nameof(aaaa_SHAr));
-            public static readonly int aaaa_SHAg = Shader.PropertyToID(nameof(aaaa_SHAg));
-            public static readonly int aaaa_SHAb = Shader.PropertyToID(nameof(aaaa_SHAb));
-            public static readonly int aaaa_SHBr = Shader.PropertyToID(nameof(aaaa_SHBr));
-            public static readonly int aaaa_SHBg = Shader.PropertyToID(nameof(aaaa_SHBg));
-            public static readonly int aaaa_SHBb = Shader.PropertyToID(nameof(aaaa_SHBb));
-            public static readonly int aaaa_SHC = Shader.PropertyToID(nameof(aaaa_SHC));
+            public static readonly int unity_SHAr = Shader.PropertyToID(nameof(unity_SHAr));
+            public static readonly int unity_SHAg = Shader.PropertyToID(nameof(unity_SHAg));
+            public static readonly int unity_SHAb = Shader.PropertyToID(nameof(unity_SHAb));
+            public static readonly int unity_SHBr = Shader.PropertyToID(nameof(unity_SHBr));
+            public static readonly int unity_SHBg = Shader.PropertyToID(nameof(unity_SHBg));
+            public static readonly int unity_SHBb = Shader.PropertyToID(nameof(unity_SHBb));
+            public static readonly int unity_SHC = Shader.PropertyToID(nameof(unity_SHC));
         }
     }
 }
