@@ -13,6 +13,7 @@ namespace DELTation.AAAARP.Renderers
         [SerializeField] private AAAAMaterialAsset _material;
         [SerializeField] [Min(0.000001f)] private float _lodErrorScale = 1;
         [SerializeField] private ShadowCastingMode _shadowCastingMode = ShadowCastingMode.On;
+        [SerializeField] private bool _contributeGlobalIllumination;
 
         public AAAAMeshletCollectionAsset Mesh
         {
@@ -54,6 +55,17 @@ namespace DELTation.AAAARP.Renderers
             set
             {
                 _shadowCastingMode = value;
+                UnityObjectUtils.MarkDirty(this);
+            }
+        }
+
+        public bool ContributeGlobalIllumination
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _contributeGlobalIllumination;
+            set
+            {
+                _contributeGlobalIllumination = value;
                 UnityObjectUtils.MarkDirty(this);
             }
         }

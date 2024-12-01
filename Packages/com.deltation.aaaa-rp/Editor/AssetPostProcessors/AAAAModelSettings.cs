@@ -14,6 +14,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
         [Min(0.000001f)]
         public bool GenerateMeshlets = true;
         public float LODErrorScale = 1.0f;
+        public bool ContributeGlobalIllumination;
         [Header("Materials")]
         public bool GenerateMaterialAssets = true;
         public bool CleanupDefaultMaterials = true;
