@@ -134,7 +134,7 @@ Shader "Hidden/AAAA/LightingDebug"
                         resultOpacity = 1;
                         break;
                     }
-                case AAAALIGHTINGDEBUGMODE_INDIRECT_GI:
+                case AAAALIGHTINGDEBUGMODE_INDIRECT_DIFFUSE:
                     {
                         const GBufferValue gbufferValue = SampleGBuffer(screenUV);
                         const float3       eyeWS = normalize(GetCameraPositionWS() - positionWS);
