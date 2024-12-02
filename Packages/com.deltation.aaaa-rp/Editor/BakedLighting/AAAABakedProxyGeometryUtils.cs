@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using DELTation.AAAARP.BakedLighting;
 using DELTation.AAAARP.Materials;
 using DELTation.AAAARP.Renderers;
@@ -10,12 +12,44 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace DELTation.AAAARP.Editor.BakedLighting
 {
     internal static class AAAABakedProxyGeometryUtils
     {
-        [MenuItem("Tools/AAAA RP/Baked Lighting/Clear Proxy Geometry", priority = 1)]
+        [MenuItem("Tools/AAAA RP/Baked Lighting/Bake")]
+        public static async void Bake()
+        {
+            const string title = "Baking Lighting";
+
+            try
+            {
+                GenerateImpl(progress => EditorUtility.DisplayProgressBar(title, "Generating proxy geometry...", progress));
+
+                if (!Lightmapping.BakeAsync())
+                {
+                    return;
+                }
+
+                await Task.Yield();
+                await Task.Yield();
+
+                while (Lightmapping.isRunning)
+                {
+                    EditorUtility.DisplayProgressBar(title, "Baking...", Lightmapping.buildProgress);
+                    await Task.Yield();
+                }
+            }
+            finally
+            {
+                EditorUtility.DisplayProgressBar(title, "Cleanup...", 0.9f);
+                Clear();
+                EditorUtility.ClearProgressBar();
+            }
+        }
+
+        [MenuItem("Tools/AAAA RP/Baked Lighting/Helpers/Clear Proxy Geometry", priority = 1)]
         public static void Clear()
         {
             AAAABakedProxyGeometry[] proxyGeometries = FindProxyGeometriesInActiveScene().ToArray();
@@ -38,20 +72,28 @@ namespace DELTation.AAAARP.Editor.BakedLighting
                 ;
         }
 
-        [MenuItem("Tools/AAAA RP/Baked Lighting/Generate Proxy Geometry", priority = 0)]
+        [MenuItem("Tools/AAAA RP/Baked Lighting/Helpers/Generate Proxy Geometry", priority = 0)]
         public static void Generate()
+        {
+            GenerateImpl();
+        }
+
+        private static void GenerateImpl([CanBeNull] Action<float> reportProgress = null)
         {
             AAAARendererAuthoring[] sourceRenderers = Object.FindObjectsByType<AAAARendererAuthoring>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
-            const HideFlags hideFlags = HideFlags.DontSave;
+            const HideFlags hideFlags = HideFlags.None;
             var parent = new GameObject("Baked Lighting Proxy Geometry")
             {
                 hideFlags = hideFlags,
             };
             parent.AddComponent<AAAABakedProxyGeometry>();
 
-            foreach (AAAARendererAuthoring renderer in sourceRenderers)
+            for (int index = 0; index < sourceRenderers.Length; index++)
             {
+                reportProgress?.Invoke(index / (float) sourceRenderers.Length);
+
+                AAAARendererAuthoring renderer = sourceRenderers[index];
                 if (renderer.Mesh == null || renderer.Material == null || !renderer.ContributeGlobalIllumination)
                 {
                     continue;
@@ -111,6 +153,9 @@ namespace DELTation.AAAARP.Editor.BakedLighting
             material.SetFloat(AAAALitShader.ShaderIDs._BumpMapScale, materialAsset.NormalsStrength);
 
             material.SetFloat(AAAALitShader.ShaderIDs._CullMode, (float) (materialAsset.TwoSided ? CullMode.Off : CullMode.Back));
+
+            material.globalIlluminationFlags &= ~MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+            material.globalIlluminationFlags |= MaterialGlobalIlluminationFlags.BakedEmissive;
         }
 
         private static void SetupMeshRenderer(MeshRenderer meshRenderer, Material material, Mesh sourceMesh, AAAARendererAuthoring renderer)
