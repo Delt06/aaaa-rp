@@ -1,4 +1,6 @@
-﻿using DELTation.AAAARP.BakedLighting;
+﻿using System.Collections.Generic;
+using System.Linq;
+using DELTation.AAAARP.BakedLighting;
 using DELTation.AAAARP.Materials;
 using DELTation.AAAARP.Renderers;
 using DELTation.AAAARP.Shaders.Lit;
@@ -7,12 +9,36 @@ using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 
 namespace DELTation.AAAARP.Editor.BakedLighting
 {
     internal static class AAAABakedProxyGeometryUtils
     {
-        [MenuItem("Tools/AAAA RP/Baked Lighting/Generate Proxy Geometry")]
+        [MenuItem("Tools/AAAA RP/Baked Lighting/Clear Proxy Geometry", priority = 1)]
+        public static void Clear()
+        {
+            AAAABakedProxyGeometry[] proxyGeometries = FindProxyGeometriesInActiveScene().ToArray();
+
+            foreach (AAAABakedProxyGeometry proxyGeometry in proxyGeometries)
+            {
+                if (proxyGeometry != null)
+                {
+                    CoreUtils.Destroy(proxyGeometry.gameObject);
+                }
+            }
+        }
+
+        private static IEnumerable<AAAABakedProxyGeometry> FindProxyGeometriesInActiveScene()
+        {
+            Scene activeScene = SceneManager.GetActiveScene();
+            const bool includeInactive = true;
+            return activeScene.GetRootGameObjects()
+                    .SelectMany(go => go.GetComponentsInChildren<AAAABakedProxyGeometry>(includeInactive))
+                ;
+        }
+
+        [MenuItem("Tools/AAAA RP/Baked Lighting/Generate Proxy Geometry", priority = 0)]
         public static void Generate()
         {
             AAAARendererAuthoring[] sourceRenderers = Object.FindObjectsByType<AAAARendererAuthoring>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
