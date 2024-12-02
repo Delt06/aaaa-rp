@@ -43,6 +43,8 @@ Shader "Hidden/AAAA/LightingDebug"
             float2 _LightingDebugCountRemap;
             uint   _LightIndex;
 
+            TEXTURE2D(_IndirectSpecular);
+
             #define LIGHT_POOL_SIZE 6
 
             #define DIM_COLOR 0.1
@@ -139,6 +141,12 @@ Shader "Hidden/AAAA/LightingDebug"
                         const GBufferValue gbufferValue = SampleGBuffer(screenUV);
                         const float3       eyeWS = normalize(GetCameraPositionWS() - positionWS);
                         resultColor = SampleDiffuseGI(positionWS, gbufferValue.normalWS, eyeWS, IN.positionCS.xy, 0xFFFFFFFFu);
+                        resultOpacity = 1;
+                        break;
+                    }
+                case AAAALIGHTINGDEBUGMODE_INDIRECT_SPECULAR:
+                    {
+                        resultColor = SAMPLE_TEXTURE2D(_IndirectSpecular, sampler_LinearClamp, screenUV);
                         resultOpacity = 1;
                         break;
                     }

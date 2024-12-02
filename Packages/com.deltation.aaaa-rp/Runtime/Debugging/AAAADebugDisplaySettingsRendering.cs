@@ -50,6 +50,7 @@ namespace DELTation.AAAARP.Debugging
         AmbientOcclusion,
         BentNormals,
         IndirectDiffuse,
+        IndirectSpecular,
     }
 
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData

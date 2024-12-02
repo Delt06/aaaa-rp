@@ -31,13 +31,25 @@ namespace DELTation.AAAARP.Passes.Debugging
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
+            passData.DebugMode = _debugDisplaySettings.RenderingSettings.LightingDebugMode;
+
             builder.UseTexture(resourceData.CameraScaledDepthBuffer, AccessFlags.Read);
 
-            if (lightingData.GTAOTerm.IsValid())
+            if (lightingData.GTAOTerm.IsValid() && passData.DebugMode is AAAALightingDebugMode.AmbientOcclusion or AAAALightingDebugMode.BentNormals)
             {
                 builder.UseTexture(lightingData.GTAOTerm, AccessFlags.Read);
             }
-            
+
+            if (lightingData.DeferredReflections.IsValid() && passData.DebugMode is AAAALightingDebugMode.IndirectSpecular)
+            {
+                builder.UseTexture(lightingData.DeferredReflections, AccessFlags.Read);
+                passData.IndirectSpecular = lightingData.DeferredReflections;
+            }
+            else
+            {
+                passData.IndirectSpecular = TextureHandle.nullHandle;
+            }
+
             builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.ReadWrite);
             builder.AllowGlobalStateModification(true);
         }
@@ -53,12 +65,21 @@ namespace DELTation.AAAARP.Passes.Debugging
             int lightIndex = _debugDisplaySettings.RenderingSettings.LightingDebugLightIndex;
             context.cmd.SetGlobalFloat(ShaderID._LightIndex, lightIndex);
 
+            if (data.IndirectSpecular.IsValid())
+            {
+                context.cmd.SetGlobalTexture(ShaderID._IndirectSpecular, data.IndirectSpecular);
+            }
+
             var scaleBias = new Vector4(1, 1, 0, 0);
             const int pass = 0;
             Blitter.BlitTexture(context.cmd, scaleBias, _material, pass);
         }
 
-        public class PassData : PassDataBase { }
+        public class PassData : PassDataBase
+        {
+            public AAAALightingDebugMode DebugMode;
+            public TextureHandle IndirectSpecular;
+        }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static class ShaderID
@@ -66,6 +87,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             public static int _LightingDebugMode = Shader.PropertyToID(nameof(_LightingDebugMode));
             public static int _LightingDebugCountRemap = Shader.PropertyToID(nameof(_LightingDebugCountRemap));
             public static int _LightIndex = Shader.PropertyToID(nameof(_LightIndex));
+            public static int _IndirectSpecular = Shader.PropertyToID(nameof(_IndirectSpecular));
         }
     }
 }
