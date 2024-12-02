@@ -64,6 +64,7 @@ Shader "Hidden/AAAA/DeferredReflections"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
+            #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/ProbeVolumeVariants.hlsl"
 
             float4 Frag(const Varyings IN) : SV_Target
             {
@@ -81,7 +82,8 @@ Shader "Hidden/AAAA/DeferredReflections"
 
                 const float3 eyeWS = normalize(cameraPositionWS - surfaceData.positionWS);
                 const float3 reflectionWS = ComputeBRDFReflectionVector(surfaceData.bentNormalWS, eyeWS);
-                return float4(SamplePrefilteredEnvironment(reflectionWS, surfaceData.roughness), 1);
+                const float  skyOcclusion = SampleSkyOcclusion(surfaceData.positionWS, surfaceData.bentNormalWS, eyeWS, reflectionWS, 0xFFFFFFFFu);
+                return float4(skyOcclusion * SamplePrefilteredEnvironment(reflectionWS, surfaceData.roughness), 1);
             }
             ENDHLSL
         }

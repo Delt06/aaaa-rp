@@ -160,4 +160,27 @@ float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, c
     #endif
 }
 
+float SampleProbeVolumeSkyOcclusion(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float3 reflectionDir, const uint renderingLayer)
+{
+    APVSample apvSample = SampleAPV(absolutePositionWS, normalWS, renderingLayer, viewDir);
+
+    if (apvSample.status != APV_SAMPLE_STATUS_INVALID)
+    {
+        apvSample.Decode();
+
+        return EvalSHSkyOcclusion(reflectionDir, apvSample);
+    }
+    
+    return 1;
+}
+
+float SampleSkyOcclusion(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float3 reflectionDir, const uint renderingLayer)
+{
+    #if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
+    return SampleProbeVolumeSkyOcclusion(absolutePositionWS, normalWS, viewDir, reflectionDir, renderingLayer);
+    #else
+    return 1;
+    #endif
+}
+
 #endif // AAAA_GBUFFER_INCLUDED
