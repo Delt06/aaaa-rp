@@ -33,7 +33,7 @@ namespace DELTation.AAAARP.Passes
             builder.SetGlobalTextureAfterPass(resourceData.GBufferAlbedo, AAAAResourceData.ShaderPropertyID._GBuffer_Albedo);
             builder.SetGlobalTextureAfterPass(resourceData.GBufferNormals, AAAAResourceData.ShaderPropertyID._GBuffer_Normals);
             builder.SetGlobalTextureAfterPass(resourceData.GBufferMasks, AAAAResourceData.ShaderPropertyID._GBuffer_Masks);
-            builder.SetGlobalTextureAfterPass(resourceData.CameraScaledColorBuffer, AAAAResourceData.ShaderPropertyID._GBuffer_Masks);
+            builder.SetGlobalTextureAfterPass(resourceData.CameraScaledColorBuffer, AAAAResourceData.ShaderPropertyID._GBuffer_Emission);
         }
 
         protected override void Render(PassData data, RasterGraphContext context)
