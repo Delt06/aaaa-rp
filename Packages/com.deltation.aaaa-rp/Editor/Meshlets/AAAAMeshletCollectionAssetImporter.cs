@@ -41,6 +41,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
                     TargetErrorSloppy = TargetErrorSloppy,
                     MinTriangleReductionPerStep = MinTriangleReductionPerStep,
                     Mesh = Mesh,
+                    SourceMeshGUID = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(Mesh)),
                     TargetError = TargetError,
                     OptimizeVertexCache = OptimizeVertexCache,
                     MaxMeshLODLevelCount = MaxMeshLODLevelCount,

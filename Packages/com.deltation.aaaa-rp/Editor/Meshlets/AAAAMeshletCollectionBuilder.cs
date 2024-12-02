@@ -7,6 +7,7 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Mathematics;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Rendering;
@@ -17,6 +18,9 @@ namespace DELTation.AAAARP.Editor.Meshlets
     {
         public static unsafe void Generate(AAAAMeshletCollectionAsset meshletCollection, in Parameters parameters)
         {
+            meshletCollection.SourceMeshGUID = parameters.SourceMeshGUID;
+            meshletCollection.SourceMeshName = parameters.Mesh.name;
+            meshletCollection.SourceSubmeshIndex = parameters.SubMeshIndex;
             meshletCollection.Bounds = parameters.Mesh.bounds;
 
             using Mesh.MeshDataArray dataArray = Mesh.AcquireReadOnlyMeshData(parameters.Mesh);
@@ -467,6 +471,7 @@ namespace DELTation.AAAARP.Editor.Meshlets
         public struct Parameters
         {
             public Mesh Mesh;
+            public string SourceMeshGUID;
             public int SubMeshIndex;
             public Action<string> LogErrorHandler;
             public bool OptimizeVertexCache;

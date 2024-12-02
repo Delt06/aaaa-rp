@@ -13,6 +13,10 @@ namespace DELTation.AAAARP.Meshlets
             ConeWeight = AAAAMeshletConfiguration.MeshletConeWeight,
         };
 
+        [HideInInspector] public string SourceMeshGUID = string.Empty;
+        [HideInInspector] public string SourceMeshName = string.Empty;
+        [HideInInspector] public int SourceSubmeshIndex = -1;
+
         public Bounds Bounds;
         public int MeshLODLevelCount;
         public int LeafMeshletCount;

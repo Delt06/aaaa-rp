@@ -66,6 +66,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                                 AAAAMeshletCollectionBuilder.Generate(meshletCollectionAsset, new AAAAMeshletCollectionBuilder.Parameters
                                     {
                                         Mesh = sharedMesh,
+                                        SourceMeshGUID = AssetDatabase.AssetPathToGUID(assetImporter.assetPath),
                                         SubMeshIndex = subMeshIndex,
                                         LogErrorHandler = e => context.LogImportError(e),
                                         TargetError = 0.02f,
