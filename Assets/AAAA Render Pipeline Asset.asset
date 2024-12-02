@@ -14,9 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _imageQualitySettings:
     RenderScale: 1
-    AntiAliasing: 1
-    SMAA:
-      Preset: 2
     Upscaling: 1
   _meshLODSettings:
     ErrorThreshold: 5
@@ -32,6 +29,7 @@ MonoBehaviour:
       DirectionalLightCascadeDistance3: 0.75
       ShadowFade: 0.2
       DepthBias: 0.1
+      PunctualDepthBias: 0.05
       SlopeBias: 0.5
     AmbientOcclusion: 1
     GTAOSettings:
@@ -40,6 +38,15 @@ MonoBehaviour:
       DenoisingLevel: 1
       BentNormals: 1
       DirectLightingMicroshadows: 1
+    LightProbes: 0
+    ProbeVolumes:
+      MemoryBudget: 1024
+      BlendingMemoryBudget: 256
+      SHBands: 1
+      SupportGPUStreaming: 0
+      SupportDiskStreaming: 0
+      SupportScenarios: 0
+      SupportScenarioBlending: 0
   _imageBasedLightingSettings:
     DiffuseIrradianceResolution: 128
     BRDFLutResolution: 128
