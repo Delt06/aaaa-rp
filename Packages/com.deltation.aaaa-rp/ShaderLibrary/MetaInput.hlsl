@@ -18,6 +18,7 @@ struct Attributes
 struct Varyings
 {
     float4 positionCS : SV_POSITION;
+    
     float2 uv : TEXCOORD0;
     #ifdef EDITOR_VISUALIZATION
     float2 VizUV        : TEXCOORD1;

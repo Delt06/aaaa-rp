@@ -14,11 +14,13 @@ Varyings VS(const Attributes IN)
     return MetaVS(attributes);
 }
 
-float4 PS(const Varyings IN) : SV_TARGET
+float4 PS(const Varyings IN, FRONT_FACE_TYPE face : FRONT_FACE_SEMANTIC) : SV_TARGET
 {
     const float3 normalWS = 0;
+    const float4 tangentWS = 0;
     SurfaceData  surfaceData = (SurfaceData)0;
-    InitSurfaceData(surfaceData, IN.uv, normalWS);
+    InitSurfaceData(surfaceData, IN.uv, normalWS, tangentWS, face);
+    AlphaClip(surfaceData);
 
     MetaInput metaInput;
     metaInput.Albedo = surfaceData.albedo;

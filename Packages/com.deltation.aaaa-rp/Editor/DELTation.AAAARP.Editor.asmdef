@@ -2,6 +2,7 @@
     "name": "DELTation.AAAARP.Editor",
     "rootNamespace": "DELTation.AAAARP",
     "references": [
+        "GUID:df380645f10b7bc4b97d4f5eb6303d95",
         "GUID:3eae0364be2026648bf74846acb8a731",
         "GUID:d8b63aba1907145bea998dd612889d6b",
         "GUID:2665a8d13d1b3f18800f46e256720795",
@@ -11,7 +12,8 @@
         "GUID:59fc71919a9e4318b6d7bb0f75d1f870",
         "GUID:f73a6a7ad13b83f4588268ad2b6fd327",
         "GUID:478a2357cc57436488a56e564b08d223",
-        "GUID:083ab0f21eae43939bc58f2d9e4f3151"
+        "GUID:083ab0f21eae43939bc58f2d9e4f3151",
+        "GUID:3cc225c9bab094f4dbf4c5e288d23ba1"
     ],
     "includePlatforms": [
         "Editor"

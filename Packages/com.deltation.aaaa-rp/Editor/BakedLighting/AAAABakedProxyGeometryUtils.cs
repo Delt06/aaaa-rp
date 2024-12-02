@@ -1,7 +1,9 @@
 ﻿using DELTation.AAAARP.BakedLighting;
 using DELTation.AAAARP.Materials;
 using DELTation.AAAARP.Renderers;
+using DELTation.AAAARP.Shaders.Lit;
 using JetBrains.Annotations;
+using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -35,6 +37,11 @@ namespace DELTation.AAAARP.Editor.BakedLighting
                     continue;
                 }
 
+                if (renderer.Material.DisableLighting)
+                {
+                    continue;
+                }
+
                 var go = new GameObject(renderer.name)
                 {
                     hideFlags = hideFlags,
@@ -63,8 +70,21 @@ namespace DELTation.AAAARP.Editor.BakedLighting
 
         private static void SetupMaterial(Material material, AAAAMaterialAsset materialAsset)
         {
-            material.color = materialAsset.AlbedoColor;
-            material.mainTexture = materialAsset.Albedo;
+            material.SetColor(AAAALitShader.ShaderIDs._BaseColor, materialAsset.AlbedoColor);
+            material.SetTexture(AAAALitShader.ShaderIDs._BaseMap, materialAsset.Albedo);
+            material.SetTextureScale(AAAALitShader.ShaderIDs._BaseMap, ((float4) materialAsset.TextureTilingOffset).xy);
+            material.SetTextureOffset(AAAALitShader.ShaderIDs._BaseMap, ((float4) materialAsset.TextureTilingOffset).zw);
+
+            CoreUtils.SetKeyword(material, AAAALitShader.Keywords._ALPHATEST_ON, materialAsset.AlphaClip);
+            material.SetFloat(AAAALitShader.ShaderIDs._AlphaClip, materialAsset.AlphaClip ? 1 : 0);
+            material.SetFloat(AAAALitShader.ShaderIDs._AlphaClipThreshold, materialAsset.AlphaClipThreshold);
+
+            material.SetVector(AAAALitShader.ShaderIDs._EmissionColor, materialAsset.Emission);
+
+            material.SetTexture(AAAALitShader.ShaderIDs._BumpMap, materialAsset.Normals);
+            material.SetFloat(AAAALitShader.ShaderIDs._BumpMapScale, materialAsset.NormalsStrength);
+
+            material.SetFloat(AAAALitShader.ShaderIDs._CullMode, (float) (materialAsset.TwoSided ? CullMode.Off : CullMode.Back));
         }
 
         private static void SetupMeshRenderer(MeshRenderer meshRenderer, Material material, Mesh sourceMesh, AAAARendererAuthoring renderer)
