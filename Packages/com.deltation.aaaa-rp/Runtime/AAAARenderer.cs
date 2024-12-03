@@ -7,6 +7,7 @@ using DELTation.AAAARP.Passes;
 using DELTation.AAAARP.Passes.AntiAliasing;
 using DELTation.AAAARP.Passes.ClusteredLighting;
 using DELTation.AAAARP.Passes.GlobalIllumination.AO;
+using DELTation.AAAARP.Passes.GlobalIllumination.LPV;
 using DELTation.AAAARP.Passes.GlobalIllumination.SSR;
 using DELTation.AAAARP.Passes.IBL;
 using DELTation.AAAARP.Passes.Lighting;
@@ -41,6 +42,8 @@ namespace DELTation.AAAARP
         private readonly GPUCullingPass _gpuCullingFalseNegativePass;
         private readonly HZBGenerationPass _gpuCullingHzbGenerationPass;
         private readonly GPUCullingPass _gpuCullingMainPass;
+        private readonly Material _lpvTraceMaterial;
+        private readonly LPVTracePass _lpvTracePass;
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly SetupLightingPass _setupLightingPass;
@@ -101,6 +104,8 @@ namespace DELTation.AAAARP
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
             _colorHistoryPass = new ColorHistoryPass(AAAARenderPassEvent.AfterRenderingTransparents);
             _setupProbeVolumesPass = new SetupProbeVolumesPass(AAAARenderPassEvent.BeforeRendering);
+            _lpvTraceMaterial = CoreUtils.CreateEngineMaterial(shaders.LpvTracePS);
+            _lpvTracePass = new LPVTracePass(AAAARenderPassEvent.AfterRenderingGbuffer, _lpvTraceMaterial);
 
             _drawTransparentPass = new DrawTransparentPass(AAAARenderPassEvent.BeforeRenderingTransparents);
 
@@ -146,6 +151,12 @@ namespace DELTation.AAAARP
             {
                 EnqueuePass(_xeGTAOPass);
             }
+
+            if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.LightPropagationVolumes)
+            {
+                EnqueuePass(_lpvTracePass);
+            }
+
             EnqueuePass(_deferredLightingPass);
             EnqueuePass(_skyboxPass);
             EnqueuePass(_drawTransparentPass);
@@ -263,6 +274,7 @@ namespace DELTation.AAAARP
 
             CoreUtils.Destroy(_ssrResolveMaterial);
             CoreUtils.Destroy(_deferredReflectionsMaterial);
+            CoreUtils.Destroy(_lpvTraceMaterial);
         }
     }
 }

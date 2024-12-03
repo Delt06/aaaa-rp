@@ -19,7 +19,7 @@ ByteAddressBuffer _MeshletRenderRequests;
 #define REQUIRE_UV0_INTERPOLATOR
 #endif
 
-#if defined(_ALPHATEST_ON) || defined(LPV_REFLECTIVE_SHADOW_MAPS)
+#if defined(_ALPHATEST_ON) || defined(AAAA_LPV_REFLECTIVE_SHADOW_MAPS)
 #undef EXTRA_VARYINGS
 #define EXTRA_VARYINGS 
 #endif

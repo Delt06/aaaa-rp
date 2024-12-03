@@ -4,6 +4,8 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
 
+TEXTURE2D(_LPVTraceResult);
+
 struct RsmOutput
 {
     float3 positionWS : SV_Target0;
@@ -35,6 +37,11 @@ RsmOutput PackRsmOutput(const RsmValue value)
     output.packedNormalWS = PackRsmNormal(value.normalWS);
     output.flux = value.flux;
     return output;
+}
+
+float3 SampleLightPropagationVolumes(const float2 screenUV)
+{
+    return SAMPLE_TEXTURE2D_LOD(_LPVTraceResult, sampler_LinearClamp, screenUV, 0).rgb;
 }
 
 #endif // AAAA_LIGHT_PROPAGATION_VOLUMES_INCLUDED

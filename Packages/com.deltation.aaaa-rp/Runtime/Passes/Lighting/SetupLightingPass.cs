@@ -49,6 +49,7 @@ namespace DELTation.AAAARP.Passes.Lighting
             passData.PreFilteredEnvironmentMap = builder.ReadTexture(imageBasedLightingData.PreFilteredEnvironmentMap);
             passData.PreFilteredEnvironmentMapMaxLOD = imageBasedLightingData.PreFilteredEnvironmentMapDesc.mipCount - 1;
             passData.AmbientOcclusionTechnique = cameraData.AmbientOcclusionTechnique;
+            passData.RealtimeGITecninque = cameraData.RealtimeGITechnique;
             passData.XeGTAOBentNormals = renderingData.PipelineAsset.LightingSettings.GTAOSettings.BentNormals;
             passData.XeGTAODirectLightingMicroshadows = renderingData.PipelineAsset.LightingSettings.GTAOSettings.DirectLightingMicroshadows;
 
@@ -225,6 +226,8 @@ namespace DELTation.AAAARP.Passes.Lighting
             context.cmd.SetKeyword(_globalKeywords.DirectLightingAOMicroshadows,
                 data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO && data.XeGTAODirectLightingMicroshadows
             );
+
+            context.cmd.SetKeyword(_globalKeywords.LPV, data.RealtimeGITecninque == AAAARealtimeGITechnique.LightPropagationVolumes);
         }
 
         private struct GlobalKeywords
@@ -232,6 +235,7 @@ namespace DELTation.AAAARP.Passes.Lighting
             public GlobalKeyword DirectLightingAOMicroshadows;
             public GlobalKeyword GTAO;
             public GlobalKeyword GTAOBentNormals;
+            public GlobalKeyword LPV;
 
             public static GlobalKeywords Create() =>
                 new()
@@ -239,6 +243,7 @@ namespace DELTation.AAAARP.Passes.Lighting
                     GTAO = GlobalKeyword.Create("AAAA_GTAO"),
                     GTAOBentNormals = GlobalKeyword.Create("AAAA_GTAO_BENT_NORMALS"),
                     DirectLightingAOMicroshadows = GlobalKeyword.Create("AAAA_DIRECT_LIGHTING_AO_MICROSHADOWS"),
+                    LPV = GlobalKeyword.Create("AAAA_LPV"),
                 };
         }
 
@@ -252,6 +257,7 @@ namespace DELTation.AAAARP.Passes.Lighting
             public float PreFilteredEnvironmentMapMaxLOD;
             public NativeArray<AAAAPunctualLightData> PunctualLights;
             public BufferHandle PunctualLightsBuffer;
+            public AAAARealtimeGITechnique RealtimeGITecninque;
             public NativeArray<AAAAShadowLightSlice> ShadowLightSlices;
             public BufferHandle ShadowLightSlicesBuffer;
             public bool XeGTAOBentNormals;

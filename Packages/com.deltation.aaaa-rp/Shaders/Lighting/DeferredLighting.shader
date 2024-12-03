@@ -125,9 +125,10 @@ Shader "Hidden/AAAA/DeferredLighting"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
+            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/LPVPragma.hlsl"
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/ProbeVolumeVariants.hlsl"
 
-            static float3 ComputeLightingIndirect(const SurfaceData surfaceData)
+            static float3 ComputeLightingIndirect(const SurfaceData surfaceData, const Varyings IN)
             {
                 const float3 cameraPositionWS = GetCameraPositionWS();
                 const float3 eyeWS = normalize(cameraPositionWS - surfaceData.positionWS);
@@ -139,7 +140,8 @@ Shader "Hidden/AAAA/DeferredLighting"
                 brdfInput.diffuseColor = surfaceData.albedo;
                 brdfInput.metallic = surfaceData.metallic;
                 brdfInput.roughness = surfaceData.roughness;
-                brdfInput.irradiance = SampleDiffuseGI(surfaceData.positionWS, surfaceData.bentNormalWS, eyeWS, surfaceData.positionCS.xy, 0xFFFFFFFFu);
+                brdfInput.irradiance = SampleDiffuseGI(surfaceData.positionWS, surfaceData.bentNormalWS, eyeWS, surfaceData.positionCS.xy, IN.texcoord,
+                                                       0xFFFFFFFFu);
                 brdfInput.aoVisibility = surfaceData.aoVisibility;
                 brdfInput.bentNormalWS = surfaceData.bentNormalWS;
                 brdfInput.prefilteredEnvironment = 0;
@@ -161,7 +163,7 @@ Shader "Hidden/AAAA/DeferredLighting"
                 SurfaceData surfaceData;
                 InitializeSurfaceData(gbuffer, IN, deviceDepth, surfaceData);
 
-                const float3 lighting = ComputeLightingIndirect(surfaceData);
+                const float3 lighting = ComputeLightingIndirect(surfaceData, IN);
                 return float4(lighting, 1);
             }
             ENDHLSL

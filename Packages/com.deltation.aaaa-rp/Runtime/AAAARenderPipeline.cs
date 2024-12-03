@@ -301,6 +301,7 @@ namespace DELTation.AAAARP
                     cameraData.AmbientOcclusionTechnique = AAAAAmbientOcclusionTechnique.Off;
                 }
             }
+            cameraData.RealtimeGITechnique = lightingSettings?.RealtimeGI ?? AAAARealtimeGITechnique.Off;
 
             cameraData.SupportsProbeVolumes =
                 renderingData.PipelineAsset.LightingSettings.LightProbes == AAAALightingSettings.LightProbeSystem.AdaptiveProbeVolumes;

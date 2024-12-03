@@ -30,6 +30,7 @@ Shader "Hidden/AAAA/LightingDebug"
             #pragma fragment Frag
 
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/GTAOPragma.hlsl"
+            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/LPVPragma.hlsl"
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/ProbeVolumeVariants.hlsl"
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
@@ -140,7 +141,7 @@ Shader "Hidden/AAAA/LightingDebug"
                     {
                         const GBufferValue gbufferValue = SampleGBuffer(screenUV);
                         const float3       eyeWS = normalize(GetCameraPositionWS() - positionWS);
-                        resultColor = SampleDiffuseGI(positionWS, gbufferValue.normalWS, eyeWS, IN.positionCS.xy, 0xFFFFFFFFu);
+                        resultColor = SampleDiffuseGI(positionWS, gbufferValue.normalWS, eyeWS, IN.positionCS.xy, screenUV, 0xFFFFFFFFu);
                         resultOpacity = 1;
                         break;
                     }

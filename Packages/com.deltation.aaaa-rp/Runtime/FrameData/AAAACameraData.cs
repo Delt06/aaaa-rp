@@ -7,6 +7,7 @@ namespace DELTation.AAAARP.FrameData
     public class AAAACameraData : ContextItem
     {
         public AAAAAmbientOcclusionTechnique AmbientOcclusionTechnique;
+        public AAAARealtimeGITechnique RealtimeGITechnique;
         public AAAAAntiAliasingTechnique AntiAliasingTechnique;
         public float AspectRatio;
         public Color BackgroundColor;
@@ -72,6 +73,7 @@ namespace DELTation.AAAARP.FrameData
             WorldSpaceCameraPos = default;
 
             AmbientOcclusionTechnique = default;
+            RealtimeGITechnique = default;
             AntiAliasingTechnique = default;
             UpscalingTechnique = default;
             PostProcessingEnabled = false;

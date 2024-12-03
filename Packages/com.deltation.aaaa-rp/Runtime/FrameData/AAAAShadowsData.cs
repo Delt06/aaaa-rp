@@ -181,7 +181,7 @@ namespace DELTation.AAAARP.FrameData
                                     GPUProjectionMatrix = GL.GetGPUProjectionMatrix(lightProjection, renderIntoTexture),
                                 };
 
-                                if (renderingData.PipelineAsset.LightingSettings.RealtimeGI is AAAALightingSettings.RealtimeGITechnique.LightPropagationVolumes)
+                                if (cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.LightPropagationVolumes)
                                 {
                                     shadowLightSplit.RsmAttachmentAllocation = rtPoolSet.AllocateRsmMaps(shadowMapResolution);
                                 }

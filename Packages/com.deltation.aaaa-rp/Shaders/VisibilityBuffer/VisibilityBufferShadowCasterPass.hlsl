@@ -1,11 +1,11 @@
 #ifndef AAAA_VISIBILITY_BUFFER_SHADOW_CASTER_PASS_INCLUDED
 #define AAAA_VISIBILITY_BUFFER_SHADOW_CASTER_PASS_INCLUDED
 
-#if defined(_ALPHATEST_ON) || defined(LPV_REFLECTIVE_SHADOW_MAPS)
+#if defined(_ALPHATEST_ON) || defined(AAAA_LPV_REFLECTIVE_SHADOW_MAPS)
 #define REQUIRE_VISIBILITY_VALUE_INTERPOLATOR
 #endif
 
-#if defined(_ALPHATEST_ON) || defined(LPV_REFLECTIVE_SHADOW_MAPS)
+#if defined(_ALPHATEST_ON) || defined(AAAA_LPV_REFLECTIVE_SHADOW_MAPS)
 #define REQUIRE_UV0_INTERPOLATOR
 #endif
 
@@ -21,7 +21,7 @@ struct ShadowCasterVaryings
     VISIBILITY_VALUE_VARYING
     #endif
 
-    #ifdef LPV_REFLECTIVE_SHADOW_MAPS
+    #ifdef AAAA_LPV_REFLECTIVE_SHADOW_MAPS
     float3 positionWS : POSITION_WS;
     float3 normalWS : NORMAL_WS;
     #endif
@@ -35,7 +35,7 @@ struct DummyOutput
 {
 };
 
-#ifdef LPV_REFLECTIVE_SHADOW_MAPS
+#ifdef AAAA_LPV_REFLECTIVE_SHADOW_MAPS
 #define SHADOW_CASTER_FRAGMENT_OUTPUT RsmOutput
 #else
 #define SHADOW_CASTER_FRAGMENT_OUTPUT DummyOutput
@@ -43,7 +43,7 @@ struct DummyOutput
 
 void TransferOutput(const ShadowCasterVaryings IN, const float4 albedo, const float4 emission, inout SHADOW_CASTER_FRAGMENT_OUTPUT OUT)
 {
-    #ifdef LPV_REFLECTIVE_SHADOW_MAPS
+    #ifdef AAAA_LPV_REFLECTIVE_SHADOW_MAPS
     RsmValue rsmValue;
     rsmValue.positionWS = IN.positionWS;
     rsmValue.normalWS = SafeNormalize(IN.normalWS);
@@ -76,7 +76,7 @@ ShadowCasterVaryings ShadowCasterVS(const uint svInstanceID : SV_InstanceID, con
     OUT.uv0 = varyings.uv0;
     #endif
 
-    #ifdef LPV_REFLECTIVE_SHADOW_MAPS
+    #ifdef AAAA_LPV_REFLECTIVE_SHADOW_MAPS
     OUT.positionWS = positionWS;
     OUT.normalWS = normalWS;
     #endif

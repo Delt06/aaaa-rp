@@ -47,7 +47,7 @@ Shader "Hidden/AAAA/VisibilityBuffer"
 
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
 
-            #pragma multi_compile _ LPV_REFLECTIVE_SHADOW_MAPS
+            #pragma multi_compile _ AAAA_LPV_REFLECTIVE_SHADOW_MAPS
 
             #pragma multi_compile_local _ _ALPHATEST_ON
 

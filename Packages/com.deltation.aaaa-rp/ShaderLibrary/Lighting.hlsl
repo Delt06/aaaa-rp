@@ -5,6 +5,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAALightingConstantBuffer.cs.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/ClusteredLighting.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/LightPropagationVolumes.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PunctualLights.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows.hlsl"
 
@@ -151,9 +152,11 @@ float3 SampleProbeVolumePixel(const float3 absolutePositionWS, const float3 norm
     #endif
 }
 
-float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float2 positionSS, const uint renderingLayer)
+float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float2 positionSS, const float2 screenUV, const uint renderingLayer)
 {
-    #if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
+    #if defined(AAAA_LPV)
+    return SampleLightPropagationVolumes(screenUV); 
+    #elif defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
     return SampleProbeVolumePixel(absolutePositionWS, normalWS, viewDir, positionSS, renderingLayer);
     #else
     return SampleDiffuseIrradiance(normalWS);

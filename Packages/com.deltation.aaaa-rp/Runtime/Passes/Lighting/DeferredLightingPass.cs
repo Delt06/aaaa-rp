@@ -42,6 +42,11 @@ namespace DELTation.AAAARP.Passes.Lighting
                 builder.UseTexture(lightingData.GTAOTerm, AccessFlags.Read);
             }
 
+            if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.LightPropagationVolumes)
+            {
+                builder.UseTexture(lightingData.LPVTraceResult, AccessFlags.Read);
+            }
+
             builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.WriteAll);
         }
 

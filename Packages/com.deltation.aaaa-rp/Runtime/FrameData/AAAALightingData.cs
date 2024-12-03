@@ -15,6 +15,7 @@ namespace DELTation.AAAARP.FrameData
         public TextureHandle GTAOTerm;
         public AAAALightingConstantBuffer LightingConstantBuffer;
         public BufferHandle PunctualLightsBuffer;
+        public TextureHandle LPVTraceResult;
         public TextureHandle SSRResolveResult;
         public TextureHandle SSRTraceResult;
         public int2 SSRTraceResultSize;
@@ -34,6 +35,7 @@ namespace DELTation.AAAARP.FrameData
             GTAOTerm = TextureHandle.nullHandle;
             SSRTraceResult = TextureHandle.nullHandle;
             SSRResolveResult = TextureHandle.nullHandle;
+            LPVTraceResult = TextureHandle.nullHandle;
         }
 
         public override void Reset()
@@ -46,6 +48,7 @@ namespace DELTation.AAAARP.FrameData
             SSRResolveResult = TextureHandle.nullHandle;
             SSRTraceResultSize = default;
             DeferredReflections = default;
+            LPVTraceResult = TextureHandle.nullHandle;
         }
     }
 }

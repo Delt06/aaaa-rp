@@ -77,7 +77,7 @@ namespace DELTation.AAAARP.Passes.Shadows
             if (data.UseRsm)
             {
                 context.cmd.SetRenderTarget(data.RsmAttachments, data.ShadowMap);
-                CoreUtils.SetKeyword(context.cmd, AAAARenderPipelineCore.ShaderKeywordStrings.LPV_REFLECTIVE_SHADOW_MAPS, true);
+                CoreUtils.SetKeyword(context.cmd, AAAARenderPipelineCore.ShaderKeywordStrings.AAAA_LPV_REFLECTIVE_SHADOW_MAPS, true);
             }
             else
             {
@@ -97,7 +97,7 @@ namespace DELTation.AAAARP.Passes.Shadows
 
             if (data.UseRsm)
             {
-                CoreUtils.SetKeyword(context.cmd, AAAARenderPipelineCore.ShaderKeywordStrings.LPV_REFLECTIVE_SHADOW_MAPS, false);
+                CoreUtils.SetKeyword(context.cmd, AAAARenderPipelineCore.ShaderKeywordStrings.AAAA_LPV_REFLECTIVE_SHADOW_MAPS, false);
             }
         }
 
