@@ -13,15 +13,9 @@
 ByteAddressBuffer _MeshletRenderRequests;
 
 #define VISIBILITY_VALUE_VARYING nointerpolation uint2 visibilityValue : VISIBILITY_VALUE;
-#define EXTRA_VARYINGS
 
 #if !defined(REQUIRE_UV0_INTERPOLATOR) && defined(_ALPHATEST_ON)
 #define REQUIRE_UV0_INTERPOLATOR
-#endif
-
-#if defined(_ALPHATEST_ON) || defined(AAAA_LPV_REFLECTIVE_SHADOW_MAPS)
-#undef EXTRA_VARYINGS
-#define EXTRA_VARYINGS 
 #endif
 
 struct Varyings

@@ -142,13 +142,27 @@ namespace DELTation.AAAARP.Passes.Lighting
             float2 resolution = shadowLightSplit.CullingView.PixelSize;
             float4 boundingSphere = shadowLightSplit.CullingView.BoundingSphereWS;
             AAAARenderTexturePool shadowMapPool = renderingData.RtPoolSet.ShadowMap;
-            return new AAAAShadowLightSlice
+            var shadowLightSlice = new AAAAShadowLightSlice
             {
                 BoundingSphere = math.float4(boundingSphere.xyz, boundingSphere.w * boundingSphere.w),
                 AtlasSize = math.float4(1.0f / resolution, resolution),
                 WorldToShadowCoords = AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLightSplit.CullingView.ViewProjectionMatrix),
                 BindlessShadowMapIndex = shadowMapPool.GetBindlessSRVIndexOrDefault(shadowLightSplit.ShadowMapAllocation, NoShadowMapIndex),
+                BindlessRsmPositionMapIndex = NoShadowMapIndex,
+                BindlessRsmNormalMapIndex = NoShadowMapIndex,
+                BindlessRsmFluxMapIndex = NoShadowMapIndex,
             };
+
+            if (shadowLightSplit.RsmAttachmentAllocation.IsValid)
+            {
+                renderingData.RtPoolSet.GetRsmAttachmentsBindlessSRVIndicesOrDefault(shadowLightSplit.RsmAttachmentAllocation, NoShadowMapIndex,
+                    out shadowLightSlice.BindlessRsmPositionMapIndex,
+                    out shadowLightSlice.BindlessRsmNormalMapIndex,
+                    out shadowLightSlice.BindlessRsmFluxMapIndex
+                );
+            }
+
+            return shadowLightSlice;
         }
 
         private static AAAAPunctualLightData ExtractPunctualLightData(in VisibleLight visibleLight, in AAAAShadowsData.ShadowLight shadowLight, int sliceIndex)

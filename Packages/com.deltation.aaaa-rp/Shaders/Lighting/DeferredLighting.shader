@@ -80,8 +80,7 @@ Shader "Hidden/AAAA/DeferredLighting"
                 SurfaceData surfaceData;
                 InitializeSurfaceData(gbuffer, IN, deviceDepth, surfaceData);
 
-                float3     lighting = 0;
-                const uint lightCount = GetDirectionalLightCount();
+                float3 lighting = 0;
 
                 BRDFInput brdfInput;
                 brdfInput.normalWS = surfaceData.normalWS;
@@ -95,8 +94,10 @@ Shader "Hidden/AAAA/DeferredLighting"
                 brdfInput.bentNormalWS = surfaceData.normalWS;
                 brdfInput.prefilteredEnvironment = 0;
 
+                const uint directionalLightCount = GetDirectionalLightCount();
+
                 UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
-                for (uint lightIndex = 0; lightIndex < lightCount; ++lightIndex)
+                for (uint lightIndex = 0; lightIndex < directionalLightCount; ++lightIndex)
                 {
                     const Light light = GetDirectionalLight(lightIndex, surfaceData.positionWS);
                     lighting += ComputeBRDF(brdfInput, light);
@@ -147,7 +148,7 @@ Shader "Hidden/AAAA/DeferredLighting"
                 brdfInput.prefilteredEnvironment = 0;
 
                 const float3 indirectDiffuse = ComputeBRDFIndirectDiffuse(brdfInput, eyeWS);
-                return aaaa_AmbientIntensity * indirectDiffuse;
+                return indirectDiffuse;
             }
 
             float4 Frag(const Varyings IN) : SV_Target

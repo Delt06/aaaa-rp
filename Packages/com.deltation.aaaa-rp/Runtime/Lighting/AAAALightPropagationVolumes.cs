@@ -24,6 +24,19 @@ namespace DELTation.AAAARP.Lighting
             renderTargetIdentifiers[2] = rtPoolSet.RsmFluxMap.LookupRenderTexture(rsmAttachmentAllocation.FluxMap);
         }
 
+        public static void GetRsmAttachmentsBindlessSRVIndicesOrDefault(this in AAAARenderTexturePoolSet rtPoolSet,
+            in RsmAttachmentAllocation rsmAttachmentAllocation, int defaultSRVIndex,
+            out int positionMapIndex,
+            out int normalMapIndex,
+            out int fluxMapIndex)
+        {
+            Assert.IsTrue(rsmAttachmentAllocation.IsValid);
+
+            positionMapIndex = rtPoolSet.RsmPositionMap.GetBindlessSRVIndexOrDefault(rsmAttachmentAllocation.PositionsMap, defaultSRVIndex);
+            normalMapIndex = rtPoolSet.RsmNormalMap.GetBindlessSRVIndexOrDefault(rsmAttachmentAllocation.NormalMap, defaultSRVIndex);
+            fluxMapIndex = rtPoolSet.RsmFluxMap.GetBindlessSRVIndexOrDefault(rsmAttachmentAllocation.FluxMap, defaultSRVIndex);
+        }
+
         public struct RsmAttachmentAllocation
         {
             public readonly AAAARenderTexturePool.Allocation PositionsMap;

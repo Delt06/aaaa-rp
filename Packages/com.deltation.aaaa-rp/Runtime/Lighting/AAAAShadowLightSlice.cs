@@ -10,8 +10,8 @@ namespace DELTation.AAAARP.Lighting
         public float4 BoundingSphere;
         public float4 AtlasSize;
         public int BindlessShadowMapIndex;
-        public int Padding0;
-        public int Padding1;
-        public int Padding2;
+        public int BindlessRsmPositionMapIndex;
+        public int BindlessRsmNormalMapIndex;
+        public int BindlessRsmFluxMapIndex;
     }
 }

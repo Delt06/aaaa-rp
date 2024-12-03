@@ -83,7 +83,7 @@ Shader "Hidden/AAAA/DeferredReflections"
                 const float3 eyeWS = normalize(cameraPositionWS - surfaceData.positionWS);
                 const float3 reflectionWS = ComputeBRDFReflectionVector(surfaceData.bentNormalWS, eyeWS);
                 const float  skyOcclusion = SampleSkyOcclusion(surfaceData.positionWS, surfaceData.bentNormalWS, eyeWS, reflectionWS, 0xFFFFFFFFu);
-                return float4(skyOcclusion * SamplePrefilteredEnvironment(reflectionWS, surfaceData.roughness), 1);
+                return float4(skyOcclusion * aaaa_AmbientIntensity * SamplePrefilteredEnvironment(reflectionWS, surfaceData.roughness), 1);
             }
             ENDHLSL
         }
@@ -114,7 +114,7 @@ Shader "Hidden/AAAA/DeferredReflections"
 
                 const float3 eyeWS = normalize(brdfInput.cameraPositionWS - surfaceData.positionWS);
                 const float3 indirectSpecular = ComputeBRDFIndirectSpecular(brdfInput, eyeWS);
-                return aaaa_AmbientIntensity * indirectSpecular;
+                return indirectSpecular;
             }
 
             float4 Frag(const Varyings IN) : SV_Target

@@ -45,6 +45,7 @@ namespace DELTation.AAAARP.Passes.Lighting
             if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.LightPropagationVolumes)
             {
                 builder.UseTexture(lightingData.LPVTraceResult, AccessFlags.Read);
+                passData.ApplyIndirect = true;
             }
 
             builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.WriteAll);

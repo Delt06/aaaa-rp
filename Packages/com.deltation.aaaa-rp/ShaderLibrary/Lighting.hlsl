@@ -131,7 +131,8 @@ float3 SamplePrefilteredEnvironment(const float3 reflectionWS, const float rough
                                   roughness * aaaa_PreFilteredEnvironmentMap_MaxLOD).rgb;
 }
 
-float3 SampleProbeVolumePixel(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float2 positionSS, const uint renderingLayer)
+float3 SampleProbeVolumePixel(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float2 positionSS,
+                              const uint   renderingLayer)
 {
     #if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
     float3 bakedGI;
@@ -152,18 +153,27 @@ float3 SampleProbeVolumePixel(const float3 absolutePositionWS, const float3 norm
     #endif
 }
 
-float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float2 positionSS, const float2 screenUV, const uint renderingLayer)
+float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float2 positionSS, const float2 screenUV,
+                       const uint   renderingLayer)
 {
-    #if defined(AAAA_LPV)
-    return SampleLightPropagationVolumes(screenUV); 
-    #elif defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
-    return SampleProbeVolumePixel(absolutePositionWS, normalWS, viewDir, positionSS, renderingLayer);
+    float3 gi;
+
+    #if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
+    gi = SampleProbeVolumePixel(absolutePositionWS, normalWS, viewDir, positionSS, renderingLayer);
     #else
-    return SampleDiffuseIrradiance(normalWS);
+    gi = SampleDiffuseIrradiance(normalWS);
     #endif
+    gi *= aaaa_AmbientIntensity;
+
+    #if defined(AAAA_LPV)
+    gi += SampleLightPropagationVolumes(screenUV);
+    #endif
+
+    return gi;
 }
 
-float SampleProbeVolumeSkyOcclusion(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float3 reflectionDir, const uint renderingLayer)
+float SampleProbeVolumeSkyOcclusion(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float3 reflectionDir,
+                                    const uint   renderingLayer)
 {
     APVSample apvSample = SampleAPV(absolutePositionWS, normalWS, renderingLayer, viewDir);
 
@@ -173,11 +183,12 @@ float SampleProbeVolumeSkyOcclusion(const float3 absolutePositionWS, const float
 
         return EvalSHSkyOcclusion(reflectionDir, apvSample);
     }
-    
+
     return 1;
 }
 
-float SampleSkyOcclusion(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float3 reflectionDir, const uint renderingLayer)
+float SampleSkyOcclusion(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float3 reflectionDir,
+                         const uint   renderingLayer)
 {
     #if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
     return SampleProbeVolumeSkyOcclusion(absolutePositionWS, normalWS, viewDir, reflectionDir, renderingLayer);

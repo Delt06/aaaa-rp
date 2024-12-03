@@ -77,14 +77,14 @@ namespace DELTation.AAAARP.Passes.Shadows
             if (data.UseRsm)
             {
                 context.cmd.SetRenderTarget(data.RsmAttachments, data.ShadowMap);
+                context.cmd.ClearRenderTarget(RTClearFlags.Color | RTClearFlags.Depth, data.RsmClearColors, 1.0f, 0);
                 CoreUtils.SetKeyword(context.cmd, AAAARenderPipelineCore.ShaderKeywordStrings.AAAA_LPV_REFLECTIVE_SHADOW_MAPS, true);
             }
             else
             {
                 context.cmd.SetRenderTarget(data.ShadowMap);
+                context.cmd.ClearRenderTarget(RTClearFlags.Depth, Color.clear, 1.0f, 0);
             }
-
-            context.cmd.ClearRenderTarget(RTClearFlags.Depth, Color.clear, 1.0f, 0);
 
             // these values match HDRP defaults (see https://github.com/Unity-Technologies/Graphics/blob/9544b8ed2f98c62803d285096c91b44e9d8cbc47/com.unity.render-pipelines.high-definition/Runtime/Lighting/Shadow/HDShadowAtlas.cs#L197 )
             context.cmd.SetGlobalDepthBias(1.0f, data.SlopeBias);
@@ -120,6 +120,7 @@ namespace DELTation.AAAARP.Passes.Shadows
         public class PassData : PassDataBase
         {
             public readonly RenderTargetIdentifier[] RsmAttachments = new RenderTargetIdentifier[AAAALightPropagationVolumes.AttachmentsCount];
+            public readonly Color[] RsmClearColors = { Color.clear, Color.clear, Color.clear };
             public CameraType CameraType;
             public AAAARendererContainer RendererContainer;
             public RenderTargetIdentifier ShadowMap;

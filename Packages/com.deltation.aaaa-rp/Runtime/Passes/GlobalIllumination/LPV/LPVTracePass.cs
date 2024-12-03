@@ -41,6 +41,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             }
 
             builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
+            builder.ReadTexture(resourceData.GBufferNormals);
             builder.WriteTexture(passData.Result);
 
             builder.AllowPassCulling(false);
@@ -50,20 +51,30 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         {
             context.cmd.SetRenderTarget(data.Result);
 
-            const int shaderPassId = 0;
-            AAAABlitter.BlitTriangle(context.cmd, _material, shaderPassId);
+            {
+                MaterialPropertyBlock propertyBlock = data.MaterialPropertyBlock;
+
+                propertyBlock.Clear();
+                propertyBlock.SetVector(ShaderIDs._BlitScaleBias, new Vector4(1, 1, 0, 0));
+
+                const int shaderPassId = 0;
+                AAAABlitter.BlitTriangle(context.cmd, _material, shaderPassId, propertyBlock);
+            }
 
             context.cmd.SetGlobalTexture(ShaderIDs.Global._LPVTraceResult, data.Result);
         }
 
         public class PassData : PassDataBase
         {
+            public readonly MaterialPropertyBlock MaterialPropertyBlock = new();
             public TextureHandle Result;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static class ShaderIDs
         {
+            public static readonly int _BlitScaleBias = Shader.PropertyToID(nameof(_BlitScaleBias));
+
             public static class Global
             {
                 public static readonly int _LPVTraceResult = Shader.PropertyToID(nameof(_LPVTraceResult));
