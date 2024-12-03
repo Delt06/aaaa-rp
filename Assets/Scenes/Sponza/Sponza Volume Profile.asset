@@ -43,10 +43,10 @@ MonoBehaviour:
   active: 1
   Exposure:
     m_OverrideState: 1
-    m_Value: 1.1
+    m_Value: 1.15
   ToneMappingProfile:
     m_OverrideState: 1
-    m_Value: 2
+    m_Value: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -118,6 +118,15 @@ MonoBehaviour:
   DirectionalLightCascadeDistance3:
     m_OverrideState: 0
     m_Value: 0.75
+  DepthBias:
+    m_OverrideState: 0
+    m_Value: 0.1
+  PunctualDepthBias:
+    m_OverrideState: 0
+    m_Value: 0.05
+  SlopeBias:
+    m_OverrideState: 0
+    m_Value: 0.5
   ShadowFade:
     m_OverrideState: 0
     m_Value: 0.2
