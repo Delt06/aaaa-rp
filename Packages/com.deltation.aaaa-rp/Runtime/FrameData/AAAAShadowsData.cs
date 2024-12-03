@@ -123,8 +123,6 @@ namespace DELTation.AAAARP.FrameData
                 float3 cameraPosition = camera.transform.position;
                 float shadowDistance = math.min(cameraFarPlane, shadowSettings.MaxDistance);
 
-                AAAARenderTexturePool shadowMapPool = renderingData.RtPoolSet.ShadowMap;
-
                 for (int index = 0; index < shadowLights.Length; index++)
                 {
                     ref ShadowLight shadowLight = ref shadowLights.ElementAtRef(index);
@@ -162,26 +160,33 @@ namespace DELTation.AAAARP.FrameData
                                 );
 
                                 Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
-                                shadowLight.Splits.Add(new ShadowLightSplit
+                                ref readonly AAAARenderTexturePoolSet rtPoolSet = ref renderingData.RtPoolSet;
+                                var shadowLightSplit = new ShadowLightSplit
+                                {
+                                    ShadowMapAllocation = rtPoolSet.ShadowMap.Allocate(shadowMapResolution),
+                                    CullingView = new GPUCullingPass.CullingViewParameters
                                     {
-                                        ShadowMapAllocation = shadowMapPool.Allocate(shadowMapResolution),
-                                        CullingView = new GPUCullingPass.CullingViewParameters
-                                        {
-                                            ViewMatrix = lightView,
-                                            ViewProjectionMatrix = lightViewProjection,
-                                            GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(lightViewProjection, renderIntoTexture),
-                                            BoundingSphereWS = math.float4(cameraPosition, splitFar),
-                                            CameraPosition = lightPosition,
-                                            CameraForward = lightForward,
-                                            CameraRight = lightRight,
-                                            CameraUp = lightUp,
-                                            PixelSize = new Vector2(shadowMapResolution, shadowMapResolution),
-                                            IsPerspective = false,
-                                            PassMask = AAAAInstancePassMask.Shadows,
-                                        },
-                                        GPUProjectionMatrix = GL.GetGPUProjectionMatrix(lightProjection, renderIntoTexture),
-                                    }
-                                );
+                                        ViewMatrix = lightView,
+                                        ViewProjectionMatrix = lightViewProjection,
+                                        GPUViewProjectionMatrix = GL.GetGPUProjectionMatrix(lightViewProjection, renderIntoTexture),
+                                        BoundingSphereWS = math.float4(cameraPosition, splitFar),
+                                        CameraPosition = lightPosition,
+                                        CameraForward = lightForward,
+                                        CameraRight = lightRight,
+                                        CameraUp = lightUp,
+                                        PixelSize = new Vector2(shadowMapResolution, shadowMapResolution),
+                                        IsPerspective = false,
+                                        PassMask = AAAAInstancePassMask.Shadows,
+                                    },
+                                    GPUProjectionMatrix = GL.GetGPUProjectionMatrix(lightProjection, renderIntoTexture),
+                                };
+
+                                if (renderingData.PipelineAsset.LightingSettings.RealtimeGI is AAAALightingSettings.RealtimeGITechnique.LightPropagationVolumes)
+                                {
+                                    shadowLightSplit.RsmAttachmentAllocation = rtPoolSet.AllocateRsmMaps(shadowMapResolution);
+                                }
+
+                                shadowLight.Splits.Add(shadowLightSplit);
                             }
                         }
                         else if (shadowLight.LightType == LightType.Spot)
@@ -194,7 +199,7 @@ namespace DELTation.AAAARP.FrameData
                             Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
                             shadowLight.Splits.Add(new ShadowLightSplit
                                 {
-                                    ShadowMapAllocation = shadowMapPool.Allocate(shadowMapResolution),
+                                    ShadowMapAllocation = renderingData.RtPoolSet.ShadowMap.Allocate(shadowMapResolution),
                                     CullingView = new GPUCullingPass.CullingViewParameters
                                     {
                                         ViewMatrix = lightView,
@@ -225,7 +230,7 @@ namespace DELTation.AAAARP.FrameData
                                 Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
                                 shadowLight.Splits.Add(new ShadowLightSplit
                                     {
-                                        ShadowMapAllocation = shadowMapPool.Allocate(shadowMapResolution),
+                                        ShadowMapAllocation = renderingData.RtPoolSet.ShadowMap.Allocate(shadowMapResolution),
                                         CullingView = new GPUCullingPass.CullingViewParameters
                                         {
                                             ViewMatrix = lightView,
@@ -301,7 +306,8 @@ namespace DELTation.AAAARP.FrameData
         {
             public Matrix4x4 GPUProjectionMatrix;
             public GPUCullingPass.CullingViewParameters CullingView;
-            internal AAAARenderTexturePool.Allocation ShadowMapAllocation;
+            public AAAARenderTexturePool.Allocation ShadowMapAllocation;
+            public AAAALightPropagationVolumes.RsmAttachmentAllocation RsmAttachmentAllocation;
         }
     }
 }

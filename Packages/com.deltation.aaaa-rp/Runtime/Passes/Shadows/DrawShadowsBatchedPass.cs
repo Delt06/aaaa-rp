@@ -21,6 +21,8 @@ namespace DELTation.AAAARP.Passes.Shadows
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
+            passData.Reset();
+
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAAShadowsData shadowsData = frameData.Get<AAAAShadowsData>();
@@ -28,7 +30,6 @@ namespace DELTation.AAAARP.Passes.Shadows
             NativeList<AAAAShadowsData.ShadowLight> shadowLights = shadowsData.ShadowLights;
             ref readonly AAAAShadowsData.ShadowLight shadowLight = ref shadowLights.ElementAtRef(ShadowLightIndex);
             ref readonly AAAAShadowsData.ShadowLightSplit shadowLightSplit = ref shadowLight.Splits.ElementAtRef(SplitIndex);
-
 
             passData.SlopeBias = shadowLight.SlopeBias;
             Vector4 shadowLightDirection;
@@ -59,6 +60,13 @@ namespace DELTation.AAAARP.Passes.Shadows
             AAAARenderTexturePool shadowMapPool = renderingData.RtPoolSet.ShadowMap;
             RenderTexture shadowMap = shadowMapPool.LookupRenderTexture(shadowLightSplit.ShadowMapAllocation);
             passData.ShadowMap = shadowMap;
+
+            if (shadowLightSplit.RsmAttachmentAllocation.IsValid)
+            {
+                renderingData.RtPoolSet.LookupRsmAttachments(shadowLightSplit.RsmAttachmentAllocation, passData.RsmAttachments);
+                passData.UseRsm = true;
+            }
+
             builder.AllowPassCulling(false);
         }
 
@@ -66,7 +74,16 @@ namespace DELTation.AAAARP.Passes.Shadows
         {
             using var _ = new ProfilingScope(context.cmd, Profiling.GetShadowLightPassSampler(ShadowLightIndex, SplitIndex));
 
-            context.cmd.SetRenderTarget(data.ShadowMap);
+            if (data.UseRsm)
+            {
+                context.cmd.SetRenderTarget(data.RsmAttachments, data.ShadowMap);
+                CoreUtils.SetKeyword(context.cmd, AAAARenderPipelineCore.ShaderKeywordStrings.LPV_REFLECTIVE_SHADOW_MAPS, true);
+            }
+            else
+            {
+                context.cmd.SetRenderTarget(data.ShadowMap);
+            }
+
             context.cmd.ClearRenderTarget(RTClearFlags.Depth, Color.clear, 1.0f, 0);
 
             // these values match HDRP defaults (see https://github.com/Unity-Technologies/Graphics/blob/9544b8ed2f98c62803d285096c91b44e9d8cbc47/com.unity.render-pipelines.high-definition/Runtime/Lighting/Shadow/HDShadowAtlas.cs#L197 )
@@ -77,6 +94,11 @@ namespace DELTation.AAAARP.Passes.Shadows
             data.RendererContainer.Draw(data.CameraType, context.cmd, AAAARendererContainer.PassType.ShadowCaster, ContextIndex);
 
             context.cmd.SetGlobalDepthBias(0.0f, 0.0f);
+
+            if (data.UseRsm)
+            {
+                CoreUtils.SetKeyword(context.cmd, AAAARenderPipelineCore.ShaderKeywordStrings.LPV_REFLECTIVE_SHADOW_MAPS, false);
+            }
         }
 
         private static class Profiling
@@ -97,12 +119,23 @@ namespace DELTation.AAAARP.Passes.Shadows
 
         public class PassData : PassDataBase
         {
+            public readonly RenderTargetIdentifier[] RsmAttachments = new RenderTargetIdentifier[AAAALightPropagationVolumes.AttachmentsCount];
             public CameraType CameraType;
             public AAAARendererContainer RendererContainer;
-            public RenderTexture ShadowMap;
+            public RenderTargetIdentifier ShadowMap;
             public AAAAShadowRenderingConstantBuffer ShadowRenderingConstantBuffer;
             public float SlopeBias;
+            public bool UseRsm;
             public float ZClip;
+
+            public void Reset()
+            {
+                for (int index = 0; index < RsmAttachments.Length; index++)
+                {
+                    RsmAttachments[index] = default;
+                }
+                UseRsm = false;
+            }
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]

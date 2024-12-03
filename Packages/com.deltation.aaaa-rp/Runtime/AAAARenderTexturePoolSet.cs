@@ -8,8 +8,9 @@ namespace DELTation.AAAARP
     public readonly struct AAAARenderTexturePoolSet : IDisposable
     {
         public readonly AAAARenderTexturePool ShadowMap;
+
         public readonly AAAARenderTexturePool RsmPositionMap;
-        public readonly AAAARenderTexturePool RsmNormalsMap;
+        public readonly AAAARenderTexturePool RsmNormalMap;
         public readonly AAAARenderTexturePool RsmFluxMap;
 
         internal AAAARenderTexturePoolSet(BindlessTextureContainer bindlessTextureContainer)
@@ -26,9 +27,9 @@ namespace DELTation.AAAARP
                     ColorFormat = GraphicsFormat.R32G32B32A32_SFloat,
                 }
             );
-            RsmNormalsMap = new AAAARenderTexturePool(bindlessTextureContainer, new AAAARenderTexturePool.Parameters
+            RsmNormalMap = new AAAARenderTexturePool(bindlessTextureContainer, new AAAARenderTexturePool.Parameters
                 {
-                    NamePrefix = "RSM_NormalsMap",
+                    NamePrefix = "RSM_NormalMap",
                     ColorFormat = GraphicsFormat.R16G16_SNorm,
                 }
             );
@@ -50,7 +51,7 @@ namespace DELTation.AAAARP
         {
             ShadowMap.Reset();
             RsmPositionMap.Reset();
-            RsmNormalsMap.Reset();
+            RsmNormalMap.Reset();
             RsmFluxMap.Reset();
         }
 
@@ -58,7 +59,7 @@ namespace DELTation.AAAARP
         {
             ShadowMap.Dispose();
             RsmPositionMap.Dispose();
-            RsmNormalsMap.Dispose();
+            RsmNormalMap.Dispose();
             RsmFluxMap.Dispose();
         }
     }

@@ -47,6 +47,7 @@ MonoBehaviour:
       SupportDiskStreaming: 0
       SupportScenarios: 0
       SupportScenarioBlending: 0
+    RealtimeGI: 1
   _imageBasedLightingSettings:
     DiffuseIrradianceResolution: 128
     BRDFLutResolution: 128

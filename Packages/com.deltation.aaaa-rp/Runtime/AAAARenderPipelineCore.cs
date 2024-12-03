@@ -117,6 +117,7 @@ namespace DELTation.AAAARP
             public static GlobalKeyword SCREEN_COORD_OVERRIDE;
             public static GlobalKeyword PROBE_VOLUMES_L1;
             public static GlobalKeyword PROBE_VOLUMES_L2;
+            public static GlobalKeyword LPV_REFLECTIVE_SHADOW_MAPS;
 
             public static void InitializeShaderGlobalKeywords()
             {
@@ -124,6 +125,7 @@ namespace DELTation.AAAARP
                 SCREEN_COORD_OVERRIDE = GlobalKeyword.Create(ShaderKeywordStrings.SCREEN_COORD_OVERRIDE);
                 PROBE_VOLUMES_L1 = GlobalKeyword.Create(ShaderKeywordStrings.PROBE_VOLUMES_L1);
                 PROBE_VOLUMES_L2 = GlobalKeyword.Create(ShaderKeywordStrings.PROBE_VOLUMES_L2);
+                LPV_REFLECTIVE_SHADOW_MAPS = GlobalKeyword.Create(ShaderKeywordStrings.LPV_REFLECTIVE_SHADOW_MAPS);
             }
         }
 
@@ -133,6 +135,7 @@ namespace DELTation.AAAARP
             public const string SCREEN_COORD_OVERRIDE = nameof(SCREEN_COORD_OVERRIDE);
             public const string PROBE_VOLUMES_L1 = nameof(PROBE_VOLUMES_L1);
             public const string PROBE_VOLUMES_L2 = nameof(PROBE_VOLUMES_L2);
+            public const string LPV_REFLECTIVE_SHADOW_MAPS = nameof(LPV_REFLECTIVE_SHADOW_MAPS);
         }
     }
 }

@@ -15,16 +15,22 @@ ByteAddressBuffer _MeshletRenderRequests;
 #define VISIBILITY_VALUE_VARYING nointerpolation uint2 visibilityValue : VISIBILITY_VALUE;
 #define EXTRA_VARYINGS
 
-#ifdef _ALPHATEST_ON
+#if !defined(REQUIRE_UV0_INTERPOLATOR) && defined(_ALPHATEST_ON)
+#define REQUIRE_UV0_INTERPOLATOR
+#endif
+
+#if defined(_ALPHATEST_ON) || defined(LPV_REFLECTIVE_SHADOW_MAPS)
 #undef EXTRA_VARYINGS
-#define EXTRA_VARYINGS float2 uv0 : TEXCOORD0;
+#define EXTRA_VARYINGS 
 #endif
 
 struct Varyings
 {
-    float4                positionCS : SV_POSITION;
+    float4 positionCS : SV_POSITION;
     VISIBILITY_VALUE_VARYING
-    EXTRA_VARYINGS
+    #ifdef REQUIRE_UV0_INTERPOLATOR
+    float2 uv0 : TEXCOORD0;
+    #endif
 };
 
 void WriteUV(const AAAAMeshletVertex vertex, const AAAAMaterialData materialData, out float2 uv)
@@ -32,12 +38,8 @@ void WriteUV(const AAAAMeshletVertex vertex, const AAAAMaterialData materialData
     uv = vertex.UV.xy * materialData.TextureTilingOffset.xy + materialData.TextureTilingOffset.zw;
 }
 
-void AlphaClip(const VisibilityBufferValue visibilityBufferValue, const float2 uv)
+void AlphaClip(const AAAAMaterialData materialData, const float4 albedo)
 {
-    const AAAAInstanceData instanceData = PullInstanceData(visibilityBufferValue.instanceID);
-    const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
-
-    const float4 albedo = SampleAlbedo(uv, materialData);
     clip(albedo.a - materialData.AlphaClipThreshold);
 }
 
@@ -71,8 +73,8 @@ Varyings VSBase(const uint svInstanceID, const uint svIndexID, out float3 positi
 
     instanceData = PullInstanceData(meshletRenderRequest.InstanceID);
 
-    const AAAAMeshlet       meshlet = PullMeshletData(meshletRenderRequest.MeshletID);
-    const uint              index = PullIndexChecked(meshlet, indexID);
+    const AAAAMeshlet meshlet = PullMeshletData(meshletRenderRequest.MeshletID);
+    const uint        index = PullIndexChecked(meshlet, indexID);
     vertex = PullVertexChecked(meshlet, index);
 
     positionWS = mul(instanceData.ObjectToWorldMatrix, float4(vertex.Position.xyz, 1.0f)).xyz;
@@ -87,7 +89,7 @@ Varyings VSBase(const uint svInstanceID, const uint svIndexID, out float3 positi
 
     const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
 
-    #ifdef _ALPHATEST_ON
+    #ifdef REQUIRE_UV0_INTERPOLATOR
     WriteUV(vertex, materialData, OUT.uv0);
     #endif
 
@@ -96,8 +98,8 @@ Varyings VSBase(const uint svInstanceID, const uint svIndexID, out float3 positi
 
 Varyings VS(const uint svInstanceID : SV_InstanceID, const uint svIndexID : SV_VertexID)
 {
-    float3 positionWS;
-    AAAAInstanceData instanceData;
+    float3            positionWS;
+    AAAAInstanceData  instanceData;
     AAAAMeshletVertex vertex;
     return VSBase(svInstanceID, svIndexID, positionWS, instanceData, vertex);
 }
@@ -107,7 +109,10 @@ uint2 PS(const Varyings IN) : SV_TARGET
     const VisibilityBufferValue visibilityBufferValue = UnpackVisibilityBufferValue(IN.visibilityValue);
 
     #ifdef _ALPHATEST_ON
-    AlphaClip(visibilityBufferValue, IN.uv0);
+    const AAAAInstanceData      instanceData = PullInstanceData(visibilityBufferValue.instanceID);
+    const AAAAMaterialData      materialData = PullMaterialData(instanceData.MaterialIndex);
+    const float4 albedo = SampleAlbedo(IN.uv0, materialData);
+    AlphaClip(materialData, albedo);
     #endif
 
     return IN.visibilityValue;

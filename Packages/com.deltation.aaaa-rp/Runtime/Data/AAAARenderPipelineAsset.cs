@@ -61,6 +61,12 @@ namespace DELTation.AAAARP.Data
             AdaptiveProbeVolumes,
         }
 
+        public enum RealtimeGITechnique
+        {
+            Off,
+            LightPropagationVolumes,
+        }
+
         public enum XeGTAODenoisingLevel
         {
             Disabled = 0,
@@ -92,6 +98,7 @@ namespace DELTation.AAAARP.Data
         public XeGTAOSettings GTAOSettings = new();
         [EnumButtons] public LightProbeSystem LightProbes = LightProbeSystem.AdaptiveProbeVolumes;
         public ProbeVolumesSettings ProbeVolumes = new();
+        [EnumButtons] public RealtimeGITechnique RealtimeGI = RealtimeGITechnique.Off;
 
         [Serializable]
         public class ShadowSettings
