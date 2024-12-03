@@ -61,7 +61,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                             if (!allMeshes.TryGetValue(subMeshKey, out AAAAMeshletCollectionAsset meshletCollectionAsset))
                             {
                                 meshletCollectionAsset = ScriptableObject.CreateInstance<AAAAMeshletCollectionAsset>();
-                                meshletCollectionAsset.name = sharedMesh.name;
+                                meshletCollectionAsset.name = sharedMesh.name + $"_{subMeshIndex:00}";
 
                                 AAAAMeshletCollectionBuilder.Generate(meshletCollectionAsset, new AAAAMeshletCollectionBuilder.Parameters
                                     {
