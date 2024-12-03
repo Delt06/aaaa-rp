@@ -8,12 +8,17 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Lighting
 {
-    internal sealed class ShadowMapPool : IDisposable
+    public sealed class AAAARenderTexturePool : IDisposable
     {
         private readonly BindlessTextureContainer _bindlessTextureContainer;
+        private readonly Parameters _parameters;
         private readonly Dictionary<int, PoolData> _resolutionPools = new();
 
-        public ShadowMapPool(BindlessTextureContainer bindlessTextureContainer) => _bindlessTextureContainer = bindlessTextureContainer;
+        internal AAAARenderTexturePool(BindlessTextureContainer bindlessTextureContainer, in Parameters parameters)
+        {
+            _bindlessTextureContainer = bindlessTextureContainer;
+            _parameters = parameters;
+        }
 
         public void Dispose()
         {
@@ -48,12 +53,12 @@ namespace DELTation.AAAARP.Lighting
 
             while (poolData.Offset >= poolData.RenderTextures.Count)
             {
-                var renderTexture = new RenderTexture(resolution, resolution, GraphicsFormat.None, GraphicsFormat.D32_SFloat, 1)
+                var renderTexture = new RenderTexture(resolution, resolution, _parameters.ColorFormat, _parameters.DepthFormat, 1)
                 {
                     hideFlags = HideFlags.HideAndDontSave,
                 };
 #if DEBUG
-                renderTexture.name = $"ShadowMap_{resolution}x{resolution}_{poolData.RenderTextures.Count:00}";
+                renderTexture.name = $"{_parameters.NamePrefix}_{resolution}x{resolution}_{poolData.RenderTextures.Count:00}";
 #endif
 
                 renderTexture.Create();
@@ -81,6 +86,13 @@ namespace DELTation.AAAARP.Lighting
                 return (int) _bindlessTextureContainer.GetOrCreateIndex(renderTexture, renderTexture.GetInstanceID());
             }
             return defaultSRVIndex;
+        }
+
+        public struct Parameters
+        {
+            public string NamePrefix;
+            public GraphicsFormat ColorFormat;
+            public GraphicsFormat DepthFormat;
         }
 
         public struct Allocation

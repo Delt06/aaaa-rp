@@ -56,7 +56,8 @@ namespace DELTation.AAAARP.Passes.Shadows
             passData.CameraType = cameraData.CameraType;
             passData.ZClip = shadowLightSplit.CullingView.IsPerspective ? 1.0f : 0.0f;
 
-            RenderTexture shadowMap = shadowsData.ShadowMapPool.LookupRenderTexture(shadowLightSplit.ShadowMapAllocation);
+            AAAARenderTexturePool shadowMapPool = renderingData.RtPoolSet.ShadowMap;
+            RenderTexture shadowMap = shadowMapPool.LookupRenderTexture(shadowLightSplit.ShadowMapAllocation);
             passData.ShadowMap = shadowMap;
             builder.AllowPassCulling(false);
         }

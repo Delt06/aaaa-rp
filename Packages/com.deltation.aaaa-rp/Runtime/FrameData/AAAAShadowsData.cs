@@ -15,7 +15,6 @@ namespace DELTation.AAAARP.FrameData
     public class AAAAShadowsData : ContextItem
     {
         public BufferHandle ShadowLightSlicesBuffer;
-        internal ShadowMapPool ShadowMapPool { get; set; }
         public AAAATextureSize ShadowMapResolution { get; private set; }
         public NativeList<ShadowLight> ShadowLights { get; private set; }
         public NativeHashMap<int, int> VisibleToShadowLightMapping { get; private set; }
@@ -50,7 +49,7 @@ namespace DELTation.AAAARP.FrameData
                 SlopeBias =
                     ResolveValue(volumeComponent.SlopeBias, shadowSettings.SlopeBias),
             };
-            CollectShadowLights(cullingResults, cameraData, shadowSettingsData, ShadowLights);
+            CollectShadowLights(cullingResults, renderingData, cameraData, shadowSettingsData, ShadowLights);
 
             ShadowLightSlicesBuffer = renderingData.RenderGraph.CreateBuffer(
                 new BufferDesc(shadowSettings.MaxShadowLightSlices, UnsafeUtility.SizeOf<AAAAShadowLightSlice>(), GraphicsBuffer.Target.Structured)
@@ -62,7 +61,8 @@ namespace DELTation.AAAARP.FrameData
 
         private static T ResolveValue<T>(VolumeParameter<T> parameter, T fallbackValue) => parameter.overrideState ? parameter.value : fallbackValue;
 
-        private void CollectShadowLights(in CullingResults cullingResults, AAAACameraData cameraData,
+        private void CollectShadowLights(in CullingResults cullingResults, AAAARenderingData renderingData,
+            AAAACameraData cameraData,
             in ShadowSettingsData shadowSettings,
             NativeList<ShadowLight> shadowLights)
         {
@@ -123,6 +123,8 @@ namespace DELTation.AAAARP.FrameData
                 float3 cameraPosition = camera.transform.position;
                 float shadowDistance = math.min(cameraFarPlane, shadowSettings.MaxDistance);
 
+                AAAARenderTexturePool shadowMapPool = renderingData.RtPoolSet.ShadowMap;
+
                 for (int index = 0; index < shadowLights.Length; index++)
                 {
                     ref ShadowLight shadowLight = ref shadowLights.ElementAtRef(index);
@@ -162,7 +164,7 @@ namespace DELTation.AAAARP.FrameData
                                 Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
                                 shadowLight.Splits.Add(new ShadowLightSplit
                                     {
-                                        ShadowMapAllocation = ShadowMapPool.Allocate(shadowMapResolution),
+                                        ShadowMapAllocation = shadowMapPool.Allocate(shadowMapResolution),
                                         CullingView = new GPUCullingPass.CullingViewParameters
                                         {
                                             ViewMatrix = lightView,
@@ -192,7 +194,7 @@ namespace DELTation.AAAARP.FrameData
                             Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
                             shadowLight.Splits.Add(new ShadowLightSplit
                                 {
-                                    ShadowMapAllocation = ShadowMapPool.Allocate(shadowMapResolution),
+                                    ShadowMapAllocation = shadowMapPool.Allocate(shadowMapResolution),
                                     CullingView = new GPUCullingPass.CullingViewParameters
                                     {
                                         ViewMatrix = lightView,
@@ -223,7 +225,7 @@ namespace DELTation.AAAARP.FrameData
                                 Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
                                 shadowLight.Splits.Add(new ShadowLightSplit
                                     {
-                                        ShadowMapAllocation = ShadowMapPool.Allocate(shadowMapResolution),
+                                        ShadowMapAllocation = shadowMapPool.Allocate(shadowMapResolution),
                                         CullingView = new GPUCullingPass.CullingViewParameters
                                         {
                                             ViewMatrix = lightView,
@@ -299,7 +301,7 @@ namespace DELTation.AAAARP.FrameData
         {
             public Matrix4x4 GPUProjectionMatrix;
             public GPUCullingPass.CullingViewParameters CullingView;
-            internal ShadowMapPool.Allocation ShadowMapAllocation;
+            internal AAAARenderTexturePool.Allocation ShadowMapAllocation;
         }
     }
 }

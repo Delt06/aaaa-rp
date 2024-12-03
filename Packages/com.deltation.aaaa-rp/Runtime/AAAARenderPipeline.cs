@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
-using DELTation.AAAARP.Lighting;
 using DELTation.AAAARP.Renderers;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
@@ -19,7 +18,6 @@ namespace DELTation.AAAARP
     public sealed partial class AAAARenderPipeline : RenderPipeline
     {
         public const string ShaderTagName = "AAAAPipeline";
-        private static ShadowMapPool _shadowMapPool;
         private readonly bool _areAPVEnabled;
         private readonly BindlessTextureContainer _bindlessTextureContainer;
         private readonly DebugDisplaySettingsUI _debugDisplaySettingsUI = new();
@@ -28,6 +26,8 @@ namespace DELTation.AAAARP
         private readonly AAAARawBufferClear _rawBufferClear;
         private readonly AAAARendererBase _renderer;
         private readonly AAAARendererContainer _rendererContainer;
+
+        private readonly AAAARenderTexturePoolSet _rtPoolSet;
         private RenderGraph _renderGraph;
 
         public AAAARenderPipeline(AAAARenderPipelineAsset pipelineAsset)
@@ -57,7 +57,7 @@ namespace DELTation.AAAARP
             VolumeManager.instance.Initialize(defaultVolumeProfileSettings.volumeProfile);
 
             _bindlessTextureContainer = new BindlessTextureContainer();
-            _shadowMapPool = new ShadowMapPool(_bindlessTextureContainer);
+            _rtPoolSet = new AAAARenderTexturePoolSet(_bindlessTextureContainer);
             _rendererContainer =
                 new AAAARendererContainer(_bindlessTextureContainer, pipelineAsset.MeshLODSettings, _rawBufferClear, pipelineDebugDisplaySettings);
 
@@ -92,7 +92,7 @@ namespace DELTation.AAAARP
             GraphicsSettings.lightsUseColorTemperature = true;
             GraphicsSettings.useScriptableRenderPipelineBatching = true;
 
-            _shadowMapPool.Reset();
+            _rtPoolSet.OnPreRender();
             _rendererContainer.PreRender(context);
 
             foreach (Camera camera in cameras)
@@ -179,7 +179,7 @@ namespace DELTation.AAAARP
             }
 
             _rendererContainer.Dispose();
-            _shadowMapPool.Dispose();
+            _rtPoolSet.Dispose();
             _bindlessTextureContainer.Dispose();
 
             Blitter.Cleanup();
@@ -209,6 +209,7 @@ namespace DELTation.AAAARP
             renderingData.PipelineAsset = _pipelineAsset;
             renderingData.RenderGraph = _renderGraph;
             renderingData.RendererContainer = _rendererContainer;
+            renderingData.RtPoolSet = _rtPoolSet;
 
             return renderingData;
         }
@@ -321,11 +322,9 @@ namespace DELTation.AAAARP
             return lightData;
         }
 
-        private static AAAAShadowsData CreateShadowsData(ContextContainer frameData)
+        private AAAAShadowsData CreateShadowsData(ContextContainer frameData)
         {
             AAAAShadowsData shadowsData = frameData.GetOrCreate<AAAAShadowsData>();
-
-            shadowsData.ShadowMapPool = _shadowMapPool;
 
             return shadowsData;
         }
@@ -343,4 +342,5 @@ namespace DELTation.AAAARP
             VolumeManager.instance.Update(camera.transform, 1);
         }
     }
+
 }

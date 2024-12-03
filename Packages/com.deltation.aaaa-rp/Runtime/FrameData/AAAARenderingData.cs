@@ -12,6 +12,7 @@ namespace DELTation.AAAARP.FrameData
         public AAAARenderPipelineAsset PipelineAsset;
         public AAAARendererContainer RendererContainer;
         public RenderGraph RenderGraph;
+        public AAAARenderTexturePoolSet RtPoolSet;
 
         public override void Reset()
         {
@@ -19,6 +20,7 @@ namespace DELTation.AAAARP.FrameData
             RenderGraph = default;
             CullingResults = default;
             RendererContainer = default;
+            RtPoolSet = default;
         }
     }
 }

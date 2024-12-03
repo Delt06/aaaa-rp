@@ -81,7 +81,7 @@ namespace DELTation.AAAARP.Passes.Lighting
 
                             foreach (AAAAShadowsData.ShadowLightSplit shadowLightSplit in shadowLight.Splits)
                             {
-                                shadowLightSlices.Add(BuildShadowLightSlice(shadowsData, shadowLightSplit));
+                                shadowLightSlices.Add(BuildShadowLightSlice(renderingData, shadowsData, shadowLightSplit));
                             }
                         }
 
@@ -108,7 +108,7 @@ namespace DELTation.AAAARP.Passes.Lighting
 
                             foreach (AAAAShadowsData.ShadowLightSplit shadowLightSplit in shadowLight.Splits)
                             {
-                                shadowLightSlices.Add(BuildShadowLightSlice(shadowsData, shadowLightSplit));
+                                shadowLightSlices.Add(BuildShadowLightSlice(renderingData, shadowsData, shadowLightSplit));
                             }
                         }
 
@@ -135,20 +135,18 @@ namespace DELTation.AAAARP.Passes.Lighting
             lightingConstantBuffer.PunctualLightCount = (uint) punctualLights.Length;
         }
 
-        private static AAAAShadowLightSlice BuildShadowLightSlice(AAAAShadowsData shadowsData, in AAAAShadowsData.ShadowLightSplit shadowLightSplit)
+        private static AAAAShadowLightSlice BuildShadowLightSlice(AAAARenderingData renderingData, AAAAShadowsData shadowsData,
+            in AAAAShadowsData.ShadowLightSplit shadowLightSplit)
         {
             float2 resolution = shadowLightSplit.CullingView.PixelSize;
             float4 boundingSphere = shadowLightSplit.CullingView.BoundingSphereWS;
+            AAAARenderTexturePool shadowMapPool = renderingData.RtPoolSet.ShadowMap;
             return new AAAAShadowLightSlice
             {
                 BoundingSphere = math.float4(boundingSphere.xyz, boundingSphere.w * boundingSphere.w),
                 AtlasSize = math.float4(1.0f / resolution, resolution),
-                WorldToShadowCoords =
-                    AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLightSplit.CullingView.ViewProjectionMatrix),
-                BindlessShadowMapIndex =
-                    shadowsData.ShadowMapPool.GetBindlessSRVIndexOrDefault(shadowLightSplit.ShadowMapAllocation,
-                        NoShadowMapIndex
-                    ),
+                WorldToShadowCoords = AAAAShadowUtils.GetWorldToShadowCoordsMatrix(shadowLightSplit.CullingView.ViewProjectionMatrix),
+                BindlessShadowMapIndex = shadowMapPool.GetBindlessSRVIndexOrDefault(shadowLightSplit.ShadowMapAllocation, NoShadowMapIndex),
             };
         }
 
