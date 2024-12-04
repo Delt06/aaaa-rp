@@ -28,6 +28,10 @@ namespace DELTation.AAAARP.RenderPipelineResources
         [SerializeField]
         [ResourcePath("Shaders/Debugging/LightingDebug.shader")]
         private Shader _lightingDebugPS;
+        
+        [SerializeField]
+        [ResourcePath("Shaders/Debugging/LightPropagationVolumesDebug.shader")]
+        private Shader _lightPropagationVolumesDebugPS;
 
         public Shader VisibilityBufferDebugPS
         {
@@ -51,6 +55,12 @@ namespace DELTation.AAAARP.RenderPipelineResources
         {
             get => _lightingDebugPS;
             set => this.SetValueAndNotify(ref _lightingDebugPS, value, nameof(_lightingDebugPS));
+        }
+
+        public Shader LightPropagationVolumesDebugPS
+        {
+            get => _lightPropagationVolumesDebugPS;
+            set => this.SetValueAndNotify(ref _lightPropagationVolumesDebugPS, value, nameof(_lightPropagationVolumesDebugPS));
         }
 
         public int version => _version;

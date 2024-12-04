@@ -11,10 +11,39 @@ int    _LPVGridSize;
 float3 _LPVGridBoundsMin;
 float3 _LPVGridBoundsMax;
 
+uint GetLPVGridSize()
+{
+    return _LPVGridSize;
+}
+
+float3 ComputeLPVCellCenter(const uint3 cellID)
+{
+    const float3 positionT = (cellID + 0.5) / _LPVGridSize;
+    const float3 cellCenterWS = lerp(_LPVGridBoundsMin, _LPVGridBoundsMax, positionT);
+    return cellCenterWS;
+}
+
+float3 ComputeLPVGridUV(const float3 positionWS)
+{
+    return (positionWS - _LPVGridBoundsMin) / (_LPVGridBoundsMax - _LPVGridBoundsMin);
+}
+
+int3 ComputeLPVCellID(const float3 positionWS)
+{
+    float3 uv = ComputeLPVGridUV(positionWS);
+    return uv * _LPVGridSize;
+}
+
 float3 SampleLPVGrid(const float3 positionWS)
 {
-    const float3 uv = (positionWS - _LPVGridBoundsMin) / (_LPVGridBoundsMax - _LPVGridBoundsMin);
+    const float3 uv = ComputeLPVGridUV(positionWS);
     return SAMPLE_TEXTURE3D_LOD(_LPVGrid, sampler_TrilinearClamp, uv, 0).rgb;
+}
+
+float3 SampleLPVGrid_PointFilter(const float3 positionWS)
+{
+    const float3 uv = ComputeLPVGridUV(positionWS);
+    return SAMPLE_TEXTURE3D_LOD(_LPVGrid, sampler_PointClamp, uv, 0).rgb;
 }
 
 #define RSM_SAMPLER sampler_PointClamp

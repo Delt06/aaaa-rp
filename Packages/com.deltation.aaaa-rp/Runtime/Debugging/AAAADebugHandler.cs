@@ -1,4 +1,6 @@
 ﻿using System;
+using DELTation.AAAARP.Data;
+using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Passes;
 using DELTation.AAAARP.Passes.Debugging;
 using DELTation.AAAARP.RenderPipelineResources;
@@ -25,6 +27,8 @@ namespace DELTation.AAAARP.Debugging
         [CanBeNull]
         private readonly LightingDebugPass _lightingDebugPass;
         [CanBeNull]
+        private readonly LightPropagationVolumesDebugPass _lightPropagationVolumesDebugPass;
+        [CanBeNull]
         private readonly VisibilityBufferDebugPass _visibilityBufferDebugPass;
 
         public AAAADebugHandler(AAAARawBufferClear rawBufferClear)
@@ -36,6 +40,8 @@ namespace DELTation.AAAARP.Debugging
                 _visibilityBufferDebugPass = new VisibilityBufferDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
                 _gBufferDebugPass = new GBufferDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
                 _lightingDebugPass = new LightingDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
+                _lightPropagationVolumesDebugPass =
+                    new LightPropagationVolumesDebugPass(AAAARenderPassEvent.BeforeRenderingTransparents, debugShaders, DisplaySettings);
 
                 _gpuCullingDebugSetupPass = new GPUCullingDebugSetupPass(AAAARenderPassEvent.BeforeRendering, rawBufferClear);
                 _gpuCullingDebugViewPass = new GPUCullingDebugViewPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
@@ -52,6 +58,7 @@ namespace DELTation.AAAARP.Debugging
             _visibilityBufferDebugPass?.Dispose();
             _gBufferDebugPass?.Dispose();
             _lightingDebugPass?.Dispose();
+            _lightPropagationVolumesDebugPass?.Dispose();
         }
 
         [CanBeNull] public Camera GetGPUCullingCameraOverride()
@@ -70,8 +77,10 @@ namespace DELTation.AAAARP.Debugging
             return Object.FindFirstObjectByType<Camera>(FindObjectsInactive.Exclude);
         }
 
-        public void Setup(AAAARendererBase renderer, RenderGraph renderGraph, ScriptableRenderContext context)
+        public void Setup(AAAARendererBase renderer, RenderGraph renderGraph, ScriptableRenderContext context, ContextContainer frameData)
         {
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
+
             if (DisplaySettings.AreAnySettingsActive)
             {
                 renderer.EnqueuePass(_debugSetupPass);
@@ -93,6 +102,13 @@ namespace DELTation.AAAARP.Debugging
                 DisplaySettings.RenderingSettings.LightingDebugMode != AAAALightingDebugMode.None)
             {
                 renderer.EnqueuePass(_lightingDebugPass);
+            }
+
+            if (_lightPropagationVolumesDebugPass != null &&
+                DisplaySettings.RenderingSettings.LightPropagationVolumesDebug &&
+                cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.LightPropagationVolumes)
+            {
+                renderer.EnqueuePass(_lightPropagationVolumesDebugPass);
             }
 
             if (_gpuCullingDebugSetupPass != null &&

@@ -69,6 +69,7 @@ MonoBehaviour:
         _gpuCullingDebugViewPS: {fileID: 4800000, guid: 732dd7d6dd8b401f9eef24b39da3f807, type: 3}
         _gBufferDebugPS: {fileID: 4800000, guid: d667ea4a980b4ae6bc5d4fbb99dfe007, type: 3}
         _lightingDebugPS: {fileID: 4800000, guid: 8a26e757c6ff4818947551b763fd6938, type: 3}
+        _lightPropagationVolumesDebugPS: {fileID: 4800000, guid: 900f3de8e6a740569820411ff86dcdc4, type: 3}
     - rid: 3580532324172300378
       type: {class: AAAARenderPipelineRuntimeTextures, ns: DELTation.AAAARP.RenderPipelineResources, asm: DELTation.AAAARP.Runtime}
       data:

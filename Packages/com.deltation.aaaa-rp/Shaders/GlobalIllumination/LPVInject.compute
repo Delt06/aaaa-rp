@@ -3,9 +3,6 @@
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
-#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
-#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
-#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
 
 #define THREAD_GROUP_SIZE 64
@@ -188,8 +185,7 @@ float3 ComputeRSMCascadeIndex(const float3 positionWS, const CascadeSelectionPar
 void CS(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : SV_GroupThreadID)
 {
     const uint3  cellID = groupID;
-    const float3 positionT = (cellID + 0.5) / _LPVGridSize;
-    const float3 cellCenterWS = lerp(_LPVGridBoundsMin, _LPVGridBoundsMax, positionT);
+    const float3 cellCenterWS = ComputeLPVCellCenter(cellID);
 
     if (groupThreadID.x == 0)
     {

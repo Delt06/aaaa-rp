@@ -43,8 +43,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             passData.GridBoundsMax = lightingData.LPVGridBoundsMax = math.float3(20, 20, 20);
 
             builder.WriteTexture(passData.Grid);
-
-            builder.AllowPassCulling(false);
         }
 
         protected override void Render(PassData data, RenderGraphContext context)

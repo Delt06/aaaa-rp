@@ -76,6 +76,12 @@ namespace DELTation.AAAARP.Debugging
         public Vector2 LightingDebugCountRemap { get; private set; } = new(1, 128);
         public int LightingDebugLightIndex { get; private set; }
 
+        public bool LightPropagationVolumesDebug { get; private set; }
+
+        public float LightPropagationVolumesDebugSize { get; private set; } = 0.1f;
+        public float LightPropagationVolumesDebugIntensity { get; private set; } = 1.0f;
+        public float LightPropagationVolumesDebugClipDistance { get; private set; } = 2.0f;
+
         public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
                                             ForceCullingFromMainCamera ||
                                             DebugGPUCulling ||
@@ -323,6 +329,7 @@ namespace DELTation.AAAARP.Debugging
                                 CreateLightingDebugMode(panel),
                                 CreateLightCountRemap(panel),
                                 CreateLightIndex(panel),
+                                LightPropagationVolumes.WidgetFactory.CreateFoldout(panel),
                             },
                         };
 
@@ -360,6 +367,73 @@ namespace DELTation.AAAARP.Debugging
                         isHiddenCallback = () => panel.data.LightingDebugMode is not AAAALightingDebugMode.DirectionalLightCascades,
                         min = () => 0,
                         max = () => AAAALightingConstantBuffer.MaxDirectionalLights - 1,
+                    };
+                }
+            }
+
+            private static class LightPropagationVolumes
+            {
+                private static class Strings
+                {
+                    public static readonly DebugUI.Widget.NameAndTooltip Debug = new() { name = "Debug" };
+                    public static readonly DebugUI.Widget.NameAndTooltip DebugSize = new() { name = "Debug Size" };
+                    public static readonly DebugUI.Widget.NameAndTooltip DebugIntensity = new() { name = "Debug Intensity" };
+                    public static readonly DebugUI.Widget.NameAndTooltip DebugClipDistance = new() { name = "Debug Clip Distance" };
+                }
+
+                public static class WidgetFactory
+                {
+                    public static DebugUI.Widget CreateFoldout(SettingsPanel panel) =>
+                        new DebugUI.Foldout
+                        {
+                            displayName = "Light Propagation Volumes",
+                            flags = DebugUI.Flags.FrequentlyUsed,
+                            isHeader = true,
+                            opened = true,
+                            children =
+                            {
+                                CreateDebug(panel),
+                                CreateDebugSize(panel),
+                                CreateDebugIntensity(panel),
+                                CreateDebugClipDistance(panel),
+                            },
+                        };
+
+                    private static DebugUI.Widget CreateDebug(SettingsPanel panel) => new DebugUI.BoolField
+                    {
+                        nameAndTooltip = Strings.Debug,
+                        getter = () => panel.data.LightPropagationVolumesDebug,
+                        setter = value => panel.data.LightPropagationVolumesDebug = value,
+                    };
+
+                    private static DebugUI.Widget CreateDebugSize(SettingsPanel panel) => new DebugUI.FloatField
+                    {
+                        nameAndTooltip = Strings.DebugSize,
+                        getter = () => panel.data.LightPropagationVolumesDebugSize,
+                        setter = value => panel.data.LightPropagationVolumesDebugSize = value,
+                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
+                        min = () => 0.0f,
+                        max = () => 1.0f,
+                    };
+
+                    private static DebugUI.Widget CreateDebugIntensity(SettingsPanel panel) => new DebugUI.FloatField
+                    {
+                        nameAndTooltip = Strings.DebugIntensity,
+                        getter = () => panel.data.LightPropagationVolumesDebugIntensity,
+                        setter = value => panel.data.LightPropagationVolumesDebugIntensity = value,
+                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
+                        min = () => 0.0f,
+                        max = () => 10.0f,
+                    };
+
+                    private static DebugUI.Widget CreateDebugClipDistance(SettingsPanel panel) => new DebugUI.FloatField
+                    {
+                        nameAndTooltip = Strings.DebugClipDistance,
+                        getter = () => panel.data.LightPropagationVolumesDebugClipDistance,
+                        setter = value => panel.data.LightPropagationVolumesDebugClipDistance = value,
+                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
+                        min = () => 0.0f,
+                        max = () => 10.0f,
                     };
                 }
             }

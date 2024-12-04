@@ -205,7 +205,7 @@ namespace DELTation.AAAARP
 
             EnqueuePass(_finalBlitPass);
 
-            DebugHandler?.Setup(this, renderGraph, context);
+            DebugHandler?.Setup(this, renderGraph, context, frameData);
         }
 
         private void EnqueueShadowPasses(AAAAShadowsData shadowsData)
