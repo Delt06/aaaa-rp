@@ -153,8 +153,7 @@ float3 SampleProbeVolumePixel(const float3 absolutePositionWS, const float3 norm
     #endif
 }
 
-float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float2 positionSS, const float2 screenUV,
-                       const uint   renderingLayer)
+float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float2 positionSS, const uint renderingLayer)
 {
     float3 gi;
 
@@ -166,7 +165,7 @@ float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, c
     gi *= aaaa_AmbientIntensity;
 
     #if defined(AAAA_LPV)
-    gi += SampleLightPropagationVolumes(screenUV);
+    gi += SampleLPVGrid(absolutePositionWS);
     #endif
 
     return gi;

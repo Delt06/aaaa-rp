@@ -5,7 +5,17 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows.hlsl"
 
-TEXTURE2D(_LPVTraceResult);
+TEXTURE3D(_LPVGrid);
+
+int    _LPVGridSize;
+float3 _LPVGridBoundsMin;
+float3 _LPVGridBoundsMax;
+
+float3 SampleLPVGrid(const float3 positionWS)
+{
+    const float3 uv = (positionWS - _LPVGridBoundsMin) / (_LPVGridBoundsMax - _LPVGridBoundsMin);
+    return SAMPLE_TEXTURE3D_LOD(_LPVGrid, sampler_TrilinearClamp, uv, 0).rgb;
+}
 
 #define RSM_SAMPLER sampler_PointClamp
 
@@ -49,11 +59,6 @@ RsmValue UnpackRsmOutput(const RsmOutput output)
     value.normalWS = UnpackRsmNormal(output.packedNormalWS);
     value.flux = output.flux;
     return value;
-}
-
-float3 SampleLightPropagationVolumes(const float2 screenUV)
-{
-    return SAMPLE_TEXTURE2D_LOD(_LPVTraceResult, sampler_LinearClamp, screenUV, 0).rgb;
 }
 
 RsmValue SampleRsmValue(const AAAAShadowLightSlice shadowLightSlice, const float2 shadowCoords)

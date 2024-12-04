@@ -90,8 +90,8 @@ namespace DELTation.AAAARP.RenderPipelineResources
         private Shader _ssrResolvePS;
 
         [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/LPVTrace.shader")]
-        private Shader _lpvTracePS;
+        [ResourcePath("Shaders/GlobalIllumination/LPVInject.compute")]
+        private ComputeShader _lpvInjectCS;
 
         [SerializeField]
         [ResourcePath("Shaders/AntiAliasing/SMAA.shader")]
@@ -215,10 +215,10 @@ namespace DELTation.AAAARP.RenderPipelineResources
             set => this.SetValueAndNotify(ref _ssrResolvePS, value, nameof(_ssrResolvePS));
         }
 
-        public Shader LpvTracePS
+        public ComputeShader LpvInjectCS
         {
-            get => _lpvTracePS;
-            set => this.SetValueAndNotify(ref _lpvTracePS, value, nameof(_lpvTracePS));
+            get => _lpvInjectCS;
+            set => this.SetValueAndNotify(ref _lpvInjectCS, value, nameof(_lpvInjectCS));
         }
 
         public Shader SmaaPS

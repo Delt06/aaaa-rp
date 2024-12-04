@@ -141,7 +141,7 @@ Shader "Hidden/AAAA/LightingDebug"
                     {
                         const GBufferValue gbufferValue = SampleGBuffer(screenUV);
                         const float3       eyeWS = normalize(GetCameraPositionWS() - positionWS);
-                        resultColor = SampleDiffuseGI(positionWS, gbufferValue.normalWS, eyeWS, IN.positionCS.xy, screenUV, 0xFFFFFFFFu);
+                        resultColor = SampleDiffuseGI(positionWS, gbufferValue.normalWS, eyeWS, IN.positionCS.xy, 0xFFFFFFFFu);
                         resultOpacity = 1;
                         break;
                     }

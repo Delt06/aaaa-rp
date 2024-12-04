@@ -141,8 +141,7 @@ Shader "Hidden/AAAA/DeferredLighting"
                 brdfInput.diffuseColor = surfaceData.albedo;
                 brdfInput.metallic = surfaceData.metallic;
                 brdfInput.roughness = surfaceData.roughness;
-                brdfInput.irradiance = SampleDiffuseGI(surfaceData.positionWS, surfaceData.bentNormalWS, eyeWS, surfaceData.positionCS.xy, IN.texcoord,
-                                                       0xFFFFFFFFu);
+                brdfInput.irradiance = SampleDiffuseGI(surfaceData.positionWS, surfaceData.bentNormalWS, eyeWS, surfaceData.positionCS.xy, 0xFFFFFFFFu);
                 brdfInput.aoVisibility = surfaceData.aoVisibility;
                 brdfInput.bentNormalWS = surfaceData.bentNormalWS;
                 brdfInput.prefilteredEnvironment = 0;
