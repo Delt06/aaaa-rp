@@ -41,13 +41,13 @@ struct DummyOutput
 #define SHADOW_CASTER_FRAGMENT_OUTPUT DummyOutput
 #endif
 
-void TransferOutput(const ShadowCasterVaryings IN, const float4 albedo, const float4 emission, inout SHADOW_CASTER_FRAGMENT_OUTPUT OUT)
+void TransferOutput(const ShadowCasterVaryings IN, const float4 albedo, inout SHADOW_CASTER_FRAGMENT_OUTPUT OUT)
 {
     #ifdef AAAA_LPV_REFLECTIVE_SHADOW_MAPS
     RsmValue rsmValue;
     rsmValue.positionWS = IN.positionWS;
     rsmValue.normalWS = SafeNormalize(IN.normalWS);
-    rsmValue.flux = (1 + emission.rgb) * albedo.rgb;
+    rsmValue.flux = albedo.rgb;
     OUT = PackRsmOutput(rsmValue);
     #endif
 }
@@ -89,24 +89,21 @@ SHADOW_CASTER_FRAGMENT_OUTPUT ShadowCasterPS(const ShadowCasterVaryings IN)
     SHADOW_CASTER_FRAGMENT_OUTPUT OUT = (SHADOW_CASTER_FRAGMENT_OUTPUT)0;
 
     float4 albedo;
-    float4 emission;
 
     #if defined(REQUIRE_VISIBILITY_VALUE_INTERPOLATOR) && defined(REQUIRE_UV0_INTERPOLATOR)
     const VisibilityBufferValue visibilityBufferValue = UnpackVisibilityBufferValue(IN.visibilityValue);
     const AAAAInstanceData      instanceData = PullInstanceData(visibilityBufferValue.instanceID);
     const AAAAMaterialData      materialData = PullMaterialData(instanceData.MaterialIndex);
     albedo = SampleAlbedo(IN.uv0, materialData);
-    emission = materialData.Emission;
     #else
     albedo = 0;
-    emission = 0;
     #endif
 
     #if defined(_ALPHATEST_ON)
     AlphaClip(materialData, albedo);
     #endif
 
-    TransferOutput(IN, albedo, emission, OUT);
+    TransferOutput(IN, albedo, OUT);
 
     return OUT;
 }
