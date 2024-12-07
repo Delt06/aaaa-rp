@@ -51,50 +51,46 @@ int    _LPVGridSize;
 float3 _LPVGridBoundsMin;
 float3 _LPVGridBoundsMax;
 
-uint GetLPVGridSize()
+struct LPV
 {
-    return _LPVGridSize;
-}
+    static uint GetGridSize()
+    {
+        return _LPVGridSize;
+    }
 
-float3 ComputeLPVCellCenter(const uint3 cellID)
-{
-    const float3 positionT = (cellID + 0.5) / _LPVGridSize;
-    const float3 cellCenterWS = lerp(_LPVGridBoundsMin, _LPVGridBoundsMax, positionT);
-    return cellCenterWS;
-}
+    static float3 ComputeCellCenter(const uint3 cellID)
+    {
+        const float3 positionT = (cellID + 0.5) / _LPVGridSize;
+        const float3 cellCenterWS = lerp(_LPVGridBoundsMin, _LPVGridBoundsMax, positionT);
+        return cellCenterWS;
+    }
 
-float3 ComputeLPVGridUV(const float3 positionWS)
-{
-    return (positionWS - _LPVGridBoundsMin) / (_LPVGridBoundsMax - _LPVGridBoundsMin);
-}
+    static float3 ComputeGridUV(const float3 positionWS)
+    {
+        return (positionWS - _LPVGridBoundsMin) / (_LPVGridBoundsMax - _LPVGridBoundsMin);
+    }
 
-int3 ComputeLPVCellID(const float3 positionWS)
-{
-    float3 uv = ComputeLPVGridUV(positionWS);
-    return uv * _LPVGridSize;
-}
+    static int3 ComputeCellID(const float3 positionWS)
+    {
+        float3 uv = ComputeGridUV(positionWS);
+        return uv * _LPVGridSize;
+    }
 
-LPVCellValue SampleLPVGrid(const float3 positionWS)
-{
-    const float3 uv = ComputeLPVGridUV(positionWS);
-    LPVCellValue value;
-    value.redSH = SAMPLE_TEXTURE3D_LOD(_LPVGridRedSH, sampler_TrilinearClamp, uv, 0);
-    value.greenSH = SAMPLE_TEXTURE3D_LOD(_LPVGridGreenSH, sampler_TrilinearClamp, uv, 0);
-    value.blueSH = SAMPLE_TEXTURE3D_LOD(_LPVGridBlueSH, sampler_TrilinearClamp, uv, 0);
-    return value;
-}
+    static LPVCellValue SampleGrid(const float3 positionWS, const SamplerState samplerState)
+    {
+        const float3 uv = ComputeGridUV(positionWS);
+        LPVCellValue value;
+        value.redSH = SAMPLE_TEXTURE3D_LOD(_LPVGridRedSH, samplerState, uv, 0);
+        value.greenSH = SAMPLE_TEXTURE3D_LOD(_LPVGridGreenSH, samplerState, uv, 0);
+        value.blueSH = SAMPLE_TEXTURE3D_LOD(_LPVGridBlueSH, samplerState, uv, 0);
+        return value;
+    }
 
-LPVCellValue SampleLPVGrid_PointFilter(const float3 positionWS)
-{
-    const float3 uv = ComputeLPVGridUV(positionWS);
-    LPVCellValue value;
-    value.redSH = SAMPLE_TEXTURE3D_LOD(_LPVGridRedSH, sampler_PointClamp, uv, 0);
-    value.greenSH = SAMPLE_TEXTURE3D_LOD(_LPVGridGreenSH, sampler_PointClamp, uv, 0);
-    value.blueSH = SAMPLE_TEXTURE3D_LOD(_LPVGridBlueSH, sampler_PointClamp, uv, 0);
-    return value;
-}
-
-#define RSM_SAMPLER sampler_PointClamp
+    static LPVCellValue SampleGrid(const float3 positionWS)
+    {
+        return SampleGrid(positionWS, sampler_TrilinearClamp);
+    }
+};
 
 struct RsmOutput
 {
@@ -140,14 +136,15 @@ RsmValue UnpackRsmOutput(const RsmOutput output)
 
 RsmValue SampleRsmValue(const AAAAShadowLightSlice shadowLightSlice, const float2 shadowCoords)
 {
-    Texture2D positionMap = GetBindlessTexture2D(shadowLightSlice.BindlessRsmPositionMapIndex);
-    Texture2D normalMap = GetBindlessTexture2D(shadowLightSlice.BindlessRsmNormalMapIndex);
-    Texture2D fluxMap = GetBindlessTexture2D(shadowLightSlice.BindlessRsmFluxMapIndex);
+    const Texture2D    positionMap = GetBindlessTexture2D(shadowLightSlice.BindlessRsmPositionMapIndex);
+    const Texture2D    normalMap = GetBindlessTexture2D(shadowLightSlice.BindlessRsmNormalMapIndex);
+    const Texture2D    fluxMap = GetBindlessTexture2D(shadowLightSlice.BindlessRsmFluxMapIndex);
+    const SamplerState rsmSampler = sampler_PointClamp;
 
     RsmOutput rsmOutput;
-    rsmOutput.positionWS = SAMPLE_TEXTURE2D_LOD(positionMap, RSM_SAMPLER, shadowCoords.xy, 0).rgb;
-    rsmOutput.packedNormalWS = SAMPLE_TEXTURE2D_LOD(normalMap, RSM_SAMPLER, shadowCoords.xy, 0).xy;
-    rsmOutput.flux = SAMPLE_TEXTURE2D_LOD(fluxMap, RSM_SAMPLER, shadowCoords.xy, 0).rgb;
+    rsmOutput.positionWS = SAMPLE_TEXTURE2D_LOD(positionMap, rsmSampler, shadowCoords.xy, 0).rgb;
+    rsmOutput.packedNormalWS = SAMPLE_TEXTURE2D_LOD(normalMap, rsmSampler, shadowCoords.xy, 0).xy;
+    rsmOutput.flux = SAMPLE_TEXTURE2D_LOD(fluxMap, rsmSampler, shadowCoords.xy, 0).rgb;
 
     return UnpackRsmOutput(rsmOutput);
 }

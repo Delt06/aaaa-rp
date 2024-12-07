@@ -53,11 +53,11 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
             Varyings VS(const Attributes IN, const uint instanceID : INSTANCEID_SEMANTIC)
             {
                 const float3 cameraForwardWS = normalize(-GetViewForwardDir(UNITY_MATRIX_V));
-                const float  cellSize = (_LPVGridBoundsMin.x - _LPVGridBoundsMax.x) / GetLPVGridSize();
+                const float  cellSize = (_LPVGridBoundsMin.x - _LPVGridBoundsMax.x) / LPV::GetGridSize();
                 const float3 cameraPositionWS = GetCameraPositionWS();
 
                 const float3 pivotPositionWS = cameraPositionWS + cameraForwardWS * cellSize * _DebugInstanceCountDimension / 2;
-                const int3   centerCellID = ComputeLPVCellID(pivotPositionWS);
+                const int3   centerCellID = LPV::ComputeCellID(pivotPositionWS);
 
                 int3 localInstanceID;
                 localInstanceID.x = instanceID % _DebugInstanceCountDimension;
@@ -66,12 +66,12 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
                 localInstanceID -= _DebugInstanceCountDimension / 2;
 
                 const int3 globalCellID = centerCellID + localInstanceID;
-                if (any(globalCellID < 0) || any(globalCellID) >= GetLPVGridSize())
+                if (any(globalCellID < 0) || any(globalCellID) >= LPV::GetGridSize())
                 {
                     return (Varyings)0;
                 }
 
-                const float3 cellPositionWS = ComputeLPVCellCenter(globalCellID);
+                const float3 cellPositionWS = LPV::ComputeCellCenter(globalCellID);
 
                 Varyings OUT;
 
@@ -87,7 +87,7 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
             float4 PS(const Varyings IN) : SV_Target
             {
                 const float3       normalWS = SafeNormalize(IN.normalWS);
-                const LPVCellValue cellValue = SampleLPVGrid_PointFilter(IN.positionWS);
+                const LPVCellValue cellValue = LPV::SampleGrid(IN.positionWS, sampler_PointClamp);
                 return float4(_DebugIntensity * LPVMath::EvaluateRadiance(cellValue, normalWS), 1);
             }
             ENDHLSL
