@@ -15,9 +15,11 @@ RWTexture3D<LPV_CHANNEL_T> _GridRedUAV;
 RWTexture3D<LPV_CHANNEL_T> _GridGreenUAV;
 RWTexture3D<LPV_CHANNEL_T> _GridBlueUAV;
 
+float _Intensity;
+
 #define N_SAMPLES 151
 #define R_MAX 0.1
-#define INTENSITY 10
+#define FINAL_INTENSITY_MODIFIER _Intensity
 
 static const float2 Samples[N_SAMPLES] =
 {
@@ -285,7 +287,7 @@ void CS(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : SV_GroupTh
 
         if (groupThreadID.x == 0)
         {
-            const float finalIntensity = INTENSITY / (float)THREAD_GROUP_SIZE;
+            const float finalIntensity = FINAL_INTENSITY_MODIFIER / (float)THREAD_GROUP_SIZE;
             _GridRedUAV[cellID] += finalIntensity * lightColor.r * DeQuantizeLightValue(g_AccumulatedLightRedSH);
             _GridGreenUAV[cellID] += finalIntensity * lightColor.g * DeQuantizeLightValue(g_AccumulatedLightGreenSH);
             _GridBlueUAV[cellID] += finalIntensity * lightColor.b * DeQuantizeLightValue(g_AccumulatedLightBlueSH);

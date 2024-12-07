@@ -302,7 +302,12 @@ namespace DELTation.AAAARP
                 }
             }
             cameraData.RealtimeGITechnique = lightingSettings?.RealtimeGI ?? AAAARealtimeGITechnique.Off;
-            cameraData.LPVPassCount = lightingSettings?.LightPropagationVolumes?.PassCount ?? 0;
+
+            if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.LightPropagationVolumes &&
+                cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>() is { Enabled: { value: false } })
+            {
+                cameraData.RealtimeGITechnique = AAAARealtimeGITechnique.Off;
+            }
 
             cameraData.SupportsProbeVolumes =
                 renderingData.PipelineAsset.LightingSettings.LightProbes == AAAALightingSettings.LightProbeSystem.AdaptiveProbeVolumes;

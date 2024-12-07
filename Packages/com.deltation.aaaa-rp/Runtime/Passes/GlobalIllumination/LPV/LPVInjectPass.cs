@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
+using DELTation.AAAARP.Volumes;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -11,6 +12,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 {
     public class LPVInjectPass : AAAARenderPass<LPVInjectPass.PassData>
     {
+        private const float IntensityModifier = 0.5f;
         private readonly ComputeShader _computeShader;
 
         public LPVInjectPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
@@ -21,9 +23,11 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
             passData.GridSize = lightingData.LPVGridSize = 64;
+            passData.Intensity = IntensityModifier * cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>().Intensity.value;
             lightingData.LPVGridSHDesc = new TextureDesc
             {
                 width = passData.GridSize,
@@ -63,6 +67,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridRedUAV, data.GridRedSH);
             context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridGreenUAV, data.GridGreenSH);
             context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridBlueUAV, data.GridBlueSH);
+            context.cmd.SetComputeFloatParam(_computeShader, ShaderIDs._Intensity, data.Intensity);
             context.cmd.DispatchCompute(_computeShader, kernelIndex, data.GridSize, data.GridSize, data.GridSize);
         }
 
@@ -74,6 +79,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public TextureHandle GridGreenSH;
             public TextureHandle GridRedSH;
             public int GridSize;
+            public float Intensity;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
@@ -82,6 +88,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public static readonly int _GridRedUAV = Shader.PropertyToID(nameof(_GridRedUAV));
             public static readonly int _GridGreenUAV = Shader.PropertyToID(nameof(_GridGreenUAV));
             public static readonly int _GridBlueUAV = Shader.PropertyToID(nameof(_GridBlueUAV));
+            public static readonly int _Intensity = Shader.PropertyToID(nameof(_Intensity));
 
             public static class Global
             {

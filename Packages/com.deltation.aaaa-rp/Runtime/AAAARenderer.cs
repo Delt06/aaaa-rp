@@ -155,10 +155,7 @@ namespace DELTation.AAAARP
             if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.LightPropagationVolumes)
             {
                 EnqueuePass(_lpvInjectPass);
-                if (cameraData.LPVPassCount > 0)
-                {
-                    EnqueuePass(_lpvPropagatePass);
-                }
+                EnqueuePass(_lpvPropagatePass);
             }
 
             EnqueuePass(_deferredLightingPass);

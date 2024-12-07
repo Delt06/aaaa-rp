@@ -2,6 +2,7 @@
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
+using DELTation.AAAARP.Volumes;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -23,7 +24,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
-            passData.PassCount = cameraData.LPVPassCount;
+            passData.PassCount = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>().PropagationPasses.value;
+            if (passData.PassCount == 0)
+            {
+                return;
+            }
+
             passData.GridSize = lightingData.LPVGridSize;
 
             _computeShader.GetKernelThreadGroupSizes(KernelIndex, out passData.ThreadGroupSize, out uint _, out uint _);
