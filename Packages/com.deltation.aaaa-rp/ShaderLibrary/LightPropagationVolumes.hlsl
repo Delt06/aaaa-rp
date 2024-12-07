@@ -5,11 +5,13 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows.hlsl"
 
+#define LPV_CHANNEL_T float4
+
 struct LPVCellValue
 {
-    float4 redSH;
-    float4 greenSH;
-    float4 blueSH;
+    LPV_CHANNEL_T redSH;
+    LPV_CHANNEL_T greenSH;
+    LPV_CHANNEL_T blueSH;
 };
 
 /// Source: https://ericpolman.com/2016/06/28/light-propagation-volumes/
@@ -22,16 +24,16 @@ struct LPVMath
         return float4(shCosLobeC0, -shCosLobeC1 * dir.y, shCosLobeC1 * dir.z, -shCosLobeC1 * dir.x);
     }
 
-    static float4 DirToSH(float3 dir)
+    static LPV_CHANNEL_T DirToSH(float3 dir)
     {
         static const float shC0 = 0.282094792f; // 1 / 2sqrt(pi)
         static const float shC1 = 0.488602512f; // sqrt(3/pi) / 2
-        return float4(shC0, -shC1 * dir.y, shC1 * dir.z, -shC1 * dir.x);
+        return LPV_CHANNEL_T(shC0, -shC1 * dir.y, shC1 * dir.z, -shC1 * dir.x);
     }
 
     static float3 EvaluateRadiance(const LPVCellValue value, const float3 normalWS)
     {
-        float4 shIntensity = DirToSH(-normalWS);
+        LPV_CHANNEL_T shIntensity = DirToSH(-normalWS);
 
         const float3 lpvIntensity = float3(
             dot(shIntensity, value.redSH),
@@ -43,9 +45,9 @@ struct LPVMath
     }
 };
 
-TEXTURE3D(_LPVGridRedSH);
-TEXTURE3D(_LPVGridGreenSH);
-TEXTURE3D(_LPVGridBlueSH);
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _LPVGridRedSH);
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _LPVGridGreenSH);
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _LPVGridBlueSH);
 
 int    _LPVGridSize;
 float3 _LPVGridBoundsMin;
@@ -74,6 +76,16 @@ struct LPV
     {
         float3 uv = ComputeGridUV(positionWS);
         return uv * _LPVGridSize;
+    }
+
+    static uint3 FlatCellIDTo3D(uint flatCellID)
+    {
+        const uint gridSize = _LPVGridSize;
+        uint3      result;
+        result.x = flatCellID % gridSize;
+        result.y = flatCellID / gridSize % gridSize;
+        result.z = flatCellID / (gridSize * gridSize);
+        return result;
     }
 
     static LPVCellValue SampleGrid(const float3 positionWS, const SamplerState samplerState)

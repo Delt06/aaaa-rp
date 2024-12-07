@@ -302,6 +302,7 @@ namespace DELTation.AAAARP
                 }
             }
             cameraData.RealtimeGITechnique = lightingSettings?.RealtimeGI ?? AAAARealtimeGITechnique.Off;
+            cameraData.LPVPassCount = lightingSettings?.LightPropagationVolumes?.PassCount ?? 0;
 
             cameraData.SupportsProbeVolumes =
                 renderingData.PipelineAsset.LightingSettings.LightProbes == AAAALightingSettings.LightProbeSystem.AdaptiveProbeVolumes;

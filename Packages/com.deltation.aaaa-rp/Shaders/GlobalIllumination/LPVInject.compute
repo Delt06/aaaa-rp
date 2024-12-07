@@ -1,5 +1,9 @@
 ﻿#pragma kernel CS
 
+// Sources:
+// - https://github.com/mafian89/Light-Propagation-Volumes/blob/master/shaders/lightInject.frag
+// - https://ericpolman.com/2016/06/28/light-propagation-volumes/
+
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
@@ -7,9 +11,9 @@
 
 #define THREAD_GROUP_SIZE 64
 
-RWTexture3D<float4> _GridRedUAV;
-RWTexture3D<float4> _GridGreenUAV;
-RWTexture3D<float4> _GridBlueUAV;
+RWTexture3D<LPV_CHANNEL_T> _GridRedUAV;
+RWTexture3D<LPV_CHANNEL_T> _GridGreenUAV;
+RWTexture3D<LPV_CHANNEL_T> _GridBlueUAV;
 
 #define N_SAMPLES 151
 #define R_MAX 0.1

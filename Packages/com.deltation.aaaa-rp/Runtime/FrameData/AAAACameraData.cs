@@ -8,6 +8,7 @@ namespace DELTation.AAAARP.FrameData
     {
         public AAAAAmbientOcclusionTechnique AmbientOcclusionTechnique;
         public AAAARealtimeGITechnique RealtimeGITechnique;
+        public int LPVPassCount;
         public AAAAAntiAliasingTechnique AntiAliasingTechnique;
         public float AspectRatio;
         public Color BackgroundColor;
@@ -74,6 +75,7 @@ namespace DELTation.AAAARP.FrameData
 
             AmbientOcclusionTechnique = default;
             RealtimeGITechnique = default;
+            LPVPassCount = default;
             AntiAliasingTechnique = default;
             UpscalingTechnique = default;
             PostProcessingEnabled = false;

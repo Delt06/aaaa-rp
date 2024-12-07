@@ -24,7 +24,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
             passData.GridSize = lightingData.LPVGridSize = 64;
-            var lpvGridSHDesc = new TextureDesc
+            lightingData.LPVGridSHDesc = new TextureDesc
             {
                 width = passData.GridSize,
                 height = passData.GridSize,
@@ -37,13 +37,13 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
                 useMipMap = false,
             };
             builder.WriteTexture(passData.GridRedSH = lightingData.LPVGridRedSH =
-                renderingData.RenderGraph.CreateTexture(new TextureDesc(lpvGridSHDesc) { name = nameof(AAAALightingData.LPVGridRedSH) })
+                renderingData.RenderGraph.CreateTexture(new TextureDesc(lightingData.LPVGridSHDesc) { name = nameof(AAAALightingData.LPVGridRedSH) })
             );
             builder.WriteTexture(passData.GridGreenSH = lightingData.LPVGridGreenSH =
-                renderingData.RenderGraph.CreateTexture(new TextureDesc(lpvGridSHDesc) { name = nameof(AAAALightingData.LPVGridGreenSH) })
+                renderingData.RenderGraph.CreateTexture(new TextureDesc(lightingData.LPVGridSHDesc) { name = nameof(AAAALightingData.LPVGridGreenSH) })
             );
             builder.WriteTexture(passData.GridBlueSH = lightingData.LPVGridBlueSH =
-                renderingData.RenderGraph.CreateTexture(new TextureDesc(lpvGridSHDesc) { name = nameof(AAAALightingData.LPVGridBlueSH) })
+                renderingData.RenderGraph.CreateTexture(new TextureDesc(lightingData.LPVGridSHDesc) { name = nameof(AAAALightingData.LPVGridBlueSH) })
             );
 
             passData.GridBoundsMin = lightingData.LPVGridBoundsMin = math.float3(-20, -20, -20);
@@ -59,10 +59,11 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             context.cmd.SetGlobalTexture(ShaderIDs.Global._LPVGridGreenSH, data.GridGreenSH);
             context.cmd.SetGlobalTexture(ShaderIDs.Global._LPVGridBlueSH, data.GridBlueSH);
 
-            context.cmd.SetComputeTextureParam(_computeShader, 0, ShaderIDs._GridRedUAV, data.GridRedSH);
-            context.cmd.SetComputeTextureParam(_computeShader, 0, ShaderIDs._GridGreenUAV, data.GridGreenSH);
-            context.cmd.SetComputeTextureParam(_computeShader, 0, ShaderIDs._GridBlueUAV, data.GridBlueSH);
-            context.cmd.DispatchCompute(_computeShader, 0, data.GridSize, data.GridSize, data.GridSize);
+            const int kernelIndex = 0;
+            context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridRedUAV, data.GridRedSH);
+            context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridGreenUAV, data.GridGreenSH);
+            context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridBlueUAV, data.GridBlueSH);
+            context.cmd.DispatchCompute(_computeShader, kernelIndex, data.GridSize, data.GridSize, data.GridSize);
         }
 
         public class PassData : PassDataBase

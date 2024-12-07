@@ -99,6 +99,7 @@ namespace DELTation.AAAARP.Data
         [EnumButtons] public LightProbeSystem LightProbes = LightProbeSystem.AdaptiveProbeVolumes;
         public ProbeVolumesSettings ProbeVolumes = new();
         [EnumButtons] public AAAARealtimeGITechnique RealtimeGI = AAAARealtimeGITechnique.Off;
+        public LightPropagationVolumesSettings LightPropagationVolumes = new();
 
         [Serializable]
         public class ShadowSettings
@@ -143,6 +144,13 @@ namespace DELTation.AAAARP.Data
             public bool SupportDiskStreaming;
             public bool SupportScenarios;
             public bool SupportScenarioBlending;
+        }
+
+        [Serializable]
+        public class LightPropagationVolumesSettings
+        {
+            [Min(1)]
+            public int PassCount = 1;
         }
     }
 

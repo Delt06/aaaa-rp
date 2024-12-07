@@ -101,6 +101,7 @@ MonoBehaviour:
         _ssrTraceCS: {fileID: 7200000, guid: 6542319fde6147a6ad60c14faf26b380, type: 3}
         _ssrResolvePS: {fileID: 4800000, guid: 40ed29a446be4c73bbc804a97edf03be, type: 3}
         _lpvInjectCS: {fileID: 7200000, guid: 044596346b194aea8fd9d323faa80202, type: 3}
+        _lpvPropagateCS: {fileID: 7200000, guid: 1782e7e0bbf4436dbbe9706932a3f24d, type: 3}
         _smaaPS: {fileID: 4800000, guid: b60243e7e3f846a19d2c60c7e14a5087, type: 3}
         _uberPostProcessingPS: {fileID: 4800000, guid: df9caa481e86404e93faaddb9b82e3b3, type: 3}
     - rid: 3580532324172300380

@@ -94,6 +94,10 @@ namespace DELTation.AAAARP.RenderPipelineResources
         private ComputeShader _lpvInjectCS;
 
         [SerializeField]
+        [ResourcePath("Shaders/GlobalIllumination/LPVPropagate.compute")]
+        private ComputeShader _lpvPropagateCS;
+
+        [SerializeField]
         [ResourcePath("Shaders/AntiAliasing/SMAA.shader")]
         private Shader _smaaPS;
 
@@ -219,6 +223,12 @@ namespace DELTation.AAAARP.RenderPipelineResources
         {
             get => _lpvInjectCS;
             set => this.SetValueAndNotify(ref _lpvInjectCS, value, nameof(_lpvInjectCS));
+        }
+
+        public ComputeShader LpvPropagateCS
+        {
+            get => _lpvPropagateCS;
+            set => this.SetValueAndNotify(ref _lpvPropagateCS, value, nameof(_lpvPropagateCS));
         }
 
         public Shader SmaaPS

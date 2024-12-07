@@ -1,0 +1,120 @@
+﻿#pragma kernel CS
+
+// Sources:
+// - https://github.com/mafian89/Light-Propagation-Volumes/blob/master/shaders/propagation.frag
+// - https://ericpolman.com/2016/06/28/light-propagation-volumes/
+
+#define SIDE_FACE_CONTRIBUTION 1
+#define DIRECT_FACE_CONTRIBUTION 1
+
+#include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
+
+#define THREAD_GROUP_SIZE 32
+
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _SourceRedSH);
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _SourceGreenSH);
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _SourceBlueSH);
+
+RWTexture3D<LPV_CHANNEL_T> _DestinationRedSH;
+RWTexture3D<LPV_CHANNEL_T> _DestinationGreenSH;
+RWTexture3D<LPV_CHANNEL_T> _DestinationBlueSH;
+
+static const float3 directions[] =
+{float3(0, 0, 1), float3(0, 0, -1), float3(1, 0, 0), float3(-1, 0, 0), float3(0, 1, 0), float3(0, -1, 0)};
+
+// orientation = [ right | up | forward ] = [ x | y | z ]
+#define NEIGHBOR_ORIENTATIONS_COUNT 6
+static const float3x3 NeighbourOrientations[NEIGHBOR_ORIENTATIONS_COUNT] = {
+    // Z+
+    float3x3(-1, 0, 0, 0, 1, 0, 0, 0, -1),
+    // Z-
+    float3x3(1, 0, 0, 0, 1, 0, 0, 0, 1),
+    // X+
+    float3x3(0, 0, 1, 0, 1, 0, -1, 0, 0),
+    // X-
+    float3x3(0, 0, -1, 0, 1, 0, 1, 0, 0),
+    // Y+
+    float3x3(1, 0, 0, 0, 0, 1, 0, -1, 0),
+    // Y-
+    float3x3(1, 0, 0, 0, 0, -1, 0, 1, 0)
+};
+
+// right up
+int2 cellSides[4] = {int2(1.0, 0.0), int2(0.0, 1.0), int2(-1.0, 0.0), int2(0.0, -1.0)};
+
+float3 GetEvalSideDirection(int index, int3 orientation)
+{
+    const static float smallComponent = 0.4472135; // 1 / sqrt(5)
+    const static float bigComponent = 0.894427; // 2 / sqrt(5)
+
+    const int2   side = cellSides[index];
+    const float3 tmp = float3(side.x * smallComponent, side.y * smallComponent, bigComponent);
+    return float3(orientation.x * tmp.x, orientation.y * tmp.y, orientation.z * tmp.z);
+}
+
+float3 GetReprojSideDirection(int index, int3 orientation)
+{
+    const int2 side = cellSides[index];
+    return float3(orientation.x * side.x, orientation.y * side.y, 0);
+}
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    const uint flatCellID = dispatchThreadID.x;
+    const uint gridSize = LPV::GetGridSize();
+    if (flatCellID >= gridSize * gridSize * gridSize)
+    {
+        return;
+    }
+
+    const uint3   cellID = LPV::FlatCellIDTo3D(dispatchThreadID.x);
+    LPV_CHANNEL_T redSH = 0;
+    LPV_CHANNEL_T greenSH = 0;
+    LPV_CHANNEL_T blueSH = 0;
+
+    for (uint neighbour = 0; neighbour < NEIGHBOR_ORIENTATIONS_COUNT; ++neighbour)
+    {
+        const float3        mainDirection = directions[neighbour];
+        const uint3         neighbourID = cellID - mainDirection;
+        const LPV_CHANNEL_T neighbourRedSH = LOAD_TEXTURE3D_LOD(_SourceRedSH, neighbourID, 0);
+        const LPV_CHANNEL_T neighbourGreenSH = LOAD_TEXTURE3D_LOD(_SourceGreenSH, neighbourID, 0);
+        const LPV_CHANNEL_T neighbourBlueSH = LOAD_TEXTURE3D_LOD(_SourceBlueSH, neighbourID, 0);
+
+        const static float directFaceSubtendedSolidAngle = 0.4006696846f / PI / 2;
+        const static float sideFaceSubtendedSolidAngle = 0.4234413544f / PI / 3;
+
+        #if DIRECT_FACE_CONTRIBUTION
+        for (uint sideFace = 0; sideFace < 4; ++sideFace)
+        {
+            float3 evalDirection = GetEvalSideDirection(sideFace, mainDirection);
+            float3 reprojDirection = GetReprojSideDirection(sideFace, mainDirection);
+
+            const LPV_CHANNEL_T reprojDirectionCosineLobeSH = LPVMath::DirToCosineLobe(reprojDirection);
+            const LPV_CHANNEL_T evalDirectionSH = LPVMath::DirToSH(evalDirection);
+
+            redSH += sideFaceSubtendedSolidAngle * dot(neighbourRedSH, evalDirectionSH) * reprojDirectionCosineLobeSH;
+            greenSH += sideFaceSubtendedSolidAngle * dot(neighbourGreenSH, evalDirectionSH) * reprojDirectionCosineLobeSH;
+            blueSH += sideFaceSubtendedSolidAngle * dot(neighbourBlueSH, evalDirectionSH) * reprojDirectionCosineLobeSH;
+        }
+        #endif
+
+        #if SIDE_FACE_CONTRIBUTION
+        {
+            const LPV_CHANNEL_T mainDirectionCosineLobeSH = LPVMath::DirToCosineLobe(mainDirection);
+            const LPV_CHANNEL_T mainDirectionSH = LPVMath::DirToSH(mainDirection);
+
+            redSH += directFaceSubtendedSolidAngle * dot(neighbourRedSH, mainDirectionSH) * mainDirectionCosineLobeSH;
+            greenSH += directFaceSubtendedSolidAngle * dot(neighbourGreenSH, mainDirectionSH) * mainDirectionCosineLobeSH;
+            blueSH += directFaceSubtendedSolidAngle * dot(neighbourBlueSH, mainDirectionSH) * mainDirectionCosineLobeSH;
+        }
+        #endif
+    }
+
+    _DestinationRedSH[cellID] = _SourceRedSH[cellID] + redSH;
+    _DestinationGreenSH[cellID] = _SourceGreenSH[cellID] + greenSH;
+    _DestinationBlueSH[cellID] = _SourceBlueSH[cellID] + blueSH;
+}
