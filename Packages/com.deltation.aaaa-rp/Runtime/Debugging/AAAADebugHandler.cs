@@ -41,7 +41,7 @@ namespace DELTation.AAAARP.Debugging
                 _gBufferDebugPass = new GBufferDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
                 _lightingDebugPass = new LightingDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
                 _lightPropagationVolumesDebugPass =
-                    new LightPropagationVolumesDebugPass(AAAARenderPassEvent.BeforeRenderingTransparents, debugShaders, DisplaySettings);
+                    new LightPropagationVolumesDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
 
                 _gpuCullingDebugSetupPass = new GPUCullingDebugSetupPass(AAAARenderPassEvent.BeforeRendering, rawBufferClear);
                 _gpuCullingDebugViewPass = new GPUCullingDebugViewPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);

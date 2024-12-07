@@ -19,6 +19,8 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
 
         Pass
         {
+            Cull OFF
+
             HLSLPROGRAM
             #pragma vertex VS
             #pragma fragment PS
@@ -45,6 +47,7 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : POSITION_WS;
                 float3 normalWS : NORMAL_WS;
+                float  clipDistance : SV_ClipDistance;
             };
 
             Varyings VS(const Attributes IN, const uint instanceID : INSTANCEID_SEMANTIC)
@@ -70,17 +73,13 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
 
                 const float3 cellPositionWS = ComputeLPVCellCenter(globalCellID);
 
-                if (Length2(cellPositionWS - cameraPositionWS) <= _DebugClipDistance * _DebugClipDistance)
-                {
-                    return (Varyings)0;
-                }
-
                 Varyings OUT;
 
                 const float3 positionWS = cellPositionWS + _DebugSize * IN.positionOS;
                 OUT.positionWS = positionWS;
                 OUT.positionCS = TransformWorldToHClip(positionWS);
                 OUT.normalWS = IN.normalOS;
+                OUT.clipDistance = Length2(positionWS - cameraPositionWS) - _DebugClipDistance * _DebugClipDistance;
 
                 return OUT;
             }
