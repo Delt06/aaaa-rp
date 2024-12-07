@@ -14,7 +14,9 @@ namespace DELTation.AAAARP.FrameData
         public TextureHandle DeferredReflections;
         public TextureHandle GTAOTerm;
         public AAAALightingConstantBuffer LightingConstantBuffer;
-        public TextureHandle LPVGrid;
+        public TextureHandle LPVGridRedSH;
+        public TextureHandle LPVGridGreenSH;
+        public TextureHandle LPVGridBlueSH;
         public float3 LPVGridBoundsMax;
         public float3 LPVGridBoundsMin;
         public int LPVGridSize;
@@ -38,7 +40,7 @@ namespace DELTation.AAAARP.FrameData
             GTAOTerm = TextureHandle.nullHandle;
             SSRTraceResult = TextureHandle.nullHandle;
             SSRResolveResult = TextureHandle.nullHandle;
-            LPVGrid = TextureHandle.nullHandle;
+            LPVGridRedSH = LPVGridGreenSH = LPVGridBlueSH = TextureHandle.nullHandle;
             LPVGridBoundsMin = default;
             LPVGridBoundsMax = default;
             LPVGridSize = default;
@@ -54,7 +56,7 @@ namespace DELTation.AAAARP.FrameData
             SSRResolveResult = TextureHandle.nullHandle;
             SSRTraceResultSize = default;
             DeferredReflections = default;
-            LPVGrid = TextureHandle.nullHandle;
+            LPVGridRedSH = LPVGridGreenSH = LPVGridBlueSH = TextureHandle.nullHandle;
             LPVGridBoundsMin = default;
             LPVGridBoundsMax = default;
             LPVGridSize = default;

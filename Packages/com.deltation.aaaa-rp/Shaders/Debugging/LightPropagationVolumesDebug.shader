@@ -37,12 +37,14 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
             struct Attributes
             {
                 float3 positionOS : POSITION;
+                float3 normalOS : NORMAL;
             };
 
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
                 float3 positionWS : POSITION_WS;
+                float3 normalWS : NORMAL_WS;
             };
 
             Varyings VS(const Attributes IN, const uint instanceID : INSTANCEID_SEMANTIC)
@@ -78,13 +80,16 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
                 const float3 positionWS = cellPositionWS + _DebugSize * IN.positionOS;
                 OUT.positionWS = positionWS;
                 OUT.positionCS = TransformWorldToHClip(positionWS);
+                OUT.normalWS = IN.normalOS;
 
                 return OUT;
             }
 
             float4 PS(const Varyings IN) : SV_Target
             {
-                return float4(_DebugIntensity * SampleLPVGrid_PointFilter(IN.positionWS), 1);
+                const float3       normalWS = SafeNormalize(IN.normalWS);
+                const LPVCellValue cellValue = SampleLPVGrid_PointFilter(IN.positionWS);
+                return float4(_DebugIntensity * LPVMath::EvaluateRadiance(cellValue, normalWS), 1);
             }
             ENDHLSL
         }

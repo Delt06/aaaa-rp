@@ -7,11 +7,13 @@
 
 #define THREAD_GROUP_SIZE 64
 
-RWTexture3D<float4> _GridUAV;
+RWTexture3D<float4> _GridRedUAV;
+RWTexture3D<float4> _GridGreenUAV;
+RWTexture3D<float4> _GridBlueUAV;
 
 #define N_SAMPLES 151
 #define R_MAX 0.1
-#define INTENSITY 0.5
+#define INTENSITY 10
 
 static const float2 Samples[N_SAMPLES] =
 {
@@ -168,10 +170,6 @@ static const float2 Samples[N_SAMPLES] =
     float2(0.48271502610609507, -0.8050882593415389),
 };
 
-groupshared uint3 g_AccumulatedFlux;
-
-#define LIGHT_QUANTIZATION_MAX 1024
-
 float3 ComputeRSMCascadeIndex(const float3 positionWS, const CascadeSelectionParameters parameters)
 {
     #if 1
@@ -181,6 +179,22 @@ float3 ComputeRSMCascadeIndex(const float3 positionWS, const CascadeSelectionPar
     #endif
 }
 
+#define LIGHT_QUANTIZATION_MAX 1024
+
+uint4 QuantizeLightValue(float4 v)
+{
+    return (uint4)(v * LIGHT_QUANTIZATION_MAX);
+}
+
+float4 DeQuantizeLightValue(uint4 v)
+{
+    return (float4)v / LIGHT_QUANTIZATION_MAX;
+}
+
+groupshared uint4 g_AccumulatedLightRedSH;
+groupshared uint4 g_AccumulatedLightGreenSH;
+groupshared uint4 g_AccumulatedLightBlueSH;
+
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : SV_GroupThreadID)
 {
@@ -189,7 +203,9 @@ void CS(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : SV_GroupTh
 
     if (groupThreadID.x == 0)
     {
-        g_AccumulatedFlux = 0;
+        _GridRedUAV[cellID] = 0;
+        _GridGreenUAV[cellID] = 0;
+        _GridBlueUAV[cellID] = 0;
     }
 
     GroupMemoryBarrierWithGroupSync();
@@ -199,6 +215,15 @@ void CS(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : SV_GroupTh
     UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
     for (uint lightIndex = 0; lightIndex < directionalLightCount; ++lightIndex)
     {
+        if (groupThreadID.x == 0)
+        {
+            g_AccumulatedLightRedSH = 0;
+            g_AccumulatedLightGreenSH = 0;
+            g_AccumulatedLightBlueSH = 0;
+        }
+
+        GroupMemoryBarrierWithGroupSync();
+
         const float3 lightColor = DirectionalLightColors[lightIndex].rgb;
         const float4 shadowSliceRange_shadowFadeParams = DirectionalLightShadowSliceRanges_ShadowFadeParams[lightIndex];
         const float2 sliceRange = shadowSliceRange_shadowFadeParams.xy;
@@ -237,19 +262,31 @@ void CS(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : SV_GroupTh
                 float3       sampleContribution = rsmValue.flux * SNdotO;
                 sampleContribution *= sample.x * sample.x / (dist2 * dist2);
 
-                const uint3 quantizedSampleContribution = (uint3)(LIGHT_QUANTIZATION_MAX * sampleContribution * lightColor);
+                const float4 shCoefficients = LPVMath::DirToCosineLobe(rsmValue.normalWS) / PI;
+                const uint4  sampleRedSHQuantized = QuantizeLightValue(shCoefficients * sampleContribution.r);
+                const uint4  sampleGreenSHQuantized = QuantizeLightValue(shCoefficients * sampleContribution.g);
+                const uint4  sampleBlueSHQuantized = QuantizeLightValue(shCoefficients * sampleContribution.b);
 
-                InterlockedAdd(g_AccumulatedFlux.x, quantizedSampleContribution.x);
-                InterlockedAdd(g_AccumulatedFlux.y, quantizedSampleContribution.y);
-                InterlockedAdd(g_AccumulatedFlux.z, quantizedSampleContribution.z);
+                UNITY_UNROLL
+                for (uint i = 0; i < 4; ++i)
+                {
+                    InterlockedAdd(g_AccumulatedLightRedSH[i], sampleRedSHQuantized[i]);
+                    InterlockedAdd(g_AccumulatedLightGreenSH[i], sampleGreenSHQuantized[i]);
+                    InterlockedAdd(g_AccumulatedLightBlueSH[i], sampleBlueSHQuantized[i]);
+                }
             }
         }
-    }
 
-    GroupMemoryBarrierWithGroupSync();
+        GroupMemoryBarrierWithGroupSync();
 
-    if (groupThreadID.x == 0)
-    {
-        _GridUAV[cellID] = float4((float3)g_AccumulatedFlux / THREAD_GROUP_SIZE * INTENSITY / LIGHT_QUANTIZATION_MAX, 1);
+        if (groupThreadID.x == 0)
+        {
+            const float finalIntensity = INTENSITY / (float)THREAD_GROUP_SIZE;
+            _GridRedUAV[cellID] += finalIntensity * lightColor.r * DeQuantizeLightValue(g_AccumulatedLightRedSH);
+            _GridGreenUAV[cellID] += finalIntensity * lightColor.g * DeQuantizeLightValue(g_AccumulatedLightGreenSH);
+            _GridBlueUAV[cellID] += finalIntensity * lightColor.b * DeQuantizeLightValue(g_AccumulatedLightBlueSH);
+        }
+
+        GroupMemoryBarrierWithGroupSync();
     }
 }

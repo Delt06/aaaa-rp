@@ -35,7 +35,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
-            Assert.IsTrue(lightingData.LPVGrid.IsValid());
+            Assert.IsTrue(lightingData.LPVGridRedSH.IsValid());
             passData.DebugSize = _debugDisplaySettings.RenderingSettings.LightPropagationVolumesDebugSize;
             passData.DebugIntensity = _debugDisplaySettings.RenderingSettings.LightPropagationVolumesDebugIntensity;
             passData.DebugClipDistance = _debugDisplaySettings.RenderingSettings.LightPropagationVolumesDebugClipDistance;
@@ -51,7 +51,7 @@ namespace DELTation.AAAARP.Passes.Debugging
                 }
             );
 
-            builder.ReadTexture(lightingData.LPVGrid);
+            builder.ReadTexture(lightingData.LPVGridRedSH);
             passData.RenderTarget = builder.ReadWriteTexture(resourceData.CameraScaledColorBuffer);
             passData.DepthStencil = builder.ReadWriteTexture(resourceData.CameraScaledDepthBuffer);
         }

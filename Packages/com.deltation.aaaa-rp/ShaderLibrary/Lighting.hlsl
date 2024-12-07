@@ -165,7 +165,10 @@ float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, c
     gi *= aaaa_AmbientIntensity;
 
     #if defined(AAAA_LPV)
-    gi += SampleLPVGrid(absolutePositionWS);
+    {
+        const LPVCellValue lpvCell = SampleLPVGrid(absolutePositionWS);
+        gi += LPVMath::EvaluateRadiance(lpvCell, normalWS);   
+    }
     #endif
 
     return gi;
