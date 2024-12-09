@@ -19,6 +19,7 @@
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Depth.hlsl"
 
 RWTexture3D<LPV_CHANNEL_T> _GridRedUAV;
 RWTexture3D<LPV_CHANNEL_T> _GridGreenUAV;
@@ -242,7 +243,7 @@ void KERNEL_NAME(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : S
 
     GroupMemoryBarrierWithGroupSync();
 
-    const uint sampleIndex = groupThreadID.x * (N_SAMPLES / THREAD_GROUP_SIZE); 
+    const uint sampleIndex = groupThreadID.x * (N_SAMPLES / THREAD_GROUP_SIZE);
     const uint directionalLightCount = GetDirectionalLightCount();
 
     UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
@@ -278,11 +279,13 @@ void KERNEL_NAME(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : S
                 const bool   isPerspective = false;
                 const float3 shadowCoords = TransformWorldToShadowCoords(cellCenterWS, selectedCascadeSlice.WorldToShadowCoords,
                                                                          isPerspective);
-                const float2           sample = Samples[sampleIndex];
-                const float3           offsetShadowCoords = shadowCoords.xyz + radiusModifier * R_MAX * float3(sample.xy, 0);
-                const RsmValue         rsmValue = SampleRsmValue(selectedCascadeSlice, offsetShadowCoords.xy);
-                const Texture2D<float> shadowMap = GetBindlessTexture2DFloat(selectedCascadeSlice.BindlessShadowMapIndex);
-                const float            shadowAttenuation = SAMPLE_TEXTURE2D_SHADOW(shadowMap, sampler_LinearClampCompare, offsetShadowCoords);
+                const float2   sample = Samples[sampleIndex];
+                const float3   offsetShadowCoords = shadowCoords.xyz + radiusModifier * R_MAX * float3(sample.xy, 0);
+                const RsmValue rsmValue = SampleRsmValue(selectedCascadeSlice, offsetShadowCoords.xy);
+
+                const float3 sampleShadowCoords = TransformWorldToShadowCoords(rsmValue.positionWS, selectedCascadeSlice.WorldToShadowCoords,
+                                                                               isPerspective);
+                const float shadowAttenuation = GREATER_DEPTH(shadowCoords.z, sampleShadowCoords.z) ? 1 : 0;
 
                 const float3 offset = cellCenterWS - rsmValue.positionWS;
                 const float  dist2 = max(FLT_MIN, dot(offset, offset));
