@@ -27,10 +27,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAALightPropagationVolumesData lpvData = frameData.GetOrCreate<AAAALightPropagationVolumesData>();
 
-            passData.GridSize = lpvData.GridSize = 64;
+            AAAALpvVolumeComponent lpvVolumeComponent = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>();
+            passData.Intensity = IntensityModifier * lpvVolumeComponent.Intensity.value;
+            passData.KernelIndex = (int) lpvVolumeComponent.InjectQuality.value;
+            passData.GridSize = lpvData.GridSize = (int) lpvVolumeComponent.GridSize.value;
             passData.GridBoundsMin = lpvData.GridBoundsMin = math.float3(-20, -20, -20);
             passData.GridBoundsMax = lpvData.GridBoundsMax = math.float3(20, 20, 20);
-            passData.Intensity = IntensityModifier * cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>().Intensity.value;
             lpvData.GridSHDesc = new TextureDesc
             {
                 width = passData.GridSize,
@@ -87,7 +89,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             context.cmd.SetGlobalTexture(ShaderIDs.Global._LPVGridGreenSH, data.GridGreenSH);
             context.cmd.SetGlobalTexture(ShaderIDs.Global._LPVGridBlueSH, data.GridBlueSH);
 
-            const int kernelIndex = 0;
+            int kernelIndex = data.KernelIndex;
             context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridRedUAV, data.GridRedSH);
             context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridGreenUAV, data.GridGreenSH);
             context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridBlueUAV, data.GridBlueSH);
@@ -106,6 +108,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public TextureHandle GridRedSH;
             public int GridSize;
             public float Intensity;
+            public int KernelIndex;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]

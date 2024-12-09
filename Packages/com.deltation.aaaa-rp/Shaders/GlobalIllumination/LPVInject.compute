@@ -1,4 +1,15 @@
-﻿#pragma kernel CS
+﻿#pragma kernel CS_Low KERNEL_NAME=CS_Low THREAD_GROUP_SIZE=16
+#pragma kernel CS_Medium KERNEL_NAME=CS_Medium THREAD_GROUP_SIZE=32
+#pragma kernel CS_Medium KERNEL_NAME=CS_Medium THREAD_GROUP_SIZE=64
+#pragma kernel CS_Ultra KERNEL_NAME=CS_Ultra THREAD_GROUP_SIZE=128
+
+#ifndef KERNEL_NAME
+#define KERNEL_NAME CS
+#endif
+
+#ifndef THREAD_GROUP_SIZE
+#define THREAD_GROUP_SIZE 32
+#endif
 
 // Sources:
 // - https://github.com/mafian89/Light-Propagation-Volumes/blob/master/shaders/lightInject.frag
@@ -8,8 +19,6 @@
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
-
-#define THREAD_GROUP_SIZE 64
 
 RWTexture3D<LPV_CHANNEL_T> _GridRedUAV;
 RWTexture3D<LPV_CHANNEL_T> _GridGreenUAV;
@@ -219,7 +228,7 @@ void ResetAccumulatedValues(const uint3 groupThreadID)
 }
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
-void CS(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : SV_GroupThreadID)
+void KERNEL_NAME(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : SV_GroupThreadID)
 {
     const uint3  cellID = groupID;
     const float3 cellCenterWS = LPV::ComputeCellCenter(cellID);
