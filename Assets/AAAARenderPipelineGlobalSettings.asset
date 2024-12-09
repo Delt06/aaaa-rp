@@ -100,6 +100,7 @@ MonoBehaviour:
         _hzbGenerationCS: {fileID: 7200000, guid: 30e9b92e6a184f1fae128dee76e92eee, type: 3}
         _ssrTraceCS: {fileID: 7200000, guid: 6542319fde6147a6ad60c14faf26b380, type: 3}
         _ssrResolvePS: {fileID: 4800000, guid: 40ed29a446be4c73bbc804a97edf03be, type: 3}
+        _rsmDownsampleCS: {fileID: 7200000, guid: 0c3a78ba2f254af28ecd76499de7a883, type: 3}
         _lpvInjectCS: {fileID: 7200000, guid: 044596346b194aea8fd9d323faa80202, type: 3}
         _lpvPropagateCS: {fileID: 7200000, guid: 1782e7e0bbf4436dbbe9706932a3f24d, type: 3}
         _smaaPS: {fileID: 4800000, guid: b60243e7e3f846a19d2c60c7e14a5087, type: 3}

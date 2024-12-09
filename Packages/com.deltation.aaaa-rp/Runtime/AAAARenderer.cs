@@ -46,6 +46,7 @@ namespace DELTation.AAAARP
         private readonly LPVPropagatePass _lpvPropagatePass;
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
+        private readonly RSMDownsamplePass _rsmDownsamplePass;
         private readonly SetupLightingPass _setupLightingPass;
         private readonly SetupProbeVolumesPass _setupProbeVolumesPass;
         private readonly ShadowPassPool _shadowPassPool;
@@ -104,6 +105,7 @@ namespace DELTation.AAAARP
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
             _colorHistoryPass = new ColorHistoryPass(AAAARenderPassEvent.AfterRenderingTransparents);
             _setupProbeVolumesPass = new SetupProbeVolumesPass(AAAARenderPassEvent.BeforeRendering);
+            _rsmDownsamplePass = new RSMDownsamplePass(AAAARenderPassEvent.AfterRenderingShadows, shaders);
             _lpvInjectPass = new LPVInjectPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _lpvPropagatePass = new LPVPropagatePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
 
@@ -154,6 +156,7 @@ namespace DELTation.AAAARP
 
             if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.LightPropagationVolumes)
             {
+                EnqueuePass(_rsmDownsamplePass);
                 EnqueuePass(_lpvInjectPass);
                 EnqueuePass(_lpvPropagatePass);
             }

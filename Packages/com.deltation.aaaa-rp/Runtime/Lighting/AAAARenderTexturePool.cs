@@ -56,6 +56,7 @@ namespace DELTation.AAAARP.Lighting
                 var renderTexture = new RenderTexture(resolution, resolution, _parameters.ColorFormat, _parameters.DepthFormat, 1)
                 {
                     hideFlags = HideFlags.HideAndDontSave,
+                    enableRandomWrite = _parameters.EnableRandomWrite,
                 };
 #if DEBUG
                 renderTexture.name = $"{_parameters.NamePrefix}_{resolution}x{resolution}_{poolData.RenderTextures.Count:00}";
@@ -93,6 +94,7 @@ namespace DELTation.AAAARP.Lighting
             public string NamePrefix;
             public GraphicsFormat ColorFormat;
             public GraphicsFormat DepthFormat;
+            public bool EnableRandomWrite;
         }
 
         public struct Allocation

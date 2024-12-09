@@ -187,6 +187,7 @@ namespace DELTation.AAAARP.FrameData
                             if (cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.LightPropagationVolumes)
                             {
                                 shadowLight.RsmAttachmentAllocation = rtPoolSet.AllocateRsmMaps(shadowMapResolution);
+                                shadowLight.RsmFinalAllocation = default;
                                 shadowLight.RsmSliceIndex = shadowLight.Splits.Length - 1;
                             }
                         }
@@ -252,14 +253,23 @@ namespace DELTation.AAAARP.FrameData
                             }
                         }
 
-                        AAAAShadowUtils.GetScaleAndBiasForLinearDistanceFade(
-                            shadowDistance * shadowDistance, shadowSettings.ShadowFade, out float shadowFadeScale, out float shadowFadeBias
-                        );
-                        shadowLight.FadeParams = math.float2(shadowFadeScale, shadowFadeBias);
+                        if (shadowLight.Splits.Length > 0)
+                        {
+                            shadowLight.Resolution = shadowMapResolution;
+                            AAAAShadowUtils.GetScaleAndBiasForLinearDistanceFade(
+                                shadowDistance * shadowDistance, shadowSettings.ShadowFade, out float shadowFadeScale, out float shadowFadeBias
+                            );
+                            shadowLight.FadeParams = math.float2(shadowFadeScale, shadowFadeBias);
+                        }
+                        else
+                        {
+                            shadowLight.Resolution = 0;
+                            shadowLight.FadeParams = default;
+                        }
                     }
                     else
                     {
-                        shadowLight.FadeParams = math.float2(0.0f, 0.0f);
+                        shadowLight.FadeParams = default;
                     }
 
                     shadowLight.DepthBias = -(shadowLight.LightType == LightType.Directional ? shadowSettings.DepthBias : shadowSettings.PunctualDepthBias);
@@ -300,6 +310,7 @@ namespace DELTation.AAAARP.FrameData
             public float2 FadeParams;
             public int Resolution;
             public AAAALightPropagationVolumes.RsmAttachmentAllocation RsmAttachmentAllocation;
+            public AAAALightPropagationVolumes.RsmAttachmentAllocation RsmFinalAllocation;
             public int RsmSliceIndex;
 
             public NativeList<ShadowLightSplit> Splits;

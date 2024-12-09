@@ -25,12 +25,14 @@ namespace DELTation.AAAARP
                 {
                     NamePrefix = "RSM_PositionMap",
                     ColorFormat = GraphicsFormat.R32G32B32A32_SFloat,
+                    EnableRandomWrite = true,
                 }
             );
             RsmNormalMap = new AAAARenderTexturePool(bindlessTextureContainer, new AAAARenderTexturePool.Parameters
                 {
                     NamePrefix = "RSM_NormalMap",
                     ColorFormat = GraphicsFormat.R16G16_SNorm,
+                    EnableRandomWrite = true,
                 }
             );
 
@@ -42,6 +44,7 @@ namespace DELTation.AAAARP
                     {
                         NamePrefix = "RSM_FluxMap",
                         ColorFormat = AAAARenderPipelineCore.MakeRenderTextureGraphicsFormat(isHdrEnabled, hdrColorBufferPrecision, needsAlpha),
+                        EnableRandomWrite = true,
                     }
                 );
             }

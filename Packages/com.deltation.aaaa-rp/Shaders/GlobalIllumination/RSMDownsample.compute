@@ -1,0 +1,117 @@
+﻿#pragma kernel CS
+
+// Sources:
+// - Kaplanyan, Anton. (2009). Light Propagation Volumes in CryEngine 3.
+
+#define THREAD_GROUP_SIZE 8
+#define KERNEL_SIZE 4
+
+#include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Depth.hlsl"
+
+float4 _DestinationSize;
+float4 _LightDirectionWS;
+
+TYPED_TEXTURE2D(float4, _SourcePositionMap);
+TYPED_TEXTURE2D(float2, _SourceNormalMap);
+TYPED_TEXTURE2D(float3, _SourceFluxMap);
+
+RWTexture2D<float4> _DestinationPositionMap;
+RWTexture2D<float2> _DestinationNormalMap;
+RWTexture2D<float3> _DestinationFluxMap;
+
+uint2 ComputeSourceTexelID(const uint2 destinationTexelID, const uint i, const uint j)
+{
+    return destinationTexelID * KERNEL_SIZE + uint2(i, j);
+}
+
+RsmOutput FetchSourceRSM(const uint2 texelID)
+{
+    RsmOutput rsmOutput;
+    rsmOutput.positionWS = LOAD_TEXTURE2D_LOD(_SourcePositionMap, texelID, 0).xyz;
+    rsmOutput.packedNormalWS = LOAD_TEXTURE2D_LOD(_SourceNormalMap, texelID, 0).xy;
+    rsmOutput.flux = LOAD_TEXTURE2D_LOD(_SourceFluxMap, texelID, 0).xyz;
+    return rsmOutput;
+}
+
+float GetRsmLuminance(RsmValue rsm)
+{
+    return Luminance(rsm.flux) * saturate(dot(rsm.normalWS, _LightDirectionWS.xyz));
+}
+
+int3 ChooseBrightestCellID(const uint2 destinationTexelID)
+{
+    int3  chosenCellID = 0;
+    float maxRsmLuminance = 0;
+    for (uint i = 0; i < KERNEL_SIZE; i++)
+    {
+        for (uint j = 0; j < KERNEL_SIZE; j++)
+        {
+            const uint2     sourceTexelID = ComputeSourceTexelID(destinationTexelID, i, j);
+            const RsmOutput sourceRsmPacked = FetchSourceRSM(sourceTexelID);
+            const RsmValue  sourceRsm = RsmValue::Unpack(sourceRsmPacked);
+            const float     rsmLuminance = GetRsmLuminance(sourceRsm);
+
+            if (rsmLuminance > maxRsmLuminance)
+            {
+                chosenCellID = LPV::ComputeCellID(sourceRsm.positionWS);
+                maxRsmLuminance = rsmLuminance;
+            }
+        }
+    }
+
+    return chosenCellID;
+}
+
+RsmValue FilterSource(const uint2 destinationTexelID, const float3 brightestCellID)
+{
+    RsmValue outputValue = (RsmValue)0;
+    float    sampleCount = 0;
+    for (uint i = 0; i < KERNEL_SIZE; i++)
+    {
+        for (uint j = 0; j < KERNEL_SIZE; j++)
+        {
+            const uint2     sourceTexelID = ComputeSourceTexelID(destinationTexelID, i, j);
+            const RsmOutput sourceRsmPacked = FetchSourceRSM(sourceTexelID);
+            const RsmValue  sourceRsm = RsmValue::Unpack(sourceRsmPacked);
+            const float3    cellID = LPV::ComputeCellID(sourceRsm.positionWS);
+            const float3    dGrid = cellID - brightestCellID;
+            if (dot(dGrid, dGrid) < 3)
+            {
+                outputValue.positionWS += sourceRsm.positionWS;
+                outputValue.normalWS += sourceRsm.normalWS;
+                outputValue.flux += sourceRsm.flux;
+                ++sampleCount;
+            }
+        }
+    }
+
+    if (sampleCount > 0)
+    {
+        const float invSampleCount = rcp(sampleCount);
+        outputValue.positionWS *= invSampleCount;
+        outputValue.normalWS = SafeNormalize(outputValue.normalWS * invSampleCount);
+        outputValue.flux /= (KERNEL_SIZE * KERNEL_SIZE);
+    }
+
+    return outputValue;
+}
+
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    const uint2  destinationTexelID = dispatchThreadID.xy;
+    const float3 brightestCellID = ChooseBrightestCellID(destinationTexelID);
+    RsmValue     outputValue = FilterSource(destinationTexelID, brightestCellID);
+
+    if (all(destinationTexelID < _DestinationSize.xy))
+    {
+        const RsmOutput output = outputValue.Pack();
+        _DestinationPositionMap[destinationTexelID] = float4(output.positionWS, 1);
+        _DestinationNormalMap[destinationTexelID] = output.packedNormalWS;
+        _DestinationFluxMap[destinationTexelID] = output.flux;
+    }
+}
