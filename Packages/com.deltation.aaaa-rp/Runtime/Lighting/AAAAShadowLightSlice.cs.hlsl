@@ -12,9 +12,9 @@ struct AAAAShadowLightSlice
     float4 BoundingSphere;
     float4 AtlasSize;
     int BindlessShadowMapIndex;
-    int BindlessRsmPositionMapIndex;
-    int BindlessRsmNormalMapIndex;
-    int BindlessRsmFluxMapIndex;
+    int Padding0;
+    int Padding1;
+    int Padding2;
 };
 
 

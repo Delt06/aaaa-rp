@@ -48,7 +48,7 @@ void TransferOutput(const ShadowCasterVaryings IN, const float4 albedo, inout SH
     rsmValue.positionWS = IN.positionWS;
     rsmValue.normalWS = SafeNormalize(IN.normalWS);
     rsmValue.flux = albedo.rgb;
-    OUT = PackRsmOutput(rsmValue);
+    OUT = rsmValue.Pack();
     #endif
 }
 

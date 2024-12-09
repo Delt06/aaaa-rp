@@ -122,6 +122,7 @@ namespace DELTation.AAAARP.FrameData
                 };
                 float3 cameraPosition = camera.transform.position;
                 float shadowDistance = math.min(cameraFarPlane, shadowSettings.MaxDistance);
+                ref readonly AAAARenderTexturePoolSet rtPoolSet = ref renderingData.RtPoolSet;
 
                 for (int index = 0; index < shadowLights.Length; index++)
                 {
@@ -160,7 +161,6 @@ namespace DELTation.AAAARP.FrameData
                                 );
 
                                 Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
-                                ref readonly AAAARenderTexturePoolSet rtPoolSet = ref renderingData.RtPoolSet;
                                 var shadowLightSplit = new ShadowLightSplit
                                 {
                                     ShadowMapAllocation = rtPoolSet.ShadowMap.Allocate(shadowMapResolution),
@@ -181,12 +181,13 @@ namespace DELTation.AAAARP.FrameData
                                     GPUProjectionMatrix = GL.GetGPUProjectionMatrix(lightProjection, renderIntoTexture),
                                 };
 
-                                if (cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.LightPropagationVolumes)
-                                {
-                                    shadowLightSplit.RsmAttachmentAllocation = rtPoolSet.AllocateRsmMaps(shadowMapResolution);
-                                }
-
                                 shadowLight.Splits.Add(shadowLightSplit);
+                            }
+
+                            if (cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.LightPropagationVolumes)
+                            {
+                                shadowLight.RsmAttachmentAllocation = rtPoolSet.AllocateRsmMaps(shadowMapResolution);
+                                shadowLight.RsmSliceIndex = shadowLight.Splits.Length - 1;
                             }
                         }
                         else if (shadowLight.LightType == LightType.Spot)
@@ -298,6 +299,8 @@ namespace DELTation.AAAARP.FrameData
             public float SlopeBias;
             public float2 FadeParams;
             public int Resolution;
+            public AAAALightPropagationVolumes.RsmAttachmentAllocation RsmAttachmentAllocation;
+            public int RsmSliceIndex;
 
             public NativeList<ShadowLightSplit> Splits;
         }
@@ -307,7 +310,6 @@ namespace DELTation.AAAARP.FrameData
             public Matrix4x4 GPUProjectionMatrix;
             public GPUCullingPass.CullingViewParameters CullingView;
             public AAAARenderTexturePool.Allocation ShadowMapAllocation;
-            public AAAALightPropagationVolumes.RsmAttachmentAllocation RsmAttachmentAllocation;
         }
     }
 }

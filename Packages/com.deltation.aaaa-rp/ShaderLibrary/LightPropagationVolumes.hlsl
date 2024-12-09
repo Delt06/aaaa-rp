@@ -4,6 +4,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows.hlsl"
+#include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAALpvConstantBuffer.cs.hlsl"
 
 #define LPV_CHANNEL_T float4
 
@@ -114,6 +115,16 @@ struct RsmOutput
     float3 positionWS : SV_Target0;
     float2 packedNormalWS : SV_Target1;
     float3 flux : SV_Target2;
+
+    static float2 PackRsmNormal(const float3 normal)
+    {
+        return PackNormalOctQuadEncode(normal);
+    }
+
+    static float3 UnpackRsmNormal(const float2 packedNormal)
+    {
+        return UnpackNormalOctQuadEncode(packedNormal);
+    }
 };
 
 struct RsmValue
@@ -121,49 +132,63 @@ struct RsmValue
     float3 positionWS;
     float3 normalWS;
     float3 flux;
+
+    RsmOutput Pack()
+    {
+        RsmOutput output;
+        output.positionWS = positionWS;
+        output.packedNormalWS = RsmOutput::PackRsmNormal(normalWS);
+        output.flux = flux;
+        return output;
+    }
+
+    static RsmValue Unpack(const RsmOutput output)
+    {
+        RsmValue value;
+        value.positionWS = output.positionWS;
+        value.normalWS = RsmOutput::UnpackRsmNormal(output.packedNormalWS);
+        value.flux = output.flux;
+        return value;
+    }
 };
 
-float2 PackRsmNormal(const float3 normal)
+struct RsmAllocation
 {
-    return PackNormalOctQuadEncode(normal);
-}
+    int BindlessPositionMapIndex;
+    int BindlessNormalMapIndex;
+    int BindlessFluxMapIndex;
+    int SliceIndex;
 
-float3 UnpackRsmNormal(const float2 packedNormal)
-{
-    return UnpackNormalOctQuadEncode(packedNormal);
-}
+    static RsmAllocation LoadForDirectionalLight(const uint lightIndex)
+    {
+        RsmAllocation allocation;
+        float4        rawAllocation = DirectionalLightRsmBindlessIndices[lightIndex];
+        allocation.BindlessPositionMapIndex = rawAllocation.x;
+        allocation.BindlessNormalMapIndex = rawAllocation.y;
+        allocation.BindlessFluxMapIndex = rawAllocation.z;
+        allocation.SliceIndex = rawAllocation.w;
+        return allocation;
+    }
 
-RsmOutput PackRsmOutput(const RsmValue value)
-{
-    RsmOutput output;
-    output.positionWS = value.positionWS;
-    output.packedNormalWS = PackRsmNormal(value.normalWS);
-    output.flux = value.flux;
-    return output;
-}
+    bool IsValid()
+    {
+        return all(int3(BindlessPositionMapIndex, BindlessNormalMapIndex, BindlessFluxMapIndex) != -1);
+    }
 
-RsmValue UnpackRsmOutput(const RsmOutput output)
-{
-    RsmValue value;
-    value.positionWS = output.positionWS;
-    value.normalWS = UnpackRsmNormal(output.packedNormalWS);
-    value.flux = output.flux;
-    return value;
-}
+    RsmValue SampleRsmValue(const float2 shadowCoords)
+    {
+        const Texture2D    positionMap = GetBindlessTexture2D(BindlessPositionMapIndex);
+        const Texture2D    normalMap = GetBindlessTexture2D(BindlessNormalMapIndex);
+        const Texture2D    fluxMap = GetBindlessTexture2D(BindlessFluxMapIndex);
+        const SamplerState rsmSampler = sampler_PointClamp;
 
-RsmValue SampleRsmValue(const AAAAShadowLightSlice shadowLightSlice, const float2 shadowCoords)
-{
-    const Texture2D    positionMap = GetBindlessTexture2D(shadowLightSlice.BindlessRsmPositionMapIndex);
-    const Texture2D    normalMap = GetBindlessTexture2D(shadowLightSlice.BindlessRsmNormalMapIndex);
-    const Texture2D    fluxMap = GetBindlessTexture2D(shadowLightSlice.BindlessRsmFluxMapIndex);
-    const SamplerState rsmSampler = sampler_PointClamp;
+        RsmOutput rsmOutput;
+        rsmOutput.positionWS = SAMPLE_TEXTURE2D_LOD(positionMap, rsmSampler, shadowCoords.xy, 0).rgb;
+        rsmOutput.packedNormalWS = SAMPLE_TEXTURE2D_LOD(normalMap, rsmSampler, shadowCoords.xy, 0).xy;
+        rsmOutput.flux = SAMPLE_TEXTURE2D_LOD(fluxMap, rsmSampler, shadowCoords.xy, 0).rgb;
 
-    RsmOutput rsmOutput;
-    rsmOutput.positionWS = SAMPLE_TEXTURE2D_LOD(positionMap, rsmSampler, shadowCoords.xy, 0).rgb;
-    rsmOutput.packedNormalWS = SAMPLE_TEXTURE2D_LOD(normalMap, rsmSampler, shadowCoords.xy, 0).xy;
-    rsmOutput.flux = SAMPLE_TEXTURE2D_LOD(fluxMap, rsmSampler, shadowCoords.xy, 0).rgb;
-
-    return UnpackRsmOutput(rsmOutput);
-}
+        return RsmValue::Unpack(rsmOutput);
+    }
+};
 
 #endif // AAAA_LIGHT_PROPAGATION_VOLUMES_INCLUDED

@@ -61,9 +61,9 @@ namespace DELTation.AAAARP.Passes.Shadows
             RenderTexture shadowMap = shadowMapPool.LookupRenderTexture(shadowLightSplit.ShadowMapAllocation);
             passData.ShadowMap = shadowMap;
 
-            if (shadowLightSplit.RsmAttachmentAllocation.IsValid)
+            if (SplitIndex == shadowLight.Splits.Length - 1 && shadowLight.RsmAttachmentAllocation.IsValid)
             {
-                renderingData.RtPoolSet.LookupRsmAttachments(shadowLightSplit.RsmAttachmentAllocation, passData.RsmAttachments);
+                renderingData.RtPoolSet.LookupRsmAttachments(shadowLight.RsmAttachmentAllocation, passData.RsmAttachments);
                 passData.UseRsm = true;
             }
 

@@ -256,62 +256,51 @@ void KERNEL_NAME(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : S
         const float4 shadowSliceRange_shadowFadeParams = DirectionalLightShadowSliceRanges_ShadowFadeParams[lightIndex];
         const float2 sliceRange = shadowSliceRange_shadowFadeParams.xy;
 
+        RsmAllocation rsmAllocation = RsmAllocation::LoadForDirectionalLight(lightIndex);
+
         UNITY_BRANCH
-        if (sliceRange.y > 0)
+        if (rsmAllocation.IsValid())
         {
             AAAAShadowLightSlice cascadeSlices[4];
             LoadCascadeShadowLightSlices(sliceRange, cascadeSlices);
 
-            CascadeSelectionParameters cascadeSelectionParameters;
-            cascadeSelectionParameters.Slices = cascadeSlices;
-            cascadeSelectionParameters.CascadeCount = sliceRange.y;
-            const uint                 selectedCascadeIndex = ComputeRSMCascadeIndex(cellCenterWS, cascadeSelectionParameters);
+            const uint                 selectedCascadeIndex = rsmAllocation.SliceIndex;
             const float                radiusModifier = rcp(1 << selectedCascadeIndex);
             const AAAAShadowLightSlice selectedCascadeSlice = cascadeSlices[selectedCascadeIndex];
 
-            UNITY_BRANCH
-            if (selectedCascadeSlice.BindlessShadowMapIndex != -1 &&
-                selectedCascadeSlice.BindlessRsmPositionMapIndex != -1 &&
-                selectedCascadeSlice.BindlessRsmNormalMapIndex != -1 &&
-                selectedCascadeSlice.BindlessRsmFluxMapIndex != -1
-            )
-            {
-                const bool   isPerspective = false;
-                const float3 shadowCoords = TransformWorldToShadowCoords(cellCenterWS, selectedCascadeSlice.WorldToShadowCoords,
-                                                                         isPerspective);
-                const float2   sample = Samples[sampleIndex];
-                const float3   offsetShadowCoords = shadowCoords.xyz + radiusModifier * R_MAX * float3(sample.xy, 0);
-                const RsmValue rsmValue = SampleRsmValue(selectedCascadeSlice, offsetShadowCoords.xy);
+            const bool     isPerspective = false;
+            const float3   shadowCoords = TransformWorldToShadowCoords(cellCenterWS, selectedCascadeSlice.WorldToShadowCoords, isPerspective);
+            const float2   sample = Samples[sampleIndex];
+            const float3   offsetShadowCoords = shadowCoords.xyz + radiusModifier * R_MAX * float3(sample.xy, 0);
+            const RsmValue rsmValue = rsmAllocation.SampleRsmValue(offsetShadowCoords.xy);
 
-                const float3 sampleShadowCoords = TransformWorldToShadowCoords(rsmValue.positionWS, selectedCascadeSlice.WorldToShadowCoords,
-                                                                               isPerspective);
-                const float shadowAttenuation = GREATER_DEPTH(shadowCoords.z, sampleShadowCoords.z) ? 1 : 0;
+            const float3 sampleShadowCoords = TransformWorldToShadowCoords(rsmValue.positionWS, selectedCascadeSlice.WorldToShadowCoords, isPerspective);
+            const float  shadowAttenuation = GREATER_DEPTH(shadowCoords.z, sampleShadowCoords.z) ? 1 : 0;
 
-                const float3 offset = cellCenterWS - rsmValue.positionWS;
-                const float  dist2 = max(FLT_MIN, dot(offset, offset));
-                const float  SNdotO = max(0, (dot(rsmValue.normalWS, offset)));
-                float3       sampleContribution = rsmValue.flux * SNdotO;
-                sampleContribution *= sample.x * sample.x / (dist2 * dist2);
+            const float3 offset = cellCenterWS - rsmValue.positionWS;
+            const float  dist2 = max(FLT_MIN, dot(offset, offset));
+            const float  SNdotO = max(0, (dot(rsmValue.normalWS, offset)));
+            float3       sampleContribution = rsmValue.flux * SNdotO;
+            sampleContribution *= sample.x * sample.x / (dist2 * dist2);
 
-                const float4 shCoefficients = LPVMath::DirToCosineLobe(rsmValue.normalWS) * INV_PI;
-                const uint4  sampleRedSHQuantized = QuantizeLightValue(shCoefficients * sampleContribution.r);
-                const uint4  sampleGreenSHQuantized = QuantizeLightValue(shCoefficients * sampleContribution.g);
-                const uint4  sampleBlueSHQuantized = QuantizeLightValue(shCoefficients * sampleContribution.b);
+            const float4 shCoefficients = LPVMath::DirToCosineLobe(rsmValue.normalWS) * INV_PI;
+            const uint4  sampleRedSHQuantized = QuantizeLightValue(shCoefficients * sampleContribution.r);
+            const uint4  sampleGreenSHQuantized = QuantizeLightValue(shCoefficients * sampleContribution.g);
+            const uint4  sampleBlueSHQuantized = QuantizeLightValue(shCoefficients * sampleContribution.b);
 
-                float sampleBlockingPotential = 1 - saturate(dot(rsmValue.normalWS, lightDirectionWS)) * (1 - shadowAttenuation);
-                #if BLOCKING_POTENTIAL_POWER != 1
+            float sampleBlockingPotential = 1 - saturate(dot(rsmValue.normalWS, lightDirectionWS)) * (1 - shadowAttenuation);
+            #if BLOCKING_POTENTIAL_POWER != 1
                 sampleBlockingPotential = 1 - pow(1 - sampleBlockingPotential, BLOCKING_POTENTIAL_POWER);
-                #endif
-                const uint4 sampleBlockingPotentialSHQuantized = QuantizeLightValue(shCoefficients * sampleBlockingPotential);
+            #endif
+            const uint4 sampleBlockingPotentialSHQuantized = QuantizeLightValue(shCoefficients * sampleBlockingPotential);
 
-                UNITY_UNROLL
-                for (uint i = 0; i < 4; ++i)
-                {
-                    InterlockedAdd(g_AccumulatedLightRedSH[i], sampleRedSHQuantized[i]);
-                    InterlockedAdd(g_AccumulatedLightGreenSH[i], sampleGreenSHQuantized[i]);
-                    InterlockedAdd(g_AccumulatedLightBlueSH[i], sampleBlueSHQuantized[i]);
-                    InterlockedAdd(g_AccumulatedBlockingPotentialSH[i], sampleBlockingPotentialSHQuantized[i]);
-                }
+            UNITY_UNROLL
+            for (uint i = 0; i < 4; ++i)
+            {
+                InterlockedAdd(g_AccumulatedLightRedSH[i], sampleRedSHQuantized[i]);
+                InterlockedAdd(g_AccumulatedLightGreenSH[i], sampleGreenSHQuantized[i]);
+                InterlockedAdd(g_AccumulatedLightBlueSH[i], sampleBlueSHQuantized[i]);
+                InterlockedAdd(g_AccumulatedBlockingPotentialSH[i], sampleBlockingPotentialSHQuantized[i]);
             }
         }
 
