@@ -234,7 +234,7 @@ void CS(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : SV_GroupTh
 
     GroupMemoryBarrierWithGroupSync();
 
-    const uint sampleIndex = groupThreadID.x;
+    const uint sampleIndex = groupThreadID.x * (N_SAMPLES / THREAD_GROUP_SIZE); 
     const uint directionalLightCount = GetDirectionalLightCount();
 
     UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
