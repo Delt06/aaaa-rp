@@ -54,8 +54,8 @@ namespace DELTation.AAAARP.Renderers
 
             public override void ProcessData(List<Object> changed, NativeArray<int> changedID, NativeArray<int> destroyedID)
             {
-                _instanceDataBuffer.OnRenderersChanged(changed, changedID);
                 _instanceDataBuffer.OnRenderersDestroyed(destroyedID);
+                _instanceDataBuffer.OnRenderersChanged(changed, changedID);
             }
         }
 
