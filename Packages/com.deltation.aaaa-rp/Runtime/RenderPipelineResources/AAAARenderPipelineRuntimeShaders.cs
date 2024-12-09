@@ -92,6 +92,10 @@ namespace DELTation.AAAARP.RenderPipelineResources
         [SerializeField]
         [ResourcePath("Shaders/GlobalIllumination/RSMDownsample.compute")]
         private ComputeShader _rsmDownsampleCS;
+        
+        [SerializeField]
+        [ResourcePath("Shaders/GlobalIllumination/LPVClear.compute")]
+        private ComputeShader _lpvClearCS;
 
         [SerializeField]
         [ResourcePath("Shaders/GlobalIllumination/LPVInject.compute")]
@@ -227,6 +231,12 @@ namespace DELTation.AAAARP.RenderPipelineResources
         {
             get => _rsmDownsampleCS;
             set => this.SetValueAndNotify(ref _rsmDownsampleCS, value, nameof(_rsmDownsampleCS));
+        }
+
+        public ComputeShader LpvClearCS
+        {
+            get => _lpvClearCS;
+            set => this.SetValueAndNotify(ref _lpvClearCS, value, nameof(_lpvClearCS));
         }
 
         public ComputeShader LpvInjectCS

@@ -233,16 +233,6 @@ void KERNEL_NAME(const uint3 groupID : SV_GroupID, const uint3 groupThreadID : S
     const uint3  cellID = groupID;
     const float3 cellCenterWS = LPV::ComputeCellCenter(cellID);
 
-    if (groupThreadID.x == 0)
-    {
-        _GridRedUAV[cellID] = 0;
-        _GridGreenUAV[cellID] = 0;
-        _GridBlueUAV[cellID] = 0;
-        _GridBlockingPotentialUAV[cellID] = 0;
-    }
-
-    GroupMemoryBarrierWithGroupSync();
-
     const uint sampleIndex = groupThreadID.x * (N_SAMPLES / THREAD_GROUP_SIZE);
     const uint directionalLightCount = GetDirectionalLightCount();
 
