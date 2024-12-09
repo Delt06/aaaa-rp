@@ -47,6 +47,16 @@ float3 GetReprojSideDirection(int index, int3 orientation)
     return float3(orientation.x * side.x, orientation.y * side.y, 0);
 }
 
+float CalculateOcclusion(const LPV_CHANNEL_T blockingPotentialSH, const LPV_CHANNEL_T directionSH)
+{
+    return saturate(1 - dot(blockingPotentialSH, directionSH));
+}
+
+float4 EvalPropagatedSH(const LPV_CHANNEL_T neighborSH, const LPV_CHANNEL_T evalDirectionSH, const LPV_CHANNEL_T cosineLobeSH)
+{
+    return saturate(dot(neighborSH, evalDirectionSH)) * cosineLobeSH;
+}
+
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
@@ -82,11 +92,11 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
             const LPV_CHANNEL_T reprojDirectionCosineLobeSH = LPVMath::DirToCosineLobe(reprojDirection);
             const LPV_CHANNEL_T evalDirectionSH = LPVMath::DirToSH(evalDirection);
-            const float         occlusion = saturate(1 - dot(blockingPotentialSH, evalDirectionSH));
+            const float         occlusion = CalculateOcclusion(blockingPotentialSH, evalDirectionSH);
 
-            redSH += occlusion * sideFaceSubtendedSolidAngle * saturate(dot(neighbourRedSH, evalDirectionSH)) * reprojDirectionCosineLobeSH;
-            greenSH += occlusion * sideFaceSubtendedSolidAngle * saturate(dot(neighbourGreenSH, evalDirectionSH)) * reprojDirectionCosineLobeSH;
-            blueSH += occlusion * sideFaceSubtendedSolidAngle * saturate(dot(neighbourBlueSH, evalDirectionSH)) * reprojDirectionCosineLobeSH;
+            redSH += occlusion * sideFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourRedSH, evalDirectionSH, reprojDirectionCosineLobeSH);
+            greenSH += occlusion * sideFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourGreenSH, evalDirectionSH, reprojDirectionCosineLobeSH);
+            blueSH += occlusion * sideFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourBlueSH, evalDirectionSH, reprojDirectionCosineLobeSH);
         }
         #endif
 
@@ -94,11 +104,11 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         {
             const LPV_CHANNEL_T mainDirectionCosineLobeSH = LPVMath::DirToCosineLobe(mainDirection);
             const LPV_CHANNEL_T mainDirectionSH = LPVMath::DirToSH(mainDirection);
-            const float         occlusion = saturate(1 - dot(blockingPotentialSH, mainDirectionSH));
+            const float         occlusion = CalculateOcclusion(blockingPotentialSH, mainDirectionSH);
 
-            redSH += occlusion * directFaceSubtendedSolidAngle * saturate(dot(neighbourRedSH, mainDirectionSH)) * mainDirectionCosineLobeSH;
-            greenSH += occlusion * directFaceSubtendedSolidAngle * saturate(dot(neighbourGreenSH, mainDirectionSH)) * mainDirectionCosineLobeSH;
-            blueSH += occlusion * directFaceSubtendedSolidAngle * saturate(dot(neighbourBlueSH, mainDirectionSH)) * mainDirectionCosineLobeSH;
+            redSH += occlusion * directFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourRedSH, mainDirectionSH, mainDirectionCosineLobeSH);
+            greenSH += occlusion * directFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourGreenSH, mainDirectionSH, mainDirectionCosineLobeSH);
+            blueSH += occlusion * directFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourBlueSH, mainDirectionSH, mainDirectionCosineLobeSH);
         }
         #endif
     }
