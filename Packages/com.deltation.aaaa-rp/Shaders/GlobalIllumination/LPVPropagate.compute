@@ -71,8 +71,8 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         const LPV_CHANNEL_T neighbourBlueSH = LOAD_TEXTURE3D_LOD(_SourceBlueSH, neighbourID, 0);
         const LPV_CHANNEL_T blockingPotentialSH = LOAD_TEXTURE3D_LOD(_BlockingPotentialSH, neighbourID, 0);
 
-        const static float directFaceSubtendedSolidAngle = 0.4006696846f / PI / 2;
-        const static float sideFaceSubtendedSolidAngle = 0.4234413544f / PI / 3;
+        const static float directFaceSubtendedSolidAngle = 0.4006696846f * INV_PI / 2;
+        const static float sideFaceSubtendedSolidAngle = 0.4234413544f * INV_PI / 3;
 
         #if DIRECT_FACE_CONTRIBUTION
         for (uint sideFace = 0; sideFace < 4; ++sideFace)

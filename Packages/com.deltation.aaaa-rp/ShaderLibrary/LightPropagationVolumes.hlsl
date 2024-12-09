@@ -39,7 +39,7 @@ struct LPVMath
             dot(shIntensity, value.greenSH),
             dot(shIntensity, value.blueSH)
         );
-        return max(0, lpvIntensity) / PI;
+        return max(0, lpvIntensity) * INV_PI;
     }
 
     static float EvaluateBlockingPotential(const LPV_CHANNEL_T blockingPotentialSH, const float3 normalWS)
