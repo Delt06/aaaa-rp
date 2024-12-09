@@ -23,12 +23,15 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
+            AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
-            AAAALightingData lightingData = frameData.Get<AAAALightingData>();
+            AAAALightPropagationVolumesData lpvData = frameData.GetOrCreate<AAAALightPropagationVolumesData>();
 
-            passData.GridSize = lightingData.LPVGridSize = 64;
+            passData.GridSize = lpvData.GridSize = 64;
+            passData.GridBoundsMin = lpvData.GridBoundsMin = math.float3(-20, -20, -20);
+            passData.GridBoundsMax = lpvData.GridBoundsMax = math.float3(20, 20, 20);
             passData.Intensity = IntensityModifier * cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>().Intensity.value;
-            lightingData.LPVGridSHDesc = new TextureDesc
+            lpvData.GridSHDesc = new TextureDesc
             {
                 width = passData.GridSize,
                 height = passData.GridSize,
@@ -40,18 +43,39 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
                 msaaSamples = MSAASamples.None,
                 useMipMap = false,
             };
-            builder.WriteTexture(passData.GridRedSH = lightingData.LPVGridRedSH =
-                renderingData.RenderGraph.CreateTexture(new TextureDesc(lightingData.LPVGridSHDesc) { name = nameof(AAAALightingData.LPVGridRedSH) })
+            const string namePrefix = "LPV_";
+            builder.WriteTexture(passData.GridRedSH = lpvData.GridRedSH =
+                renderingData.RenderGraph.CreateTexture(new TextureDesc(lpvData.GridSHDesc)
+                    {
+                        name = namePrefix + nameof(AAAALightPropagationVolumesData.GridRedSH),
+                    }
+                )
             );
-            builder.WriteTexture(passData.GridGreenSH = lightingData.LPVGridGreenSH =
-                renderingData.RenderGraph.CreateTexture(new TextureDesc(lightingData.LPVGridSHDesc) { name = nameof(AAAALightingData.LPVGridGreenSH) })
+            builder.WriteTexture(passData.GridGreenSH = lpvData.GridGreenSH =
+                renderingData.RenderGraph.CreateTexture(new TextureDesc(lpvData.GridSHDesc)
+                    {
+                        name = namePrefix + nameof(AAAALightPropagationVolumesData.GridGreenSH),
+                    }
+                )
             );
-            builder.WriteTexture(passData.GridBlueSH = lightingData.LPVGridBlueSH =
-                renderingData.RenderGraph.CreateTexture(new TextureDesc(lightingData.LPVGridSHDesc) { name = nameof(AAAALightingData.LPVGridBlueSH) })
+            builder.WriteTexture(passData.GridBlueSH = lpvData.GridBlueSH =
+                renderingData.RenderGraph.CreateTexture(new TextureDesc(lpvData.GridSHDesc)
+                    {
+                        name = namePrefix + nameof(AAAALightPropagationVolumesData.GridBlueSH),
+                    }
+                )
+            );
+            builder.WriteTexture(passData.GridBlockingPotentialSH = lpvData.GridBlockingPotentialSH =
+                renderingData.RenderGraph.CreateTexture(new TextureDesc(lpvData.GridSHDesc)
+                    {
+                        format = GraphicsFormat.R16G16B16A16_UNorm,
+                        name = namePrefix + nameof(AAAALightPropagationVolumesData.GridBlockingPotentialSH),
+                    }
+                )
             );
 
-            passData.GridBoundsMin = lightingData.LPVGridBoundsMin = math.float3(-20, -20, -20);
-            passData.GridBoundsMax = lightingData.LPVGridBoundsMax = math.float3(20, 20, 20);
+            builder.ReadTexture(resourceData.CameraScaledDepthBuffer);
+            builder.ReadTexture(resourceData.GBufferNormals);
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
@@ -67,12 +91,14 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridRedUAV, data.GridRedSH);
             context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridGreenUAV, data.GridGreenSH);
             context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridBlueUAV, data.GridBlueSH);
+            context.cmd.SetComputeTextureParam(_computeShader, kernelIndex, ShaderIDs._GridBlockingPotentialUAV, data.GridBlockingPotentialSH);
             context.cmd.SetComputeFloatParam(_computeShader, ShaderIDs._Intensity, data.Intensity);
             context.cmd.DispatchCompute(_computeShader, kernelIndex, data.GridSize, data.GridSize, data.GridSize);
         }
 
         public class PassData : PassDataBase
         {
+            public TextureHandle GridBlockingPotentialSH;
             public TextureHandle GridBlueSH;
             public float3 GridBoundsMax;
             public float3 GridBoundsMin;
@@ -88,6 +114,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public static readonly int _GridRedUAV = Shader.PropertyToID(nameof(_GridRedUAV));
             public static readonly int _GridGreenUAV = Shader.PropertyToID(nameof(_GridGreenUAV));
             public static readonly int _GridBlueUAV = Shader.PropertyToID(nameof(_GridBlueUAV));
+            public static readonly int _GridBlockingPotentialUAV = Shader.PropertyToID(nameof(_GridBlockingPotentialUAV));
             public static readonly int _Intensity = Shader.PropertyToID(nameof(_Intensity));
 
             public static class Global

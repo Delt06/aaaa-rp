@@ -53,6 +53,13 @@ namespace DELTation.AAAARP.Debugging
         IndirectSpecular,
     }
 
+    [GenerateHLSL]
+    public enum AAAALightPropagationVolumesDebugMode
+    {
+        Radiance,
+        BlockingPotential,
+    }
+
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData
     {
         private readonly AAAADebugStats _debugStats;
@@ -77,7 +84,7 @@ namespace DELTation.AAAARP.Debugging
         public int LightingDebugLightIndex { get; private set; }
 
         public bool LightPropagationVolumesDebug { get; private set; }
-
+        public AAAALightPropagationVolumesDebugMode LightPropagationVolumesDebugMode { get; private set; }
         public float LightPropagationVolumesDebugSize { get; private set; } = 0.1f;
         public float LightPropagationVolumesDebugIntensity { get; private set; } = 1.0f;
         public float LightPropagationVolumesDebugClipDistance { get; private set; } = 2.0f;
@@ -376,6 +383,7 @@ namespace DELTation.AAAARP.Debugging
                 private static class Strings
                 {
                     public static readonly DebugUI.Widget.NameAndTooltip Debug = new() { name = "Debug" };
+                    public static readonly DebugUI.Widget.NameAndTooltip DebugMode = new() { name = "Debug Mode" };
                     public static readonly DebugUI.Widget.NameAndTooltip DebugSize = new() { name = "Debug Size" };
                     public static readonly DebugUI.Widget.NameAndTooltip DebugIntensity = new() { name = "Debug Intensity" };
                     public static readonly DebugUI.Widget.NameAndTooltip DebugClipDistance = new() { name = "Debug Clip Distance" };
@@ -393,6 +401,7 @@ namespace DELTation.AAAARP.Debugging
                             children =
                             {
                                 CreateDebug(panel),
+                                CreateDebugMode(panel),
                                 CreateDebugSize(panel),
                                 CreateDebugIntensity(panel),
                                 CreateDebugClipDistance(panel),
@@ -406,12 +415,23 @@ namespace DELTation.AAAARP.Debugging
                         setter = value => panel.data.LightPropagationVolumesDebug = value,
                     };
 
+                    private static DebugUI.Widget CreateDebugMode(SettingsPanel panel) => new DebugUI.EnumField
+                    {
+                        nameAndTooltip = Strings.DebugMode,
+                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
+                        autoEnum = typeof(AAAALightPropagationVolumesDebugMode),
+                        getter = () => (int) panel.data.LightPropagationVolumesDebugMode,
+                        setter = value => panel.data.LightPropagationVolumesDebugMode = (AAAALightPropagationVolumesDebugMode) value,
+                        getIndex = () => (int) panel.data.LightPropagationVolumesDebugMode,
+                        setIndex = value => panel.data.LightPropagationVolumesDebugMode = (AAAALightPropagationVolumesDebugMode) value,
+                    };
+
                     private static DebugUI.Widget CreateDebugSize(SettingsPanel panel) => new DebugUI.FloatField
                     {
                         nameAndTooltip = Strings.DebugSize,
+                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
                         getter = () => panel.data.LightPropagationVolumesDebugSize,
                         setter = value => panel.data.LightPropagationVolumesDebugSize = value,
-                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
                         min = () => 0.0f,
                         max = () => 1.0f,
                     };
@@ -419,9 +439,9 @@ namespace DELTation.AAAARP.Debugging
                     private static DebugUI.Widget CreateDebugIntensity(SettingsPanel panel) => new DebugUI.FloatField
                     {
                         nameAndTooltip = Strings.DebugIntensity,
+                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
                         getter = () => panel.data.LightPropagationVolumesDebugIntensity,
                         setter = value => panel.data.LightPropagationVolumesDebugIntensity = value,
-                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
                         min = () => 0.0f,
                         max = () => 10.0f,
                     };
@@ -429,9 +449,9 @@ namespace DELTation.AAAARP.Debugging
                     private static DebugUI.Widget CreateDebugClipDistance(SettingsPanel panel) => new DebugUI.FloatField
                     {
                         nameAndTooltip = Strings.DebugClipDistance,
+                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
                         getter = () => panel.data.LightPropagationVolumesDebugClipDistance,
                         setter = value => panel.data.LightPropagationVolumesDebugClipDistance = value,
-                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
                         min = () => 0.0f,
                         max = () => 10.0f,
                     };

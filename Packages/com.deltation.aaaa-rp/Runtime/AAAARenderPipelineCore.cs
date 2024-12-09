@@ -99,6 +99,7 @@ namespace DELTation.AAAARP
             public static readonly int screenCoordScaleBias = Shader.PropertyToID("_ScreenCoordScaleBias");
             public static readonly int screenSizeOverride = Shader.PropertyToID("_ScreenSizeOverride");
 
+            public static readonly int unity_MatrixVP = Shader.PropertyToID(nameof(unity_MatrixVP));
             public static readonly int unity_MatrixInvV = Shader.PropertyToID(nameof(unity_MatrixInvV));
             public static readonly int unity_MatrixInvP = Shader.PropertyToID(nameof(unity_MatrixInvP));
             public static readonly int unity_MatrixInvVP = Shader.PropertyToID(nameof(unity_MatrixInvVP));

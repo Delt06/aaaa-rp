@@ -30,11 +30,15 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.deltation.aaaa-rp/Runtime/Debugging/AAAADebugDisplaySettingsRendering.cs.hlsl"
 
             uint  _DebugInstanceCountDimension;
+            uint  _DebugMode;
             float _DebugSize;
             float _DebugIntensity;
             float _DebugClipDistance;
+
+            TYPED_TEXTURE3D(LPV_CHANNEL_T, _BlockingPotentialSH);
 
             struct Attributes
             {
@@ -86,9 +90,32 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
 
             float4 PS(const Varyings IN) : SV_Target
             {
-                const float3       normalWS = SafeNormalize(IN.normalWS);
-                const LPVCellValue cellValue = LPV::SampleGrid(IN.positionWS, sampler_PointClamp);
-                return float4(_DebugIntensity * LPVMath::EvaluateRadiance(cellValue, normalWS), 1);
+                float3       result;
+                const float3 normalWS = SafeNormalize(IN.normalWS);
+
+                switch (_DebugMode)
+                {
+                case AAAALIGHTPROPAGATIONVOLUMESDEBUGMODE_RADIANCE:
+                    {
+                        const LPVCellValue cellValue = LPV::SampleGrid(IN.positionWS, sampler_PointClamp);
+                        result = LPVMath::EvaluateRadiance(cellValue, normalWS);
+                        break;
+                    }
+                case AAAALIGHTPROPAGATIONVOLUMESDEBUGMODE_BLOCKING_POTENTIAL:
+                    {
+                        const float3 gridUV = LPV::ComputeGridUV(IN.positionWS);
+                        const float4 blockingPotentialSH = SAMPLE_TEXTURE3D_LOD(_BlockingPotentialSH, sampler_PointClamp, gridUV, 0);
+                        result = saturate(LPVMath::EvaluateBlockingPotential(blockingPotentialSH, normalWS));
+                        break;
+                    }
+                default:
+                    {
+                        result = 0;
+                        break;
+                    }
+                }
+
+                return float4(_DebugIntensity * result, 1);
             }
             ENDHLSL
         }

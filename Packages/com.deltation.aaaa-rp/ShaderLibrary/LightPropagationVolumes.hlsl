@@ -34,14 +34,19 @@ struct LPVMath
     static float3 EvaluateRadiance(const LPVCellValue value, const float3 normalWS)
     {
         LPV_CHANNEL_T shIntensity = DirToSH(-normalWS);
-
-        const float3 lpvIntensity = float3(
+        const float3  lpvIntensity = float3(
             dot(shIntensity, value.redSH),
             dot(shIntensity, value.greenSH),
             dot(shIntensity, value.blueSH)
         );
-
         return max(0, lpvIntensity) / PI;
+    }
+
+    static float EvaluateBlockingPotential(const LPV_CHANNEL_T blockingPotentialSH, const float3 normalWS)
+    {
+        LPV_CHANNEL_T shIntensity = DirToSH(-normalWS);
+        const float   blockingPotential = dot(shIntensity, blockingPotentialSH);
+        return saturate(blockingPotential);
     }
 };
 

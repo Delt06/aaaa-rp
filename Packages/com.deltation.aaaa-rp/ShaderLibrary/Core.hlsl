@@ -244,6 +244,16 @@ float2 ScreenCoordsToNDC(const float2 screenCoords)
     return ndc;
 }
 
+float2 NDCToScreenUV(const float2 ndc)
+{
+    float2 screenUV = ndc.xy;
+    #ifdef UNITY_UV_STARTS_AT_TOP
+    screenUV.y *= -1;
+    #endif
+    screenUV = screenUV * 0.5 + 0.5;
+    return screenUV;
+}
+
 float2 ScreenCoordsToNDC(const float4 screenCoords)
 {
     return ScreenCoordsToNDC(screenCoords.xy);

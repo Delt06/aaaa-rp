@@ -22,25 +22,11 @@ RWTexture3D<LPV_CHANNEL_T> _DestinationRedSH;
 RWTexture3D<LPV_CHANNEL_T> _DestinationGreenSH;
 RWTexture3D<LPV_CHANNEL_T> _DestinationBlueSH;
 
-static const float3 directions[] =
-{float3(0, 0, 1), float3(0, 0, -1), float3(1, 0, 0), float3(-1, 0, 0), float3(0, 1, 0), float3(0, -1, 0)};
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _BlockingPotentialSH);
 
-// orientation = [ right | up | forward ] = [ x | y | z ]
-#define NEIGHBOR_ORIENTATIONS_COUNT 6
-static const float3x3 NeighbourOrientations[NEIGHBOR_ORIENTATIONS_COUNT] = {
-    // Z+
-    float3x3(-1, 0, 0, 0, 1, 0, 0, 0, -1),
-    // Z-
-    float3x3(1, 0, 0, 0, 1, 0, 0, 0, 1),
-    // X+
-    float3x3(0, 0, 1, 0, 1, 0, -1, 0, 0),
-    // X-
-    float3x3(0, 0, -1, 0, 1, 0, 1, 0, 0),
-    // Y+
-    float3x3(1, 0, 0, 0, 0, 1, 0, -1, 0),
-    // Y-
-    float3x3(1, 0, 0, 0, 0, -1, 0, 1, 0)
-};
+#define DIRECTIONS_COUNT 6
+static const float3 directions[DIRECTIONS_COUNT] =
+{float3(0, 0, 1), float3(0, 0, -1), float3(1, 0, 0), float3(-1, 0, 0), float3(0, 1, 0), float3(0, -1, 0)};
 
 // right up
 int2 cellSides[4] = {int2(1.0, 0.0), int2(0.0, 1.0), int2(-1.0, 0.0), int2(0.0, -1.0)};
@@ -76,13 +62,14 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     LPV_CHANNEL_T greenSH = 0;
     LPV_CHANNEL_T blueSH = 0;
 
-    for (uint neighbour = 0; neighbour < NEIGHBOR_ORIENTATIONS_COUNT; ++neighbour)
+    for (uint neighbour = 0; neighbour < DIRECTIONS_COUNT; ++neighbour)
     {
         const float3        mainDirection = directions[neighbour];
         const uint3         neighbourID = cellID - mainDirection;
         const LPV_CHANNEL_T neighbourRedSH = LOAD_TEXTURE3D_LOD(_SourceRedSH, neighbourID, 0);
         const LPV_CHANNEL_T neighbourGreenSH = LOAD_TEXTURE3D_LOD(_SourceGreenSH, neighbourID, 0);
         const LPV_CHANNEL_T neighbourBlueSH = LOAD_TEXTURE3D_LOD(_SourceBlueSH, neighbourID, 0);
+        const LPV_CHANNEL_T blockingPotentialSH = LOAD_TEXTURE3D_LOD(_BlockingPotentialSH, neighbourID, 0);
 
         const static float directFaceSubtendedSolidAngle = 0.4006696846f / PI / 2;
         const static float sideFaceSubtendedSolidAngle = 0.4234413544f / PI / 3;
@@ -95,10 +82,11 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
             const LPV_CHANNEL_T reprojDirectionCosineLobeSH = LPVMath::DirToCosineLobe(reprojDirection);
             const LPV_CHANNEL_T evalDirectionSH = LPVMath::DirToSH(evalDirection);
+            const float         occlusion = saturate(1 - dot(blockingPotentialSH, evalDirectionSH));
 
-            redSH += sideFaceSubtendedSolidAngle * dot(neighbourRedSH, evalDirectionSH) * reprojDirectionCosineLobeSH;
-            greenSH += sideFaceSubtendedSolidAngle * dot(neighbourGreenSH, evalDirectionSH) * reprojDirectionCosineLobeSH;
-            blueSH += sideFaceSubtendedSolidAngle * dot(neighbourBlueSH, evalDirectionSH) * reprojDirectionCosineLobeSH;
+            redSH += occlusion * sideFaceSubtendedSolidAngle * saturate(dot(neighbourRedSH, evalDirectionSH)) * reprojDirectionCosineLobeSH;
+            greenSH += occlusion * sideFaceSubtendedSolidAngle * saturate(dot(neighbourGreenSH, evalDirectionSH)) * reprojDirectionCosineLobeSH;
+            blueSH += occlusion * sideFaceSubtendedSolidAngle * saturate(dot(neighbourBlueSH, evalDirectionSH)) * reprojDirectionCosineLobeSH;
         }
         #endif
 
@@ -106,10 +94,11 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         {
             const LPV_CHANNEL_T mainDirectionCosineLobeSH = LPVMath::DirToCosineLobe(mainDirection);
             const LPV_CHANNEL_T mainDirectionSH = LPVMath::DirToSH(mainDirection);
+            const float         occlusion = saturate(1 - dot(blockingPotentialSH, mainDirectionSH));
 
-            redSH += directFaceSubtendedSolidAngle * dot(neighbourRedSH, mainDirectionSH) * mainDirectionCosineLobeSH;
-            greenSH += directFaceSubtendedSolidAngle * dot(neighbourGreenSH, mainDirectionSH) * mainDirectionCosineLobeSH;
-            blueSH += directFaceSubtendedSolidAngle * dot(neighbourBlueSH, mainDirectionSH) * mainDirectionCosineLobeSH;
+            redSH += occlusion * directFaceSubtendedSolidAngle * saturate(dot(neighbourRedSH, mainDirectionSH)) * mainDirectionCosineLobeSH;
+            greenSH += occlusion * directFaceSubtendedSolidAngle * saturate(dot(neighbourGreenSH, mainDirectionSH)) * mainDirectionCosineLobeSH;
+            blueSH += occlusion * directFaceSubtendedSolidAngle * saturate(dot(neighbourBlueSH, mainDirectionSH)) * mainDirectionCosineLobeSH;
         }
         #endif
     }

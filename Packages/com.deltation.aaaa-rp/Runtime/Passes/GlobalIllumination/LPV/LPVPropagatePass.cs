@@ -22,7 +22,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
-            AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
             passData.PassCount = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>().PropagationPasses.value;
             if (passData.PassCount == 0)
@@ -30,30 +29,35 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
                 return;
             }
 
-            passData.GridSize = lightingData.LPVGridSize;
+            AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
+
+            passData.GridSize = lpvData.GridSize;
 
             _computeShader.GetKernelThreadGroupSizes(KernelIndex, out passData.ThreadGroupSize, out uint _, out uint _);
 
             passData.Grid = new GridTextureSet
             {
-                RedSH = builder.ReadWriteTexture(lightingData.LPVGridRedSH),
-                GreenSH = builder.ReadWriteTexture(lightingData.LPVGridGreenSH),
-                BlueSH = builder.ReadWriteTexture(lightingData.LPVGridBlueSH),
+                RedSH = builder.ReadWriteTexture(lpvData.GridRedSH),
+                GreenSH = builder.ReadWriteTexture(lpvData.GridGreenSH),
+                BlueSH = builder.ReadWriteTexture(lpvData.GridBlueSH),
             };
             passData.TempGrid = new GridTextureSet
             {
-                RedSH = CreateTempGridTexture(builder, lightingData, nameof(PassData.TempGrid) + "_" + nameof(GridTextureSet.RedSH)),
-                GreenSH = CreateTempGridTexture(builder, lightingData, nameof(PassData.TempGrid) + "_" + nameof(GridTextureSet.GreenSH)),
-                BlueSH = CreateTempGridTexture(builder, lightingData, nameof(PassData.TempGrid) + "_" + nameof(GridTextureSet.BlueSH)),
+                RedSH = CreateTempGridTexture(builder, lpvData, nameof(PassData.TempGrid) + "_" + nameof(GridTextureSet.RedSH)),
+                GreenSH = CreateTempGridTexture(builder, lpvData, nameof(PassData.TempGrid) + "_" + nameof(GridTextureSet.GreenSH)),
+                BlueSH = CreateTempGridTexture(builder, lpvData, nameof(PassData.TempGrid) + "_" + nameof(GridTextureSet.BlueSH)),
             };
+            passData.BlockingPotentialSH = builder.ReadTexture(lpvData.GridBlockingPotentialSH);
             return;
 
-            static TextureHandle CreateTempGridTexture(RenderGraphBuilder builder, AAAALightingData lightingData, string name) =>
-                builder.CreateTransientTexture(new TextureDesc(lightingData.LPVGridSHDesc) { name = name });
+            static TextureHandle CreateTempGridTexture(RenderGraphBuilder builder, AAAALightPropagationVolumesData lpvData, string name) =>
+                builder.CreateTransientTexture(new TextureDesc(lpvData.GridSHDesc) { name = name });
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
+            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._BlockingPotentialSH, data.BlockingPotentialSH);
+
             for (int i = 0; i < data.PassCount; ++i)
             {
                 RenderPass(data, context, data.Grid, data.TempGrid);
@@ -84,6 +88,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
         public class PassData : PassDataBase
         {
+            public TextureHandle BlockingPotentialSH;
             public GridTextureSet Grid;
             public int GridSize;
             public int PassCount;
@@ -107,6 +112,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public static readonly int _DestinationRedSH = Shader.PropertyToID(nameof(_DestinationRedSH));
             public static readonly int _DestinationGreenSH = Shader.PropertyToID(nameof(_DestinationGreenSH));
             public static readonly int _DestinationBlueSH = Shader.PropertyToID(nameof(_DestinationBlueSH));
+            public static readonly int _BlockingPotentialSH = Shader.PropertyToID(nameof(_BlockingPotentialSH));
         }
     }
 }

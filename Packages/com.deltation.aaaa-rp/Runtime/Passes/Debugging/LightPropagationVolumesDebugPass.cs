@@ -33,12 +33,15 @@ namespace DELTation.AAAARP.Passes.Debugging
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
-            AAAALightingData lightingData = frameData.Get<AAAALightingData>();
+            AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
+            Assert.IsTrue(lpvData.GridRedSH.IsValid());
+            Assert.IsTrue(lpvData.GridBlockingPotentialSH.IsValid());
 
-            Assert.IsTrue(lightingData.LPVGridRedSH.IsValid());
-            passData.DebugSize = _debugDisplaySettings.RenderingSettings.LightPropagationVolumesDebugSize;
-            passData.DebugIntensity = _debugDisplaySettings.RenderingSettings.LightPropagationVolumesDebugIntensity;
-            passData.DebugClipDistance = _debugDisplaySettings.RenderingSettings.LightPropagationVolumesDebugClipDistance;
+            AAAADebugDisplaySettingsRendering renderingSettings = _debugDisplaySettings.RenderingSettings;
+            passData.DebugMode = renderingSettings.LightPropagationVolumesDebugMode;
+            passData.DebugSize = renderingSettings.LightPropagationVolumesDebugSize;
+            passData.DebugIntensity = renderingSettings.LightPropagationVolumesDebugIntensity;
+            passData.DebugClipDistance = renderingSettings.LightPropagationVolumesDebugClipDistance;
             passData.InstanceCountDimension = 15;
             passData.TotalInstanceCount = passData.InstanceCountDimension * passData.InstanceCountDimension * passData.InstanceCountDimension;
 
@@ -51,7 +54,8 @@ namespace DELTation.AAAARP.Passes.Debugging
                 }
             );
 
-            builder.ReadTexture(lightingData.LPVGridRedSH);
+            builder.ReadTexture(lpvData.GridRedSH);
+            builder.ReadTexture(passData.BlockingPotentialSH = lpvData.GridBlockingPotentialSH);
             passData.RenderTarget = builder.ReadWriteTexture(resourceData.CameraScaledColorBuffer);
             passData.DepthStencil = builder.ReadWriteTexture(resourceData.CameraScaledDepthBuffer);
         }
@@ -75,17 +79,21 @@ namespace DELTation.AAAARP.Passes.Debugging
             context.cmd.SetRenderTarget(data.RenderTarget, data.DepthStencil);
             data.PropertyBlock.Clear();
             data.PropertyBlock.SetInteger(ShaderID._DebugInstanceCountDimension, data.InstanceCountDimension);
+            data.PropertyBlock.SetInteger(ShaderID._DebugMode, (int) data.DebugMode);
             data.PropertyBlock.SetFloat(ShaderID._DebugSize, data.DebugSize);
             data.PropertyBlock.SetFloat(ShaderID._DebugIntensity, data.DebugIntensity);
             data.PropertyBlock.SetFloat(ShaderID._DebugClipDistance, data.DebugClipDistance);
+            data.PropertyBlock.SetTexture(ShaderID._BlockingPotentialSH, data.BlockingPotentialSH);
             context.cmd.DrawMeshInstancedIndirect(_mesh, subMeshIndex, _material, 0, data.IndirectArgs, 0, data.PropertyBlock);
         }
 
         public class PassData : PassDataBase
         {
             public readonly MaterialPropertyBlock PropertyBlock = new();
+            public TextureHandle BlockingPotentialSH;
             public float DebugClipDistance;
             public float DebugIntensity;
+            public AAAALightPropagationVolumesDebugMode DebugMode;
             public float DebugSize;
             public TextureHandle DepthStencil;
             public BufferHandle IndirectArgs;
@@ -98,9 +106,11 @@ namespace DELTation.AAAARP.Passes.Debugging
         private static class ShaderID
         {
             public static int _DebugInstanceCountDimension = Shader.PropertyToID(nameof(_DebugInstanceCountDimension));
+            public static int _DebugMode = Shader.PropertyToID(nameof(_DebugMode));
             public static int _DebugSize = Shader.PropertyToID(nameof(_DebugSize));
             public static int _DebugIntensity = Shader.PropertyToID(nameof(_DebugIntensity));
             public static int _DebugClipDistance = Shader.PropertyToID(nameof(_DebugClipDistance));
+            public static int _BlockingPotentialSH = Shader.PropertyToID(nameof(_BlockingPotentialSH));
         }
     }
 }
