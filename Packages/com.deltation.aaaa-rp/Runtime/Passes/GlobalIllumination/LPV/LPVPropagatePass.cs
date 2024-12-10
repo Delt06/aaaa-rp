@@ -3,6 +3,7 @@ using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Volumes;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -23,7 +24,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         {
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
 
-            passData.PassCount = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>().PropagationPasses.value;
+            AAAALpvVolumeComponent lpvVolumeComponent = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>();
+            passData.PassCount = lpvVolumeComponent.PropagationPasses.value;
             if (passData.PassCount == 0)
             {
                 return;
@@ -32,6 +34,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
 
             passData.GridSize = lpvData.GridSize;
+            passData.OcclusionAmplification = lpvVolumeComponent.OcclusionAmplification.value;
 
             ref readonly AAAALightPropagationVolumesData.GridBufferSet gridBuffers = ref lpvData.PackedGridBuffers;
             passData.Grid = new GridBufferSet
@@ -61,6 +64,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         protected override void Render(PassData data, RenderGraphContext context)
         {
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._BlockingPotentialSH, data.BlockingPotentialSH);
+            context.cmd.SetComputeFloatParam(_computeShader, ShaderIDs._OcclusionAmplification, math.pow(2, data.OcclusionAmplification));
 
             for (int i = 0; i < data.PassCount; ++i)
             {
@@ -95,6 +99,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public BufferHandle BlockingPotentialSH;
             public GridBufferSet Grid;
             public int GridSize;
+            public float OcclusionAmplification;
             public int PassCount;
             public GridBufferSet TempGrid;
             public uint ThreadGroupSize;
@@ -117,6 +122,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public static readonly int _DestinationGreenSH = Shader.PropertyToID(nameof(_DestinationGreenSH));
             public static readonly int _DestinationBlueSH = Shader.PropertyToID(nameof(_DestinationBlueSH));
             public static readonly int _BlockingPotentialSH = Shader.PropertyToID(nameof(_BlockingPotentialSH));
+            public static readonly int _OcclusionAmplification = Shader.PropertyToID(nameof(_OcclusionAmplification));
         }
     }
 }

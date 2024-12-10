@@ -8,7 +8,7 @@
 #define LPV_CHANNEL_T float4
 #define LPV_PACKED_CHANNEL_T int4
 
-#define LPV_QUANTIZATION_STEPS 256
+#define LPV_QUANTIZATION_STEPS 1024
 
 struct LPVCellValue
 {
@@ -78,11 +78,16 @@ struct LPV
         return _LPVGridSize;
     }
 
-    static float3 ComputeCellCenter(const uint3 cellID)
+    static float3 ComputeCellCenter(const uint3 cellID, const float cellBias = 0)
     {
-        const float3 positionT = (cellID + 0.5) / _LPVGridSize;
+        const float3 positionT = (cellID + (cellBias + 0.5)) / _LPVGridSize;
         const float3 cellCenterWS = lerp(_LPVGridBoundsMin, _LPVGridBoundsMax, positionT);
         return cellCenterWS;
+    }
+
+    static float3 ComputeBlockingPotentialCellCenter(const uint3 cellID)
+    {
+        return ComputeCellCenter(cellID, 0.5); 
     }
 
     static float3 ComputeGridUV(const float3 positionWS)
@@ -90,10 +95,15 @@ struct LPV
         return (positionWS - _LPVGridBoundsMin) / (_LPVGridBoundsMax - _LPVGridBoundsMin);
     }
 
-    static int3 ComputeCellID(const float3 positionWS)
+    static int3 ComputeCellID(const float3 positionWS, const float3 cellBias = 0)
     {
         float3 uv = ComputeGridUV(positionWS);
-        return uv * _LPVGridSize;
+        return (int3)(uv * _LPVGridSize + cellBias);
+    }
+
+    static int3 ComputeBlockingPotentialCellID(const float3 positionWS)
+    {
+        return ComputeCellID(positionWS, -0.5);
     }
 
     static uint3 FlatCellIDTo3D(uint flatCellID)

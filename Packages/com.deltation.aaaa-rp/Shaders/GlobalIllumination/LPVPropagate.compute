@@ -22,6 +22,8 @@ RWByteAddressBuffer _DestinationRedSH;
 RWByteAddressBuffer _DestinationGreenSH;
 RWByteAddressBuffer _DestinationBlueSH;
 
+float _OcclusionAmplification;
+
 ByteAddressBuffer _BlockingPotentialSH;
 
 #define DIRECTIONS_COUNT 6
@@ -49,7 +51,7 @@ float3 GetReprojSideDirection(int index, int3 orientation)
 
 float CalculateOcclusion(const LPV_CHANNEL_T blockingPotentialSH, const LPV_CHANNEL_T directionSH)
 {
-    return saturate(1 - dot(blockingPotentialSH, directionSH));
+    return saturate(1 - saturate(_OcclusionAmplification * dot(blockingPotentialSH, directionSH)));
 }
 
 float4 EvalPropagatedSH(const LPV_CHANNEL_T neighborSH, const LPV_CHANNEL_T evalDirectionSH, const LPV_CHANNEL_T cosineLobeSH)
@@ -93,8 +95,6 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         const LPV_CHANNEL_T neighbourRedSH = FetchSourceSH(_SourceRedSH, neighbourID);
         const LPV_CHANNEL_T neighbourGreenSH = FetchSourceSH(_SourceGreenSH, neighbourID);
         const LPV_CHANNEL_T neighbourBlueSH = FetchSourceSH(_SourceBlueSH, neighbourID);
-        // const LPV_CHANNEL_T blockingPotentialSH = FetchSourceSH(_BlockingPotentialSH, neighbourID);
-        const LPV_CHANNEL_T blockingPotentialSH = 0;
 
         const static float directFaceSubtendedSolidAngle = 0.4006696846f * INV_PI / 2;
         const static float sideFaceSubtendedSolidAngle = 0.4234413544f * INV_PI / 3;
@@ -107,6 +107,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
             const LPV_CHANNEL_T reprojDirectionCosineLobeSH = LPVMath::DirToCosineLobe(reprojDirection);
             const LPV_CHANNEL_T evalDirectionSH = LPVMath::DirToSH(evalDirection);
+            const LPV_CHANNEL_T blockingPotentialSH = FetchSourceSH(_BlockingPotentialSH, neighbourID + evalDirection * 0.5);
             const float         occlusion = CalculateOcclusion(blockingPotentialSH, evalDirectionSH);
 
             redSH += occlusion * sideFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourRedSH, evalDirectionSH, reprojDirectionCosineLobeSH);
@@ -119,6 +120,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         {
             const LPV_CHANNEL_T mainDirectionCosineLobeSH = LPVMath::DirToCosineLobe(mainDirection);
             const LPV_CHANNEL_T mainDirectionSH = LPVMath::DirToSH(mainDirection);
+            const LPV_CHANNEL_T blockingPotentialSH = FetchSourceSH(_BlockingPotentialSH, neighbourID + mainDirection * 0.5);
             const float         occlusion = CalculateOcclusion(blockingPotentialSH, mainDirectionSH);
 
             redSH += occlusion * directFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourRedSH, mainDirectionSH, mainDirectionCosineLobeSH);

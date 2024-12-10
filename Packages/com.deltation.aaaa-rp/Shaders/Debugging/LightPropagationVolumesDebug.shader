@@ -54,6 +54,24 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
                 float  clipDistance : SV_ClipDistance;
             };
 
+            int3 PositionToCellID(const float3 positionWS)
+            {
+                if (_DebugMode == AAAALIGHTPROPAGATIONVOLUMESDEBUGMODE_BLOCKING_POTENTIAL)
+                {
+                    return LPV::ComputeBlockingPotentialCellID(positionWS);
+                }
+                return LPV::ComputeCellID(positionWS);
+            }
+
+            float3 CellCenter(const int3 cellID)
+            {
+                if (_DebugMode == AAAALIGHTPROPAGATIONVOLUMESDEBUGMODE_BLOCKING_POTENTIAL)
+                {
+                    return LPV::ComputeBlockingPotentialCellCenter(cellID);
+                }
+                return LPV::ComputeCellCenter(cellID);
+            }
+
             Varyings VS(const Attributes IN, const uint instanceID : INSTANCEID_SEMANTIC)
             {
                 const float3 cameraForwardWS = normalize(-GetViewForwardDir(UNITY_MATRIX_V));
@@ -61,7 +79,7 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
                 const float3 cameraPositionWS = GetCameraPositionWS();
 
                 const float3 pivotPositionWS = cameraPositionWS + cameraForwardWS * cellSize * _DebugInstanceCountDimension / 2;
-                const int3   centerCellID = LPV::ComputeCellID(pivotPositionWS);
+                const int3   centerCellID = PositionToCellID(pivotPositionWS);
 
                 int3 localInstanceID;
                 localInstanceID.x = instanceID % _DebugInstanceCountDimension;
@@ -75,7 +93,7 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
                     return (Varyings)0;
                 }
 
-                const float3 cellPositionWS = LPV::ComputeCellCenter(globalCellID);
+                const float3 cellPositionWS = CellCenter(globalCellID);
 
                 Varyings OUT;
 
@@ -103,8 +121,8 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
                     }
                 case AAAALIGHTPROPAGATIONVOLUMESDEBUGMODE_BLOCKING_POTENTIAL:
                     {
-                        const float3 gridUV = LPV::ComputeGridUV(IN.positionWS);
-                        const float4 blockingPotentialSH = SAMPLE_TEXTURE3D_LOD(_BlockingPotentialSH, sampler_PointClamp, gridUV, 0);
+                        const int3   cellID = PositionToCellID(IN.positionWS);
+                        const float4 blockingPotentialSH = LOAD_TEXTURE3D_LOD(_BlockingPotentialSH, cellID, 0);
                         result = saturate(LPVMath::EvaluateBlockingPotential(blockingPotentialSH, normalWS));
                         break;
                     }

@@ -50,6 +50,9 @@ MonoBehaviour:
   Intensity:
     m_OverrideState: 1
     m_Value: 1
+  OcclusionAmplification:
+    m_OverrideState: 1
+    m_Value: 5
   PropagationPasses:
     m_OverrideState: 1
     m_Value: 8

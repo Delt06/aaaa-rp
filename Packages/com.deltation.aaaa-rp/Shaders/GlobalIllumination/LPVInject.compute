@@ -47,6 +47,8 @@ void Accumulate(RWByteAddressBuffer buffer, const uint baseAddress, const LPV_PA
     }
 }
 
+#define SURFEL_WEIGHT 0.015
+
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
@@ -58,28 +60,46 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     const RsmValue rsmValue = RsmValue::Unpack(FetchRSM(rsmTexelID));
 
+    const float         NdotL = saturate(dot(_LightDirectionWS, rsmValue.normalWS));
+    const LPV_CHANNEL_T normalSH = LPVMath::DirToCosineLobe(-rsmValue.normalWS);
+
     float3 gridPositionWS = rsmValue.positionWS;
     gridPositionWS += rsmValue.normalWS * NORMAL_DEPTH_BIAS;
     gridPositionWS += _LightDirectionWS.xyz * LIGHT_DEPTH_BIAS;
 
-    const uint3 resultCellID = LPV::ComputeCellID(gridPositionWS);
-    const uint  gridSize = LPV::GetGridSize();
-
-    UNITY_BRANCH
-    if (all(resultCellID < gridSize))
     {
-        const float                surfelWeight = 0.015;
-        const float3               flux = rsmValue.flux * _LightColor.rgb;
-        const float                NdotL = saturate(dot(_LightDirectionWS, rsmValue.normalWS));
-        const LPV_CHANNEL_T        shCoefficients = NdotL * surfelWeight * INV_PI * LPVMath::DirToCosineLobe(-rsmValue.normalWS);
-        const LPV_PACKED_CHANNEL_T packedRedSH = LPVMath::PackChannelValue(shCoefficients * flux.r);
-        const LPV_PACKED_CHANNEL_T packedGreenSH = LPVMath::PackChannelValue(shCoefficients * flux.g);
-        const LPV_PACKED_CHANNEL_T packedBlueSH = LPVMath::PackChannelValue(shCoefficients * flux.b);
+        const int3 resultCellID = LPV::ComputeCellID(gridPositionWS);
 
-        const uint flatResultCellID = LPV::FlattenCellID(resultCellID);
-        const uint resultAddress = LPV::FlatCellIDToBufferAddress(flatResultCellID);
-        Accumulate(_GridRedUAV, resultAddress, packedRedSH);
-        Accumulate(_GridGreenUAV, resultAddress, packedGreenSH);
-        Accumulate(_GridBlueUAV, resultAddress, packedBlueSH);
+        UNITY_BRANCH
+        if (all(0 <= resultCellID && resultCellID < LPV::GetGridSize()))
+        {
+            const float3               flux = rsmValue.flux * _LightColor.rgb;
+            const LPV_CHANNEL_T        shCoefficients = NdotL * SURFEL_WEIGHT * INV_PI * normalSH;
+            const LPV_PACKED_CHANNEL_T packedRedSH = LPVMath::PackChannelValue(shCoefficients * flux.r);
+            const LPV_PACKED_CHANNEL_T packedGreenSH = LPVMath::PackChannelValue(shCoefficients * flux.g);
+            const LPV_PACKED_CHANNEL_T packedBlueSH = LPVMath::PackChannelValue(shCoefficients * flux.b);
+
+            const uint flatResultCellID = LPV::FlattenCellID(resultCellID);
+            const uint resultAddress = LPV::FlatCellIDToBufferAddress(flatResultCellID);
+            Accumulate(_GridRedUAV, resultAddress, packedRedSH);
+            Accumulate(_GridGreenUAV, resultAddress, packedGreenSH);
+            Accumulate(_GridBlueUAV, resultAddress, packedBlueSH);
+        }
+    }
+
+    {
+        const int3 resultCellID = LPV::ComputeBlockingPotentialCellID(gridPositionWS);
+
+        UNITY_BRANCH
+        if (all(0 <= resultCellID && resultCellID < LPV::GetGridSize()))
+        {
+            const float                invCellSize = LPV::GetGridSize() / (_LPVGridBoundsMax.x - _LPVGridBoundsMin.x);
+            const float                blockingPotential = saturate(NdotL * SURFEL_WEIGHT * invCellSize * invCellSize);
+            const LPV_PACKED_CHANNEL_T packedSH = LPVMath::PackChannelValue(normalSH * blockingPotential);
+
+            const uint flatResultCellID = LPV::FlattenCellID(resultCellID);
+            const uint resultAddress = LPV::FlatCellIDToBufferAddress(flatResultCellID);
+            Accumulate(_GridBlockingPotentialUAV, resultAddress, packedSH);
+        }
     }
 }
