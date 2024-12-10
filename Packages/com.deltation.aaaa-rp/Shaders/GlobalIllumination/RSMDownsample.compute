@@ -79,7 +79,7 @@ RsmValue FilterSource(const uint2 destinationTexelID, const float3 brightestCell
             const RsmValue  sourceRsm = RsmValue::Unpack(sourceRsmPacked);
             const float3    cellID = LPV::ComputeCellID(sourceRsm.positionWS);
             const float3    dGrid = cellID - brightestCellID;
-            if (dot(dGrid, dGrid) < 3)
+            if (dot(dGrid, dGrid) < (KERNEL_SIZE * KERNEL_SIZE - 1))
             {
                 outputValue.positionWS += sourceRsm.positionWS;
                 outputValue.normalWS += sourceRsm.normalWS;
