@@ -1,11 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
+using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
 using DELTation.AAAARP.Renderers;
 using Unity.Collections;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
@@ -61,10 +63,17 @@ namespace DELTation.AAAARP.Passes.Shadows
             RenderTexture shadowMap = shadowMapPool.LookupRenderTexture(shadowLightSplit.ShadowMapAllocation);
             passData.ShadowMap = shadowMap;
 
-            if (SplitIndex == shadowLight.Splits.Length - 1 && shadowLight.RsmAttachmentAllocation.IsValid)
+            if (cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.LightPropagationVolumes && SplitIndex == shadowLight.Splits.Length - 1)
             {
-                renderingData.RtPoolSet.LookupRsmAttachments(shadowLight.RsmAttachmentAllocation, passData.RsmAttachments);
-                passData.UseRsm = true;
+                AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
+                if (lpvData.ShadowLightToRSMLightMapping.TryGetValue(ShadowLightIndex, out int rsmLightIndex))
+                {
+                    ref readonly AAAALightPropagationVolumes.RsmLight rsmLight = ref lpvData.Lights.ElementAtRefReadonly(rsmLightIndex);
+                    ref readonly AAAALightPropagationVolumes.RsmAttachmentAllocation renderedAllocation = ref rsmLight.RenderedAllocation;
+                    Assert.IsTrue(renderedAllocation.IsValid);
+                    renderingData.RtPoolSet.LookupRsmAttachments(renderedAllocation, passData.RsmAttachments);
+                    passData.UseRsm = true;
+                }
             }
 
             builder.AllowPassCulling(false);

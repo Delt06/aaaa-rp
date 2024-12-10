@@ -34,8 +34,10 @@ namespace DELTation.AAAARP.Passes.Debugging
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
-            Assert.IsTrue(lpvData.GridRedSH.IsValid());
-            Assert.IsTrue(lpvData.GridBlockingPotentialSH.IsValid());
+
+            AAAALightPropagationVolumesData.GridTextureSet gridTextures = lpvData.UnpackedGridTextures;
+            Assert.IsTrue(gridTextures.RedSH.IsValid());
+            Assert.IsTrue(gridTextures.BlockingPotentialSH.IsValid());
 
             AAAADebugDisplaySettingsRendering renderingSettings = _debugDisplaySettings.RenderingSettings;
             passData.DebugMode = renderingSettings.LightPropagationVolumesDebugMode;
@@ -54,8 +56,8 @@ namespace DELTation.AAAARP.Passes.Debugging
                 }
             );
 
-            builder.ReadTexture(lpvData.GridRedSH);
-            builder.ReadTexture(passData.BlockingPotentialSH = lpvData.GridBlockingPotentialSH);
+            builder.ReadTexture(gridTextures.RedSH);
+            builder.ReadTexture(passData.BlockingPotentialSH = gridTextures.BlockingPotentialSH);
             passData.RenderTarget = builder.ReadWriteTexture(resourceData.CameraScaledColorBuffer);
             passData.DepthStencil = builder.ReadWriteTexture(resourceData.CameraScaledDepthBuffer);
         }

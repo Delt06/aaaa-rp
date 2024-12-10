@@ -1,0 +1,41 @@
+﻿#pragma kernel CS
+
+#define THREAD_GROUP_SIZE 256
+
+#include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/LightPropagationVolumes.hlsl"
+
+ByteAddressBuffer _SourceRedSH;
+ByteAddressBuffer _SourceGreenSH;
+ByteAddressBuffer _SourceBlueSH;
+ByteAddressBuffer _SourceBlockingPotentialSH;
+
+RWTexture3D<LPV_CHANNEL_T> _DestinationRedSH;
+RWTexture3D<LPV_CHANNEL_T> _DestinationGreenSH;
+RWTexture3D<LPV_CHANNEL_T> _DestinationBlueSH;
+RWTexture3D<LPV_CHANNEL_T> _DestinationBlockingPotentialSH;
+
+LPV_CHANNEL_T FetchSourceSH(const ByteAddressBuffer buffer, const uint address)
+{
+    return LPVMath::UnpackChannelValue(asint(buffer.Load4(address)));
+}
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    const uint flatCellID = dispatchThreadID.x;
+    const uint gridSize = LPV::GetGridSize();
+    if (flatCellID >= gridSize * gridSize * gridSize)
+    {
+        return;
+    }
+
+    const uint3 cellID = LPV::FlatCellIDTo3D(flatCellID);
+    const uint  fetchAddress = LPV::FlatCellIDToBufferAddress(flatCellID);
+    _DestinationRedSH[cellID] = FetchSourceSH(_SourceRedSH, fetchAddress);
+    _DestinationGreenSH[cellID] = FetchSourceSH(_SourceGreenSH, fetchAddress);
+    _DestinationBlueSH[cellID] = FetchSourceSH(_SourceBlueSH, fetchAddress);
+    _DestinationBlockingPotentialSH[cellID] = FetchSourceSH(_SourceBlockingPotentialSH, fetchAddress);
+}

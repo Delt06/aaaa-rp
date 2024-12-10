@@ -56,5 +56,16 @@ namespace DELTation.AAAARP.Core
 
             return ref UnsafeUtility.ArrayElementAsRef<T>(list.GetUnsafePtr(), index);
         }
+        
+        public static unsafe ref readonly T ElementAtRefReadonly<T>(this NativeList<T> array, int index) where T : unmanaged
+        {
+            if (index < 0 || index >= array.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index), index, "Index out of range");
+            }
+
+            return ref UnsafeUtility.ArrayElementAsRef<T>(array.GetUnsafeReadOnlyPtr(), index);
+        }
+
     }
 }

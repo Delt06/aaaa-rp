@@ -33,30 +33,34 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
             passData.GridSize = lpvData.GridSize;
 
-            _computeShader.GetKernelThreadGroupSizes(KernelIndex, out passData.ThreadGroupSize, out uint _, out uint _);
+            ref readonly AAAALightPropagationVolumesData.GridBufferSet gridBuffers = ref lpvData.PackedGridBuffers;
+            passData.Grid = new GridBufferSet
+            {
+                RedSH = builder.WriteBuffer(gridBuffers.RedSH),
+                GreenSH = builder.WriteBuffer(gridBuffers.GreenSH),
+                BlueSH = builder.WriteBuffer(gridBuffers.BlueSH),
+            };
+            passData.TempGrid = new GridBufferSet
+            {
+                RedSH = CreateTempGridBuffer(builder, gridBuffers.SHDesc, nameof(PassData.TempGrid) + "_" + nameof(GridBufferSet.RedSH)),
+                GreenSH = CreateTempGridBuffer(builder, gridBuffers.SHDesc, nameof(PassData.TempGrid) + "_" + nameof(GridBufferSet.GreenSH)),
+                BlueSH = CreateTempGridBuffer(builder, gridBuffers.SHDesc, nameof(PassData.TempGrid) + "_" + nameof(GridBufferSet.BlueSH)),
+            };
+            passData.BlockingPotentialSH = builder.ReadBuffer(gridBuffers.BlockingPotentialSH);
 
-            passData.Grid = new GridTextureSet
-            {
-                RedSH = builder.ReadWriteTexture(lpvData.GridRedSH),
-                GreenSH = builder.ReadWriteTexture(lpvData.GridGreenSH),
-                BlueSH = builder.ReadWriteTexture(lpvData.GridBlueSH),
-            };
-            passData.TempGrid = new GridTextureSet
-            {
-                RedSH = CreateTempGridTexture(builder, lpvData, nameof(PassData.TempGrid) + "_" + nameof(GridTextureSet.RedSH)),
-                GreenSH = CreateTempGridTexture(builder, lpvData, nameof(PassData.TempGrid) + "_" + nameof(GridTextureSet.GreenSH)),
-                BlueSH = CreateTempGridTexture(builder, lpvData, nameof(PassData.TempGrid) + "_" + nameof(GridTextureSet.BlueSH)),
-            };
-            passData.BlockingPotentialSH = builder.ReadTexture(lpvData.GridBlockingPotentialSH);
+            _computeShader.GetKernelThreadGroupSizes(KernelIndex, out passData.ThreadGroupSize, out uint _, out uint _);
             return;
 
-            static TextureHandle CreateTempGridTexture(RenderGraphBuilder builder, AAAALightPropagationVolumesData lpvData, string name) =>
-                builder.CreateTransientTexture(new TextureDesc(lpvData.GridSHDesc) { name = name });
+            static BufferHandle CreateTempGridBuffer(RenderGraphBuilder builder, BufferDesc desc, string name)
+            {
+                desc.name = name;
+                return builder.CreateTransientBuffer(desc);
+            }
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
-            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._BlockingPotentialSH, data.BlockingPotentialSH);
+            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._BlockingPotentialSH, data.BlockingPotentialSH);
 
             for (int i = 0; i < data.PassCount; ++i)
             {
@@ -65,19 +69,19 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             }
         }
 
-        private void RenderPass(PassData data, RenderGraphContext context, in GridTextureSet source, in GridTextureSet destination)
+        private void RenderPass(PassData data, RenderGraphContext context, in GridBufferSet source, in GridBufferSet destination)
         {
             if (data.ThreadGroupSize <= 0)
             {
                 return;
             }
 
-            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._SourceRedSH, source.RedSH);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._SourceGreenSH, source.GreenSH);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._SourceBlueSH, source.BlueSH);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._DestinationRedSH, destination.RedSH);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._DestinationGreenSH, destination.GreenSH);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._DestinationBlueSH, destination.BlueSH);
+            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._SourceRedSH, source.RedSH);
+            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._SourceGreenSH, source.GreenSH);
+            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._SourceBlueSH, source.BlueSH);
+            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._DestinationRedSH, destination.RedSH);
+            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._DestinationGreenSH, destination.GreenSH);
+            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._DestinationBlueSH, destination.BlueSH);
 
             int totalCellCount = data.GridSize * data.GridSize * data.GridSize;
             int threadGroupSize = (int) data.ThreadGroupSize;
@@ -88,19 +92,19 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
         public class PassData : PassDataBase
         {
-            public TextureHandle BlockingPotentialSH;
-            public GridTextureSet Grid;
+            public BufferHandle BlockingPotentialSH;
+            public GridBufferSet Grid;
             public int GridSize;
             public int PassCount;
-            public GridTextureSet TempGrid;
+            public GridBufferSet TempGrid;
             public uint ThreadGroupSize;
         }
 
-        public struct GridTextureSet
+        public struct GridBufferSet
         {
-            public TextureHandle BlueSH;
-            public TextureHandle GreenSH;
-            public TextureHandle RedSH;
+            public BufferHandle BlueSH;
+            public BufferHandle GreenSH;
+            public BufferHandle RedSH;
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]

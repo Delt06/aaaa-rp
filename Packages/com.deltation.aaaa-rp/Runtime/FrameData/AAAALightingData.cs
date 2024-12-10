@@ -14,7 +14,6 @@ namespace DELTation.AAAARP.FrameData
         public TextureHandle DeferredReflections;
         public TextureHandle GTAOTerm;
         public AAAALightingConstantBuffer LightingConstantBuffer;
-        public AAAALpvConstantBuffer LpvConstantBuffer;
         public BufferHandle PunctualLightsBuffer;
         public TextureHandle SSRResolveResult;
         public TextureHandle SSRTraceResult;
@@ -41,7 +40,6 @@ namespace DELTation.AAAARP.FrameData
         {
             AmbientIntensity = default;
             LightingConstantBuffer = default;
-            LpvConstantBuffer = default;
             PunctualLightsBuffer = BufferHandle.nullHandle;
             GTAOTerm = TextureHandle.nullHandle;
             SSRTraceResult = TextureHandle.nullHandle;

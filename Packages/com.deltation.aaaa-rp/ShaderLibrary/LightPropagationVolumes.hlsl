@@ -4,9 +4,11 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows.hlsl"
-#include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAALpvConstantBuffer.cs.hlsl"
 
 #define LPV_CHANNEL_T float4
+#define LPV_PACKED_CHANNEL_T int4
+
+#define LPV_QUANTIZATION_STEPS 256
 
 struct LPVCellValue
 {
@@ -48,6 +50,16 @@ struct LPVMath
         LPV_CHANNEL_T shIntensity = DirToSH(-normalWS);
         const float   blockingPotential = dot(shIntensity, blockingPotentialSH);
         return saturate(blockingPotential);
+    }
+
+    static LPV_PACKED_CHANNEL_T PackChannelValue(const LPV_CHANNEL_T value)
+    {
+        return (LPV_PACKED_CHANNEL_T)(value * LPV_QUANTIZATION_STEPS);
+    }
+
+    static LPV_CHANNEL_T UnpackChannelValue(const LPV_PACKED_CHANNEL_T quantizedValue)
+    {
+        return (LPV_CHANNEL_T)quantizedValue / LPV_QUANTIZATION_STEPS;
     }
 };
 
@@ -92,6 +104,17 @@ struct LPV
         result.y = flatCellID / gridSize % gridSize;
         result.z = flatCellID / (gridSize * gridSize);
         return result;
+    }
+
+    static uint FlattenCellID(uint3 cellID)
+    {
+        const uint gridSize = _LPVGridSize;
+        return cellID.z * gridSize * gridSize + cellID.y * gridSize + cellID.x;
+    }
+
+    static uint FlatCellIDToBufferAddress(const uint flatCellID)
+    {
+        return flatCellID * 4 * 4;
     }
 
     static LPVCellValue SampleGrid(const float3 positionWS, const SamplerState samplerState)
@@ -149,45 +172,6 @@ struct RsmValue
         value.normalWS = RsmOutput::UnpackRsmNormal(output.packedNormalWS);
         value.flux = output.flux;
         return value;
-    }
-};
-
-struct RsmAllocation
-{
-    int BindlessPositionMapIndex;
-    int BindlessNormalMapIndex;
-    int BindlessFluxMapIndex;
-    int SliceIndex;
-
-    static RsmAllocation LoadForDirectionalLight(const uint lightIndex)
-    {
-        RsmAllocation allocation;
-        float4        rawAllocation = DirectionalLightRsmBindlessIndices[lightIndex];
-        allocation.BindlessPositionMapIndex = rawAllocation.x;
-        allocation.BindlessNormalMapIndex = rawAllocation.y;
-        allocation.BindlessFluxMapIndex = rawAllocation.z;
-        allocation.SliceIndex = rawAllocation.w;
-        return allocation;
-    }
-
-    bool IsValid()
-    {
-        return all(int3(BindlessPositionMapIndex, BindlessNormalMapIndex, BindlessFluxMapIndex) != -1);
-    }
-
-    RsmValue SampleRsmValue(const float2 shadowCoords)
-    {
-        const Texture2D    positionMap = GetBindlessTexture2D(BindlessPositionMapIndex);
-        const Texture2D    normalMap = GetBindlessTexture2D(BindlessNormalMapIndex);
-        const Texture2D    fluxMap = GetBindlessTexture2D(BindlessFluxMapIndex);
-        const SamplerState rsmSampler = sampler_PointClamp;
-
-        RsmOutput rsmOutput;
-        rsmOutput.positionWS = SAMPLE_TEXTURE2D_LOD(positionMap, rsmSampler, shadowCoords.xy, 0).rgb;
-        rsmOutput.packedNormalWS = SAMPLE_TEXTURE2D_LOD(normalMap, rsmSampler, shadowCoords.xy, 0).xy;
-        rsmOutput.flux = SAMPLE_TEXTURE2D_LOD(fluxMap, rsmSampler, shadowCoords.xy, 0).rgb;
-
-        return RsmValue::Unpack(rsmOutput);
     }
 };
 

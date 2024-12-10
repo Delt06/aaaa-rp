@@ -183,13 +183,6 @@ namespace DELTation.AAAARP.FrameData
 
                                 shadowLight.Splits.Add(shadowLightSplit);
                             }
-
-                            if (cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.LightPropagationVolumes)
-                            {
-                                shadowLight.RsmAttachmentAllocation = rtPoolSet.AllocateRsmMaps(shadowMapResolution);
-                                shadowLight.RsmFinalAllocation = default;
-                                shadowLight.RsmSliceIndex = shadowLight.Splits.Length - 1;
-                            }
                         }
                         else if (shadowLight.LightType == LightType.Spot)
                         {
@@ -309,9 +302,6 @@ namespace DELTation.AAAARP.FrameData
             public float SlopeBias;
             public float2 FadeParams;
             public int Resolution;
-            public AAAALightPropagationVolumes.RsmAttachmentAllocation RsmAttachmentAllocation;
-            public AAAALightPropagationVolumes.RsmAttachmentAllocation RsmFinalAllocation;
-            public int RsmSliceIndex;
 
             public NativeList<ShadowLightSplit> Splits;
         }

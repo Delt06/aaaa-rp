@@ -2,10 +2,10 @@
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
-using DELTation.AAAARP.Lighting;
 using DELTation.AAAARP.RenderPipelineResources;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 using static DELTation.AAAARP.Lighting.AAAALightPropagationVolumes;
@@ -26,34 +26,28 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
-            AAAAShadowsData shadowsData = frameData.Get<AAAAShadowsData>();
+            AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
 
             passData.Batches.Clear();
 
             ref readonly AAAARenderTexturePoolSet rtPoolSet = ref renderingData.RtPoolSet;
 
-            for (int visibleLightIndex = 0; visibleLightIndex < renderingData.CullingResults.visibleLights.Length; visibleLightIndex++)
+            for (int index = 0; index < lpvData.Lights.Length; index++)
             {
-                if (shadowsData.VisibleToShadowLightMapping.TryGetValue(visibleLightIndex, out int shadowLightIndex))
-                {
-                    ref readonly VisibleLight visibleLight = ref renderingData.CullingResults.visibleLights.ElementAtRefReadonly(visibleLightIndex);
-                    ref AAAAShadowsData.ShadowLight shadowLight = ref shadowsData.ShadowLights.ElementAtRef(shadowLightIndex);
-                    ref readonly RsmAttachmentAllocation sourceAllocation = ref shadowLight.RsmAttachmentAllocation;
+                ref RsmLight rsmLight = ref lpvData.Lights.ElementAtRef(index);
+                ref readonly RsmAttachmentAllocation renderedAllocation = ref rsmLight.RenderedAllocation;
+                Assert.IsTrue(renderedAllocation.IsValid);
 
-                    if (sourceAllocation.IsValid)
-                    {
-                        PassData.Batch batch;
+                PassData.Batch batch;
 
-                        int destinationSize = shadowLight.Resolution / DownsampleKernelSize;
-                        shadowLight.RsmFinalAllocation = rtPoolSet.AllocateRsmMaps(destinationSize);
-                        batch.DestinationTextures = PassData.RsmTextureSet.Lookup(rtPoolSet, shadowLight.RsmFinalAllocation);
-                        batch.SourceTextures = PassData.RsmTextureSet.Lookup(rtPoolSet, sourceAllocation);
-                        batch.LightDirectionWS = math.float4(AAAALightingUtils.ExtractDirection(visibleLight.localToWorldMatrix), 0);
-                        batch.DestinationSize = new float4(destinationSize, destinationSize, 1.0f / destinationSize, 1.0f / destinationSize);
+                int destinationSize = renderedAllocation.PositionsMap.Resolution / DownsampleKernelSize;
+                rsmLight.InjectedAllocation = rtPoolSet.AllocateRsmMaps(destinationSize);
+                batch.DestinationTextures = PassData.RsmTextureSet.Lookup(rtPoolSet, rsmLight.InjectedAllocation);
+                batch.SourceTextures = PassData.RsmTextureSet.Lookup(rtPoolSet, renderedAllocation);
+                batch.LightDirectionWS = rsmLight.DirectionWS;
+                batch.DestinationSize = new float4(destinationSize, destinationSize, 1.0f / destinationSize, 1.0f / destinationSize);
 
-                        passData.Batches.Add(batch);
-                    }
-                }
+                passData.Batches.Add(batch);
             }
 
             _computeShader.GetKernelThreadGroupSizes(CSKernelIndex, out passData.ThreadGroupSizeX, out passData.ThreadGroupSizeY, out uint _);

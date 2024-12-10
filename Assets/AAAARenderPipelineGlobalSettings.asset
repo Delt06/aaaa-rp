@@ -104,6 +104,7 @@ MonoBehaviour:
         _lpvClearCS: {fileID: 7200000, guid: 4223c92cc56646ff94961516aeb05279, type: 3}
         _lpvInjectCS: {fileID: 7200000, guid: 044596346b194aea8fd9d323faa80202, type: 3}
         _lpvPropagateCS: {fileID: 7200000, guid: 1782e7e0bbf4436dbbe9706932a3f24d, type: 3}
+        _lpvResolveCS: {fileID: 7200000, guid: 233df197896f4ee7ac8e87177855d6d8, type: 3}
         _smaaPS: {fileID: 4800000, guid: b60243e7e3f846a19d2c60c7e14a5087, type: 3}
         _uberPostProcessingPS: {fileID: 4800000, guid: df9caa481e86404e93faaddb9b82e3b3, type: 3}
     - rid: 3580532324172300380

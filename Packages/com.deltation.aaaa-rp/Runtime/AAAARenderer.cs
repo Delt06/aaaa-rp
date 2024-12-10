@@ -42,9 +42,11 @@ namespace DELTation.AAAARP
         private readonly GPUCullingPass _gpuCullingFalseNegativePass;
         private readonly HZBGenerationPass _gpuCullingHzbGenerationPass;
         private readonly GPUCullingPass _gpuCullingMainPass;
+        private readonly LPVSetupPass _lpvSetupPass;
         private readonly LPVInjectPass _lpvInjectPass;
         private readonly LPVPropagatePass _lpvPropagatePass;
-        private readonly LPVSetupPass _lpvSetupPass;
+        private readonly LPVClearPass _lpvClearPass;
+        private readonly LPVResolvePass _lpvResolvePass;
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly RSMDownsamplePass _rsmDownsamplePass;
@@ -106,10 +108,12 @@ namespace DELTation.AAAARP
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
             _colorHistoryPass = new ColorHistoryPass(AAAARenderPassEvent.AfterRenderingTransparents);
             _setupProbeVolumesPass = new SetupProbeVolumesPass(AAAARenderPassEvent.BeforeRendering);
+            _lpvSetupPass = new LPVSetupPass(AAAARenderPassEvent.BeforeRendering);
             _rsmDownsamplePass = new RSMDownsamplePass(AAAARenderPassEvent.AfterRenderingShadows, shaders);
-            _lpvSetupPass = new LPVSetupPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
+            _lpvClearPass = new LPVClearPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _lpvInjectPass = new LPVInjectPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _lpvPropagatePass = new LPVPropagatePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
+            _lpvResolvePass = new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
 
             _drawTransparentPass = new DrawTransparentPass(AAAARenderPassEvent.BeforeRenderingTransparents);
 
@@ -158,10 +162,12 @@ namespace DELTation.AAAARP
 
             if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.LightPropagationVolumes)
             {
-                EnqueuePass(_rsmDownsamplePass);
                 EnqueuePass(_lpvSetupPass);
+                EnqueuePass(_rsmDownsamplePass);
+                EnqueuePass(_lpvClearPass);
                 EnqueuePass(_lpvInjectPass);
                 EnqueuePass(_lpvPropagatePass);
+                EnqueuePass(_lpvResolvePass);
             }
 
             EnqueuePass(_deferredLightingPass);

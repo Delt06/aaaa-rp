@@ -104,6 +104,10 @@ namespace DELTation.AAAARP.RenderPipelineResources
         [SerializeField]
         [ResourcePath("Shaders/GlobalIllumination/LPVPropagate.compute")]
         private ComputeShader _lpvPropagateCS;
+        
+        [SerializeField]
+        [ResourcePath("Shaders/GlobalIllumination/LPVResolve.compute")]
+        private ComputeShader _lpvResolveCS;
 
         [SerializeField]
         [ResourcePath("Shaders/AntiAliasing/SMAA.shader")]
@@ -248,6 +252,12 @@ namespace DELTation.AAAARP.RenderPipelineResources
         public ComputeShader LpvPropagateCS
         {
             get => _lpvPropagateCS;
+            set => this.SetValueAndNotify(ref _lpvPropagateCS, value, nameof(_lpvPropagateCS));
+        }
+
+        public ComputeShader LpvResolveCS
+        {
+            get => _lpvResolveCS;
             set => this.SetValueAndNotify(ref _lpvPropagateCS, value, nameof(_lpvPropagateCS));
         }
 
