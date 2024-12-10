@@ -1,9 +1,5 @@
 ﻿#pragma kernel CS
 
-#ifndef KERNEL_NAME
-#define KERNEL_NAME CS
-#endif
-
 #define THREAD_GROUP_SIZE 16
 
 // Sources:
@@ -52,7 +48,7 @@ void Accumulate(RWByteAddressBuffer buffer, const uint baseAddress, const LPV_PA
 }
 
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
-void KERNEL_NAME(const uint3 dispatchThreadID : SV_DispatchThreadID)
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     const uint2 rsmTexelID = dispatchThreadID.xy;
     if (any(rsmTexelID >= _RSMResolution.xy))
@@ -72,7 +68,7 @@ void KERNEL_NAME(const uint3 dispatchThreadID : SV_DispatchThreadID)
     UNITY_BRANCH
     if (all(resultCellID < gridSize))
     {
-        const static float         surfelWeight = 0.015;
+        const float                surfelWeight = 0.015;
         const float3               flux = rsmValue.flux * _LightColor.rgb;
         const float                NdotL = saturate(dot(_LightDirectionWS, rsmValue.normalWS));
         const LPV_CHANNEL_T        shCoefficients = NdotL * surfelWeight * INV_PI * LPVMath::DirToCosineLobe(-rsmValue.normalWS);

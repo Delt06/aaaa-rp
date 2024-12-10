@@ -47,12 +47,9 @@ MonoBehaviour:
   GridSize:
     m_OverrideState: 1
     m_Value: 32
-  InjectQuality:
-    m_OverrideState: 1
-    m_Value: 1
   Intensity:
     m_OverrideState: 1
-    m_Value: 10
+    m_Value: 1
   PropagationPasses:
     m_OverrideState: 1
     m_Value: 8

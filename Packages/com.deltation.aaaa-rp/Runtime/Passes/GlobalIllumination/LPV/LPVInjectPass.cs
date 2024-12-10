@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
+using DELTation.AAAARP.Volumes;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -25,7 +26,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
-            AAAALightPropagationVolumesData lpvData = frameData.GetOrCreate<AAAALightPropagationVolumesData>();
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
+            AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
 
             ref readonly AAAALightPropagationVolumesData.GridBufferSet gridBuffers = ref lpvData.PackedGridBuffers;
             builder.WriteBuffer(passData.GridRedSH = gridBuffers.RedSH);
@@ -33,6 +35,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             builder.WriteBuffer(passData.GridBlueSH = gridBuffers.BlueSH);
             builder.WriteBuffer(passData.GridBlockingPotentialSH = gridBuffers.BlockingPotentialSH);
 
+            passData.Intensity = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>().Intensity.value;
             passData.Batches.Clear();
 
             _computeShader.GetKernelThreadGroupSizes(KernelIndex, out uint threadGroupSizeX, out uint threadGroupSizeY, out uint _);
@@ -72,7 +75,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             foreach (PassData.Batch batch in data.Batches)
             {
                 context.cmd.SetComputeVectorParam(_computeShader, ShaderIDs._LightDirectionWS, batch.LightDirectionWS);
-                context.cmd.SetComputeVectorParam(_computeShader, ShaderIDs._LightColor, batch.LightColor);
+                context.cmd.SetComputeVectorParam(_computeShader, ShaderIDs._LightColor, batch.LightColor * data.Intensity);
                 context.cmd.SetComputeVectorParam(_computeShader, ShaderIDs._RSMResolution, batch.RsmResolution);
                 context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._RSMPositionMap, batch.RsmPositionMap);
                 context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._RSMNormalMap, batch.RsmNormalMap);
@@ -88,6 +91,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public BufferHandle GridBlueSH;
             public BufferHandle GridGreenSH;
             public BufferHandle GridRedSH;
+            public float Intensity;
 
             public struct Batch
             {

@@ -14,17 +14,8 @@ namespace DELTation.AAAARP.Volumes
             _64 = 64,
         }
 
-        public enum QualityPreset
-        {
-            Low,
-            Medium,
-            High,
-            Ultra,
-        }
-
         public BoolParameter Enabled = new(false);
         public EnumParameter<GridSizePreset> GridSize = new(GridSizePreset._32);
-        public EnumParameter<QualityPreset> InjectQuality = new(QualityPreset.Medium);
         public ClampedFloatParameter Intensity = new(1.0f, 0.0f, 20.0f);
         public ClampedIntParameter PropagationPasses = new(8, 0, 32);
 
