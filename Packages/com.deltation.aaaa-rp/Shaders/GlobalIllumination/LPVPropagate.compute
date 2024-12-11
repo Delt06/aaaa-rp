@@ -55,7 +55,7 @@ float3 GetReprojSideDirection(int index, int3 orientation)
 float CalculateOcclusion(const LPV_CHANNEL_T blockingPotentialSH, const LPV_CHANNEL_T directionSH)
 {
     #if defined(BLOCKING_POTENTIAL) && !defined(FIRST_STEP)
-    return saturate(1 - saturate(_OcclusionAmplification * dot(blockingPotentialSH, directionSH)));
+    return 1 - saturate(_OcclusionAmplification * dot(blockingPotentialSH, directionSH));
     #else
     return 1;
     #endif
@@ -63,7 +63,7 @@ float CalculateOcclusion(const LPV_CHANNEL_T blockingPotentialSH, const LPV_CHAN
 
 float4 EvalPropagatedSH(const LPV_CHANNEL_T neighborSH, const LPV_CHANNEL_T evalDirectionSH, const LPV_CHANNEL_T cosineLobeSH)
 {
-    return saturate(dot(neighborSH, evalDirectionSH)) * cosineLobeSH;
+    return max(0, dot(neighborSH, evalDirectionSH)) * cosineLobeSH;
 }
 
 LPV_CHANNEL_T FetchSourceSH(const ByteAddressBuffer buffer, const uint3 neighbourID)
