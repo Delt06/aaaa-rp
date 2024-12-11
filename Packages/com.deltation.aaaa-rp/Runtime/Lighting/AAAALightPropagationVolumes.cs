@@ -69,7 +69,6 @@ namespace DELTation.AAAARP.Lighting
         public static class ShaderKeywords
         {
             public static string BLOCKING_POTENTIAL = nameof(BLOCKING_POTENTIAL);
-            public static string TRILINEAR_INTERPOLATION = nameof(TRILINEAR_INTERPOLATION);
         }
     }
 }

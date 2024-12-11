@@ -26,7 +26,6 @@ namespace DELTation.AAAARP.Volumes
         public ClampedFloatParameter Intensity = new(1.0f, 0.0f, 20.0f);
         public ClampedFloatParameter InjectionDepthBias = new(0.25f, 0.0f, 5.0f);
         public ClampedFloatParameter InjectionNormalBias = new(0.25f, 0.0f, 5.0f);
-        public BoolParameter TrilinearInjection = new(true);
 
         [Header("Propagation")]
         public ClampedIntParameter PropagationPasses = new(8, 0, 32);

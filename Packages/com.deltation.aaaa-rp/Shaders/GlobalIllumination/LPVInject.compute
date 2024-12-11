@@ -1,7 +1,6 @@
 ﻿#pragma kernel CS
 
 #pragma multi_compile _ BLOCKING_POTENTIAL
-#pragma multi_compile _ TRILINEAR_INTERPOLATION
 
 #define THREAD_GROUP_SIZE 16
 
@@ -89,79 +88,6 @@ void AccumulateBlockingPotential(const int3 cellID, const LPV_CHANNEL_T shCoeffi
     }
 }
 
-#define TRILINEAR_INTERPOLATION_SAMPLES 8
-
-static const float3 TrilinearInterpolationOffsets[TRILINEAR_INTERPOLATION_SAMPLES] =
-{
-    float3(0, 0, 0),
-    float3(1, 0, 0),
-    float3(0, 1, 0),
-    float3(1, 1, 0),
-    float3(0, 0, 1),
-    float3(1, 0, 1),
-    float3(0, 1, 1),
-    float3(1, 1, 1),
-};
-
-void ComputeTrilinearInterpolationWeights(const float3 t, out float weights[TRILINEAR_INTERPOLATION_SAMPLES])
-{
-    float3 oneMinusT = 1.0 - t;
-    weights[0] = oneMinusT.x * oneMinusT.y * oneMinusT.z; // (0,0,0)
-    weights[1] = t.x * oneMinusT.y * oneMinusT.z; // (1,0,0)
-    weights[2] = oneMinusT.x * t.y * oneMinusT.z; // (0,1,0)
-    weights[3] = t.x * t.y * oneMinusT.z; // (1,1,0)
-    weights[4] = oneMinusT.x * oneMinusT.y * t.z; // (0,0,1)
-    weights[5] = t.x * oneMinusT.y * t.z; // (1,0,1)
-    weights[6] = oneMinusT.x * t.y * t.z; // (0,1,1)
-    weights[7] = t.x * t.y * t.z; // (1,1,1)
-}
-
-void AccumulateRadianceTrilinear(const float3 cellID, const LPV_CHANNEL_T shCoefficients, const float3 flux)
-{
-    const float3 leftBottomID = floor(cellID);
-    float        weights[TRILINEAR_INTERPOLATION_SAMPLES];
-    ComputeTrilinearInterpolationWeights(cellID - leftBottomID, weights);
-
-    UNITY_UNROLL
-    for (uint i = 0; i < 8; ++i)
-    {
-        const float3 offset = TrilinearInterpolationOffsets[i];
-        AccumulateRadiance(leftBottomID + offset, shCoefficients, flux * weights[i]);
-    }
-}
-
-void AccumulateBlockingPotentialTrilinear(const float3 cellID, const LPV_CHANNEL_T shCoefficients, const float blockingPotential)
-{
-    const float3 leftBottomID = floor(cellID);
-    float        weights[TRILINEAR_INTERPOLATION_SAMPLES];
-    ComputeTrilinearInterpolationWeights(cellID - leftBottomID, weights);
-
-    UNITY_UNROLL
-    for (uint i = 0; i < 8; ++i)
-    {
-        const float3 offset = TrilinearInterpolationOffsets[i];
-        AccumulateBlockingPotential(leftBottomID + offset, shCoefficients, blockingPotential * weights[i]);
-    }
-}
-
-void AccumulateRadianceSelector(const float3 cellID, const LPV_CHANNEL_T shCoefficients, const float3 flux)
-{
-    #ifdef TRILINEAR_INTERPOLATION
-    AccumulateRadianceTrilinear(cellID, shCoefficients, flux);
-    #else
-    AccumulateRadiance(cellID, shCoefficients, flux);
-    #endif
-}
-
-void AccumulateBlockingPotentialSelector(const float3 cellID, const LPV_CHANNEL_T shCoefficients, const float blockingPotential)
-{
-    #ifdef TRILINEAR_INTERPOLATION
-    AccumulateBlockingPotentialTrilinear(cellID, shCoefficients, blockingPotential);
-    #else
-    AccumulateBlockingPotential(cellID, shCoefficients, blockingPotential);
-    #endif
-}
-
 #define SURFEL_WEIGHT (5 * _RSMResolution.z)
 
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
@@ -183,7 +109,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         const float3        flux = rsmValue.flux * _LightColor.rgb;
         const LPV_CHANNEL_T shCoefficients = NdotL * SURFEL_WEIGHT * INV_PI * normalSH;
         const float3        resultCellID = LPV::ComputeCellIDFloat(gridPositionWS);
-        AccumulateRadianceSelector(resultCellID, shCoefficients, flux);
+        AccumulateRadiance(resultCellID, shCoefficients, flux);
     }
 
     #ifdef BLOCKING_POTENTIAL
@@ -191,7 +117,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         const float3 resultCellID = LPV::ComputeBlockingPotentialCellIDRawFloat(gridPositionWS);
         const float  invCellSize = LPV::GetGridSize() / (_LPVGridBoundsMax.x - _LPVGridBoundsMin.x);
         const float  blockingPotential = saturate(NdotL * SURFEL_WEIGHT * invCellSize * invCellSize);
-        AccumulateBlockingPotentialSelector(resultCellID, normalSH, blockingPotential);
+        AccumulateBlockingPotential(resultCellID, normalSH, blockingPotential);
     }
     #endif
 }

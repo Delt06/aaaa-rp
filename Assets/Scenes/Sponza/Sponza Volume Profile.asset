@@ -62,9 +62,6 @@ MonoBehaviour:
   InjectionNormalBias:
     m_OverrideState: 0
     m_Value: 0.25
-  TrilinearInjection:
-    m_OverrideState: 1
-    m_Value: 1
   PropagationPasses:
     m_OverrideState: 1
     m_Value: 8

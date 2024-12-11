@@ -26,7 +26,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
             AAAALpvVolumeComponent lpvVolumeComponent = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>();
             lpvData.BlockingPotential = lpvVolumeComponent.Occlusion.value;
-            lpvData.TrilinearInjection = lpvVolumeComponent.TrilinearInjection.value;
 
             passData.GridSize = lpvData.GridSize = (int) lpvVolumeComponent.GridSize.value;
 

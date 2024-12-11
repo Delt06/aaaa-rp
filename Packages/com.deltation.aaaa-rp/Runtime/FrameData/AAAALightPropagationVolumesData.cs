@@ -15,7 +15,6 @@ namespace DELTation.AAAARP.FrameData
         public NativeList<AAAALightPropagationVolumes.RsmLight> Lights;
         public GridBufferSet PackedGridBuffers;
         public NativeHashMap<int, int> ShadowLightToRSMLightMapping;
-        public bool TrilinearInjection;
         public GridTextureSet UnpackedGridTextures;
 
         public override void Reset()
@@ -26,7 +25,6 @@ namespace DELTation.AAAARP.FrameData
             GridBoundsMin = default;
             GridBoundsMax = default;
             GridSize = default;
-            TrilinearInjection = default;
 
             if (Lights.IsCreated)
             {
