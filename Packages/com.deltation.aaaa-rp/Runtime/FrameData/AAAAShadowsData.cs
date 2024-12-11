@@ -2,6 +2,7 @@ using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Lighting;
 using DELTation.AAAARP.Passes;
+using DELTation.AAAARP.Passes.GlobalIllumination.LPV;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
@@ -123,6 +124,7 @@ namespace DELTation.AAAARP.FrameData
                 float3 cameraPosition = camera.transform.position;
                 float shadowDistance = math.min(cameraFarPlane, shadowSettings.MaxDistance);
                 ref readonly AAAARenderTexturePoolSet rtPoolSet = ref renderingData.RtPoolSet;
+                int texelSnapStep = ComputeTexelSnapStep(renderingData);
 
                 for (int index = 0; index < shadowLights.Length; index++)
                 {
@@ -157,7 +159,7 @@ namespace DELTation.AAAARP.FrameData
 
                                 AAAAShadowUtils.ComputeDirectionalLightShadowMatrices(
                                     cameraFrustumCorners, cameraPosition, cameraFarPlane,
-                                    shadowMapResolution, lightRotation, splitNear, splitFar, out float4x4 lightView, out float4x4 lightProjection
+                                    shadowMapResolution, lightRotation, splitNear, splitFar, texelSnapStep, out float4x4 lightView, out float4x4 lightProjection
                                 );
 
                                 Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);
@@ -269,6 +271,16 @@ namespace DELTation.AAAARP.FrameData
                     shadowLight.SlopeBias = AAAAShadowUtils.GetBaseShadowBias(false, 0.0f) * shadowSettings.SlopeBias;
                 }
             }
+        }
+
+        private static int ComputeTexelSnapStep(AAAARenderingData renderingData)
+        {
+            if (renderingData.PipelineAsset.LightingSettings.RealtimeGI is AAAARealtimeGITechnique.LightPropagationVolumes)
+            {
+                return RSMDownsamplePass.DownsampleFactor;
+            }
+
+            return 1;
         }
 
         public override void Reset()

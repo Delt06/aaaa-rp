@@ -162,7 +162,7 @@ void AccumulateBlockingPotentialSelector(const float3 cellID, const LPV_CHANNEL_
     #endif
 }
 
-#define SURFEL_WEIGHT 0.015
+#define SURFEL_WEIGHT (5 * _RSMResolution.z)
 
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
