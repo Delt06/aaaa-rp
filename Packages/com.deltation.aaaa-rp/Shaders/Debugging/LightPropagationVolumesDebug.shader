@@ -32,7 +32,7 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.deltation.aaaa-rp/Runtime/Debugging/AAAADebugDisplaySettingsRendering.cs.hlsl"
 
-            uint  _DebugInstanceCountDimension;
+            int   _DebugInstanceCountDimension;
             uint  _DebugMode;
             float _DebugSize;
             float _DebugIntensity;
@@ -75,10 +75,10 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
             Varyings VS(const Attributes IN, const uint instanceID : INSTANCEID_SEMANTIC)
             {
                 const float3 cameraForwardWS = normalize(-GetViewForwardDir(UNITY_MATRIX_V));
-                const float  cellSize = (_LPVGridBoundsMin.x - _LPVGridBoundsMax.x) / LPV::GetGridSize();
+                const float  cellSize = (_LPVGridBoundsMax.x - _LPVGridBoundsMin.x) / LPV::GetGridSize();
                 const float3 cameraPositionWS = GetCameraPositionWS();
 
-                const float3 pivotPositionWS = cameraPositionWS + cameraForwardWS * cellSize * _DebugInstanceCountDimension / 2;
+                const float3 pivotPositionWS = cameraPositionWS - cameraForwardWS * cellSize * _DebugInstanceCountDimension / 2;
                 const int3   centerCellID = PositionToCellID(pivotPositionWS);
 
                 int3 localInstanceID;
@@ -88,14 +88,13 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
                 localInstanceID -= _DebugInstanceCountDimension / 2;
 
                 const int3 globalCellID = centerCellID + localInstanceID;
-                if (any(globalCellID < 0) || any(globalCellID) >= LPV::GetGridSize())
+                if (any(globalCellID < 0) || any(globalCellID >= LPV::GetGridSize()))
                 {
                     return (Varyings)0;
                 }
 
                 const float3 cellPositionWS = CellCenter(globalCellID);
-
-                Varyings OUT;
+                Varyings     OUT;
 
                 const float3 positionWS = cellPositionWS + _DebugSize * IN.positionOS;
                 OUT.positionWS = positionWS;
