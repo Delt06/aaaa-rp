@@ -15,7 +15,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
     public class RSMDownsamplePass : AAAARenderPass<RSMDownsamplePass.PassData>
     {
         private const int CSKernelIndex = 0;
-        private const int DownsampleKernelSize = 4;
+        public const int DownsampleFactor = 4;
         private readonly ComputeShader _computeShader;
 
         public RSMDownsamplePass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
@@ -40,7 +40,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
                 PassData.Batch batch;
 
-                int destinationSize = renderedAllocation.PositionsMap.Resolution / DownsampleKernelSize;
+                int destinationSize = renderedAllocation.PositionsMap.Resolution / DownsampleFactor;
                 rsmLight.InjectedAllocation = rtPoolSet.AllocateRsmMaps(destinationSize);
                 batch.DestinationTextures = PassData.RsmTextureSet.Lookup(rtPoolSet, rsmLight.InjectedAllocation);
                 batch.SourceTextures = PassData.RsmTextureSet.Lookup(rtPoolSet, renderedAllocation);
