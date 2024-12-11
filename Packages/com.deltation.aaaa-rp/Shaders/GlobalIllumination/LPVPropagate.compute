@@ -96,7 +96,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    const uint3   cellID = LPV::FlatCellIDTo3D(dispatchThreadID.x);
+    const uint3   cellID = LPV::FlatCellIDTo3D(flatCellID);
     LPV_CHANNEL_T redSH = 0;
     LPV_CHANNEL_T greenSH = 0;
     LPV_CHANNEL_T blueSH = 0;
@@ -115,30 +115,29 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         #if DIRECT_FACE_CONTRIBUTION
         for (uint sideFace = 0; sideFace < 4; ++sideFace)
         {
-            float3 evalDirection = GetEvalSideDirection(sideFace, mainDirection);
-            float3 reprojDirection = GetReprojSideDirection(sideFace, mainDirection);
-
-            const LPV_CHANNEL_T reprojDirectionCosineLobeSH = LPVMath::DirToCosineLobe(reprojDirection);
+            const float3        evalDirection = GetEvalSideDirection(sideFace, mainDirection);
             const LPV_CHANNEL_T evalDirectionSH = LPVMath::DirToSH(evalDirection);
             const LPV_CHANNEL_T blockingPotentialSH = FetchBlockingPotential(neighbourID + evalDirection * 0.5);
-            const float         occlusion = CalculateOcclusion(blockingPotentialSH, evalDirectionSH);
+            const float3        reprojDirection = GetReprojSideDirection(sideFace, mainDirection);
+            LPV_CHANNEL_T       reprojDirectionCosineLobeSH = LPVMath::DirToCosineLobe(reprojDirection);
+            reprojDirectionCosineLobeSH *= sideFaceSubtendedSolidAngle * CalculateOcclusion(blockingPotentialSH, evalDirectionSH);
 
-            redSH += occlusion * sideFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourRedSH, evalDirectionSH, reprojDirectionCosineLobeSH);
-            greenSH += occlusion * sideFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourGreenSH, evalDirectionSH, reprojDirectionCosineLobeSH);
-            blueSH += occlusion * sideFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourBlueSH, evalDirectionSH, reprojDirectionCosineLobeSH);
+            redSH += EvalPropagatedSH(neighbourRedSH, evalDirectionSH, reprojDirectionCosineLobeSH);
+            greenSH += EvalPropagatedSH(neighbourGreenSH, evalDirectionSH, reprojDirectionCosineLobeSH);
+            blueSH += EvalPropagatedSH(neighbourBlueSH, evalDirectionSH, reprojDirectionCosineLobeSH);
         }
         #endif
 
         #if SIDE_FACE_CONTRIBUTION
         {
-            const LPV_CHANNEL_T mainDirectionCosineLobeSH = LPVMath::DirToCosineLobe(mainDirection);
             const LPV_CHANNEL_T mainDirectionSH = LPVMath::DirToSH(mainDirection);
             const LPV_CHANNEL_T blockingPotentialSH = FetchBlockingPotential(neighbourID + mainDirection * 0.5);
-            const float         occlusion = CalculateOcclusion(blockingPotentialSH, mainDirectionSH);
+            LPV_CHANNEL_T       mainDirectionCosineLobeSH = LPVMath::DirToCosineLobe(mainDirection);
+            mainDirectionCosineLobeSH *= directFaceSubtendedSolidAngle * CalculateOcclusion(blockingPotentialSH, mainDirectionSH);
 
-            redSH += occlusion * directFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourRedSH, mainDirectionSH, mainDirectionCosineLobeSH);
-            greenSH += occlusion * directFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourGreenSH, mainDirectionSH, mainDirectionCosineLobeSH);
-            blueSH += occlusion * directFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourBlueSH, mainDirectionSH, mainDirectionCosineLobeSH);
+            redSH += EvalPropagatedSH(neighbourRedSH, mainDirectionSH, mainDirectionCosineLobeSH);
+            greenSH += EvalPropagatedSH(neighbourGreenSH, mainDirectionSH, mainDirectionCosineLobeSH);
+            blueSH += EvalPropagatedSH(neighbourBlueSH, mainDirectionSH, mainDirectionCosineLobeSH);
         }
         #endif
     }
