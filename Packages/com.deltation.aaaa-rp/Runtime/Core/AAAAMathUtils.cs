@@ -14,6 +14,8 @@ namespace DELTation.AAAARP.Core
             return value + alignment - 1 & -alignment;
         }
 
+        public static int3 AlignUp(int3 value, int3 alignment) => select(value, value + alignment - 1 & -alignment, alignment != 0);
+
         public static float3x3 Inverse3X3(float3x3 m)
         {
             float3 row0 = m[0];

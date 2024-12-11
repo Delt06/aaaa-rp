@@ -36,10 +36,11 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     const uint3 cellID = LPV::FlatCellIDTo3D(flatCellID);
     const uint  fetchAddress = LPV::FlatCellIDToBufferAddress(flatCellID);
+    #ifdef BLOCKING_POTENTIAL
+    _DestinationBlockingPotentialSH[cellID] = FetchSourceSH(_SourceBlockingPotentialSH, fetchAddress);
+    #else
     _DestinationRedSH[cellID] = FetchSourceSH(_SourceRedSH, fetchAddress);
     _DestinationGreenSH[cellID] = FetchSourceSH(_SourceGreenSH, fetchAddress);
     _DestinationBlueSH[cellID] = FetchSourceSH(_SourceBlueSH, fetchAddress);
-    #ifdef BLOCKING_POTENTIAL
-    _DestinationBlockingPotentialSH[cellID] = FetchSourceSH(_SourceBlockingPotentialSH, fetchAddress);
     #endif
 }

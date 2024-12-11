@@ -42,11 +42,12 @@ namespace DELTation.AAAARP
         private readonly GPUCullingPass _gpuCullingFalseNegativePass;
         private readonly HZBGenerationPass _gpuCullingHzbGenerationPass;
         private readonly GPUCullingPass _gpuCullingMainPass;
-        private readonly LPVSetupPass _lpvSetupPass;
+        private readonly LPVClearPass _lpvClearPass;
         private readonly LPVInjectPass _lpvInjectPass;
         private readonly LPVPropagatePass _lpvPropagatePass;
-        private readonly LPVClearPass _lpvClearPass;
-        private readonly LPVResolvePass _lpvResolvePass;
+        private readonly LPVResolvePass _lpvResolveBlockingPotentialPass;
+        private readonly LPVResolvePass _lpvResolveRadiancePass;
+        private readonly LPVSetupPass _lpvSetupPass;
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly RSMDownsamplePass _rsmDownsamplePass;
@@ -113,7 +114,9 @@ namespace DELTation.AAAARP
             _lpvClearPass = new LPVClearPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _lpvInjectPass = new LPVInjectPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _lpvPropagatePass = new LPVPropagatePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
-            _lpvResolvePass = new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
+            _lpvResolveBlockingPotentialPass =
+                new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders, LPVResolvePass.PassType.BlockingPotential);
+            _lpvResolveRadiancePass = new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders, LPVResolvePass.PassType.Radiance);
 
             _drawTransparentPass = new DrawTransparentPass(AAAARenderPassEvent.BeforeRenderingTransparents);
 
@@ -166,8 +169,14 @@ namespace DELTation.AAAARP
                 EnqueuePass(_rsmDownsamplePass);
                 EnqueuePass(_lpvClearPass);
                 EnqueuePass(_lpvInjectPass);
+
+                if (cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>().Occlusion.value)
+                {
+                    EnqueuePass(_lpvResolveBlockingPotentialPass);
+                }
+
                 EnqueuePass(_lpvPropagatePass);
-                EnqueuePass(_lpvResolvePass);
+                EnqueuePass(_lpvResolveRadiancePass);
             }
 
             EnqueuePass(_deferredLightingPass);

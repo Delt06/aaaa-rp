@@ -1,13 +1,13 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.Lighting;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Volumes;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
-using static DELTation.AAAARP.Lighting.AAAALightPropagationVolumes;
 
 namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 {
@@ -38,20 +38,20 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             passData.GridSize = lpvData.GridSize;
             passData.OcclusionAmplification = lpvVolumeComponent.OcclusionAmplification.value;
 
-            ref readonly AAAALightPropagationVolumesData.GridBufferSet gridBuffers = ref lpvData.PackedGridBuffers;
+            ref readonly AAAALightPropagationVolumesData.GridBufferSet packedGridBuffers = ref lpvData.PackedGridBuffers;
             passData.Grid = new GridBufferSet
             {
-                RedSH = builder.WriteBuffer(gridBuffers.RedSH),
-                GreenSH = builder.WriteBuffer(gridBuffers.GreenSH),
-                BlueSH = builder.WriteBuffer(gridBuffers.BlueSH),
+                RedSH = builder.WriteBuffer(packedGridBuffers.RedSH),
+                GreenSH = builder.WriteBuffer(packedGridBuffers.GreenSH),
+                BlueSH = builder.WriteBuffer(packedGridBuffers.BlueSH),
             };
             passData.TempGrid = new GridBufferSet
             {
-                RedSH = CreateTempGridBuffer(builder, gridBuffers.SHDesc, nameof(PassData.TempGrid) + "_" + nameof(GridBufferSet.RedSH)),
-                GreenSH = CreateTempGridBuffer(builder, gridBuffers.SHDesc, nameof(PassData.TempGrid) + "_" + nameof(GridBufferSet.GreenSH)),
-                BlueSH = CreateTempGridBuffer(builder, gridBuffers.SHDesc, nameof(PassData.TempGrid) + "_" + nameof(GridBufferSet.BlueSH)),
+                RedSH = CreateTempGridBuffer(builder, packedGridBuffers.SHDesc, nameof(PassData.TempGrid) + "_" + nameof(GridBufferSet.RedSH)),
+                GreenSH = CreateTempGridBuffer(builder, packedGridBuffers.SHDesc, nameof(PassData.TempGrid) + "_" + nameof(GridBufferSet.GreenSH)),
+                BlueSH = CreateTempGridBuffer(builder, packedGridBuffers.SHDesc, nameof(PassData.TempGrid) + "_" + nameof(GridBufferSet.BlueSH)),
             };
-            passData.BlockingPotentialSH = passData.BlockingPotential ? builder.ReadBuffer(gridBuffers.BlockingPotentialSH) : default;
+            passData.BlockingPotentialSH = passData.BlockingPotential ? builder.ReadTexture(lpvData.UnpackedGridTextures.BlockingPotentialSH) : default;
 
             _computeShader.GetKernelThreadGroupSizes(KernelIndex, out passData.ThreadGroupSize, out uint _, out uint _);
             return;
@@ -65,16 +65,18 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
-            CoreUtils.SetKeyword(context.cmd, _computeShader, ShaderKeywords.BLOCKING_POTENTIAL, data.BlockingPotential);
+            CoreUtils.SetKeyword(context.cmd, _computeShader, AAAALightPropagationVolumes.ShaderKeywords.BLOCKING_POTENTIAL, data.BlockingPotential);
             if (data.BlockingPotential)
             {
-                context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._BlockingPotentialSH, data.BlockingPotentialSH);
+                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._BlockingPotentialSH, data.BlockingPotentialSH);
                 context.cmd.SetComputeFloatParam(_computeShader, ShaderIDs._OcclusionAmplification, math.pow(2, data.OcclusionAmplification));
             }
 
             for (int i = 0; i < data.PassCount; ++i)
             {
+                CoreUtils.SetKeyword(context.cmd, _computeShader, ShaderKeywords.FIRST_STEP, i == 0);
                 RenderPass(data, context, data.Grid, data.TempGrid);
+                CoreUtils.SetKeyword(context.cmd, _computeShader, ShaderKeywords.FIRST_STEP, false);
                 RenderPass(data, context, data.TempGrid, data.Grid);
             }
         }
@@ -103,7 +105,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         public class PassData : PassDataBase
         {
             public bool BlockingPotential;
-            public BufferHandle BlockingPotentialSH;
+            public TextureHandle BlockingPotentialSH;
             public GridBufferSet Grid;
             public int GridSize;
             public float OcclusionAmplification;
@@ -130,6 +132,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public static readonly int _DestinationBlueSH = Shader.PropertyToID(nameof(_DestinationBlueSH));
             public static readonly int _BlockingPotentialSH = Shader.PropertyToID(nameof(_BlockingPotentialSH));
             public static readonly int _OcclusionAmplification = Shader.PropertyToID(nameof(_OcclusionAmplification));
+        }
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        private static class ShaderKeywords
+        {
+            public const string FIRST_STEP = nameof(FIRST_STEP);
         }
     }
 }

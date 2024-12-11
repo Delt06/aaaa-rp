@@ -5,6 +5,7 @@ using DELTation.AAAARP.Volumes;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 using static DELTation.AAAARP.Lighting.AAAALightPropagationVolumes;
@@ -63,6 +64,19 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
                         )
                     )
                     : default,
+            };
+
+            lpvData.UnpackedGridTextures.SHDesc = new TextureDesc
+            {
+                width = lpvData.GridSize,
+                height = lpvData.GridSize,
+                slices = lpvData.GridSize,
+                dimension = TextureDimension.Tex3D,
+                format = GraphicsFormat.R32G32B32A32_SFloat,
+                enableRandomWrite = true,
+                filterMode = FilterMode.Trilinear,
+                msaaSamples = MSAASamples.None,
+                useMipMap = false,
             };
 
             builder.AllowPassCulling(false);

@@ -1,6 +1,7 @@
 ﻿#pragma kernel CS
 
 #pragma multi_compile _ BLOCKING_POTENTIAL
+#pragma multi_compile _ FIRST_STEP
 
 // Sources:
 // - https://github.com/mafian89/Light-Propagation-Volumes/blob/master/shaders/propagation.frag
@@ -26,7 +27,7 @@ RWByteAddressBuffer _DestinationBlueSH;
 
 float _OcclusionAmplification;
 
-ByteAddressBuffer _BlockingPotentialSH;
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _BlockingPotentialSH);
 
 #define DIRECTIONS_COUNT 6
 static const float3 directions[DIRECTIONS_COUNT] =
@@ -53,7 +54,7 @@ float3 GetReprojSideDirection(int index, int3 orientation)
 
 float CalculateOcclusion(const LPV_CHANNEL_T blockingPotentialSH, const LPV_CHANNEL_T directionSH)
 {
-    #ifdef BLOCKING_POTENTIAL
+    #if defined(BLOCKING_POTENTIAL) && !defined(FIRST_STEP)
     return saturate(1 - saturate(_OcclusionAmplification * dot(blockingPotentialSH, directionSH)));
     #else
     return 1;
@@ -70,6 +71,12 @@ LPV_CHANNEL_T FetchSourceSH(const ByteAddressBuffer buffer, const uint3 neighbou
     const uint flatID = LPV::FlattenCellID(neighbourID);
     const uint address = LPV::FlatCellIDToBufferAddress(flatID);
     return LPVMath::UnpackChannelValue(asint(buffer.Load4(address)));
+}
+
+LPV_CHANNEL_T FetchBlockingPotential(const float3 neighbourID)
+{
+    const float3 uv = neighbourID / LPV::GetGridSize();
+    return SAMPLE_TEXTURE3D_LOD(_BlockingPotentialSH, sampler_TrilinearClamp, uv, 0);
 }
 
 void Accumulate(RWByteAddressBuffer destination, const ByteAddressBuffer source, const uint address, const LPV_CHANNEL_T valueSH)
@@ -113,7 +120,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
             const LPV_CHANNEL_T reprojDirectionCosineLobeSH = LPVMath::DirToCosineLobe(reprojDirection);
             const LPV_CHANNEL_T evalDirectionSH = LPVMath::DirToSH(evalDirection);
-            const LPV_CHANNEL_T blockingPotentialSH = FetchSourceSH(_BlockingPotentialSH, neighbourID + evalDirection * 0.5);
+            const LPV_CHANNEL_T blockingPotentialSH = FetchBlockingPotential(neighbourID + evalDirection * 0.5);
             const float         occlusion = CalculateOcclusion(blockingPotentialSH, evalDirectionSH);
 
             redSH += occlusion * sideFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourRedSH, evalDirectionSH, reprojDirectionCosineLobeSH);
@@ -126,7 +133,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         {
             const LPV_CHANNEL_T mainDirectionCosineLobeSH = LPVMath::DirToCosineLobe(mainDirection);
             const LPV_CHANNEL_T mainDirectionSH = LPVMath::DirToSH(mainDirection);
-            const LPV_CHANNEL_T blockingPotentialSH = FetchSourceSH(_BlockingPotentialSH, neighbourID + mainDirection * 0.5);
+            const LPV_CHANNEL_T blockingPotentialSH = FetchBlockingPotential(neighbourID + mainDirection * 0.5);
             const float         occlusion = CalculateOcclusion(blockingPotentialSH, mainDirectionSH);
 
             redSH += occlusion * directFaceSubtendedSolidAngle * EvalPropagatedSH(neighbourRedSH, mainDirectionSH, mainDirectionCosineLobeSH);
