@@ -5,10 +5,9 @@ using DELTation.AAAARP.Volumes;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
-using static DELTation.AAAARP.Lighting.AAAALightPropagationVolumes;
+using static DELTation.AAAARP.Lighting.AAAALpvCommon;
 
 namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 {
@@ -36,32 +35,43 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             passData.GridBoundsMin = lpvData.GridBoundsMin;
             passData.GridBoundsMax = lpvData.GridBoundsMax;
 
-            var gridSHDesc = new BufferDesc
+            var packedGridSH = new TextureDesc
             {
-                count = passData.GridSize * passData.GridSize * passData.GridSize * 4,
-                stride = sizeof(uint),
-                target = GraphicsBuffer.Target.Raw,
+                width = lpvData.GridSize * lpvData.GridSize,
+                height = lpvData.GridSize,
+                slices = 1,
+                dimension = TextureDimension.Tex2D,
+                format = GridFormat,
+                clearBuffer = true,
+                clearColor = Color.clear,
+                msaaSamples = MSAASamples.None,
+                useMipMap = false,
             };
             const string namePrefix = "LPVGrid_Packed_";
-            lpvData.PackedGridBuffers = new AAAALightPropagationVolumesData.GridBufferSet
+            lpvData.PackedGridTextures = new AAAALightPropagationVolumesData.GridTextureSet
             {
-                SHDesc = gridSHDesc,
-                RedSH = renderingData.RenderGraph.CreateBuffer(WithName(gridSHDesc,
-                        namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.RedSH)
-                    )
+                SHDesc = packedGridSH,
+                RedSH = renderingData.RenderGraph.CreateTexture(new TextureDesc(packedGridSH)
+                    {
+                        name = namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.RedSH),
+                    }
                 ),
-                GreenSH = renderingData.RenderGraph.CreateBuffer(WithName(gridSHDesc,
-                        namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.GreenSH)
-                    )
+                GreenSH = renderingData.RenderGraph.CreateTexture(new TextureDesc(packedGridSH)
+                    {
+                        name = namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.GreenSH),
+                    }
                 ),
-                BlueSH = renderingData.RenderGraph.CreateBuffer(WithName(gridSHDesc,
-                        namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.BlueSH)
-                    )
+                BlueSH = renderingData.RenderGraph.CreateTexture(new TextureDesc(packedGridSH)
+                    {
+                        name = namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.BlueSH),
+                    }
                 ),
                 BlockingPotentialSH = lpvData.BlockingPotential
-                    ? renderingData.RenderGraph.CreateBuffer(WithName(gridSHDesc,
-                            namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.BlockingPotentialSH)
-                        )
+                    ? renderingData.RenderGraph.CreateTexture(new TextureDesc(packedGridSH)
+                        {
+                            name = namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.BlockingPotentialSH),
+                            format = GridBlockingPotentialFormat,
+                        }
                     )
                     : default,
             };
@@ -72,7 +82,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
                 height = lpvData.GridSize,
                 slices = lpvData.GridSize,
                 dimension = TextureDimension.Tex3D,
-                format = GraphicsFormat.R32G32B32A32_SFloat,
+                format = GridFormat,
                 enableRandomWrite = true,
                 filterMode = FilterMode.Trilinear,
                 msaaSamples = MSAASamples.None,
@@ -118,12 +128,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             min = center - boundsSize * 0.5f;
             min = math.floor(min / cellSize) * cellSize;
             max = min + math.ceil(boundsSize / cellSize) * cellSize;
-        }
-
-        private static BufferDesc WithName(BufferDesc desc, string name)
-        {
-            desc.name = name;
-            return desc;
         }
 
         protected override void Render(PassData data, RenderGraphContext context)

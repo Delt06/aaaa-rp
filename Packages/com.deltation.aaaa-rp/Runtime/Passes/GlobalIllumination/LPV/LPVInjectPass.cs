@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
@@ -8,19 +9,30 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
-using static DELTation.AAAARP.Lighting.AAAALightPropagationVolumes;
+using static DELTation.AAAARP.Lighting.AAAALpvCommon;
 
 namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 {
-    public class LPVInjectPass : AAAARenderPass<LPVInjectPass.PassData>
+    public class LPVInjectPass : AAAARenderPass<LPVInjectPass.PassData>, IDisposable
     {
-        private const int KernelIndex = 0;
-        private readonly ComputeShader _computeShader;
+        private readonly Material _injectBlockingPotentialMaterial;
+        private readonly Material _injectMaterial;
 
-        public LPVInjectPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
-            _computeShader = shaders.LpvInjectCS;
+        public LPVInjectPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent)
+        {
+            Shader shader = shaders.LpvInjectPS;
+            _injectMaterial = CoreUtils.CreateEngineMaterial(shader);
+            _injectBlockingPotentialMaterial = CoreUtils.CreateEngineMaterial(shader);
+            CoreUtils.SetKeyword(_injectBlockingPotentialMaterial, ShaderKeywords.BLOCKING_POTENTIAL, true);
+        }
 
         public override string Name => "LPV.Inject";
+
+        public void Dispose()
+        {
+            CoreUtils.Destroy(_injectMaterial);
+            CoreUtils.Destroy(_injectBlockingPotentialMaterial);
+        }
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
@@ -29,15 +41,15 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
 
-            ref readonly AAAALightPropagationVolumesData.GridBufferSet gridBuffers = ref lpvData.PackedGridBuffers;
-            builder.WriteBuffer(passData.GridRedSH = gridBuffers.RedSH);
-            builder.WriteBuffer(passData.GridGreenSH = gridBuffers.GreenSH);
-            builder.WriteBuffer(passData.GridBlueSH = gridBuffers.BlueSH);
+            ref readonly AAAALightPropagationVolumesData.GridTextureSet gridBuffers = ref lpvData.PackedGridTextures;
+            builder.ReadWriteTexture(passData.GridRedSH = gridBuffers.RedSH);
+            builder.ReadWriteTexture(passData.GridGreenSH = gridBuffers.GreenSH);
+            builder.ReadWriteTexture(passData.GridBlueSH = gridBuffers.BlueSH);
 
             passData.BlockingPotential = lpvData.BlockingPotential;
             if (passData.BlockingPotential)
             {
-                builder.WriteBuffer(passData.GridBlockingPotentialSH = gridBuffers.BlockingPotentialSH);
+                builder.ReadWriteTexture(passData.GridBlockingPotentialSH = gridBuffers.BlockingPotentialSH);
             }
             else
             {
@@ -48,8 +60,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             passData.Intensity = volumeComponent.Intensity.value;
             passData.Biases = new Vector4(volumeComponent.InjectionDepthBias.value, volumeComponent.InjectionNormalBias.value);
             passData.Batches.Clear();
-
-            _computeShader.GetKernelThreadGroupSizes(KernelIndex, out uint threadGroupSizeX, out uint threadGroupSizeY, out uint _);
 
             ref readonly AAAARenderTexturePoolSet rtPoolSet = ref renderingData.RtPoolSet;
 
@@ -66,8 +76,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
                         LightDirectionWS = rsmLight.DirectionWS,
                         LightColor = rsmLight.Color,
                         RsmResolution = math.float4(resolution, resolution, math.float2(math.rcp(resolution))),
-                        ThreadGroupsX = AAAAMathUtils.AlignUp(resolution, (int) threadGroupSizeX) / (int) threadGroupSizeX,
-                        ThreadGroupsY = AAAAMathUtils.AlignUp(resolution, (int) threadGroupSizeY) / (int) threadGroupSizeY,
                     }
                 );
             }
@@ -78,49 +86,72 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
-            context.cmd.SetComputeVectorParam(_computeShader, ShaderIDs._Biases, data.Biases);
-            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridRedUAV, data.GridRedSH);
-            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridGreenUAV, data.GridGreenSH);
-            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridBlueUAV, data.GridBlueSH);
+            data.PropertyBlock.Clear();
+            data.PropertyBlock.SetVector(ShaderIDs._Biases, data.Biases);
 
-            CoreUtils.SetKeyword(context.cmd, _computeShader, ShaderKeywords.BLOCKING_POTENTIAL, data.BlockingPotential);
-            if (data.BlockingPotential)
-            {
-                context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridBlockingPotentialUAV, data.GridBlockingPotentialSH);
-            }
+            data.RTs[0] = data.GridRedSH;
+            data.RTs[1] = data.GridGreenSH;
+            data.RTs[2] = data.GridBlueSH;
+            context.cmd.SetRenderTarget(data.RTs, BuiltinRenderTextureType.None);
 
             foreach (PassData.Batch batch in data.Batches)
             {
-                context.cmd.SetComputeVectorParam(_computeShader, ShaderIDs._LightDirectionWS, batch.LightDirectionWS);
-                context.cmd.SetComputeVectorParam(_computeShader, ShaderIDs._LightColor, batch.LightColor * data.Intensity);
-                context.cmd.SetComputeVectorParam(_computeShader, ShaderIDs._RSMResolution, batch.RsmResolution);
-                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._RSMPositionMap, batch.RsmPositionMap);
-                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._RSMNormalMap, batch.RsmNormalMap);
-                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._RSMFluxMap, batch.RsmFluxMap);
-                context.cmd.DispatchCompute(_computeShader, KernelIndex, batch.ThreadGroupsX, batch.ThreadGroupsY, 1);
+                data.PropertyBlock.SetVector(ShaderIDs._LightDirectionWS, batch.LightDirectionWS);
+                data.PropertyBlock.SetVector(ShaderIDs._LightColor, batch.LightColor * data.Intensity);
+                data.PropertyBlock.SetVector(ShaderIDs._RSMResolution, batch.RsmResolution);
+                data.PropertyBlock.SetTexture(ShaderIDs._RSMPositionMap, batch.RsmPositionMap);
+                data.PropertyBlock.SetTexture(ShaderIDs._RSMNormalMap, batch.RsmNormalMap);
+                data.PropertyBlock.SetTexture(ShaderIDs._RSMFluxMap, batch.RsmFluxMap);
+                DrawInjectionPass(context, _injectMaterial, batch, data.PropertyBlock);
             }
+
+            if (data.BlockingPotential)
+            {
+                context.cmd.SetRenderTarget(data.GridBlockingPotentialSH);
+
+                foreach (PassData.Batch batch in data.Batches)
+                {
+                    data.PropertyBlock.SetVector(ShaderIDs._LightDirectionWS, batch.LightDirectionWS);
+                    data.PropertyBlock.SetVector(ShaderIDs._LightColor, batch.LightColor * data.Intensity);
+                    data.PropertyBlock.SetVector(ShaderIDs._RSMResolution, batch.RsmResolution);
+                    data.PropertyBlock.SetTexture(ShaderIDs._RSMPositionMap, batch.RsmPositionMap);
+                    data.PropertyBlock.SetTexture(ShaderIDs._RSMNormalMap, batch.RsmNormalMap);
+                    data.PropertyBlock.SetTexture(ShaderIDs._RSMFluxMap, batch.RsmFluxMap);
+                    DrawInjectionPass(context, _injectBlockingPotentialMaterial, batch, data.PropertyBlock);
+                }
+            }
+        }
+
+        private static void DrawInjectionPass(in RenderGraphContext context, Material material, in PassData.Batch batch, MaterialPropertyBlock propertyBlock)
+        {
+            const int shaderPass = 0;
+            const int instanceCount = 1;
+            context.cmd.DrawProcedural(Matrix4x4.identity, material, shaderPass, MeshTopology.Points,
+                (int) (batch.RsmResolution.x * batch.RsmResolution.y), instanceCount,
+                propertyBlock
+            );
         }
 
         public class PassData : PassDataBase
         {
             public readonly List<Batch> Batches = new();
+            public readonly MaterialPropertyBlock PropertyBlock = new();
+            public readonly RenderTargetIdentifier[] RTs = new RenderTargetIdentifier[3];
             public Vector4 Biases;
             public bool BlockingPotential;
-            public BufferHandle GridBlockingPotentialSH;
-            public BufferHandle GridBlueSH;
-            public BufferHandle GridGreenSH;
-            public BufferHandle GridRedSH;
+            public TextureHandle GridBlockingPotentialSH;
+            public TextureHandle GridBlueSH;
+            public TextureHandle GridGreenSH;
+            public TextureHandle GridRedSH;
             public float Intensity;
 
             public struct Batch
             {
-                public RenderTargetIdentifier RsmPositionMap;
-                public RenderTargetIdentifier RsmNormalMap;
-                public RenderTargetIdentifier RsmFluxMap;
+                public Texture RsmPositionMap;
+                public Texture RsmNormalMap;
+                public Texture RsmFluxMap;
                 public float4 LightDirectionWS;
                 public float4 RsmResolution;
-                public int ThreadGroupsX;
-                public int ThreadGroupsY;
                 public float4 LightColor;
             }
         }
@@ -129,10 +160,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         private static class ShaderIDs
         {
             public static readonly int _Biases = Shader.PropertyToID(nameof(_Biases));
-            public static readonly int _GridRedUAV = Shader.PropertyToID(nameof(_GridRedUAV));
-            public static readonly int _GridGreenUAV = Shader.PropertyToID(nameof(_GridGreenUAV));
-            public static readonly int _GridBlueUAV = Shader.PropertyToID(nameof(_GridBlueUAV));
-            public static readonly int _GridBlockingPotentialUAV = Shader.PropertyToID(nameof(_GridBlockingPotentialUAV));
             public static readonly int _LightDirectionWS = Shader.PropertyToID(nameof(_LightDirectionWS));
             public static readonly int _LightColor = Shader.PropertyToID(nameof(_LightColor));
             public static readonly int _RSMResolution = Shader.PropertyToID(nameof(_RSMResolution));

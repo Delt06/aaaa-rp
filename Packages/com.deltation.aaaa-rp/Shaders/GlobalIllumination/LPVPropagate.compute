@@ -1,7 +1,7 @@
 ﻿#pragma kernel CS
 
-#pragma multi_compile _ BLOCKING_POTENTIAL
-#pragma multi_compile _ FIRST_STEP
+#pragma multi_compile_local _ BLOCKING_POTENTIAL
+#pragma multi_compile_local _ FIRST_STEP
 
 // Sources:
 // - https://github.com/mafian89/Light-Propagation-Volumes/blob/master/shaders/propagation.frag
@@ -15,15 +15,15 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
 
-#define THREAD_GROUP_SIZE 32
+#define THREAD_GROUP_SIZE 4
 
-ByteAddressBuffer _SourceRedSH;
-ByteAddressBuffer _SourceGreenSH;
-ByteAddressBuffer _SourceBlueSH;
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _SourceRedSH);
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _SourceGreenSH);
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _SourceBlueSH);
 
-RWByteAddressBuffer _DestinationRedSH;
-RWByteAddressBuffer _DestinationGreenSH;
-RWByteAddressBuffer _DestinationBlueSH;
+RWTexture3D<LPV_CHANNEL_T> _DestinationRedSH;
+RWTexture3D<LPV_CHANNEL_T> _DestinationGreenSH;
+RWTexture3D<LPV_CHANNEL_T> _DestinationBlueSH;
 
 float _OcclusionAmplification;
 
@@ -66,11 +66,9 @@ float4 EvalPropagatedSH(const LPV_CHANNEL_T neighborSH, const LPV_CHANNEL_T eval
     return max(0, dot(neighborSH, evalDirectionSH)) * cosineLobeSH;
 }
 
-LPV_CHANNEL_T FetchSourceSH(const ByteAddressBuffer buffer, const uint3 neighbourID)
+LPV_CHANNEL_T FetchSourceSH(const TYPED_TEXTURE3D(LPV_CHANNEL_T, tex), const uint3 neighbourID)
 {
-    const uint flatID = LPV::FlattenCellID(neighbourID);
-    const uint address = LPV::FlatCellIDToBufferAddress(flatID);
-    return LPVMath::UnpackChannelValue(asint(buffer.Load4(address)));
+    return tex[neighbourID];
 }
 
 LPV_CHANNEL_T FetchBlockingPotential(const float3 neighbourID)
@@ -79,24 +77,20 @@ LPV_CHANNEL_T FetchBlockingPotential(const float3 neighbourID)
     return SAMPLE_TEXTURE3D_LOD(_BlockingPotentialSH, sampler_TrilinearClamp, uv, 0);
 }
 
-void Accumulate(RWByteAddressBuffer destination, const ByteAddressBuffer source, const uint address, const LPV_CHANNEL_T valueSH)
+void Accumulate(RWTexture3D<LPV_CHANNEL_T> destination, const TYPED_TEXTURE3D(LPV_CHANNEL_T, source), const uint3 cellID, const LPV_CHANNEL_T valueSH)
 {
-    const LPV_PACKED_CHANNEL_T sourceValue = asint(source.Load4(address));
-    const LPV_PACKED_CHANNEL_T storedValue = sourceValue + LPVMath::PackChannelValue(valueSH);
-    destination.Store4(address, asuint(storedValue));
+    destination[cellID] = source[cellID] + valueSH;
 }
 
-[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, THREAD_GROUP_SIZE)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint flatCellID = dispatchThreadID.x;
-    const uint gridSize = LPV::GetGridSize();
-    if (flatCellID >= gridSize * gridSize * gridSize)
+    const uint3 cellID = dispatchThreadID.xyz;
+    if (any(cellID >= LPV::GetGridSize()))
     {
         return;
     }
 
-    const uint3   cellID = LPV::FlatCellIDTo3D(flatCellID);
     LPV_CHANNEL_T redSH = 0;
     LPV_CHANNEL_T greenSH = 0;
     LPV_CHANNEL_T blueSH = 0;
@@ -142,8 +136,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         #endif
     }
 
-    const uint workingAddress = LPV::FlatCellIDToBufferAddress(flatCellID);
-    Accumulate(_DestinationRedSH, _SourceRedSH, workingAddress, redSH);
-    Accumulate(_DestinationGreenSH, _SourceGreenSH, workingAddress, greenSH);
-    Accumulate(_DestinationBlueSH, _SourceBlueSH, workingAddress, blueSH);
+    Accumulate(_DestinationRedSH, _SourceRedSH, cellID, redSH);
+    Accumulate(_DestinationGreenSH, _SourceGreenSH, cellID, greenSH);
+    Accumulate(_DestinationBlueSH, _SourceBlueSH, cellID, blueSH);
 }

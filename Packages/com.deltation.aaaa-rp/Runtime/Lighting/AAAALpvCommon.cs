@@ -2,13 +2,17 @@
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Lighting
 {
-    public static class AAAALightPropagationVolumes
+    public static class AAAALpvCommon
     {
-        public const int AttachmentsCount = 3;
+        public const int RsmAttachmentsCount = 3;
+
+        public const GraphicsFormat GridFormat = GraphicsFormat.R32G32B32A32_SFloat;
+        public const GraphicsFormat GridBlockingPotentialFormat = GraphicsFormat.R16G16B16A16_SNorm;
 
         public static RsmAttachmentAllocation AllocateRsmMaps(this in AAAARenderTexturePoolSet rtPoolSet, int resolution) =>
             new(rtPoolSet.RsmPositionMap.Allocate(resolution),
@@ -20,7 +24,7 @@ namespace DELTation.AAAARP.Lighting
             RenderTargetIdentifier[] renderTargetIdentifiers)
         {
             Assert.IsTrue(rsmAttachmentAllocation.IsValid);
-            Assert.IsTrue(renderTargetIdentifiers.Length == AttachmentsCount);
+            Assert.IsTrue(renderTargetIdentifiers.Length == RsmAttachmentsCount);
 
             renderTargetIdentifiers[0] = rtPoolSet.RsmPositionMap.LookupRenderTexture(rsmAttachmentAllocation.PositionsMap);
             renderTargetIdentifiers[1] = rtPoolSet.RsmNormalMap.LookupRenderTexture(rsmAttachmentAllocation.NormalMap);

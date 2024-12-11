@@ -6,9 +6,6 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows.hlsl"
 
 #define LPV_CHANNEL_T float4
-#define LPV_PACKED_CHANNEL_T int4
-
-#define LPV_QUANTIZATION_STEPS 1024
 
 struct LPVCellValue
 {
@@ -50,16 +47,6 @@ struct LPVMath
         LPV_CHANNEL_T shIntensity = DirToSH(-normalWS);
         const float   blockingPotential = dot(shIntensity, blockingPotentialSH);
         return saturate(blockingPotential);
-    }
-
-    static LPV_PACKED_CHANNEL_T PackChannelValue(const LPV_CHANNEL_T value)
-    {
-        return (LPV_PACKED_CHANNEL_T)(value * LPV_QUANTIZATION_STEPS);
-    }
-
-    static LPV_CHANNEL_T UnpackChannelValue(const LPV_PACKED_CHANNEL_T quantizedValue)
-    {
-        return (LPV_CHANNEL_T)quantizedValue / LPV_QUANTIZATION_STEPS;
     }
 };
 
@@ -126,15 +113,15 @@ struct LPV
         return result;
     }
 
+    static uint2 CellIDToPackedID(const uint3 cellID)
+    {
+        return uint2(cellID.y * GetGridSize() + cellID.x, cellID.z);
+    }
+
     static uint FlattenCellID(uint3 cellID)
     {
         const uint gridSize = _LPVGridSize;
         return cellID.z * gridSize * gridSize + cellID.y * gridSize + cellID.x;
-    }
-
-    static uint FlatCellIDToBufferAddress(const uint flatCellID)
-    {
-        return flatCellID * 4 * 4;
     }
 
     static LPVCellValue SampleGrid(const float3 positionWS, const SamplerState samplerState)

@@ -42,11 +42,9 @@ namespace DELTation.AAAARP
         private readonly GPUCullingPass _gpuCullingFalseNegativePass;
         private readonly HZBGenerationPass _gpuCullingHzbGenerationPass;
         private readonly GPUCullingPass _gpuCullingMainPass;
-        private readonly LPVClearPass _lpvClearPass;
         private readonly LPVInjectPass _lpvInjectPass;
         private readonly LPVPropagatePass _lpvPropagatePass;
-        private readonly LPVResolvePass _lpvResolveBlockingPotentialPass;
-        private readonly LPVResolvePass _lpvResolveRadiancePass;
+        private readonly LPVResolvePass _lpvResolve;
         private readonly LPVSetupPass _lpvSetupPass;
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
@@ -111,12 +109,9 @@ namespace DELTation.AAAARP
             _setupProbeVolumesPass = new SetupProbeVolumesPass(AAAARenderPassEvent.BeforeRendering);
             _lpvSetupPass = new LPVSetupPass(AAAARenderPassEvent.BeforeRendering);
             _rsmDownsamplePass = new RSMDownsamplePass(AAAARenderPassEvent.AfterRenderingShadows, shaders);
-            _lpvClearPass = new LPVClearPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _lpvInjectPass = new LPVInjectPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
+            _lpvResolve = new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
             _lpvPropagatePass = new LPVPropagatePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
-            _lpvResolveBlockingPotentialPass =
-                new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders, LPVResolvePass.PassType.BlockingPotential);
-            _lpvResolveRadiancePass = new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders, LPVResolvePass.PassType.Radiance);
 
             _drawTransparentPass = new DrawTransparentPass(AAAARenderPassEvent.BeforeRenderingTransparents);
 
@@ -167,16 +162,9 @@ namespace DELTation.AAAARP
             {
                 EnqueuePass(_lpvSetupPass);
                 EnqueuePass(_rsmDownsamplePass);
-                EnqueuePass(_lpvClearPass);
                 EnqueuePass(_lpvInjectPass);
-
-                if (cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>().Occlusion.value)
-                {
-                    EnqueuePass(_lpvResolveBlockingPotentialPass);
-                }
-
+                EnqueuePass(_lpvResolve);
                 EnqueuePass(_lpvPropagatePass);
-                EnqueuePass(_lpvResolveRadiancePass);
             }
 
             EnqueuePass(_deferredLightingPass);
@@ -293,6 +281,8 @@ namespace DELTation.AAAARP
 
             _uberPostProcessingPass.Dispose();
             _smaaPass.Dispose();
+
+            _lpvInjectPass.Dispose();
 
             CoreUtils.Destroy(_ssrResolveMaterial);
             CoreUtils.Destroy(_deferredReflectionsMaterial);

@@ -25,6 +25,8 @@ namespace DELTation.AAAARP.Passes.Debugging
             _mesh = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
         }
 
+        public override string Name => "LPV.Debug";
+
         public void Dispose()
         {
             CoreUtils.Destroy(_material);

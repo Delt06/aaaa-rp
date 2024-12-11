@@ -1,46 +1,39 @@
 ﻿#pragma kernel CS
 
-#pragma multi_compile _ BLOCKING_POTENTIAL
+#pragma multi_compile_local _ BLOCKING_POTENTIAL
 
-#define THREAD_GROUP_SIZE 256
+#define THREAD_GROUP_SIZE 4
 
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/LightPropagationVolumes.hlsl"
 
-ByteAddressBuffer _SourceRedSH;
-ByteAddressBuffer _SourceGreenSH;
-ByteAddressBuffer _SourceBlueSH;
-ByteAddressBuffer _SourceBlockingPotentialSH;
+TYPED_TEXTURE2D(LPV_CHANNEL_T, _SourceRedSH);
+TYPED_TEXTURE2D(LPV_CHANNEL_T, _SourceGreenSH);
+TYPED_TEXTURE2D(LPV_CHANNEL_T, _SourceBlueSH);
+TYPED_TEXTURE2D(LPV_CHANNEL_T, _SourceBlockingPotentialSH);
 
 RWTexture3D<LPV_CHANNEL_T> _DestinationRedSH;
 RWTexture3D<LPV_CHANNEL_T> _DestinationGreenSH;
 RWTexture3D<LPV_CHANNEL_T> _DestinationBlueSH;
 RWTexture3D<LPV_CHANNEL_T> _DestinationBlockingPotentialSH;
 
-LPV_CHANNEL_T FetchSourceSH(const ByteAddressBuffer buffer, const uint address)
-{
-    return LPVMath::UnpackChannelValue(asint(buffer.Load4(address)));
-}
-
-[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, THREAD_GROUP_SIZE)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint flatCellID = dispatchThreadID.x;
-    const uint gridSize = LPV::GetGridSize();
-    if (flatCellID >= gridSize * gridSize * gridSize)
+    const uint3 cellID = dispatchThreadID.xyz;
+    if (any(cellID >= LPV::GetGridSize()))
     {
         return;
     }
 
-    const uint3 cellID = LPV::FlatCellIDTo3D(flatCellID);
-    const uint  fetchAddress = LPV::FlatCellIDToBufferAddress(flatCellID);
+    const uint2 packedCellID = LPV::CellIDToPackedID(cellID);
+
+    _DestinationRedSH[cellID] = _SourceRedSH[packedCellID];
+    _DestinationGreenSH[cellID] = _SourceGreenSH[packedCellID];
+    _DestinationBlueSH[cellID] = _SourceBlueSH[packedCellID];
     #ifdef BLOCKING_POTENTIAL
-    _DestinationBlockingPotentialSH[cellID] = FetchSourceSH(_SourceBlockingPotentialSH, fetchAddress);
-    #else
-    _DestinationRedSH[cellID] = FetchSourceSH(_SourceRedSH, fetchAddress);
-    _DestinationGreenSH[cellID] = FetchSourceSH(_SourceGreenSH, fetchAddress);
-    _DestinationBlueSH[cellID] = FetchSourceSH(_SourceBlueSH, fetchAddress);
+    _DestinationBlockingPotentialSH[cellID] = _SourceBlockingPotentialSH[packedCellID];
     #endif
 }

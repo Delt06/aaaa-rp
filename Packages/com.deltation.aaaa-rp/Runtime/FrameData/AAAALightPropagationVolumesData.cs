@@ -12,15 +12,15 @@ namespace DELTation.AAAARP.FrameData
         public float3 GridBoundsMax;
         public float3 GridBoundsMin;
         public int GridSize;
-        public NativeList<AAAALightPropagationVolumes.RsmLight> Lights;
-        public GridBufferSet PackedGridBuffers;
+        public NativeList<AAAALpvCommon.RsmLight> Lights;
+        public GridTextureSet PackedGridTextures;
         public NativeHashMap<int, int> ShadowLightToRSMLightMapping;
         public GridTextureSet UnpackedGridTextures;
 
         public override void Reset()
         {
             BlockingPotential = default;
-            PackedGridBuffers = default;
+            PackedGridTextures = default;
             UnpackedGridTextures = default;
             GridBoundsMin = default;
             GridBoundsMax = default;
@@ -37,15 +37,6 @@ namespace DELTation.AAAARP.FrameData
                 ShadowLightToRSMLightMapping.Dispose();
                 ShadowLightToRSMLightMapping = default;
             }
-        }
-
-        public struct GridBufferSet
-        {
-            public BufferDesc SHDesc;
-            public BufferHandle RedSH;
-            public BufferHandle GreenSH;
-            public BufferHandle BlueSH;
-            public BufferHandle BlockingPotentialSH;
         }
 
         public struct GridTextureSet

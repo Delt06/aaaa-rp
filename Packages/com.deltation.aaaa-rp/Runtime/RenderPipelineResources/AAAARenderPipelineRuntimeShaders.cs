@@ -92,19 +92,15 @@ namespace DELTation.AAAARP.RenderPipelineResources
         [SerializeField]
         [ResourcePath("Shaders/GlobalIllumination/RSMDownsample.compute")]
         private ComputeShader _rsmDownsampleCS;
-        
-        [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/LPVClear.compute")]
-        private ComputeShader _lpvClearCS;
 
         [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/LPVInject.compute")]
-        private ComputeShader _lpvInjectCS;
+        [ResourcePath("Shaders/GlobalIllumination/LPVInject.shader")]
+        private Shader _lpvInjectPS;
 
         [SerializeField]
         [ResourcePath("Shaders/GlobalIllumination/LPVPropagate.compute")]
         private ComputeShader _lpvPropagateCS;
-        
+
         [SerializeField]
         [ResourcePath("Shaders/GlobalIllumination/LPVResolve.compute")]
         private ComputeShader _lpvResolveCS;
@@ -237,16 +233,10 @@ namespace DELTation.AAAARP.RenderPipelineResources
             set => this.SetValueAndNotify(ref _rsmDownsampleCS, value, nameof(_rsmDownsampleCS));
         }
 
-        public ComputeShader LpvClearCS
+        public Shader LpvInjectPS
         {
-            get => _lpvClearCS;
-            set => this.SetValueAndNotify(ref _lpvClearCS, value, nameof(_lpvClearCS));
-        }
-
-        public ComputeShader LpvInjectCS
-        {
-            get => _lpvInjectCS;
-            set => this.SetValueAndNotify(ref _lpvInjectCS, value, nameof(_lpvInjectCS));
+            get => _lpvInjectPS;
+            set => this.SetValueAndNotify(ref _lpvInjectPS, value, nameof(_lpvInjectPS));
         }
 
         public ComputeShader LpvPropagateCS
