@@ -37,7 +37,6 @@ namespace DELTation.AAAARP.Passes.Debugging
 
             AAAALightPropagationVolumesData.GridTextureSet gridTextures = lpvData.UnpackedGridTextures;
             Assert.IsTrue(gridTextures.RedSH.IsValid());
-            Assert.IsTrue(gridTextures.BlockingPotentialSH.IsValid());
 
             AAAADebugDisplaySettingsRendering renderingSettings = _debugDisplaySettings.RenderingSettings;
             passData.DebugMode = renderingSettings.LightPropagationVolumesDebugMode;
@@ -56,14 +55,28 @@ namespace DELTation.AAAARP.Passes.Debugging
                 }
             );
 
+            if (lpvData.BlockingPotential)
+            {
+                Assert.IsTrue(gridTextures.BlockingPotentialSH.IsValid());
+                builder.ReadTexture(passData.BlockingPotentialSH = gridTextures.BlockingPotentialSH);
+            }
+            else
+            {
+                passData.BlockingPotentialSH = default;
+            }
+
             builder.ReadTexture(gridTextures.RedSH);
-            builder.ReadTexture(passData.BlockingPotentialSH = gridTextures.BlockingPotentialSH);
             passData.RenderTarget = builder.ReadWriteTexture(resourceData.CameraScaledColorBuffer);
             passData.DepthStencil = builder.ReadWriteTexture(resourceData.CameraScaledDepthBuffer);
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
+            if (data.DebugMode == AAAALightPropagationVolumesDebugMode.BlockingPotential && !data.BlockingPotentialSH.IsValid())
+            {
+                return;
+            }
+
             const int subMeshIndex = 0;
             context.cmd.SetBufferData(data.IndirectArgs, new NativeArray<GraphicsBuffer.IndirectDrawIndexedArgs>(1, Allocator.Temp)
                 {
@@ -85,7 +98,9 @@ namespace DELTation.AAAARP.Passes.Debugging
             data.PropertyBlock.SetFloat(ShaderID._DebugSize, data.DebugSize);
             data.PropertyBlock.SetFloat(ShaderID._DebugIntensity, data.DebugIntensity);
             data.PropertyBlock.SetFloat(ShaderID._DebugClipDistance, data.DebugClipDistance);
-            data.PropertyBlock.SetTexture(ShaderID._BlockingPotentialSH, data.BlockingPotentialSH);
+            data.PropertyBlock.SetTexture(ShaderID._BlockingPotentialSH,
+                data.BlockingPotentialSH.IsValid() ? data.BlockingPotentialSH : Texture2D.blackTexture
+            );
             context.cmd.DrawMeshInstancedIndirect(_mesh, subMeshIndex, _material, 0, data.IndirectArgs, 0, data.PropertyBlock);
         }
 

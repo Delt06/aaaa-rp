@@ -25,6 +25,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAALightPropagationVolumesData lpvData = frameData.GetOrCreate<AAAALightPropagationVolumesData>();
 
+            passData.BlockingPotential = lpvData.BlockingPotential;
+
             var destinationSHDesc = new TextureDesc
             {
                 width = lpvData.GridSize,
@@ -57,23 +59,34 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
                         name = namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.BlueSH),
                     }
                 ),
-                BlockingPotentialSH = renderingData.RenderGraph.CreateTexture(new TextureDesc(destinationSHDesc)
-                    {
-                        name = namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.BlockingPotentialSH),
-                        format = GraphicsFormat.R16G16B16A16_UNorm,
-                    }
-                ),
+                BlockingPotentialSH = passData.BlockingPotential
+                    ? renderingData.RenderGraph.CreateTexture(new TextureDesc(destinationSHDesc)
+                        {
+                            name = namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.BlockingPotentialSH),
+                            format = GraphicsFormat.R16G16B16A16_UNorm,
+                        }
+                    )
+                    : default,
             };
 
             passData.SourceRedSH = builder.ReadBuffer(lpvData.PackedGridBuffers.RedSH);
             passData.SourceGreenSH = builder.ReadBuffer(lpvData.PackedGridBuffers.GreenSH);
             passData.SourceBlueSH = builder.ReadBuffer(lpvData.PackedGridBuffers.BlueSH);
-            passData.SourceBlockingPotentialSH = builder.ReadBuffer(lpvData.PackedGridBuffers.BlockingPotentialSH);
 
             passData.DestinationRedSH = builder.WriteTexture(lpvData.UnpackedGridTextures.RedSH);
             passData.DestinationGreenSH = builder.WriteTexture(lpvData.UnpackedGridTextures.GreenSH);
             passData.DestinationBlueSH = builder.WriteTexture(lpvData.UnpackedGridTextures.BlueSH);
-            passData.DestinationBlockingPotentialSH = builder.WriteTexture(lpvData.UnpackedGridTextures.BlockingPotentialSH);
+
+            if (passData.BlockingPotential)
+            {
+                passData.SourceBlockingPotentialSH = builder.ReadBuffer(lpvData.PackedGridBuffers.BlockingPotentialSH);
+                passData.DestinationBlockingPotentialSH = builder.WriteTexture(lpvData.UnpackedGridTextures.BlockingPotentialSH);
+            }
+            else
+            {
+                passData.SourceBlockingPotentialSH = default;
+                passData.DestinationBlockingPotentialSH = default;
+            }
 
             _computeShader.GetKernelThreadGroupSizes(KernelIndex, out uint threadGroupSizeX, out uint _, out uint _);
             int totalCellCount = lpvData.GridSize * lpvData.GridSize * lpvData.GridSize;
@@ -85,11 +98,17 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._SourceRedSH, data.SourceRedSH);
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._SourceGreenSH, data.SourceGreenSH);
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._SourceBlueSH, data.SourceBlueSH);
-            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._SourceBlockingPotentialSH, data.SourceBlockingPotentialSH);
             context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._DestinationRedSH, data.DestinationRedSH);
             context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._DestinationGreenSH, data.DestinationGreenSH);
             context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._DestinationBlueSH, data.DestinationBlueSH);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._DestinationBlockingPotentialSH, data.DestinationBlockingPotentialSH);
+
+            CoreUtils.SetKeyword(context.cmd, _computeShader, ShaderKeywords.BLOCKING_POTENTIAL, data.BlockingPotential);
+            if (data.BlockingPotential)
+            {
+                context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._SourceBlockingPotentialSH, data.SourceBlockingPotentialSH);
+                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._DestinationBlockingPotentialSH, data.DestinationBlockingPotentialSH);
+            }
+
             context.cmd.DispatchCompute(_computeShader, KernelIndex, data.ThreadGroupsX, 1, 1);
 
             context.cmd.SetGlobalTexture(GlobalShaderIDs._LPVGridRedSH, data.DestinationRedSH);
@@ -99,6 +118,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
         public class PassData : PassDataBase
         {
+            public bool BlockingPotential;
             public TextureHandle DestinationBlockingPotentialSH;
             public TextureHandle DestinationBlueSH;
             public TextureHandle DestinationGreenSH;

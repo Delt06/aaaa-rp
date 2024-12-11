@@ -8,6 +8,7 @@ namespace DELTation.AAAARP.FrameData
 {
     public class AAAALightPropagationVolumesData : ContextItem
     {
+        public bool BlockingPotential;
         public float3 GridBoundsMax;
         public float3 GridBoundsMin;
         public int GridSize;
@@ -18,6 +19,7 @@ namespace DELTation.AAAARP.FrameData
 
         public override void Reset()
         {
+            BlockingPotential = default;
             PackedGridBuffers = default;
             UnpackedGridTextures = default;
             GridBoundsMin = default;
@@ -36,7 +38,7 @@ namespace DELTation.AAAARP.FrameData
                 ShadowLightToRSMLightMapping = default;
             }
         }
-        
+
         public struct GridBufferSet
         {
             public BufferDesc SHDesc;

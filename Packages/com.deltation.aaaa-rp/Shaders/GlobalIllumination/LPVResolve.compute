@@ -1,5 +1,7 @@
 ﻿#pragma kernel CS
 
+#pragma multi_compile _ BLOCKING_POTENTIAL
+
 #define THREAD_GROUP_SIZE 256
 
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
@@ -37,5 +39,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     _DestinationRedSH[cellID] = FetchSourceSH(_SourceRedSH, fetchAddress);
     _DestinationGreenSH[cellID] = FetchSourceSH(_SourceGreenSH, fetchAddress);
     _DestinationBlueSH[cellID] = FetchSourceSH(_SourceBlueSH, fetchAddress);
+    #ifdef BLOCKING_POTENTIAL
     _DestinationBlockingPotentialSH[cellID] = FetchSourceSH(_SourceBlockingPotentialSH, fetchAddress);
+    #endif
 }

@@ -33,7 +33,16 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             builder.WriteBuffer(passData.GridRedSH = gridBuffers.RedSH);
             builder.WriteBuffer(passData.GridGreenSH = gridBuffers.GreenSH);
             builder.WriteBuffer(passData.GridBlueSH = gridBuffers.BlueSH);
-            builder.WriteBuffer(passData.GridBlockingPotentialSH = gridBuffers.BlockingPotentialSH);
+
+            passData.BlockingPotential = lpvData.BlockingPotential;
+            if (passData.BlockingPotential)
+            {
+                builder.WriteBuffer(passData.GridBlockingPotentialSH = gridBuffers.BlockingPotentialSH);
+            }
+            else
+            {
+                passData.GridBlockingPotentialSH = default;
+            }
 
             AAAALpvVolumeComponent volumeComponent = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>();
             passData.Intensity = volumeComponent.Intensity.value;
@@ -73,7 +82,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridRedUAV, data.GridRedSH);
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridGreenUAV, data.GridGreenSH);
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridBlueUAV, data.GridBlueSH);
-            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridBlockingPotentialUAV, data.GridBlockingPotentialSH);
+
+            CoreUtils.SetKeyword(context.cmd, _computeShader, ShaderKeywords.BLOCKING_POTENTIAL, data.BlockingPotential);
+            if (data.BlockingPotential)
+            {
+                context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridBlockingPotentialUAV, data.GridBlockingPotentialSH);
+            }
 
             foreach (PassData.Batch batch in data.Batches)
             {
@@ -91,6 +105,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         {
             public readonly List<Batch> Batches = new();
             public Vector4 Biases;
+            public bool BlockingPotential;
             public BufferHandle GridBlockingPotentialSH;
             public BufferHandle GridBlueSH;
             public BufferHandle GridGreenSH;

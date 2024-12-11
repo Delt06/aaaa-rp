@@ -1,5 +1,7 @@
 ﻿#pragma kernel CS
 
+#pragma multi_compile _ BLOCKING_POTENTIAL
+
 #define THREAD_GROUP_SIZE 16
 
 // Sources:
@@ -88,6 +90,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         }
     }
 
+    #ifdef BLOCKING_POTENTIAL
     {
         const int3 resultCellID = LPV::ComputeBlockingPotentialCellID(gridPositionWS);
 
@@ -103,4 +106,5 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
             Accumulate(_GridBlockingPotentialUAV, resultAddress, packedSH);
         }
     }
+    #endif
 }

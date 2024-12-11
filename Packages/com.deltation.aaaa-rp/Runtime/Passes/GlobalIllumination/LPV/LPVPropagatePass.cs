@@ -7,6 +7,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
+using static DELTation.AAAARP.Lighting.AAAALightPropagationVolumes;
 
 namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 {
@@ -33,6 +34,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
             AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
 
+            passData.BlockingPotential = lpvData.BlockingPotential;
             passData.GridSize = lpvData.GridSize;
             passData.OcclusionAmplification = lpvVolumeComponent.OcclusionAmplification.value;
 
@@ -49,7 +51,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
                 GreenSH = CreateTempGridBuffer(builder, gridBuffers.SHDesc, nameof(PassData.TempGrid) + "_" + nameof(GridBufferSet.GreenSH)),
                 BlueSH = CreateTempGridBuffer(builder, gridBuffers.SHDesc, nameof(PassData.TempGrid) + "_" + nameof(GridBufferSet.BlueSH)),
             };
-            passData.BlockingPotentialSH = builder.ReadBuffer(gridBuffers.BlockingPotentialSH);
+            passData.BlockingPotentialSH = passData.BlockingPotential ? builder.ReadBuffer(gridBuffers.BlockingPotentialSH) : default;
 
             _computeShader.GetKernelThreadGroupSizes(KernelIndex, out passData.ThreadGroupSize, out uint _, out uint _);
             return;
@@ -63,8 +65,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
-            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._BlockingPotentialSH, data.BlockingPotentialSH);
-            context.cmd.SetComputeFloatParam(_computeShader, ShaderIDs._OcclusionAmplification, math.pow(2, data.OcclusionAmplification));
+            CoreUtils.SetKeyword(context.cmd, _computeShader, ShaderKeywords.BLOCKING_POTENTIAL, data.BlockingPotential);
+            if (data.BlockingPotential)
+            {
+                context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._BlockingPotentialSH, data.BlockingPotentialSH);
+                context.cmd.SetComputeFloatParam(_computeShader, ShaderIDs._OcclusionAmplification, math.pow(2, data.OcclusionAmplification));
+            }
 
             for (int i = 0; i < data.PassCount; ++i)
             {
@@ -96,6 +102,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
         public class PassData : PassDataBase
         {
+            public bool BlockingPotential;
             public BufferHandle BlockingPotentialSH;
             public GridBufferSet Grid;
             public int GridSize;

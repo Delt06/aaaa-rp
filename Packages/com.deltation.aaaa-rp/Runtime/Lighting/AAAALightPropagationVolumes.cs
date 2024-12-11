@@ -64,5 +64,11 @@ namespace DELTation.AAAARP.Lighting
             public static readonly int _LPVGridGreenSH = Shader.PropertyToID(nameof(_LPVGridGreenSH));
             public static readonly int _LPVGridBlueSH = Shader.PropertyToID(nameof(_LPVGridBlueSH));
         }
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        public static class ShaderKeywords
+        {
+            public static string BLOCKING_POTENTIAL = nameof(BLOCKING_POTENTIAL);
+        }
     }
 }

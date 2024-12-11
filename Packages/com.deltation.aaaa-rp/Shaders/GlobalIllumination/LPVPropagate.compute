@@ -1,5 +1,7 @@
 ﻿#pragma kernel CS
 
+#pragma multi_compile _ BLOCKING_POTENTIAL
+
 // Sources:
 // - https://github.com/mafian89/Light-Propagation-Volumes/blob/master/shaders/propagation.frag
 // - https://ericpolman.com/2016/06/28/light-propagation-volumes/
@@ -51,7 +53,11 @@ float3 GetReprojSideDirection(int index, int3 orientation)
 
 float CalculateOcclusion(const LPV_CHANNEL_T blockingPotentialSH, const LPV_CHANNEL_T directionSH)
 {
+    #ifdef BLOCKING_POTENTIAL
     return saturate(1 - saturate(_OcclusionAmplification * dot(blockingPotentialSH, directionSH)));
+    #else
+    return 1;
+    #endif
 }
 
 float4 EvalPropagatedSH(const LPV_CHANNEL_T neighborSH, const LPV_CHANNEL_T evalDirectionSH, const LPV_CHANNEL_T cosineLobeSH)

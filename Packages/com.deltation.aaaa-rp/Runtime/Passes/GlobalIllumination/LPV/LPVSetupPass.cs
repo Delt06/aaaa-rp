@@ -25,6 +25,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             AAAAShadowsData shadowsData = frameData.Get<AAAAShadowsData>();
 
             AAAALpvVolumeComponent lpvVolumeComponent = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>();
+            lpvData.BlockingPotential = lpvVolumeComponent.BlockingPotential.value;
+
             passData.GridSize = lpvData.GridSize = (int) lpvVolumeComponent.GridSize.value;
             passData.GridBoundsMin = lpvData.GridBoundsMin = math.float3(-20, -20, -20);
             passData.GridBoundsMax = lpvData.GridBoundsMax = math.float3(20, 20, 20);
@@ -50,10 +52,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
                         namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.BlueSH)
                     )
                 ),
-                BlockingPotentialSH = renderingData.RenderGraph.CreateBuffer(WithName(gridSHDesc,
-                        namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.BlockingPotentialSH)
+                BlockingPotentialSH = lpvData.BlockingPotential
+                    ? renderingData.RenderGraph.CreateBuffer(WithName(gridSHDesc,
+                            namePrefix + nameof(AAAALightPropagationVolumesData.GridTextureSet.BlockingPotentialSH)
+                        )
                     )
-                ),
+                    : default,
             };
 
             builder.AllowPassCulling(false);
