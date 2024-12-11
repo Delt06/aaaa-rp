@@ -44,9 +44,6 @@ MonoBehaviour:
   Enabled:
     m_OverrideState: 1
     m_Value: 1
-  BlockingPotential:
-    m_OverrideState: 1
-    m_Value: 0
   GridSize:
     m_OverrideState: 1
     m_Value: 32
@@ -65,12 +62,18 @@ MonoBehaviour:
   InjectionNormalBias:
     m_OverrideState: 0
     m_Value: 0.25
-  OcclusionAmplification:
+  TrilinearInjection:
     m_OverrideState: 1
-    m_Value: 5
+    m_Value: 1
   PropagationPasses:
     m_OverrideState: 1
     m_Value: 8
+  Occlusion:
+    m_OverrideState: 1
+    m_Value: 1
+  OcclusionAmplification:
+    m_OverrideState: 1
+    m_Value: 2
 --- !u!114 &-1804082683034774414
 MonoBehaviour:
   m_ObjectHideFlags: 3

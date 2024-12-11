@@ -87,7 +87,7 @@ struct LPV
 
     static float3 ComputeBlockingPotentialCellCenter(const uint3 cellID)
     {
-        return ComputeCellCenter(cellID, 0.5); 
+        return ComputeCellCenter(cellID, 0.5);
     }
 
     static float3 ComputeGridUV(const float3 positionWS)
@@ -95,15 +95,25 @@ struct LPV
         return (positionWS - _LPVGridBoundsMin) / (_LPVGridBoundsMax - _LPVGridBoundsMin);
     }
 
-    static int3 ComputeCellID(const float3 positionWS, const float3 cellBias = 0)
+    static float3 ComputeCellIDFloat(const float3 positionWS, const float3 cellBias = 0)
     {
         float3 uv = ComputeGridUV(positionWS);
-        return (int3)(uv * _LPVGridSize + cellBias);
+        return uv * _LPVGridSize + cellBias;
+    }
+
+    static int3 ComputeCellID(const float3 positionWS, const float3 cellBias = 0)
+    {
+        return (int3)ComputeCellIDFloat(positionWS, cellBias);
+    }
+
+    static float3 ComputeBlockingPotentialCellIDRawFloat(const float3 positionWS)
+    {
+        return ComputeCellIDFloat(positionWS, -0.5);
     }
 
     static int3 ComputeBlockingPotentialCellID(const float3 positionWS)
     {
-        return ComputeCellID(positionWS, -0.5);
+        return (int3)ComputeBlockingPotentialCellIDRawFloat(positionWS);
     }
 
     static uint3 FlatCellIDTo3D(uint flatCellID)

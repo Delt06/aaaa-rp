@@ -35,6 +35,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             builder.WriteBuffer(passData.GridBlueSH = gridBuffers.BlueSH);
 
             passData.BlockingPotential = lpvData.BlockingPotential;
+            passData.TrilinearInterpolation = lpvData.TrilinearInjection;
             if (passData.BlockingPotential)
             {
                 builder.WriteBuffer(passData.GridBlockingPotentialSH = gridBuffers.BlockingPotentialSH);
@@ -78,6 +79,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
+            CoreUtils.SetKeyword(context.cmd, _computeShader, ShaderKeywords.TRILINEAR_INTERPOLATION, data.TrilinearInterpolation);
             context.cmd.SetComputeVectorParam(_computeShader, ShaderIDs._Biases, data.Biases);
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridRedUAV, data.GridRedSH);
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridGreenUAV, data.GridGreenSH);
@@ -111,6 +113,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public BufferHandle GridGreenSH;
             public BufferHandle GridRedSH;
             public float Intensity;
+            public bool TrilinearInterpolation;
 
             public struct Batch
             {
