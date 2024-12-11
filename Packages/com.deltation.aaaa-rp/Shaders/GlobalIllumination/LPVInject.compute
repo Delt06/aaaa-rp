@@ -2,7 +2,7 @@
 
 #pragma multi_compile _ BLOCKING_POTENTIAL
 
-#define THREAD_GROUP_SIZE 16
+#define THREAD_GROUP_SIZE 8
 
 // Sources:
 // - Kaplanyan, Anton. (2009). Light Propagation Volumes in CryEngine 3.
