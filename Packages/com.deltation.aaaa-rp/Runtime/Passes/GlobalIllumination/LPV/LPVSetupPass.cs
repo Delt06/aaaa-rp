@@ -28,8 +28,13 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             lpvData.BlockingPotential = lpvVolumeComponent.BlockingPotential.value;
 
             passData.GridSize = lpvData.GridSize = (int) lpvVolumeComponent.GridSize.value;
-            passData.GridBoundsMin = lpvData.GridBoundsMin = math.float3(-20, -20, -20);
-            passData.GridBoundsMax = lpvData.GridBoundsMax = math.float3(20, 20, 20);
+
+            CreateBounds(cameraData, lpvVolumeComponent.BoundsSize.value, lpvVolumeComponent.BoundsForwardBias.value, lpvData.GridSize,
+                out lpvData.GridBoundsMin, out lpvData.GridBoundsMax
+            );
+            passData.GridBoundsMin = lpvData.GridBoundsMin;
+            passData.GridBoundsMax = lpvData.GridBoundsMax;
+
             var gridSHDesc = new BufferDesc
             {
                 count = passData.GridSize * passData.GridSize * passData.GridSize * 4,
@@ -91,7 +96,17 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             }
         }
 
-        private BufferDesc WithName(BufferDesc desc, string name)
+        private static void CreateBounds(AAAACameraData cameraData, float boundsSize, float forwardBias, int gridSize, out float3 min, out float3 max)
+        {
+            float cellSize = boundsSize / gridSize;
+            Transform cameraTransform = cameraData.Camera.transform;
+            float3 center = (float3) cameraTransform.position + (float3) cameraTransform.forward * (boundsSize * forwardBias);
+            min = center - boundsSize * 0.5f;
+            min = math.floor(min / cellSize) * cellSize;
+            max = min + math.ceil(boundsSize / cellSize) * cellSize;
+        }
+
+        private static BufferDesc WithName(BufferDesc desc, string name)
         {
             desc.name = name;
             return desc;

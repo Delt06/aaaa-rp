@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f10831efc7b542d29a3bc3dc2d78e1b8, type: 3}
   m_Name: AAAASsrVolumeComponent
   m_EditorClassIdentifier: 
-  active: 1
+  active: 0
   Enabled:
     m_OverrideState: 1
     m_Value: 1
@@ -46,10 +46,16 @@ MonoBehaviour:
     m_Value: 1
   BlockingPotential:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
   GridSize:
     m_OverrideState: 1
     m_Value: 32
+  BoundsSize:
+    m_OverrideState: 1
+    m_Value: 30
+  BoundsForwardBias:
+    m_OverrideState: 0
+    m_Value: 0.5
   Intensity:
     m_OverrideState: 1
     m_Value: 1
