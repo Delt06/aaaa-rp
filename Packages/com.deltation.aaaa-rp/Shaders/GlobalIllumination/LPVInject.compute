@@ -16,6 +16,7 @@
 float4 _RSMResolution;
 float4 _LightDirectionWS;
 float4 _LightColor;
+float2 _Biases;
 
 TYPED_TEXTURE2D(float4, _RSMPositionMap);
 TYPED_TEXTURE2D(float2, _RSMNormalMap);
@@ -26,8 +27,8 @@ RWByteAddressBuffer _GridGreenUAV;
 RWByteAddressBuffer _GridBlueUAV;
 RWByteAddressBuffer _GridBlockingPotentialUAV;
 
-#define NORMAL_DEPTH_BIAS 0.25
-#define LIGHT_DEPTH_BIAS 0.25
+#define LIGHT_DEPTH_BIAS (_Biases.x)
+#define NORMAL_DEPTH_BIAS (_Biases.y)
 
 RsmOutput FetchRSM(const uint2 texelID)
 {

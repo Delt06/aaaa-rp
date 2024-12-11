@@ -35,7 +35,9 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             builder.WriteBuffer(passData.GridBlueSH = gridBuffers.BlueSH);
             builder.WriteBuffer(passData.GridBlockingPotentialSH = gridBuffers.BlockingPotentialSH);
 
-            passData.Intensity = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>().Intensity.value;
+            AAAALpvVolumeComponent volumeComponent = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>();
+            passData.Intensity = volumeComponent.Intensity.value;
+            passData.Biases = new Vector4(volumeComponent.InjectionDepthBias.value, volumeComponent.InjectionNormalBias.value);
             passData.Batches.Clear();
 
             _computeShader.GetKernelThreadGroupSizes(KernelIndex, out uint threadGroupSizeX, out uint threadGroupSizeY, out uint _);
@@ -67,6 +69,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
         protected override void Render(PassData data, RenderGraphContext context)
         {
+            context.cmd.SetComputeVectorParam(_computeShader, ShaderIDs._Biases, data.Biases);
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridRedUAV, data.GridRedSH);
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridGreenUAV, data.GridGreenSH);
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderIDs._GridBlueUAV, data.GridBlueSH);
@@ -87,6 +90,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         public class PassData : PassDataBase
         {
             public readonly List<Batch> Batches = new();
+            public Vector4 Biases;
             public BufferHandle GridBlockingPotentialSH;
             public BufferHandle GridBlueSH;
             public BufferHandle GridGreenSH;
@@ -109,6 +113,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static class ShaderIDs
         {
+            public static readonly int _Biases = Shader.PropertyToID(nameof(_Biases));
             public static readonly int _GridRedUAV = Shader.PropertyToID(nameof(_GridRedUAV));
             public static readonly int _GridGreenUAV = Shader.PropertyToID(nameof(_GridGreenUAV));
             public static readonly int _GridBlueUAV = Shader.PropertyToID(nameof(_GridBlueUAV));

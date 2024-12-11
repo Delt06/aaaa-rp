@@ -16,7 +16,9 @@ namespace DELTation.AAAARP.Volumes
 
         public BoolParameter Enabled = new(false);
         public EnumParameter<GridSizePreset> GridSize = new(GridSizePreset._32);
-        public ClampedFloatParameter Intensity = new(1.0f, 0.0f, 20.0f); 
+        public ClampedFloatParameter Intensity = new(1.0f, 0.0f, 20.0f);
+        public ClampedFloatParameter InjectionDepthBias = new(0.25f, 0.0f, 5.0f);
+        public ClampedFloatParameter InjectionNormalBias = new(0.25f, 0.0f, 5.0f);
         public ClampedFloatParameter OcclusionAmplification = new(5.0f, 0.0f, 10.0f);
         public ClampedIntParameter PropagationPasses = new(8, 0, 32);
 
