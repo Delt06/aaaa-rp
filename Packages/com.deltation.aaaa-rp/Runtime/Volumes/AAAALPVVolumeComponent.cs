@@ -6,7 +6,7 @@ using UnityEngine.Rendering;
 namespace DELTation.AAAARP.Volumes
 {
     [Serializable] [VolumeComponentMenu("AAAA/Lighting/Light Propagation Volumes")] [SupportedOnRenderPipeline(typeof(AAAARenderPipelineAsset))]
-    public class AAAALpvVolumeComponent : VolumeComponent
+    public class AAAALPVVolumeComponent : VolumeComponent
     {
         public enum GridSizePreset
         {
@@ -34,6 +34,6 @@ namespace DELTation.AAAARP.Volumes
         public BoolParameter Occlusion = new(true);
         public ClampedFloatParameter OcclusionAmplification = new(5.0f, 0.0f, 10.0f);
 
-        public AAAALpvVolumeComponent() => displayName = "AAAA Light Propagation Volumes";
+        public AAAALPVVolumeComponent() => displayName = "AAAA Light Propagation Volumes";
     }
 }

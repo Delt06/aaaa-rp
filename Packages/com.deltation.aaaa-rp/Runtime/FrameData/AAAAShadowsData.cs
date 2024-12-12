@@ -159,7 +159,8 @@ namespace DELTation.AAAARP.FrameData
 
                                 AAAAShadowUtils.ComputeDirectionalLightShadowMatrices(
                                     cameraFrustumCorners, cameraPosition, cameraFarPlane,
-                                    shadowMapResolution, lightRotation, splitNear, splitFar, texelSnapStep, out float4x4 lightView, out float4x4 lightProjection
+                                    shadowMapResolution, lightRotation, splitNear, splitFar, texelSnapStep,
+                                    out float4x4 lightView, out float4x4 lightProjection
                                 );
 
                                 Matrix4x4 lightViewProjection = math.mul(lightProjection, lightView);

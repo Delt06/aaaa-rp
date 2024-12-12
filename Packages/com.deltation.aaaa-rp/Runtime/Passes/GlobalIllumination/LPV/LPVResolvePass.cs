@@ -6,7 +6,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
-using static DELTation.AAAARP.Lighting.AAAALpvCommon;
+using static DELTation.AAAARP.Lighting.AAAALPVCommon;
 
 namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 {

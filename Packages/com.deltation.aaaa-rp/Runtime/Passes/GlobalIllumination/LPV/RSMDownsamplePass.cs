@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
-using static DELTation.AAAARP.Lighting.AAAALpvCommon;
+using static DELTation.AAAARP.Lighting.AAAALPVCommon;
 
 namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 {

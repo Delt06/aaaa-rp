@@ -12,7 +12,7 @@ namespace DELTation.AAAARP.FrameData
         public float3 GridBoundsMax;
         public float3 GridBoundsMin;
         public int GridSize;
-        public NativeList<AAAALpvCommon.RsmLight> Lights;
+        public NativeList<AAAALPVCommon.RsmLight> Lights;
         public GridTextureSet PackedGridTextures;
         public NativeHashMap<int, int> ShadowLightToRSMLightMapping;
         public GridTextureSet UnpackedGridTextures;

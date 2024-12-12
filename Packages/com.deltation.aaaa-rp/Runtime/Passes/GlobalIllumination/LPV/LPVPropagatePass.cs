@@ -25,7 +25,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         {
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
 
-            AAAALpvVolumeComponent lpvVolumeComponent = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>();
+            AAAALPVVolumeComponent lpvVolumeComponent = cameraData.VolumeStack.GetComponent<AAAALPVVolumeComponent>();
             passData.PassCount = lpvVolumeComponent.PropagationPasses.value;
             if (passData.PassCount == 0)
             {
@@ -72,7 +72,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
                 return;
             }
 
-            CoreUtils.SetKeyword(context.cmd, _computeShader, AAAALpvCommon.ShaderKeywords.BLOCKING_POTENTIAL, data.BlockingPotential);
+            CoreUtils.SetKeyword(context.cmd, _computeShader, AAAALPVCommon.ShaderKeywords.BLOCKING_POTENTIAL, data.BlockingPotential);
             if (data.BlockingPotential)
             {
                 context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._BlockingPotentialSH, data.BlockingPotentialSH);

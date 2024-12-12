@@ -33,11 +33,11 @@
             {
                 float4 positionCS : SV_POSITION;
                 #ifdef BLOCKING_POTENTIAL
-                float4 blockingPotentialSH : BLOCKING_POTENTIAL_SH;
+                nointerpolation float4 blockingPotentialSH : BLOCKING_POTENTIAL_SH;
                 #else
-                float4 redSH : RED_SH;
-                float4 greenSH : GREEN_SH;
-                float4 blueSH : BLUE_SH;
+                nointerpolation float4 redSH : RED_SH;
+                nointerpolation float4 greenSH : GREEN_SH;
+                nointerpolation float4 blueSH : BLUE_SH;
                 #endif
             };
 

@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.Volumes;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -7,12 +9,26 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Lighting
 {
-    public static class AAAALpvCommon
+    public static class AAAALPVCommon
     {
         public const int RsmAttachmentsCount = 3;
 
         public const GraphicsFormat GridFormat = GraphicsFormat.R32G32B32A32_SFloat;
         public const GraphicsFormat GridBlockingPotentialFormat = GraphicsFormat.R16G16B16A16_SNorm;
+
+        public static void CreateBounds(AAAACameraData cameraData, AAAALPVVolumeComponent lpvVolumeComponent, out float3 min, out float3 max)
+        {
+            float boundsSize = lpvVolumeComponent.BoundsSize.value;
+            int gridSize = (int) lpvVolumeComponent.GridSize.value;
+            float forwardBias = lpvVolumeComponent.BoundsForwardBias.value;
+
+            float cellSize = boundsSize / gridSize;
+            Transform cameraTransform = cameraData.Camera.transform;
+            float3 center = (float3) cameraTransform.position + (float3) cameraTransform.forward * (boundsSize * forwardBias);
+            min = center - boundsSize * 0.5f;
+            min = math.floor(min / cellSize) * cellSize;
+            max = min + math.ceil(boundsSize / cellSize) * cellSize;
+        }
 
         public static RsmAttachmentAllocation AllocateRsmMaps(this in AAAARenderTexturePoolSet rtPoolSet, int resolution) =>
             new(rtPoolSet.RsmPositionMap.Allocate(resolution),

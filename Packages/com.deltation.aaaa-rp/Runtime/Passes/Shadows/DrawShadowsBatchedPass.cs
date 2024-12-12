@@ -68,8 +68,8 @@ namespace DELTation.AAAARP.Passes.Shadows
                 AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
                 if (lpvData.ShadowLightToRSMLightMapping.TryGetValue(ShadowLightIndex, out int rsmLightIndex))
                 {
-                    ref readonly AAAALpvCommon.RsmLight rsmLight = ref lpvData.Lights.ElementAtRefReadonly(rsmLightIndex);
-                    ref readonly AAAALpvCommon.RsmAttachmentAllocation renderedAllocation = ref rsmLight.RenderedAllocation;
+                    ref readonly AAAALPVCommon.RsmLight rsmLight = ref lpvData.Lights.ElementAtRefReadonly(rsmLightIndex);
+                    ref readonly AAAALPVCommon.RsmAttachmentAllocation renderedAllocation = ref rsmLight.RenderedAllocation;
                     Assert.IsTrue(renderedAllocation.IsValid);
                     renderingData.RtPoolSet.LookupRsmAttachments(renderedAllocation, passData.RsmAttachments);
                     passData.UseRsm = true;
@@ -128,7 +128,7 @@ namespace DELTation.AAAARP.Passes.Shadows
 
         public class PassData : PassDataBase
         {
-            public readonly RenderTargetIdentifier[] RsmAttachments = new RenderTargetIdentifier[AAAALpvCommon.RsmAttachmentsCount];
+            public readonly RenderTargetIdentifier[] RsmAttachments = new RenderTargetIdentifier[AAAALPVCommon.RsmAttachmentsCount];
             public readonly Color[] RsmClearColors = { Color.clear, Color.clear, Color.clear };
             public CameraType CameraType;
             public AAAARendererContainer RendererContainer;

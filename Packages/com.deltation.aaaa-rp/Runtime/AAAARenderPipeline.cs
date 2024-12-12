@@ -304,7 +304,7 @@ namespace DELTation.AAAARP
             cameraData.RealtimeGITechnique = lightingSettings?.RealtimeGI ?? AAAARealtimeGITechnique.Off;
 
             if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.LightPropagationVolumes &&
-                cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>() is { Enabled: { value: false } })
+                cameraData.VolumeStack.GetComponent<AAAALPVVolumeComponent>() is { Enabled: { value: false } })
             {
                 cameraData.RealtimeGITechnique = AAAARealtimeGITechnique.Off;
             }

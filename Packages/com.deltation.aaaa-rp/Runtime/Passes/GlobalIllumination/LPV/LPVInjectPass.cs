@@ -7,9 +7,10 @@ using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Volumes;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
-using static DELTation.AAAARP.Lighting.AAAALpvCommon;
+using static DELTation.AAAARP.Lighting.AAAALPVCommon;
 
 namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 {
@@ -45,6 +46,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             builder.ReadWriteTexture(passData.GridRedSH = gridBuffers.RedSH);
             builder.ReadWriteTexture(passData.GridGreenSH = gridBuffers.GreenSH);
             builder.ReadWriteTexture(passData.GridBlueSH = gridBuffers.BlueSH);
+            passData.TempDepth = builder.CreateTransientTexture(new TextureDesc(gridBuffers.SHDesc)
+                {
+                    format = GraphicsFormat.D16_UNorm,
+                    name = nameof(LPVInjectPass) + "_" + nameof(PassData.TempDepth),
+                }
+            );
 
             passData.BlockingPotential = lpvData.BlockingPotential;
             if (passData.BlockingPotential)
@@ -56,7 +63,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
                 passData.GridBlockingPotentialSH = default;
             }
 
-            AAAALpvVolumeComponent volumeComponent = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>();
+            AAAALPVVolumeComponent volumeComponent = cameraData.VolumeStack.GetComponent<AAAALPVVolumeComponent>();
             passData.Intensity = volumeComponent.Intensity.value;
             passData.Biases = new Vector4(volumeComponent.InjectionDepthBias.value, volumeComponent.InjectionNormalBias.value);
             passData.Batches.Clear();
@@ -92,7 +99,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             data.RTs[0] = data.GridRedSH;
             data.RTs[1] = data.GridGreenSH;
             data.RTs[2] = data.GridBlueSH;
-            context.cmd.SetRenderTarget(data.RTs, BuiltinRenderTextureType.None);
+            context.cmd.SetRenderTarget(data.RTs, data.TempDepth);
 
             foreach (PassData.Batch batch in data.Batches)
             {
@@ -144,6 +151,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public TextureHandle GridGreenSH;
             public TextureHandle GridRedSH;
             public float Intensity;
+            public TextureHandle TempDepth;
 
             public struct Batch
             {

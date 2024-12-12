@@ -7,7 +7,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
-using static DELTation.AAAARP.Lighting.AAAALpvCommon;
+using static DELTation.AAAARP.Lighting.AAAALPVCommon;
 
 namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 {
@@ -24,14 +24,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             AAAALightPropagationVolumesData lpvData = frameData.GetOrCreate<AAAALightPropagationVolumesData>();
             AAAAShadowsData shadowsData = frameData.Get<AAAAShadowsData>();
 
-            AAAALpvVolumeComponent lpvVolumeComponent = cameraData.VolumeStack.GetComponent<AAAALpvVolumeComponent>();
+            AAAALPVVolumeComponent lpvVolumeComponent = cameraData.VolumeStack.GetComponent<AAAALPVVolumeComponent>();
             lpvData.BlockingPotential = lpvVolumeComponent.Occlusion.value;
 
             passData.GridSize = lpvData.GridSize = (int) lpvVolumeComponent.GridSize.value;
 
-            CreateBounds(cameraData, lpvVolumeComponent.BoundsSize.value, lpvVolumeComponent.BoundsForwardBias.value, lpvData.GridSize,
-                out lpvData.GridBoundsMin, out lpvData.GridBoundsMax
-            );
+            CreateBounds(cameraData, lpvVolumeComponent, out lpvData.GridBoundsMin, out lpvData.GridBoundsMax);
             passData.GridBoundsMin = lpvData.GridBoundsMin;
             passData.GridBoundsMax = lpvData.GridBoundsMax;
 
@@ -118,16 +116,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
                     }
                 }
             }
-        }
-
-        private static void CreateBounds(AAAACameraData cameraData, float boundsSize, float forwardBias, int gridSize, out float3 min, out float3 max)
-        {
-            float cellSize = boundsSize / gridSize;
-            Transform cameraTransform = cameraData.Camera.transform;
-            float3 center = (float3) cameraTransform.position + (float3) cameraTransform.forward * (boundsSize * forwardBias);
-            min = center - boundsSize * 0.5f;
-            min = math.floor(min / cellSize) * cellSize;
-            max = min + math.ceil(boundsSize / cellSize) * cellSize;
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
