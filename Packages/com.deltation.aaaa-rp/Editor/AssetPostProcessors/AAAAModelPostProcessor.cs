@@ -52,7 +52,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                             GameObject gameObject = meshRenderer.gameObject;
                             if (sharedMesh.subMeshCount > 1)
                             {
-                                var subMeshGameObject = new GameObject($"{gameObject.name}__{subMeshIndex:00}");
+                                var subMeshGameObject = new GameObject($"{gameObject.name}_{subMeshIndex:00}");
                                 subMeshGameObject.transform.SetParent(gameObject.transform, false);
 
                                 gameObject = subMeshGameObject;
