@@ -7,6 +7,7 @@ using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Renderers
 {
+    [DisallowMultipleComponent]
     public sealed class AAAARendererAuthoring : MonoBehaviour
     {
         [SerializeField] private AAAAMeshletCollectionAsset _mesh;

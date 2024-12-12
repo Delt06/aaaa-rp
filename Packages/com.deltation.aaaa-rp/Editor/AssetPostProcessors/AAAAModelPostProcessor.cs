@@ -49,7 +49,15 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                     {
                         for (int subMeshIndex = 0; subMeshIndex < sharedMesh.subMeshCount; subMeshIndex++)
                         {
-                            AAAARendererAuthoring rendererAuthoring = meshRenderer.gameObject.AddComponent<AAAARendererAuthoring>();
+                            GameObject gameObject = meshRenderer.gameObject;
+                            if (sharedMesh.subMeshCount > 1)
+                            {
+                                var subMeshGameObject = new GameObject($"{gameObject.name}__{subMeshIndex:00}");
+                                subMeshGameObject.transform.SetParent(gameObject.transform, false);
+
+                                gameObject = subMeshGameObject;
+                            }
+                            AAAARendererAuthoring rendererAuthoring = gameObject.AddComponent<AAAARendererAuthoring>();
                             rendererAuthoring.LODErrorScale = modelSettings.LODErrorScale;
                             rendererAuthoring.ContributeToBakedGlobalIllumination = modelSettings.ContributeGlobalIllumination;
 
