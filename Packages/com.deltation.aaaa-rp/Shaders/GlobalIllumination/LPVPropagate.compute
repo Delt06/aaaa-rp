@@ -85,7 +85,7 @@ void Accumulate(RWTexture3D<LPV_CHANNEL_T> destination, const TYPED_TEXTURE3D(LP
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, THREAD_GROUP_SIZE)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint3 cellID = dispatchThreadID.xyz;
+    const float3 cellID = dispatchThreadID.xyz;
     if (any(cellID >= LPV::GetGridSize()))
     {
         return;
@@ -97,11 +97,21 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     for (uint neighbour = 0; neighbour < DIRECTIONS_COUNT; ++neighbour)
     {
-        const float3        mainDirection = directions[neighbour];
-        const uint3         neighbourID = cellID - mainDirection;
+        const float3 mainDirection = directions[neighbour];
+        const float3 neighbourID = cellID - mainDirection;
+        if (any(neighbourID < 0) || any(neighbourID >= LPV::GetGridSize()))
+        {
+            continue;
+        }
+
         const LPV_CHANNEL_T neighbourRedSH = FetchSourceSH(_SourceRedSH, neighbourID);
         const LPV_CHANNEL_T neighbourGreenSH = FetchSourceSH(_SourceGreenSH, neighbourID);
         const LPV_CHANNEL_T neighbourBlueSH = FetchSourceSH(_SourceBlueSH, neighbourID);
+
+        if (dot(neighbourRedSH, neighbourRedSH) == 0 && dot(neighbourGreenSH, neighbourGreenSH) == 0 && dot(neighbourBlueSH, neighbourBlueSH) == 0)
+        {
+            continue;
+        }
 
         const static float directFaceSubtendedSolidAngle = 0.4006696846f * INV_PI / 2;
         const static float sideFaceSubtendedSolidAngle = 0.4234413544f * INV_PI / 3;
