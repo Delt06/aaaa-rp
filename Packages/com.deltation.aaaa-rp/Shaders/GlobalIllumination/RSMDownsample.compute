@@ -5,6 +5,7 @@
 
 #define THREAD_GROUP_SIZE 8
 #define KERNEL_SIZE 4
+#define N_SOURCE_VALUES (KERNEL_SIZE * KERNEL_SIZE)
 
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
 
@@ -37,55 +38,60 @@ RsmOutput FetchSourceRSM(const uint2 texelID)
     return rsmOutput;
 }
 
-float GetRsmLuminance(RsmValue rsm)
+void PrefetchSource(const uint2 destinationTexelID, out RsmValue sourceValues[N_SOURCE_VALUES], out float3 sourceCellIDs[N_SOURCE_VALUES])
+{
+    const uint2 baseSourceTexelID = destinationTexelID * KERNEL_SIZE;
+
+    for (uint i = 0; i < N_SOURCE_VALUES; ++i)
+    {
+        const uint2     sourceTexelID = baseSourceTexelID + uint2(i / KERNEL_SIZE, i % KERNEL_SIZE);
+        const RsmOutput sourceRsmPacked = FetchSourceRSM(sourceTexelID);
+        const RsmValue  sourceRsm = RsmValue::Unpack(sourceRsmPacked);
+        sourceValues[i] = sourceRsm;
+        sourceCellIDs[i] = LPV::ComputeCellID(sourceRsm.positionWS);
+    }
+}
+
+float GetRsmLuminance(const RsmValue rsm)
 {
     return Luminance(rsm.flux) * saturate(dot(rsm.normalWS, _LightDirectionWS.xyz));
 }
 
-int3 ChooseBrightestCellID(const uint2 destinationTexelID)
+float3 ChooseBrightestCellID(const RsmValue sourceValues[N_SOURCE_VALUES], const float3 sourceCellIDs[N_SOURCE_VALUES])
 {
-    int3  chosenCellID = 0;
-    float maxRsmLuminance = 0;
-    for (uint i = 0; i < KERNEL_SIZE; i++)
+    float3 chosenCellID = 0;
+    float  maxRsmLuminance = 0;
+    for (uint i = 0; i < N_SOURCE_VALUES; ++i)
     {
-        for (uint j = 0; j < KERNEL_SIZE; j++)
-        {
-            const uint2     sourceTexelID = ComputeSourceTexelID(destinationTexelID, i, j);
-            const RsmOutput sourceRsmPacked = FetchSourceRSM(sourceTexelID);
-            const RsmValue  sourceRsm = RsmValue::Unpack(sourceRsmPacked);
-            const float     rsmLuminance = GetRsmLuminance(sourceRsm);
+        const RsmValue sourceRsm = sourceValues[i];
+        const float    rsmLuminance = GetRsmLuminance(sourceRsm);
 
-            if (rsmLuminance > maxRsmLuminance)
-            {
-                chosenCellID = LPV::ComputeCellID(sourceRsm.positionWS);
-                maxRsmLuminance = rsmLuminance;
-            }
+        if (rsmLuminance > maxRsmLuminance)
+        {
+            chosenCellID = sourceCellIDs[i];
+            maxRsmLuminance = rsmLuminance;
         }
     }
 
     return chosenCellID;
 }
 
-RsmValue FilterSource(const uint2 destinationTexelID, const float3 brightestCellID)
+RsmValue FilterSource(const RsmValue sourceValues[N_SOURCE_VALUES], const float3 sourceCellIDs[N_SOURCE_VALUES], const float3 brightestCellID)
 {
     RsmValue outputValue = (RsmValue)0;
     float    sampleCount = 0;
-    for (uint i = 0; i < KERNEL_SIZE; i++)
+
+    for (uint i = 0; i < N_SOURCE_VALUES; ++i)
     {
-        for (uint j = 0; j < KERNEL_SIZE; j++)
+        const float3 cellID = sourceCellIDs[i];
+        const float3 dGrid = cellID - brightestCellID;
+        if (dot(dGrid, dGrid) < (KERNEL_SIZE * KERNEL_SIZE - 1))
         {
-            const uint2     sourceTexelID = ComputeSourceTexelID(destinationTexelID, i, j);
-            const RsmOutput sourceRsmPacked = FetchSourceRSM(sourceTexelID);
-            const RsmValue  sourceRsm = RsmValue::Unpack(sourceRsmPacked);
-            const float3    cellID = LPV::ComputeCellID(sourceRsm.positionWS);
-            const float3    dGrid = cellID - brightestCellID;
-            if (dot(dGrid, dGrid) < (KERNEL_SIZE * KERNEL_SIZE - 1))
-            {
-                outputValue.positionWS += sourceRsm.positionWS;
-                outputValue.normalWS += sourceRsm.normalWS;
-                outputValue.flux += sourceRsm.flux;
-                ++sampleCount;
-            }
+            const RsmValue sourceRsm = sourceValues[i];
+            outputValue.positionWS += sourceRsm.positionWS;
+            outputValue.normalWS += sourceRsm.normalWS;
+            outputValue.flux += sourceRsm.flux;
+            ++sampleCount;
         }
     }
 
@@ -94,7 +100,7 @@ RsmValue FilterSource(const uint2 destinationTexelID, const float3 brightestCell
         const float invSampleCount = rcp(sampleCount);
         outputValue.positionWS *= invSampleCount;
         outputValue.normalWS = SafeNormalize(outputValue.normalWS * invSampleCount);
-        outputValue.flux /= (KERNEL_SIZE * KERNEL_SIZE);
+        outputValue.flux *= rcp(N_SOURCE_VALUES);
     }
 
     return outputValue;
@@ -103,9 +109,12 @@ RsmValue FilterSource(const uint2 destinationTexelID, const float3 brightestCell
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, 1)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint2  destinationTexelID = dispatchThreadID.xy;
-    const float3 brightestCellID = ChooseBrightestCellID(destinationTexelID);
-    RsmValue     outputValue = FilterSource(destinationTexelID, brightestCellID);
+    const uint2 destinationTexelID = dispatchThreadID.xy;
+    RsmValue    sourceValues[N_SOURCE_VALUES];
+    float3      sourceCellIDs[N_SOURCE_VALUES];
+    PrefetchSource(destinationTexelID, sourceValues, sourceCellIDs);
+    const float3 brightestCellID = ChooseBrightestCellID(sourceValues, sourceCellIDs);
+    RsmValue     outputValue = FilterSource(sourceValues, sourceCellIDs, brightestCellID);
 
     if (all(destinationTexelID < _DestinationSize.xy))
     {
