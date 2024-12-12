@@ -55,7 +55,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupID 
     const GPUCullingContext cullingContext = _CullingContexts.Items[contextIndex];
 
     UNITY_BRANCH
-    if ((instanceData.PassMask & cullingContext.PassMask) == 0)
+    if ((instanceData.Flags & AAAAINSTANCEFLAGS_DISABLED) != 0 || (instanceData.PassMask & cullingContext.PassMask) == 0)
     {
         return;
     }

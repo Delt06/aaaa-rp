@@ -51,7 +51,7 @@ namespace DELTation.AAAARP.Editor.AssetPostProcessors
                         {
                             AAAARendererAuthoring rendererAuthoring = meshRenderer.gameObject.AddComponent<AAAARendererAuthoring>();
                             rendererAuthoring.LODErrorScale = modelSettings.LODErrorScale;
-                            rendererAuthoring.ContributeGlobalIllumination = modelSettings.ContributeGlobalIllumination;
+                            rendererAuthoring.ContributeToBakedGlobalIllumination = modelSettings.ContributeGlobalIllumination;
 
                             var subMeshKey = new SubMeshKey
                             {

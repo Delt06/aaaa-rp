@@ -13,7 +13,7 @@ namespace DELTation.AAAARP.Renderers
         [SerializeField] private AAAAMaterialAsset _material;
         [SerializeField] [Min(0.000001f)] private float _lodErrorScale = 1;
         [SerializeField] private ShadowCastingMode _shadowCastingMode = ShadowCastingMode.On;
-        [SerializeField] private bool _contributeGlobalIllumination;
+        [SerializeField] private bool _contributeToBakedGlobalIllumination;
 
         public AAAAMeshletCollectionAsset Mesh
         {
@@ -59,13 +59,13 @@ namespace DELTation.AAAARP.Renderers
             }
         }
 
-        public bool ContributeGlobalIllumination
+        public bool ContributeToBakedGlobalIllumination
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _contributeGlobalIllumination;
+            get => _contributeToBakedGlobalIllumination;
             set
             {
-                _contributeGlobalIllumination = value;
+                _contributeToBakedGlobalIllumination = value;
                 UnityObjectUtils.MarkDirty(this);
             }
         }

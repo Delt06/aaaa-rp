@@ -94,7 +94,7 @@ namespace DELTation.AAAARP.Editor.BakedLighting
                 reportProgress?.Invoke(index / (float) sourceRenderers.Length);
 
                 AAAARendererAuthoring renderer = sourceRenderers[index];
-                if (renderer.Mesh == null || renderer.Material == null || !renderer.ContributeGlobalIllumination)
+                if (renderer.Mesh == null || renderer.Material == null || !renderer.ContributeToBakedGlobalIllumination)
                 {
                     continue;
                 }

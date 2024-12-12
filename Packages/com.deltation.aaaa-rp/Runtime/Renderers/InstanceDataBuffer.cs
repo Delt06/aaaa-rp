@@ -126,6 +126,15 @@ namespace DELTation.AAAARP.Renderers
                 instanceData.LODErrorScale = rendererAuthoring.LODErrorScale;
                 instanceData.PassMask = ExtractInstancePassMask(rendererAuthoring);
 
+                if (rendererAuthoring.isActiveAndEnabled)
+                {
+                    instanceData.Flags &= ~AAAAInstanceFlags.Disabled;
+                }
+                else
+                {
+                    instanceData.Flags |= AAAAInstanceFlags.Disabled;
+                }
+
                 instanceMetadata.MeshInstanceID = mesh.GetInstanceID();
 
                 _rendererContainer.MaxMeshletListBuildJobCount += ComputeMeshletListBuildJobCount(instanceData);

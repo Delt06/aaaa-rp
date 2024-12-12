@@ -20,7 +20,8 @@ namespace DELTation.AAAARP
     public enum AAAAInstanceFlags
     {
         None = 0,
-        FlipWindingOrder = 1 << 0,
+        Disabled = 1 << 0,
+        FlipWindingOrder = 1 << 1,
     }
 
     [GenerateHLSL(PackingRules.Exact, needAccessors = false)]

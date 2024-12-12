@@ -14,7 +14,8 @@
 // DELTation.AAAARP.AAAAInstanceFlags:  static fields
 //
 #define AAAAINSTANCEFLAGS_NONE (0)
-#define AAAAINSTANCEFLAGS_FLIP_WINDING_ORDER (1)
+#define AAAAINSTANCEFLAGS_DISABLED (1)
+#define AAAAINSTANCEFLAGS_FLIP_WINDING_ORDER (2)
 
 //
 // DELTation.AAAARP.AAAAInstancePassMask:  static fields
