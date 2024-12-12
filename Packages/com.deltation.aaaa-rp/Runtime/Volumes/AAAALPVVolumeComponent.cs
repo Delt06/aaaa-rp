@@ -23,11 +23,12 @@ namespace DELTation.AAAARP.Volumes
         public ClampedFloatParameter BoundsForwardBias = new(0.5f, 0.0f, 1.0f);
 
         [Header("Injection")]
-        public ClampedFloatParameter Intensity = new(1.0f, 0.0f, 20.0f);
+        public ClampedFloatParameter InjectionIntensity = new(1.0f, 0.0f, 20.0f);
         public ClampedFloatParameter InjectionDepthBias = new(0.25f, 0.0f, 5.0f);
         public ClampedFloatParameter InjectionNormalBias = new(0.25f, 0.0f, 5.0f);
 
         [Header("Propagation")]
+        public ClampedFloatParameter PropagationIntensity = new(1.0f, 0.0f, 20.0f);
         public ClampedIntParameter PropagationPasses = new(8, 0, 32);
 
         [Header("Occlusion")]

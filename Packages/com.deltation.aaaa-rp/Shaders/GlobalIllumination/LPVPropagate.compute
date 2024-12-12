@@ -25,6 +25,7 @@ RWTexture3D<LPV_CHANNEL_T> _DestinationRedSH;
 RWTexture3D<LPV_CHANNEL_T> _DestinationGreenSH;
 RWTexture3D<LPV_CHANNEL_T> _DestinationBlueSH;
 
+float _Intensity;
 float _OcclusionAmplification;
 
 TYPED_TEXTURE3D(LPV_CHANNEL_T, _BlockingPotentialSH);
@@ -146,7 +147,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         #endif
     }
 
-    Accumulate(_DestinationRedSH, _SourceRedSH, cellID, redSH);
-    Accumulate(_DestinationGreenSH, _SourceGreenSH, cellID, greenSH);
-    Accumulate(_DestinationBlueSH, _SourceBlueSH, cellID, blueSH);
+    Accumulate(_DestinationRedSH, _SourceRedSH, cellID, _Intensity * redSH);
+    Accumulate(_DestinationGreenSH, _SourceGreenSH, cellID, _Intensity * greenSH);
+    Accumulate(_DestinationBlueSH, _SourceBlueSH, cellID, _Intensity * blueSH);
 }

@@ -64,7 +64,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             }
 
             AAAALPVVolumeComponent volumeComponent = cameraData.VolumeStack.GetComponent<AAAALPVVolumeComponent>();
-            passData.Intensity = volumeComponent.Intensity.value;
+            passData.Intensity = volumeComponent.InjectionIntensity.value;
             passData.Biases = new Vector4(volumeComponent.InjectionDepthBias.value, volumeComponent.InjectionNormalBias.value);
             passData.Batches.Clear();
 

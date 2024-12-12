@@ -53,8 +53,8 @@ MonoBehaviour:
   BoundsForwardBias:
     m_OverrideState: 0
     m_Value: 0.5
-  Intensity:
-    m_OverrideState: 1
+  InjectionIntensity:
+    m_OverrideState: 0
     m_Value: 1
   InjectionDepthBias:
     m_OverrideState: 0
@@ -62,15 +62,18 @@ MonoBehaviour:
   InjectionNormalBias:
     m_OverrideState: 0
     m_Value: 0.25
+  PropagationIntensity:
+    m_OverrideState: 1
+    m_Value: 3.5
   PropagationPasses:
     m_OverrideState: 1
-    m_Value: 8
+    m_Value: 3
   Occlusion:
     m_OverrideState: 1
     m_Value: 1
   OcclusionAmplification:
     m_OverrideState: 1
-    m_Value: 3
+    m_Value: 5
 --- !u!114 &-1804082683034774414
 MonoBehaviour:
   m_ObjectHideFlags: 3

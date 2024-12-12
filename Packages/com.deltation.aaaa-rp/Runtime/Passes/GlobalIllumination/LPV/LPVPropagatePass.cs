@@ -34,6 +34,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
 
             AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
 
+            passData.Intensity = lpvVolumeComponent.PropagationIntensity.value;
             passData.BlockingPotential = lpvData.BlockingPotential;
             passData.GridSize = lpvData.GridSize;
             passData.OcclusionAmplification = lpvVolumeComponent.OcclusionAmplification.value;
@@ -73,6 +74,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             }
 
             CoreUtils.SetKeyword(context.cmd, _computeShader, AAAALPVCommon.ShaderKeywords.BLOCKING_POTENTIAL, data.BlockingPotential);
+            context.cmd.SetComputeFloatParam(_computeShader, ShaderIDs._Intensity, data.Intensity);
             if (data.BlockingPotential)
             {
                 context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._BlockingPotentialSH, data.BlockingPotentialSH);
@@ -113,6 +115,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public TextureHandle BlockingPotentialSH;
             public GridTextureSet Grid;
             public int GridSize;
+            public float Intensity;
             public GridTextureSet LPVTempGrid;
             public float OcclusionAmplification;
             public int PassCount;
@@ -136,6 +139,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             public static readonly int _DestinationGreenSH = Shader.PropertyToID(nameof(_DestinationGreenSH));
             public static readonly int _DestinationBlueSH = Shader.PropertyToID(nameof(_DestinationBlueSH));
             public static readonly int _BlockingPotentialSH = Shader.PropertyToID(nameof(_BlockingPotentialSH));
+            public static readonly int _Intensity = Shader.PropertyToID(nameof(_Intensity));
             public static readonly int _OcclusionAmplification = Shader.PropertyToID(nameof(_OcclusionAmplification));
         }
 
