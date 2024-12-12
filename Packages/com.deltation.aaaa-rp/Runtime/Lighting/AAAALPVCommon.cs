@@ -13,7 +13,7 @@ namespace DELTation.AAAARP.Lighting
     {
         public const int RsmAttachmentsCount = 3;
 
-        public const GraphicsFormat GridFormat = GraphicsFormat.R32G32B32A32_SFloat;
+        public const GraphicsFormat GridFormat = GraphicsFormat.R16G16B16A16_SFloat;
         public const GraphicsFormat GridBlockingPotentialFormat = GraphicsFormat.R16G16B16A16_SNorm;
 
         public static void CreateBounds(AAAACameraData cameraData, AAAALPVVolumeComponent lpvVolumeComponent, out float3 min, out float3 max)
