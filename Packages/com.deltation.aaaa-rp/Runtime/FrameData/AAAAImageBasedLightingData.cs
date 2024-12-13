@@ -9,7 +9,7 @@ namespace DELTation.AAAARP.FrameData
 {
     public class AAAAImageBasedLightingData : ContextItem
     {
-        private SphericalHarmonicsL2 _previousAmbientProbe;
+        private Hash128 _previousReflectionProbeHash;
 
         public TextureHandle BRDFLut;
         public bool BRDFLutIsDirty;
@@ -22,14 +22,17 @@ namespace DELTation.AAAARP.FrameData
         public RenderTextureDescriptor PreFilteredEnvironmentMapDesc;
         public bool PreFilteredEnvironmentMapIsDirty;
 
+        public static (Texture reflectionProbe, Vector4 hdrDecodeValues) GetDefaultProbe() =>
+            (ReflectionProbe.defaultTexture, ReflectionProbe.defaultTextureHDRDecodeValues);
+
         public void Init(AAAAImageBasedLightingSettings settings, RenderGraph renderGraph)
         {
-            SphericalHarmonicsL2 currentAmbientProbe = RenderSettings.ambientProbe;
-            if (_previousAmbientProbe != currentAmbientProbe)
+            Hash128 currentReflectionProbeHash = GetDefaultProbe().reflectionProbe.imageContentsHash;
+            if (_previousReflectionProbeHash != currentReflectionProbeHash)
             {
                 DiffuseIrradianceIsDirty = true;
                 PreFilteredEnvironmentMapIsDirty = true;
-                _previousAmbientProbe = currentAmbientProbe;
+                _previousReflectionProbeHash = currentReflectionProbeHash;
             }
 
             if (!DiffuseIrradiance.IsValid())

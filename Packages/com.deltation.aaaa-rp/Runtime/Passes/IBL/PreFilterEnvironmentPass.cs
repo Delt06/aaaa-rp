@@ -38,11 +38,8 @@ namespace DELTation.AAAARP.Passes.IBL
             passData.CullPass = false;
             imageBasedLightingData.PreFilteredEnvironmentMapIsDirty = false;
 
-            passData.Source = ReflectionProbe.defaultTexture;
-            passData.SourceHDRDecodeValues = ReflectionProbe.defaultTextureHDRDecodeValues;
-
+            (passData.Source, passData.SourceHDRDecodeValues) = AAAAImageBasedLightingData.GetDefaultProbe();
             passData.Material = _material;
-
             passData.FinalDestination = builder.WriteTexture(imageBasedLightingData.PreFilteredEnvironmentMap);
 
             RenderTextureDescriptor destinationDesc = imageBasedLightingData.PreFilteredEnvironmentMapDesc;
