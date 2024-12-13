@@ -18,8 +18,11 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         public const int DownsampleFactor = 4;
         private readonly ComputeShader _computeShader;
 
-        public RSMDownsamplePass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
+        public RSMDownsamplePass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
+        {
+            AAAALpvRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAALpvRuntimeShaders>();
             _computeShader = shaders.RsmDownsampleCS;
+        }
 
         public override string Name => "LPV.RSMDownsample";
 

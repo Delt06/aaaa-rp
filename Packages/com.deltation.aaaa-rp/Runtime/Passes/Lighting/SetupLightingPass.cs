@@ -3,6 +3,7 @@ using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
+using DELTation.AAAARP.Volumes;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
@@ -50,6 +51,9 @@ namespace DELTation.AAAARP.Passes.Lighting
             passData.PreFilteredEnvironmentMapMaxLOD = imageBasedLightingData.PreFilteredEnvironmentMapDesc.mipCount - 1;
             passData.AmbientOcclusionTechnique = cameraData.AmbientOcclusionTechnique;
             passData.RealtimeGITecninque = cameraData.RealtimeGITechnique;
+            AAAALPVVolumeComponent lpvVolumeComponent = cameraData.VolumeStack.GetComponent<AAAALPVVolumeComponent>();
+            passData.LPVSkyOcclusion = cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.LightPropagationVolumes &&
+                                       lpvVolumeComponent.Occlusion.value && lpvVolumeComponent.SkyOcclusion.value;
             passData.XeGTAOBentNormals = renderingData.PipelineAsset.LightingSettings.GTAOSettings.BentNormals;
             passData.XeGTAODirectLightingMicroshadows = renderingData.PipelineAsset.LightingSettings.GTAOSettings.DirectLightingMicroshadows;
 
@@ -230,6 +234,7 @@ namespace DELTation.AAAARP.Passes.Lighting
             );
 
             context.cmd.SetKeyword(_globalKeywords.LPV, data.RealtimeGITecninque == AAAARealtimeGITechnique.LightPropagationVolumes);
+            context.cmd.SetKeyword(_globalKeywords.LPVSkyOcclusion, data.LPVSkyOcclusion);
         }
 
         private struct GlobalKeywords
@@ -238,6 +243,7 @@ namespace DELTation.AAAARP.Passes.Lighting
             public GlobalKeyword GTAO;
             public GlobalKeyword GTAOBentNormals;
             public GlobalKeyword LPV;
+            public GlobalKeyword LPVSkyOcclusion;
 
             public static GlobalKeywords Create() =>
                 new()
@@ -246,6 +252,7 @@ namespace DELTation.AAAARP.Passes.Lighting
                     GTAOBentNormals = GlobalKeyword.Create("AAAA_GTAO_BENT_NORMALS"),
                     DirectLightingAOMicroshadows = GlobalKeyword.Create("AAAA_DIRECT_LIGHTING_AO_MICROSHADOWS"),
                     LPV = GlobalKeyword.Create("AAAA_LPV"),
+                    LPVSkyOcclusion = GlobalKeyword.Create("AAAA_LPV_SKY_OCCLUSION"),
                 };
         }
 
@@ -255,6 +262,7 @@ namespace DELTation.AAAARP.Passes.Lighting
             public TextureHandle BRDFLut;
             public TextureHandle DiffuseIrradianceCubemap;
             public AAAALightingData LightingData;
+            public bool LPVSkyOcclusion;
             public TextureHandle PreFilteredEnvironmentMap;
             public float PreFilteredEnvironmentMapMaxLOD;
             public NativeArray<AAAAPunctualLightData> PunctualLights;

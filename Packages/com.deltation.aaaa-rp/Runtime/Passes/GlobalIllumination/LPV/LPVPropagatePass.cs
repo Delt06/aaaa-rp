@@ -16,8 +16,11 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         private const int KernelIndex = 0;
         private readonly ComputeShader _computeShader;
 
-        public LPVPropagatePass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
-            _computeShader = shaders.LpvPropagateCS;
+        public LPVPropagatePass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
+        {
+            AAAALpvRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAALpvRuntimeShaders>();
+            _computeShader = shaders.PropagateCS;
+        }
 
         public override string Name => "LPV.Propagate";
 
@@ -37,7 +40,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             passData.Intensity = lpvVolumeComponent.PropagationIntensity.value;
             passData.BlockingPotential = lpvData.BlockingPotential;
             passData.GridSize = lpvData.GridSize;
-            passData.OcclusionAmplification = lpvVolumeComponent.OcclusionAmplification.value;
+            passData.OcclusionAmplification = AAAALPVCommon.ComputeEffectiveOcclusionAmplification(lpvVolumeComponent.OcclusionAmplification.value);
 
             ref readonly AAAALightPropagationVolumesData.GridTextureSet unpackedGridTextures = ref lpvData.UnpackedGridTextures;
             passData.Grid = new GridTextureSet
@@ -78,7 +81,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             if (data.BlockingPotential)
             {
                 context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderIDs._BlockingPotentialSH, data.BlockingPotentialSH);
-                context.cmd.SetComputeFloatParam(_computeShader, ShaderIDs._OcclusionAmplification, math.pow(2, data.OcclusionAmplification));
+                context.cmd.SetComputeFloatParam(_computeShader, ShaderIDs._OcclusionAmplification, data.OcclusionAmplification);
             }
 
             for (int i = 0; i < data.PassCount; ++i)

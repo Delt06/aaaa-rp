@@ -165,10 +165,12 @@ float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, c
     gi *= aaaa_AmbientIntensity;
 
     #if defined(AAAA_LPV)
-    {
-        const LPVCellValue lpvCell = LPV::SampleGrid(absolutePositionWS);
-        gi += LPVMath::EvaluateRadiance(lpvCell, normalWS);   
-    }
+    #if defined(AAAA_LPV_SKY_OCCLUSION)
+    gi *= LPV::SampleSkyOcclusion(absolutePositionWS);
+    #endif
+        
+    const LPVCellValue lpvCell = LPV::SampleGrid(absolutePositionWS);
+    gi += LPVMath::EvaluateRadiance(lpvCell, normalWS);   
     #endif
 
     return gi;
@@ -192,7 +194,9 @@ float SampleProbeVolumeSkyOcclusion(const float3 absolutePositionWS, const float
 float SampleSkyOcclusion(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float3 reflectionDir,
                          const uint   renderingLayer)
 {
-    #if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
+    #if defined(AAAA_LPV_SKY_OCCLUSION)
+    return LPV::SampleSkyOcclusion(absolutePositionWS);
+    #elif defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
     return SampleProbeVolumeSkyOcclusion(absolutePositionWS, normalWS, viewDir, reflectionDir, renderingLayer);
     #else
     return 1;

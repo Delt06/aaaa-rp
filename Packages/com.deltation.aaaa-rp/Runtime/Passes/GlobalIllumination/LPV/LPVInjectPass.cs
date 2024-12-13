@@ -19,9 +19,10 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         private readonly Material _injectBlockingPotentialMaterial;
         private readonly Material _injectMaterial;
 
-        public LPVInjectPass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent)
+        public LPVInjectPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
         {
-            Shader shader = shaders.LpvInjectPS;
+            AAAALpvRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAALpvRuntimeShaders>();
+            Shader shader = shaders.InjectPS;
             _injectMaterial = CoreUtils.CreateEngineMaterial(shader);
             _injectBlockingPotentialMaterial = CoreUtils.CreateEngineMaterial(shader);
             CoreUtils.SetKeyword(_injectBlockingPotentialMaterial, ShaderKeywords.BLOCKING_POTENTIAL, true);

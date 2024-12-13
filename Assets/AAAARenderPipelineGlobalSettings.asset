@@ -31,6 +31,7 @@ MonoBehaviour:
       - rid: 3580532324172300379
       - rid: 3580532324172300380
       - rid: 3580532598207676469
+      - rid: 4163137263418474554
     m_RuntimeSettings:
       m_List: []
   references:
@@ -100,10 +101,6 @@ MonoBehaviour:
         _hzbGenerationCS: {fileID: 7200000, guid: 30e9b92e6a184f1fae128dee76e92eee, type: 3}
         _ssrTraceCS: {fileID: 7200000, guid: 6542319fde6147a6ad60c14faf26b380, type: 3}
         _ssrResolvePS: {fileID: 4800000, guid: 40ed29a446be4c73bbc804a97edf03be, type: 3}
-        _rsmDownsampleCS: {fileID: 7200000, guid: 0c3a78ba2f254af28ecd76499de7a883, type: 3}
-        _lpvInjectPS: {fileID: 4800000, guid: a2e26d6e880545b1a5353aed8c448c97, type: 3}
-        _lpvPropagateCS: {fileID: 7200000, guid: 1782e7e0bbf4436dbbe9706932a3f24d, type: 3}
-        _lpvResolveCS: {fileID: 7200000, guid: 233df197896f4ee7ac8e87177855d6d8, type: 3}
         _smaaPS: {fileID: 4800000, guid: b60243e7e3f846a19d2c60c7e14a5087, type: 3}
         _uberPostProcessingPS: {fileID: 4800000, guid: df9caa481e86404e93faaddb9b82e3b3, type: 3}
     - rid: 3580532324172300380
@@ -117,6 +114,15 @@ MonoBehaviour:
       data:
         _version: 0
         _volumeProfile: {fileID: 0}
+    - rid: 4163137263418474554
+      type: {class: AAAALpvRuntimeShaders, ns: DELTation.AAAARP.RenderPipelineResources, asm: DELTation.AAAARP.Runtime}
+      data:
+        _version: 0
+        _rsmDownsampleCS: {fileID: 7200000, guid: 0c3a78ba2f254af28ecd76499de7a883, type: 3}
+        _injectPS: {fileID: 4800000, guid: a2e26d6e880545b1a5353aed8c448c97, type: 3}
+        _propagateCS: {fileID: 7200000, guid: 1782e7e0bbf4436dbbe9706932a3f24d, type: 3}
+        _resolveCS: {fileID: 7200000, guid: 233df197896f4ee7ac8e87177855d6d8, type: 3}
+        _skyOcclusionCS: {fileID: 7200000, guid: 70b5e822f237444f9df5d75f6ba9759c, type: 3}
     - rid: 8402658314819469376
       type: {class: GPUResidentDrawerResources, ns: UnityEngine.Rendering, asm: Unity.RenderPipelines.GPUDriven.Runtime}
       data:

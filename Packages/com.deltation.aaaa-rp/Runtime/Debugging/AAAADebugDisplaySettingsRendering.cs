@@ -58,6 +58,7 @@ namespace DELTation.AAAARP.Debugging
     {
         Radiance,
         BlockingPotential,
+        SkyOcclusion,
     }
 
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData

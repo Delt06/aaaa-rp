@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f10831efc7b542d29a3bc3dc2d78e1b8, type: 3}
   m_Name: AAAASsrVolumeComponent
   m_EditorClassIdentifier: 
-  active: 0
+  active: 1
   Enabled:
     m_OverrideState: 1
     m_Value: 1
@@ -49,10 +49,10 @@ MonoBehaviour:
     m_Value: 32
   BoundsSize:
     m_OverrideState: 1
-    m_Value: 30
+    m_Value: 45.2
   BoundsForwardBias:
-    m_OverrideState: 0
-    m_Value: 0.5
+    m_OverrideState: 1
+    m_Value: 0.109
   InjectionIntensity:
     m_OverrideState: 0
     m_Value: 1
@@ -64,16 +64,25 @@ MonoBehaviour:
     m_Value: 0.25
   PropagationIntensity:
     m_OverrideState: 1
-    m_Value: 3.5
+    m_Value: 2.81
   PropagationPasses:
     m_OverrideState: 1
-    m_Value: 3
+    m_Value: 4
   Occlusion:
+    m_OverrideState: 1
+    m_Value: 1
+  SkyOcclusion:
     m_OverrideState: 1
     m_Value: 1
   OcclusionAmplification:
     m_OverrideState: 1
     m_Value: 5
+  SkyOcclusionBias:
+    m_OverrideState: 1
+    m_Value: 0.533
+  SkyOcclusionAmplification:
+    m_OverrideState: 1
+    m_Value: 2.46
 --- !u!114 &-1804082683034774414
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -89,10 +98,10 @@ MonoBehaviour:
   active: 1
   Exposure:
     m_OverrideState: 1
-    m_Value: 1.15
+    m_Value: 1
   ToneMappingProfile:
     m_OverrideState: 1
-    m_Value: 2
+    m_Value: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

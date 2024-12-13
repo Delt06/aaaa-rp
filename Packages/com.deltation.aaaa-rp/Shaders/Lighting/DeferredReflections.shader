@@ -65,6 +65,7 @@ Shader "Hidden/AAAA/DeferredReflections"
             #pragma fragment Frag
 
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/ProbeVolumeVariants.hlsl"
+            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/LPVPragma.hlsl"
 
             float4 Frag(const Varyings IN) : SV_Target
             {

@@ -23,7 +23,7 @@ RenderSettings:
   m_AmbientSkyColor: {r: 0.212, g: 0.227, b: 0.259, a: 1}
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
-  m_AmbientIntensity: 0.2
+  m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
   m_SkyboxMaterial: {fileID: 2100000, guid: 72c3b684cb93bd94bbcc124076eaa0a1, type: 2}
@@ -196,19 +196,19 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 1, g: 0.46893442, b: 0, a: 1}
-  m_Intensity: 3.68
-  m_Range: 0.7
+  m_Intensity: 13.4
+  m_Range: 1.06
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
   m_Shadows:
-    m_Type: 1
+    m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.01
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -259,7 +259,7 @@ Transform:
   m_GameObject: {fileID: 567247455}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -28.34559, y: 2.0418153, z: -43.5641}
+  m_LocalPosition: {x: -28.34559, y: 2.2, z: -43.5641}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -455,19 +455,19 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 1, g: 0.46893442, b: 0, a: 1}
-  m_Intensity: 3.68
-  m_Range: 0.7
+  m_Intensity: 13.4
+  m_Range: 1.06
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
   m_Shadows:
-    m_Type: 0
+    m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.01
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -518,7 +518,7 @@ Transform:
   m_GameObject: {fileID: 1319223060}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -28.34559, y: 2.0418153, z: -47.2171}
+  m_LocalPosition: {x: -28.34559, y: 2.2, z: -47.2171}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -609,19 +609,19 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 1, g: 0.46893442, b: 0, a: 1}
-  m_Intensity: 3.68
-  m_Range: 0.7
+  m_Intensity: 13.4
+  m_Range: 1.06
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
   m_Shadows:
-    m_Type: 0
+    m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.01
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -672,7 +672,7 @@ Transform:
   m_GameObject: {fileID: 1772139724}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -17.29759, y: 2.0418153, z: -43.5641}
+  m_LocalPosition: {x: -17.29759, y: 2.2, z: -43.5641}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -706,19 +706,19 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 1, g: 0.46893442, b: 0, a: 1}
-  m_Intensity: 3.68
-  m_Range: 0.7
+  m_Intensity: 13.4
+  m_Range: 1.06
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
   m_Shadows:
-    m_Type: 0
+    m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 1
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.01
+    m_NearPlane: 0.1
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -769,7 +769,7 @@ Transform:
   m_GameObject: {fileID: 1974519367}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -17.29759, y: 2.0418153, z: -47.2171}
+  m_LocalPosition: {x: -17.29759, y: 2.2, z: -47.2171}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -865,13 +865,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2079597622}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.6470397, y: 0.06532313, z: -0.06618876, w: -0.7567639}
+  m_LocalRotation: {x: -0.6409874, y: 0.06523628, z: -0.066190206, w: -0.7619044}
   m_LocalPosition: {x: -23.47059, y: 3.7828152, z: -44.996098}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1082070200}
-  m_LocalEulerAnglesHint: {x: 81.1, y: -1084.9, z: 5.804}
+  m_LocalEulerAnglesHint: {x: 80.19, y: -1084.9, z: 5.804}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

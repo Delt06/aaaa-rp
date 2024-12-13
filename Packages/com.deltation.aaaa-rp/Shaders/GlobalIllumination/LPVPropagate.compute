@@ -56,7 +56,7 @@ float3 GetReprojSideDirection(int index, int3 orientation)
 float CalculateOcclusion(const LPV_CHANNEL_T blockingPotentialSH, const LPV_CHANNEL_T directionSH)
 {
     #if defined(BLOCKING_POTENTIAL) && !defined(FIRST_STEP)
-    return 1 - saturate(_OcclusionAmplification * dot(blockingPotentialSH, directionSH));
+    return LPVMath::EvaluateOcclusion(blockingPotentialSH, directionSH, _OcclusionAmplification);
     #else
     return 1;
     #endif

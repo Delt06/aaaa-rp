@@ -33,7 +33,10 @@ namespace DELTation.AAAARP.Volumes
 
         [Header("Occlusion")]
         public BoolParameter Occlusion = new(true);
+        public BoolParameter SkyOcclusion = new(true);
         public ClampedFloatParameter OcclusionAmplification = new(5.0f, 0.0f, 10.0f);
+        public ClampedFloatParameter SkyOcclusionBias = new(0.5f, 0.0f, 5.0f);
+        public ClampedFloatParameter SkyOcclusionAmplification = new(2.0f, 0.0f, 10.0f);
 
         public AAAALPVVolumeComponent() => displayName = "AAAA Light Propagation Volumes";
     }

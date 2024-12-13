@@ -48,6 +48,12 @@ namespace DELTation.AAAARP.Passes.Lighting
                 builder.UseTexture(lpvData.UnpackedGridTextures.RedSH, AccessFlags.Read);
                 builder.UseTexture(lpvData.UnpackedGridTextures.BlueSH, AccessFlags.Read);
                 builder.UseTexture(lpvData.UnpackedGridTextures.GreenSH, AccessFlags.Read);
+
+                if (lpvData.SkyOcclusionTexture.IsValid())
+                {
+                    builder.UseTexture(lpvData.SkyOcclusionTexture, AccessFlags.Read);
+                }
+
                 passData.ApplyIndirect = true;
             }
 

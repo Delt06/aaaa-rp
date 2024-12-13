@@ -67,6 +67,15 @@ namespace DELTation.AAAARP.Passes.Debugging
                 passData.BlockingPotentialSH = default;
             }
 
+            if (lpvData.SkyOcclusionTexture.IsValid())
+            {
+                builder.ReadTexture(passData.SkyOcclusionTexture = lpvData.SkyOcclusionTexture);
+            }
+            else
+            {
+                passData.SkyOcclusionTexture = default;
+            }
+
             builder.ReadTexture(gridTextures.RedSH);
             passData.RenderTarget = builder.ReadWriteTexture(resourceData.CameraScaledColorBuffer);
             passData.DepthStencil = builder.ReadWriteTexture(resourceData.CameraScaledDepthBuffer);
@@ -75,6 +84,11 @@ namespace DELTation.AAAARP.Passes.Debugging
         protected override void Render(PassData data, RenderGraphContext context)
         {
             if (data.DebugMode == AAAALightPropagationVolumesDebugMode.BlockingPotential && !data.BlockingPotentialSH.IsValid())
+            {
+                return;
+            }
+
+            if (data.DebugMode == AAAALightPropagationVolumesDebugMode.SkyOcclusion && !data.SkyOcclusionTexture.IsValid())
             {
                 return;
             }
@@ -118,6 +132,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             public BufferHandle IndirectArgs;
             public int InstanceCountDimension;
             public TextureHandle RenderTarget;
+            public TextureHandle SkyOcclusionTexture;
             public int TotalInstanceCount;
         }
 

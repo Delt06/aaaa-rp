@@ -46,6 +46,7 @@ namespace DELTation.AAAARP
         private readonly LPVPropagatePass _lpvPropagatePass;
         private readonly LPVResolvePass _lpvResolve;
         private readonly LPVSetupPass _lpvSetupPass;
+        private readonly LPVSkyOcclusionPass _lpvSkyOcclusionPass;
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
         private readonly RSMDownsamplePass _rsmDownsamplePass;
@@ -108,10 +109,11 @@ namespace DELTation.AAAARP
             _colorHistoryPass = new ColorHistoryPass(AAAARenderPassEvent.AfterRenderingTransparents);
             _setupProbeVolumesPass = new SetupProbeVolumesPass(AAAARenderPassEvent.BeforeRendering);
             _lpvSetupPass = new LPVSetupPass(AAAARenderPassEvent.BeforeRendering);
-            _rsmDownsamplePass = new RSMDownsamplePass(AAAARenderPassEvent.AfterRenderingShadows, shaders);
-            _lpvInjectPass = new LPVInjectPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
-            _lpvResolve = new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
-            _lpvPropagatePass = new LPVPropagatePass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
+            _rsmDownsamplePass = new RSMDownsamplePass(AAAARenderPassEvent.AfterRenderingShadows);
+            _lpvInjectPass = new LPVInjectPass(AAAARenderPassEvent.AfterRenderingGbuffer);
+            _lpvResolve = new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer);
+            _lpvPropagatePass = new LPVPropagatePass(AAAARenderPassEvent.AfterRenderingGbuffer);
+            _lpvSkyOcclusionPass = new LPVSkyOcclusionPass(AAAARenderPassEvent.AfterRenderingGbuffer);
 
             _drawTransparentPass = new DrawTransparentPass(AAAARenderPassEvent.BeforeRenderingTransparents);
 
@@ -160,11 +162,18 @@ namespace DELTation.AAAARP
 
             if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.LightPropagationVolumes)
             {
+                AAAALPVVolumeComponent lpv = cameraData.VolumeStack.GetComponent<AAAALPVVolumeComponent>();
+
                 EnqueuePass(_lpvSetupPass);
                 EnqueuePass(_rsmDownsamplePass);
                 EnqueuePass(_lpvInjectPass);
                 EnqueuePass(_lpvResolve);
                 EnqueuePass(_lpvPropagatePass);
+
+                if (lpv.Occlusion.value && lpv.SkyOcclusion.value)
+                {
+                    EnqueuePass(_lpvSkyOcclusionPass);
+                }
             }
 
             EnqueuePass(_deferredLightingPass);

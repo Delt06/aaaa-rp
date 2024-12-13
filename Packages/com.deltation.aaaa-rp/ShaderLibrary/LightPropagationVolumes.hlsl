@@ -7,6 +7,15 @@
 
 #define LPV_CHANNEL_T float4
 
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _LPVGridRedSH);
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _LPVGridGreenSH);
+TYPED_TEXTURE3D(LPV_CHANNEL_T, _LPVGridBlueSH);
+TYPED_TEXTURE3D(float, _LPVSkyOcclusion);
+
+int    _LPVGridSize;
+float3 _LPVGridBoundsMin;
+float3 _LPVGridBoundsMax;
+
 struct LPVCellValue
 {
     LPV_CHANNEL_T redSH;
@@ -48,15 +57,12 @@ struct LPVMath
         const float   blockingPotential = dot(shIntensity, blockingPotentialSH);
         return saturate(blockingPotential);
     }
+
+    static float EvaluateOcclusion(const LPV_CHANNEL_T blockingPotentialSH, const LPV_CHANNEL_T directionSH, const float amplification)
+    {
+        return 1 - saturate(amplification * dot(blockingPotentialSH, directionSH));
+    }
 };
-
-TYPED_TEXTURE3D(LPV_CHANNEL_T, _LPVGridRedSH);
-TYPED_TEXTURE3D(LPV_CHANNEL_T, _LPVGridGreenSH);
-TYPED_TEXTURE3D(LPV_CHANNEL_T, _LPVGridBlueSH);
-
-int    _LPVGridSize;
-float3 _LPVGridBoundsMin;
-float3 _LPVGridBoundsMax;
 
 struct LPV
 {
@@ -137,6 +143,17 @@ struct LPV
     static LPVCellValue SampleGrid(const float3 positionWS)
     {
         return SampleGrid(positionWS, sampler_TrilinearClamp);
+    }
+
+    static float SampleSkyOcclusion(const float3 positionWS, const SamplerState samplerState)
+    {
+        const float3 uv = ComputeGridUV(positionWS);
+        return SAMPLE_TEXTURE3D_LOD(_LPVSkyOcclusion, samplerState, uv, 0);
+    }
+
+    static float SampleSkyOcclusion(const float3 positionWS)
+    {
+        return SampleSkyOcclusion(positionWS, sampler_TrilinearClamp);
     }
 };
 

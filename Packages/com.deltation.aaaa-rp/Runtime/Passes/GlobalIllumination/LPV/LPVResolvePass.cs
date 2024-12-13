@@ -16,8 +16,11 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
         private readonly ComputeShader _computeShader;
         private readonly PassType _type;
 
-        public LPVResolvePass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
-            _computeShader = shaders.LpvResolveCS;
+        public LPVResolvePass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
+        {
+            AAAALpvRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAALpvRuntimeShaders>();
+            _computeShader = shaders.ResolveCS;
+        }
 
         public override string Name => "LPV.Resolve";
 

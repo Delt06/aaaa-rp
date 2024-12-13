@@ -125,6 +125,11 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
                         result = saturate(LPVMath::EvaluateBlockingPotential(blockingPotentialSH, normalWS));
                         break;
                     }
+                case AAAALIGHTPROPAGATIONVOLUMESDEBUGMODE_SKY_OCCLUSION:
+                    {
+                        result = LPV::SampleSkyOcclusion(IN.positionWS, sampler_PointClamp);
+                        break;
+                    }
                 default:
                     {
                         result = 0;

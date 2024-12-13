@@ -47,6 +47,8 @@ namespace DELTation.AAAARP.Lighting
             renderTargetIdentifiers[2] = rtPoolSet.RsmFluxMap.LookupRenderTexture(rsmAttachmentAllocation.FluxMap);
         }
 
+        public static float ComputeEffectiveOcclusionAmplification(float linearValue) => math.pow(2, linearValue);
+
         public struct RsmLight
         {
             public int VisibleLightIndex;
@@ -83,6 +85,7 @@ namespace DELTation.AAAARP.Lighting
             public static readonly int _LPVGridRedSH = Shader.PropertyToID(nameof(_LPVGridRedSH));
             public static readonly int _LPVGridGreenSH = Shader.PropertyToID(nameof(_LPVGridGreenSH));
             public static readonly int _LPVGridBlueSH = Shader.PropertyToID(nameof(_LPVGridBlueSH));
+            public static readonly int _LPVSkyOcclusion = Shader.PropertyToID(nameof(_LPVSkyOcclusion));
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]
