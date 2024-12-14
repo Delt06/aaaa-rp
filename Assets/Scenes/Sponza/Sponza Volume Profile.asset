@@ -49,7 +49,7 @@ MonoBehaviour:
     m_Value: 32
   BoundsSize:
     m_OverrideState: 1
-    m_Value: 50
+    m_Value: 44.8
   BoundsForwardBias:
     m_OverrideState: 1
     m_Value: 0.1
@@ -62,12 +62,6 @@ MonoBehaviour:
   InjectionNormalBias:
     m_OverrideState: 0
     m_Value: 0.25
-  PropagationIntensity:
-    m_OverrideState: 1
-    m_Value: 1
-  PropagationPasses:
-    m_OverrideState: 1
-    m_Value: 4
   Occlusion:
     m_OverrideState: 1
     m_Value: 1
@@ -76,13 +70,22 @@ MonoBehaviour:
     m_Value: 1
   OcclusionAmplification:
     m_OverrideState: 1
-    m_Value: 5
+    m_Value: 5.79
   SkyOcclusionBias:
     m_OverrideState: 1
     m_Value: 0.533
   SkyOcclusionAmplification:
     m_OverrideState: 1
-    m_Value: 1.98
+    m_Value: 2.73
+  PropagationPasses:
+    m_OverrideState: 1
+    m_Value: 4
+  PropagationIntensity:
+    m_OverrideState: 1
+    m_Value: 1
+  SkyOcclusionPropagationIntensity:
+    m_OverrideState: 1
+    m_Value: 2.46
 --- !u!114 &-1804082683034774414
 MonoBehaviour:
   m_ObjectHideFlags: 3

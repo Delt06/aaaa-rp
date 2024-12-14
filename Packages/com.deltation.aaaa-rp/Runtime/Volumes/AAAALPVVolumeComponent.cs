@@ -27,10 +27,6 @@ namespace DELTation.AAAARP.Volumes
         public ClampedFloatParameter InjectionDepthBias = new(0.25f, 0.0f, 5.0f);
         public ClampedFloatParameter InjectionNormalBias = new(0.25f, 0.0f, 5.0f);
 
-        [Header("Propagation")]
-        public ClampedFloatParameter PropagationIntensity = new(1.0f, 0.0f, 20.0f);
-        public ClampedIntParameter PropagationPasses = new(8, 0, 32);
-
         [Header("Occlusion")]
         public BoolParameter Occlusion = new(true);
         public BoolParameter SkyOcclusion = new(true);
@@ -38,6 +34,10 @@ namespace DELTation.AAAARP.Volumes
         public ClampedFloatParameter SkyOcclusionBias = new(0.5f, 0.0f, 5.0f);
         public ClampedFloatParameter SkyOcclusionAmplification = new(2.0f, 0.0f, 10.0f);
 
+        [Header("Propagation")]
+        public ClampedIntParameter PropagationPasses = new(8, 0, 32);
+        public ClampedFloatParameter PropagationIntensity = new(1.0f, 0.0f, 20.0f);
+        public ClampedFloatParameter SkyOcclusionPropagationIntensity = new(0.5f, 0.0f, 20.0f);
         public AAAALPVVolumeComponent() => displayName = "AAAA Light Propagation Volumes";
     }
 }

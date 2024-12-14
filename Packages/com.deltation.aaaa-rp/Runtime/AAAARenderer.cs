@@ -168,12 +168,13 @@ namespace DELTation.AAAARP
                 EnqueuePass(_rsmDownsamplePass);
                 EnqueuePass(_lpvInjectPass);
                 EnqueuePass(_lpvResolve);
-                EnqueuePass(_lpvPropagatePass);
 
                 if (lpv.Occlusion.value && lpv.SkyOcclusion.value)
                 {
                     EnqueuePass(_lpvSkyOcclusionPass);
                 }
+
+                EnqueuePass(_lpvPropagatePass);
             }
 
             EnqueuePass(_deferredLightingPass);

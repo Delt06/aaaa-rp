@@ -92,6 +92,7 @@ namespace DELTation.AAAARP.Lighting
         public static class ShaderKeywords
         {
             public static string BLOCKING_POTENTIAL = nameof(BLOCKING_POTENTIAL);
+            public static string SKY_OCCLUSION = nameof(SKY_OCCLUSION);
         }
     }
 }

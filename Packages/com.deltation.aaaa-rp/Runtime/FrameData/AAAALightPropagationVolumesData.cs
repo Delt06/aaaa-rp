@@ -16,16 +16,18 @@ namespace DELTation.AAAARP.FrameData
         public GridTextureSet PackedGridTextures;
         public NativeHashMap<int, int> ShadowLightToRSMLightMapping;
         public TextureHandle SkyOcclusionTexture;
+        public TextureDesc SkyOcclusionTextureDesc;
         public GridTextureSet UnpackedGridTextures;
 
         public override void Reset()
         {
-            BlockingPotential = default;
+            BlockingPotential = false;
             PackedGridTextures = default;
             UnpackedGridTextures = default;
             GridBoundsMin = default;
             GridBoundsMax = default;
-            GridSize = default;
+            GridSize = 0;
+            SkyOcclusionTextureDesc = default;
             SkyOcclusionTexture = default;
 
             if (Lights.IsCreated)

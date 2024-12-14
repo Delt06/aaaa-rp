@@ -32,12 +32,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.LPV
             AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
             AAAALPVVolumeComponent volumeComponent = cameraData.VolumeStack.GetComponent<AAAALPVVolumeComponent>();
 
-            lpvData.SkyOcclusionTexture = renderingData.RenderGraph.CreateTexture(new TextureDesc(lpvData.UnpackedGridTextures.SHDesc)
-                {
-                    format = GraphicsFormat.R8_UNorm,
-                    name = "LPVGrid_" + nameof(PassData.SkyOcclusion),
-                }
-            );
+            lpvData.SkyOcclusionTextureDesc = new TextureDesc(lpvData.UnpackedGridTextures.SHDesc)
+            {
+                format = GraphicsFormat.R8_UNorm,
+                name = "LPVGrid_" + nameof(PassData.SkyOcclusion),
+            };
+            lpvData.SkyOcclusionTexture = renderingData.RenderGraph.CreateTexture(lpvData.SkyOcclusionTextureDesc);
             passData.Bias = volumeComponent.SkyOcclusionBias.value;
             passData.Amplification = AAAALPVCommon.ComputeEffectiveOcclusionAmplification(volumeComponent.SkyOcclusionAmplification.value);
             passData.GridSize = lpvData.GridSize;

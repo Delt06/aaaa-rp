@@ -1,6 +1,7 @@
 ﻿#pragma kernel CS
 
 #pragma multi_compile_local _ BLOCKING_POTENTIAL
+#pragma multi_compile_local _ SKY_OCCLUSION
 #pragma multi_compile_local _ FIRST_STEP
 
 // Sources:
@@ -20,12 +21,15 @@
 TYPED_TEXTURE3D(LPV_CHANNEL_T, _SourceRedSH);
 TYPED_TEXTURE3D(LPV_CHANNEL_T, _SourceGreenSH);
 TYPED_TEXTURE3D(LPV_CHANNEL_T, _SourceBlueSH);
+TYPED_TEXTURE3D(float, _SourceSkyOcclusion);
 
 RWTexture3D<LPV_CHANNEL_T> _DestinationRedSH;
 RWTexture3D<LPV_CHANNEL_T> _DestinationGreenSH;
 RWTexture3D<LPV_CHANNEL_T> _DestinationBlueSH;
+RWTexture3D<float>         _DestinationSkyOcclusion;
 
 float _Intensity;
+float _SkyOcclusionPropagationIntensity;
 float _OcclusionAmplification;
 
 TYPED_TEXTURE3D(LPV_CHANNEL_T, _BlockingPotentialSH);
@@ -62,12 +66,22 @@ float CalculateOcclusion(const LPV_CHANNEL_T blockingPotentialSH, const LPV_CHAN
     #endif
 }
 
-float4 EvalPropagatedSH(const LPV_CHANNEL_T neighborSH, const LPV_CHANNEL_T evalDirectionSH, const LPV_CHANNEL_T cosineLobeSH)
+LPV_CHANNEL_T EvalPropagatedSH(const LPV_CHANNEL_T neighborSH, const LPV_CHANNEL_T evalDirectionSH, const LPV_CHANNEL_T cosineLobeSH)
 {
     return max(0, dot(neighborSH, evalDirectionSH)) * cosineLobeSH;
 }
 
+float EvalPropagatedSkyOcclusion(const LPV_CHANNEL_T evalDirectionSH, const LPV_CHANNEL_T cosineLobeSH)
+{
+    return max(0, dot(evalDirectionSH, cosineLobeSH));
+}
+
 LPV_CHANNEL_T FetchSourceSH(const TYPED_TEXTURE3D(LPV_CHANNEL_T, tex), const uint3 neighbourID)
+{
+    return tex[neighbourID];
+}
+
+float FetchSkyOcclusion(const TYPED_TEXTURE3D(float, tex), const uint3 neighbourID)
 {
     return tex[neighbourID];
 }
@@ -78,9 +92,14 @@ LPV_CHANNEL_T FetchBlockingPotential(const float3 neighbourID)
     return SAMPLE_TEXTURE3D_LOD(_BlockingPotentialSH, sampler_TrilinearClamp, uv, 0);
 }
 
-void Accumulate(RWTexture3D<LPV_CHANNEL_T> destination, const TYPED_TEXTURE3D(LPV_CHANNEL_T, source), const uint3 cellID, const LPV_CHANNEL_T valueSH)
+void AccumulateSH(RWTexture3D<LPV_CHANNEL_T> destination, const TYPED_TEXTURE3D(LPV_CHANNEL_T, source), const uint3 cellID, const LPV_CHANNEL_T valueSH)
 {
-    destination[cellID] = source[cellID] + valueSH;
+    destination[cellID] = FetchSourceSH(source, cellID) + valueSH;
+}
+
+void AccumulateSkyOcclusion(RWTexture3D<float> destination, const TYPED_TEXTURE3D(float, source), const uint3 cellID, const float value)
+{
+    destination[cellID] = saturate(FetchSkyOcclusion(source, cellID) + value);
 }
 
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, THREAD_GROUP_SIZE)]
@@ -95,6 +114,9 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     LPV_CHANNEL_T redSH = 0;
     LPV_CHANNEL_T greenSH = 0;
     LPV_CHANNEL_T blueSH = 0;
+    #ifdef SKY_OCCLUSION
+    float skyOcclusion = 0;
+    #endif
 
     for (uint neighbour = 0; neighbour < DIRECTIONS_COUNT; ++neighbour)
     {
@@ -109,45 +131,57 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
         const LPV_CHANNEL_T neighbourGreenSH = FetchSourceSH(_SourceGreenSH, neighbourID);
         const LPV_CHANNEL_T neighbourBlueSH = FetchSourceSH(_SourceBlueSH, neighbourID);
 
-        if (dot(neighbourRedSH, neighbourRedSH) == 0 && dot(neighbourGreenSH, neighbourGreenSH) == 0 && dot(neighbourBlueSH, neighbourBlueSH) == 0)
+        if (dot(neighbourRedSH, neighbourRedSH) != 0 || dot(neighbourGreenSH, neighbourGreenSH) != 0 || dot(neighbourBlueSH, neighbourBlueSH) != 0)
         {
-            continue;
+            const static float directFaceSubtendedSolidAngle = 0.4006696846f * INV_PI / 2;
+            const static float sideFaceSubtendedSolidAngle = 0.4234413544f * INV_PI / 3;
+
+            #if DIRECT_FACE_CONTRIBUTION
+            for (uint sideFace = 0; sideFace < 4; ++sideFace)
+            {
+                const float3        evalDirection = GetEvalSideDirection(sideFace, mainDirection);
+                const LPV_CHANNEL_T evalDirectionSH = LPVMath::DirToSH(evalDirection);
+                const LPV_CHANNEL_T blockingPotentialSH = FetchBlockingPotential(neighbourID + evalDirection * 0.5);
+                const float3        reprojDirection = GetReprojSideDirection(sideFace, mainDirection);
+                LPV_CHANNEL_T       reprojDirectionCosineLobeSH = LPVMath::DirToCosineLobe(reprojDirection);
+                reprojDirectionCosineLobeSH *= sideFaceSubtendedSolidAngle * CalculateOcclusion(blockingPotentialSH, evalDirectionSH);
+
+                redSH += EvalPropagatedSH(neighbourRedSH, evalDirectionSH, reprojDirectionCosineLobeSH);
+                greenSH += EvalPropagatedSH(neighbourGreenSH, evalDirectionSH, reprojDirectionCosineLobeSH);
+                blueSH += EvalPropagatedSH(neighbourBlueSH, evalDirectionSH, reprojDirectionCosineLobeSH);
+
+                #ifdef SKY_OCCLUSION
+                const float neighborSkyOcclusion = FetchSkyOcclusion(_SourceSkyOcclusion, neighbourID);
+                skyOcclusion += neighborSkyOcclusion * EvalPropagatedSkyOcclusion(evalDirectionSH, reprojDirectionCosineLobeSH);
+                #endif
+            }
+            #endif
+
+            #if SIDE_FACE_CONTRIBUTION
+            {
+                const LPV_CHANNEL_T mainDirectionSH = LPVMath::DirToSH(mainDirection);
+                const LPV_CHANNEL_T blockingPotentialSH = FetchBlockingPotential(neighbourID + mainDirection * 0.5);
+                LPV_CHANNEL_T       mainDirectionCosineLobeSH = LPVMath::DirToCosineLobe(mainDirection);
+                mainDirectionCosineLobeSH *= directFaceSubtendedSolidAngle * CalculateOcclusion(blockingPotentialSH, mainDirectionSH);
+
+                redSH += EvalPropagatedSH(neighbourRedSH, mainDirectionSH, mainDirectionCosineLobeSH);
+                greenSH += EvalPropagatedSH(neighbourGreenSH, mainDirectionSH, mainDirectionCosineLobeSH);
+                blueSH += EvalPropagatedSH(neighbourBlueSH, mainDirectionSH, mainDirectionCosineLobeSH);
+
+                #ifdef SKY_OCCLUSION
+                const float neighborSkyOcclusion = FetchSkyOcclusion(_SourceSkyOcclusion, neighbourID);
+                skyOcclusion += neighborSkyOcclusion * EvalPropagatedSkyOcclusion(mainDirectionSH, mainDirectionCosineLobeSH);
+                #endif
+            }
+            #endif
         }
-
-        const static float directFaceSubtendedSolidAngle = 0.4006696846f * INV_PI / 2;
-        const static float sideFaceSubtendedSolidAngle = 0.4234413544f * INV_PI / 3;
-
-        #if DIRECT_FACE_CONTRIBUTION
-        for (uint sideFace = 0; sideFace < 4; ++sideFace)
-        {
-            const float3        evalDirection = GetEvalSideDirection(sideFace, mainDirection);
-            const LPV_CHANNEL_T evalDirectionSH = LPVMath::DirToSH(evalDirection);
-            const LPV_CHANNEL_T blockingPotentialSH = FetchBlockingPotential(neighbourID + evalDirection * 0.5);
-            const float3        reprojDirection = GetReprojSideDirection(sideFace, mainDirection);
-            LPV_CHANNEL_T       reprojDirectionCosineLobeSH = LPVMath::DirToCosineLobe(reprojDirection);
-            reprojDirectionCosineLobeSH *= sideFaceSubtendedSolidAngle * CalculateOcclusion(blockingPotentialSH, evalDirectionSH);
-
-            redSH += EvalPropagatedSH(neighbourRedSH, evalDirectionSH, reprojDirectionCosineLobeSH);
-            greenSH += EvalPropagatedSH(neighbourGreenSH, evalDirectionSH, reprojDirectionCosineLobeSH);
-            blueSH += EvalPropagatedSH(neighbourBlueSH, evalDirectionSH, reprojDirectionCosineLobeSH);
-        }
-        #endif
-
-        #if SIDE_FACE_CONTRIBUTION
-        {
-            const LPV_CHANNEL_T mainDirectionSH = LPVMath::DirToSH(mainDirection);
-            const LPV_CHANNEL_T blockingPotentialSH = FetchBlockingPotential(neighbourID + mainDirection * 0.5);
-            LPV_CHANNEL_T       mainDirectionCosineLobeSH = LPVMath::DirToCosineLobe(mainDirection);
-            mainDirectionCosineLobeSH *= directFaceSubtendedSolidAngle * CalculateOcclusion(blockingPotentialSH, mainDirectionSH);
-
-            redSH += EvalPropagatedSH(neighbourRedSH, mainDirectionSH, mainDirectionCosineLobeSH);
-            greenSH += EvalPropagatedSH(neighbourGreenSH, mainDirectionSH, mainDirectionCosineLobeSH);
-            blueSH += EvalPropagatedSH(neighbourBlueSH, mainDirectionSH, mainDirectionCosineLobeSH);
-        }
-        #endif
     }
 
-    Accumulate(_DestinationRedSH, _SourceRedSH, cellID, _Intensity * redSH);
-    Accumulate(_DestinationGreenSH, _SourceGreenSH, cellID, _Intensity * greenSH);
-    Accumulate(_DestinationBlueSH, _SourceBlueSH, cellID, _Intensity * blueSH);
+    AccumulateSH(_DestinationRedSH, _SourceRedSH, cellID, _Intensity * redSH);
+    AccumulateSH(_DestinationGreenSH, _SourceGreenSH, cellID, _Intensity * greenSH);
+    AccumulateSH(_DestinationBlueSH, _SourceBlueSH, cellID, _Intensity * blueSH);
+
+    #ifdef SKY_OCCLUSION
+    AccumulateSkyOcclusion(_DestinationSkyOcclusion, _SourceSkyOcclusion, cellID, _SkyOcclusionPropagationIntensity * skyOcclusion);
+    #endif
 }
