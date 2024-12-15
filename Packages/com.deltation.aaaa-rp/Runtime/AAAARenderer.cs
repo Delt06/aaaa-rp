@@ -9,6 +9,7 @@ using DELTation.AAAARP.Passes.ClusteredLighting;
 using DELTation.AAAARP.Passes.GlobalIllumination.AO;
 using DELTation.AAAARP.Passes.GlobalIllumination.LPV;
 using DELTation.AAAARP.Passes.GlobalIllumination.SSR;
+using DELTation.AAAARP.Passes.GlobalIllumination.VXGI;
 using DELTation.AAAARP.Passes.IBL;
 using DELTation.AAAARP.Passes.Lighting;
 using DELTation.AAAARP.Passes.PostProcessing;
@@ -61,6 +62,7 @@ namespace DELTation.AAAARP
         private readonly SSRResolvePass _ssrResolvePass;
         private readonly SSRTracePass _ssrTracePass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
+        private readonly VXGISetup _vxgiSetup;
         private readonly XeGTAOPass _xeGTAOPass;
 
         public AAAARenderer(AAAARawBufferClear rawBufferClear) : base(rawBufferClear)
@@ -118,6 +120,7 @@ namespace DELTation.AAAARP
             _lpvResolve = new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _lpvPropagatePass = new LPVPropagatePass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _lpvSkyOcclusionPass = new LPVSkyOcclusionPass(AAAARenderPassEvent.AfterRenderingGbuffer);
+            _vxgiSetup = new VXGISetup(AAAARenderPassEvent.BeforeRendering, rawBufferClear);
 
             _drawTransparentPass = new DrawTransparentPass(AAAARenderPassEvent.BeforeRenderingTransparents);
 
@@ -179,6 +182,10 @@ namespace DELTation.AAAARP
                 }
 
                 EnqueuePass(_lpvPropagatePass);
+            }
+            else if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
+            {
+                EnqueuePass(_vxgiSetup);
             }
 
             EnqueuePass(_deferredLightingPass);
