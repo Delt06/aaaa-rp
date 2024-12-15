@@ -11,18 +11,20 @@ namespace DELTation.AAAARP.RenderPipelineResources
     [CategoryInfo(Name = "R: XeGTAO Runtime Shaders", Order = 1500)]
     public class AAAAXeGtaoRuntimeShaders : IRenderPipelineResources
     {
+        private const string BaseResourcePath = "Shaders/GlobalIllumination/XeGTAO/";
+
         [SerializeField] [HideInInspector] private int _version;
 
         [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/XeGTAO/XeGTAO_PrefilterDepths16x16.compute")]
+        [ResourcePath(BaseResourcePath + "XeGTAO_PrefilterDepths16x16.compute")]
         private ComputeShader _prefilterDepthsCS;
 
         [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/XeGTAO/XeGTAO_MainPass.compute")]
+        [ResourcePath(BaseResourcePath + "XeGTAO_MainPass.compute")]
         private ComputeShader _mainPassCS;
 
         [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/XeGTAO/XeGTAO_Denoise.compute")]
+        [ResourcePath(BaseResourcePath + "XeGTAO_Denoise.compute")]
         private ComputeShader _denoiseCS;
 
         public ComputeShader PrefilterDepthsCS
