@@ -11,26 +11,28 @@ namespace DELTation.AAAARP.RenderPipelineResources
     [CategoryInfo(Name = "R: Light Propagation Volumes Runtime Shaders", Order = 2000)]
     public class AAAALpvRuntimeShaders : IRenderPipelineResources
     {
+        private const string BaseResourcePath = "Shaders/GlobalIllumination/LPV/";
+
         [SerializeField] [HideInInspector] private int _version;
 
         [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/RSMDownsample.compute")]
+        [ResourcePath(BaseResourcePath + "RSMDownsample.compute")]
         private ComputeShader _rsmDownsampleCS;
 
         [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/LPVInject.shader")]
+        [ResourcePath(BaseResourcePath + "LPVInject.shader")]
         private Shader _injectPS;
 
         [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/LPVPropagate.compute")]
+        [ResourcePath(BaseResourcePath + "LPVPropagate.compute")]
         private ComputeShader _propagateCS;
 
         [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/LPVResolve.compute")]
+        [ResourcePath(BaseResourcePath + "LPVResolve.compute")]
         private ComputeShader _resolveCS;
 
         [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/LPVSkyOcclusion.compute")]
+        [ResourcePath(BaseResourcePath + "LPVSkyOcclusion.compute")]
         private ComputeShader _skyOcclusionCS;
 
         public ComputeShader RsmDownsampleCS

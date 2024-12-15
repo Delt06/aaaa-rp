@@ -25,7 +25,7 @@ Shader "Hidden/AAAA/LightPropagationVolumesDebug"
             #pragma vertex VS
             #pragma fragment PS
 
-            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/LPVPragma.hlsl"
+            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/LPV/Variants.hlsl"
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
