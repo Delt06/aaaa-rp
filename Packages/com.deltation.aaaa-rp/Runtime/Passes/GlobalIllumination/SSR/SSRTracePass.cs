@@ -16,8 +16,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.SSR
     {
         private readonly ComputeShader _traceCS;
 
-        public SSRTracePass(AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders shaders) : base(renderPassEvent) =>
-            _traceCS = shaders.SsrTraceCS;
+        public SSRTracePass(AAAARenderPassEvent renderPassEvent, AAAASsrRuntimeShaders shaders) : base(renderPassEvent) =>
+            _traceCS = shaders.TraceCS;
 
         public override string Name => "SSR.Trace";
 

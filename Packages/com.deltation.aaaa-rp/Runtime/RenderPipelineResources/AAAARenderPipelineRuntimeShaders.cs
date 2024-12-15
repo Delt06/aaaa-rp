@@ -82,14 +82,6 @@ namespace DELTation.AAAARP.RenderPipelineResources
         private ComputeShader _hzbGenerationCS;
 
         [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/SSRTrace.compute")]
-        private ComputeShader _ssrTraceCS;
-
-        [SerializeField]
-        [ResourcePath("Shaders/GlobalIllumination/SSRResolve.shader")]
-        private Shader _ssrResolvePS;
-
-        [SerializeField]
         [ResourcePath("Shaders/AntiAliasing/SMAA.shader")]
         private Shader _smaaPS;
 
@@ -197,18 +189,6 @@ namespace DELTation.AAAARP.RenderPipelineResources
         {
             get => _deferredReflectionsPS;
             set => this.SetValueAndNotify(ref _deferredReflectionsPS, value, nameof(_deferredReflectionsPS));
-        }
-
-        public ComputeShader SsrTraceCS
-        {
-            get => _ssrTraceCS;
-            set => this.SetValueAndNotify(ref _ssrTraceCS, value, nameof(_ssrTraceCS));
-        }
-
-        public Shader SsrResolvePS
-        {
-            get => _ssrResolvePS;
-            set => this.SetValueAndNotify(ref _ssrResolvePS, value, nameof(_ssrResolvePS));
         }
 
         public Shader SmaaPS

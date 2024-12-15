@@ -96,11 +96,15 @@ namespace DELTation.AAAARP
             const AAAARenderPassEvent deferredReflectionsRenderPassEvent = AAAARenderPassEvent.AfterRenderingGbuffer;
             _deferredReflectionsSetupPass = new DeferredReflectionsSetupPass(deferredReflectionsRenderPassEvent, _deferredReflectionsMaterial);
             _deferredReflectionsComposePass = new DeferredReflectionsComposePass(deferredReflectionsRenderPassEvent, _deferredReflectionsMaterial);
-            _ssrResolveMaterial = CoreUtils.CreateEngineMaterial(shaders.SsrResolvePS);
-            _ssrHzbGenerationPass = new HZBGenerationPass(deferredReflectionsRenderPassEvent, HZBGenerationPass.Mode.Min, "SSR.", shaders);
-            _ssrTracePass = new SSRTracePass(deferredReflectionsRenderPassEvent, shaders);
-            _ssrComposePass = new SSRComposePass(deferredReflectionsRenderPassEvent, _ssrResolveMaterial);
-            _ssrResolvePass = new SSRResolvePass(deferredReflectionsRenderPassEvent, _ssrResolveMaterial);
+
+            {
+                AAAASsrRuntimeShaders ssrShaders = GraphicsSettings.GetRenderPipelineSettings<AAAASsrRuntimeShaders>();
+                _ssrResolveMaterial = CoreUtils.CreateEngineMaterial(ssrShaders.ResolvePS);
+                _ssrHzbGenerationPass = new HZBGenerationPass(deferredReflectionsRenderPassEvent, HZBGenerationPass.Mode.Min, "SSR.", shaders);
+                _ssrTracePass = new SSRTracePass(deferredReflectionsRenderPassEvent, ssrShaders);
+                _ssrComposePass = new SSRComposePass(deferredReflectionsRenderPassEvent, _ssrResolveMaterial);
+                _ssrResolvePass = new SSRResolvePass(deferredReflectionsRenderPassEvent, _ssrResolveMaterial);
+            }
 
             _clusteredLightingPass = new ClusteredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders, rawBufferClear);
             _deferredLightingPass = new DeferredLightingPass(AAAARenderPassEvent.AfterRenderingGbuffer, shaders);
