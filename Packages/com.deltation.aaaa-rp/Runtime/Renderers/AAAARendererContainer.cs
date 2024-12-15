@@ -23,6 +23,7 @@ namespace DELTation.AAAARP.Renderers
         public enum PassType
         {
             Visibility = 0,
+            Default = 0,
             ShadowCaster = 1,
         }
 
@@ -72,7 +73,7 @@ namespace DELTation.AAAARP.Renderers
             for (int listIndex = 0; listIndex < _rendererLists.Length; listIndex++)
             {
                 var listID = (AAAARendererListID) listIndex;
-                _rendererLists[listIndex] = CreateRendererList(listID, shaders);
+                _rendererLists[listIndex] = CreateRendererList(listID, shaders.VisibilityBufferPS);
             }
 
 #if UNITY_EDITOR
@@ -140,14 +141,12 @@ namespace DELTation.AAAARP.Renderers
 
             foreach (RendererList rendererList in _rendererLists)
             {
-                CoreUtils.Destroy(rendererList.Material);
+                rendererList.Dispose();
             }
         }
 
-        private static RendererList CreateRendererList(AAAARendererListID listID, AAAARenderPipelineRuntimeShaders shaders)
+        public static RendererList CreateRendererList(AAAARendererListID listID, Shader shader)
         {
-            Shader shader = shaders.VisibilityBufferPS;
-
             RendererList rendererList;
             rendererList.Material = CoreUtils.CreateEngineMaterial(shader);
             rendererList.Material.SetKeyword(new LocalKeyword(shader, "_ALPHATEST_ON"), (listID & AAAARendererListID.AlphaTest) != 0);
@@ -283,21 +282,23 @@ namespace DELTation.AAAARP.Renderers
             return meshletCount;
         }
 
-        public void Draw(CameraType cameraType, CommandBuffer cmd, PassType passType, int contextIndex)
+        public void Draw(CameraType cameraType, CommandBuffer cmd, PassType passType, int contextIndex = 0, RendererList[] overrideRendererLists = null)
         {
             if (!ShouldDraw(cameraType))
             {
                 return;
             }
 
+            RendererList[] rendererLists = overrideRendererLists ?? _rendererLists;
+
             if (IndirectDrawArgsBuffer != null && InstanceDataBuffer.InstanceCount > 0)
             {
-                int baseCommandID = contextIndex * _rendererLists.Length;
+                int baseCommandID = contextIndex * rendererLists.Length;
                 int baseArgsOffset = contextIndex * IndirectDrawArgsByteStridePerContext;
 
-                for (int index = 0; index < _rendererLists.Length; index++)
+                for (int index = 0; index < rendererLists.Length; index++)
                 {
-                    ref readonly RendererList rendererList = ref _rendererLists[index];
+                    ref readonly RendererList rendererList = ref rendererLists[index];
                     int commandID = baseCommandID + index;
                     int argsOffset = baseArgsOffset + index * GraphicsBuffer.IndirectDrawArgs.size;
 
@@ -380,9 +381,14 @@ namespace DELTation.AAAARP.Renderers
             public int LeafMeshletCount;
         }
 
-        public struct RendererList
+        public struct RendererList : IDisposable
         {
             public Material Material;
+
+            public void Dispose()
+            {
+                CoreUtils.Destroy(Material);
+            }
         }
 
         private static class Profiling

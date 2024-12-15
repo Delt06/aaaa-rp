@@ -1,0 +1,64 @@
+#pragma kernel CS
+
+#define THREAD_GROUP_SIZE 256
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VXGI.hlsl"
+
+ByteAddressBuffer   _Source;
+RWTexture3D<float4> _Destination;
+
+float4 FetchSource4(const uint address, const uint channel)
+{
+    const uint4 packedValue = _Source.Load(address) + channel << 2;
+    return float4(
+        VXGI::Packing::UnpackChannel(packedValue.x),
+        VXGI::Packing::UnpackChannel(packedValue.y),
+        VXGI::Packing::UnpackChannel(packedValue.z),
+        VXGI::Packing::UnpackChannel(packedValue.w)
+    );
+}
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    const uint  flatID = dispatchThreadID.x;
+    VXGI::Grid  grid = VXGI::Grid::Load();
+    const uint3 voxelID = grid.FlatToVoxelID(flatID);
+    if (any((float3)voxelID >= grid.size))
+    {
+        return;
+    }
+
+    const uint baseAddress = VXGI::Grid::FlatIDToPackedGridAddress(flatID);
+    const uint channelsCount = uint(AAAAVXGIPACKEDGRIDCHANNELS_TOTAL_COUNT);
+    float      channels[channelsCount];
+
+    UNITY_UNROLL
+    for (uint baseChannel = 0; baseChannel < channelsCount; baseChannel += 4)
+    {
+        const float4 channels4 = FetchSource4(baseAddress, baseChannel);
+
+        UNITY_UNROLL
+        for (uint i = 0; i < 4; ++i)
+        {
+            const uint channel = baseChannel + i;
+            if (channel < channelsCount)
+            {
+                channels[channel] = channels4[i];
+            }
+        }
+    }
+
+    const float fragmentCount = channels[AAAAVXGIPACKEDGRIDCHANNELS_FRAGMENT_COUNT];
+    const float invFragmentCount = rcp(fragmentCount);
+
+    const float4 baseColor = fragmentCount == 0.0
+                                 ? 0
+                                 : invFragmentCount * float4(
+                                     channels[AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_R],
+                                     channels[AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_G],
+                                     channels[AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_B],
+                                     channels[AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_A]
+                                 );
+    _Destination[voxelID] = baseColor;
+}

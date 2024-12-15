@@ -33,6 +33,7 @@ MonoBehaviour:
       - rid: 4163137302410297469
       - rid: 4163137302410297470
       - rid: 4163137302410297471
+      - rid: 4163137302410297472
     m_RuntimeSettings:
       m_List: []
   references:
@@ -189,3 +190,9 @@ MonoBehaviour:
         _version: 0
         _easuCS: {fileID: 7200000, guid: 67cb1289448f479e84032e08a2e9bf73, type: 3}
         _rcasCS: {fileID: 7200000, guid: 4c33e0806c7d4db68d2d3d703310e2c3, type: 3}
+    - rid: 4163137302410297472
+      type: {class: AAAAVxgiRuntimeShaders, ns: DELTation.AAAARP.RenderPipelineResources, asm: DELTation.AAAARP.Runtime}
+      data:
+        _version: 0
+        _voxelizePS: {fileID: 4800000, guid: 915a9d1cb6324501a4290c9127bcc4cf, type: 3}
+        _unpackCS: {fileID: 7200000, guid: d95c70139d4c490fbd805dc7c70a94ce, type: 3}

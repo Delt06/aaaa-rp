@@ -1,0 +1,82 @@
+#ifndef AAAA_VXGI_INCLUDED
+#define AAAA_VXGI_INCLUDED
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
+#include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAAVxgiConstantBuffer.cs.hlsl"
+#include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAAVxgiCommon.cs.hlsl"
+
+#define VXGI_PACKING_PRECISION (1024)
+
+namespace VXGI
+{
+    struct Packing
+    {
+        static float2 PackNormal(const float3 normal)
+        {
+            return PackNormalOctQuadEncode(normal);
+        }
+
+        static float3 UnpackNormal(const float2 packedNormal)
+        {
+            return UnpackNormalOctQuadEncode(packedNormal);
+        }
+
+        static uint PackChannel(const float value)
+        {
+            return (uint)(value * VXGI_PACKING_PRECISION);
+        }
+
+        static uint UnpackChannel(const uint packedValue)
+        {
+            return float(packedValue) / VXGI_PACKING_PRECISION;
+        }
+    };
+
+    struct Grid
+    {
+        float size;
+        float invSize;
+        float voxelSizeWS;
+        float invVoxelSizeWS;
+
+        static Grid Load()
+        {
+            Grid grid;
+            grid.size = _VxgiGridResolution.x;
+            grid.invSize = _VxgiGridResolution.y;
+            grid.voxelSizeWS = _VxgiGridResolution.z;
+            grid.invVoxelSizeWS = _VxgiGridResolution.w;
+            return grid;
+        }
+
+        float3 TransformWorldToGridSpace(const float3 positionWS)
+        {
+            return (positionWS - _VxgiGridBoundsMin.xyz) * invVoxelSizeWS;
+        }
+
+        int VoxelToFlatID(const uint3 voxelID)
+        {
+            const uint uSize = size;
+            return voxelID.z * uSize * uSize + voxelID.y * uSize + voxelID.x;
+        }
+
+        uint3 FlatToVoxelID(const uint flatID)
+        {
+            const uint uSize = size;
+            return uint3(
+                flatID % uSize,
+                flatID / uSize % uSize,
+                flatID / (uSize * uSize)
+            );
+        }
+
+        static uint FlatIDToPackedGridAddress(const uint flatID)
+        {
+            return (flatID * AAAAVXGIPACKEDGRIDCHANNELS_TOTAL_COUNT) << 2;
+        }
+    };
+}
+
+
+#endif // AAAA_VXGI_INCLUDED

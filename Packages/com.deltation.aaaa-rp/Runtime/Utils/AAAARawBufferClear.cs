@@ -5,6 +5,7 @@ using DELTation.AAAARP.Core;
 using DELTation.AAAARP.RenderPipelineResources;
 using Unity.Collections;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Utils
@@ -13,7 +14,7 @@ namespace DELTation.AAAARP.Utils
     public class AAAARawBufferClear : IDisposable
     {
         public const int KernelIndex = 0;
-        public const int ThreadGroupSize = 32;
+        public const int ThreadGroupSize = 1024;
 
         private readonly Dictionary<int, GraphicsBuffer> _fastZeroClearBuffers = new();
         private readonly ComputeShader _rawBufferClearCS;
@@ -48,7 +49,10 @@ namespace DELTation.AAAARP.Utils
             cmd.SetComputeIntParam(_rawBufferClearCS, ShaderID._ItemCount, itemCount);
             cmd.SetComputeIntParam(_rawBufferClearCS, ShaderID._WriteOffset, writeOffset);
             cmd.SetComputeIntParam(_rawBufferClearCS, ShaderID._ClearValue, clearValue);
-            cmd.DispatchCompute(_rawBufferClearCS, KernelIndex, AAAAMathUtils.AlignUp(itemCount, ThreadGroupSize) / ThreadGroupSize, 1, 1);
+
+            int threadGroups = AAAAMathUtils.AlignUp(itemCount, ThreadGroupSize) / ThreadGroupSize;
+            Assert.IsTrue(threadGroups < 65535);
+            cmd.DispatchCompute(_rawBufferClearCS, KernelIndex, threadGroups, 1, 1);
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]

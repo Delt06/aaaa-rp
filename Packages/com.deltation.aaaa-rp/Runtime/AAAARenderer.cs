@@ -62,7 +62,9 @@ namespace DELTation.AAAARP
         private readonly SSRResolvePass _ssrResolvePass;
         private readonly SSRTracePass _ssrTracePass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
-        private readonly VXGISetup _vxgiSetup;
+        private readonly VXGISetupPass _vxgiSetupPass;
+        private readonly VXGIUnpackPass _vxgiUnpackPass;
+        private readonly VXGIVoxelizePass _vxgiVoxelizePass;
         private readonly XeGTAOPass _xeGTAOPass;
 
         public AAAARenderer(AAAARawBufferClear rawBufferClear) : base(rawBufferClear)
@@ -120,7 +122,9 @@ namespace DELTation.AAAARP
             _lpvResolve = new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _lpvPropagatePass = new LPVPropagatePass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _lpvSkyOcclusionPass = new LPVSkyOcclusionPass(AAAARenderPassEvent.AfterRenderingGbuffer);
-            _vxgiSetup = new VXGISetup(AAAARenderPassEvent.BeforeRendering, rawBufferClear);
+            _vxgiSetupPass = new VXGISetupPass(AAAARenderPassEvent.BeforeRendering, rawBufferClear);
+            _vxgiVoxelizePass = new VXGIVoxelizePass(AAAARenderPassEvent.AfterRenderingGbuffer);
+            _vxgiUnpackPass = new VXGIUnpackPass(AAAARenderPassEvent.AfterRenderingGbuffer);
 
             _drawTransparentPass = new DrawTransparentPass(AAAARenderPassEvent.BeforeRenderingTransparents);
 
@@ -185,7 +189,9 @@ namespace DELTation.AAAARP
             }
             else if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
             {
-                EnqueuePass(_vxgiSetup);
+                EnqueuePass(_vxgiSetupPass);
+                EnqueuePass(_vxgiVoxelizePass);
+                EnqueuePass(_vxgiUnpackPass);
             }
 
             EnqueuePass(_deferredLightingPass);
@@ -304,6 +310,7 @@ namespace DELTation.AAAARP
             _smaaPass.Dispose();
 
             _lpvInjectPass.Dispose();
+            _vxgiVoxelizePass.Dispose();
 
             CoreUtils.Destroy(_ssrResolveMaterial);
             CoreUtils.Destroy(_deferredReflectionsMaterial);
