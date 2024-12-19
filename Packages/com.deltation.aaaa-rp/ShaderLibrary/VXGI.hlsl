@@ -55,6 +55,11 @@ namespace VXGI
             return (positionWS - _VxgiGridBoundsMin.xyz) * invVoxelSizeWS;
         }
 
+        float3 TransformGridToWorldSpace(const float3 voxelID)
+        {
+            return voxelID * voxelSizeWS + _VxgiGridBoundsMin.xyz;
+        }
+
         int VoxelToFlatID(const uint3 voxelID)
         {
             const uint uSize = size;
