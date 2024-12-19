@@ -9,7 +9,7 @@ RWTexture3D<float4> _Destination;
 
 float4 FetchSource4(const uint address, const uint channel)
 {
-    const uint4 packedValue = _Source.Load(address) + channel << 2;
+    const uint4 packedValue = _Source.Load4(address + (channel << 2));
     return float4(
         VXGI::Packing::UnpackChannel(packedValue.x),
         VXGI::Packing::UnpackChannel(packedValue.y),

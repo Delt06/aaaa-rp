@@ -27,7 +27,7 @@ namespace VXGI
             return (uint)(value * VXGI_PACKING_PRECISION);
         }
 
-        static uint UnpackChannel(const uint packedValue)
+        static float UnpackChannel(const uint packedValue)
         {
             return float(packedValue) / VXGI_PACKING_PRECISION;
         }

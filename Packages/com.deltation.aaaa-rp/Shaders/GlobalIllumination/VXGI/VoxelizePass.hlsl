@@ -19,6 +19,7 @@ struct GSInput
     float3 positionWS : POSITION_WS;
     float2 uv0 : TEXCOORD0;
     float3 normalWS : NORMAL_WS;
+    VISIBILITY_VALUE_VARYING
 };
 
 struct GSOutput
@@ -27,6 +28,7 @@ struct GSOutput
     centroid float2 uv0 : TEXCOORD0;
     centroid float3 normalWS : NORMAL_WS;
     centroid float3 positionWS : POSITION_WS;
+    nointerpolation VISIBILITY_VALUE_VARYING
 };
 
 GSInput VoxelizeVS(const uint svInstanceID : SV_InstanceID, const uint svIndexID : SV_VertexID)
@@ -40,6 +42,7 @@ GSInput VoxelizeVS(const uint svInstanceID : SV_InstanceID, const uint svIndexID
     OUT.positionWS = positionWS;
     OUT.uv0 = varyings.uv0;
     OUT.normalWS = TransformObjectToWorldNormal(vertex.Normal.xyz);
+    OUT.visibilityValue = varyings.visibilityValue;
     return OUT;
 }
 
@@ -91,21 +94,29 @@ void VoxelizeGS(
         OUT[i].normalWS = IN[i].normalWS;
         OUT[i].uv0 = IN[i].uv0;
         OUT[i].positionWS = IN[i].positionWS;
+        OUT[i].visibilityValue = IN[i].visibilityValue;
         outputStream.Append(OUT[i]);
     }
 }
 
 void VoxelizePS(const GSOutput IN)
 {
+    const VisibilityBufferValue visibilityBufferValue = UnpackVisibilityBufferValue(IN.visibilityValue);
+
+    const AAAAInstanceData instanceData = PullInstanceData(visibilityBufferValue.instanceID);
+    const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
+
+    const float4 albedo = SampleAlbedo(IN.uv0, materialData);
+
     VXGI::Grid grid = VXGI::Grid::Load();
 
     const float3 voxelID = grid.TransformWorldToGridSpace(IN.positionWS);
     const uint   flatID = grid.VoxelToFlatID(voxelID);
     const uint   baseAddress = VXGI::Grid::FlatIDToPackedGridAddress(flatID);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_R, 1);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_G, 1);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_B, 1);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_A, 1);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_R, albedo.r);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_G, albedo.g);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_B, albedo.b);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_A, albedo.a);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_FRAGMENT_COUNT, 1);
 }
 
