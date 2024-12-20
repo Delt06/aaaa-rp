@@ -145,6 +145,7 @@ MonoBehaviour:
         _gBufferDebugPS: {fileID: 4800000, guid: d667ea4a980b4ae6bc5d4fbb99dfe007, type: 3}
         _lightingDebugPS: {fileID: 4800000, guid: 8a26e757c6ff4818947551b763fd6938, type: 3}
         _lightPropagationVolumesDebugPS: {fileID: 4800000, guid: 900f3de8e6a740569820411ff86dcdc4, type: 3}
+        _vxgiDebugPS: {fileID: 4800000, guid: e1f867bcd1ac2ab46bac9ba588bb1c09, type: 3}
     - rid: 4163137302410297468
       type: {class: AAAALpvRuntimeShaders, ns: DELTation.AAAARP.RenderPipelineResources, asm: DELTation.AAAARP.Runtime}
       data:

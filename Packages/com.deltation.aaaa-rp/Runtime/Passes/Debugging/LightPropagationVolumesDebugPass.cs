@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;

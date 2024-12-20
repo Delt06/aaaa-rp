@@ -25,7 +25,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             AAAAVoxelGlobalIlluminationData vxgiData = frameData.GetOrCreate<AAAAVoxelGlobalIlluminationData>();
 
             const float boundsSize = 40.0f;
-            vxgiData.GridSize = 64;
+            vxgiData.GridSize = 128;
             vxgiData.BoundsMin = -boundsSize * 0.5f;
             vxgiData.BoundsMax = boundsSize * 0.5f;
 

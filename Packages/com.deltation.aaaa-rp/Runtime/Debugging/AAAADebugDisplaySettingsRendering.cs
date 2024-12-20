@@ -89,6 +89,8 @@ namespace DELTation.AAAARP.Debugging
         public float LightPropagationVolumesDebugSize { get; private set; } = 0.1f;
         public float LightPropagationVolumesDebugIntensity { get; private set; } = 1.0f;
         public float LightPropagationVolumesDebugClipDistance { get; private set; } = 2.0f;
+        public bool VXGIDebug { get; private set; }
+        public bool VXGIDebugOverlay { get; private set; } = true;
 
         public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
                                             ForceCullingFromMainCamera ||
@@ -338,6 +340,7 @@ namespace DELTation.AAAARP.Debugging
                                 CreateLightCountRemap(panel),
                                 CreateLightIndex(panel),
                                 LightPropagationVolumes.WidgetFactory.CreateFoldout(panel),
+                                VXGI.WidgetFactory.CreateFoldout(panel),
                             },
                         };
 
@@ -375,6 +378,47 @@ namespace DELTation.AAAARP.Debugging
                         isHiddenCallback = () => panel.data.LightingDebugMode is not AAAALightingDebugMode.DirectionalLightCascades,
                         min = () => 0,
                         max = () => AAAALightingConstantBuffer.MaxDirectionalLights - 1,
+                    };
+                }
+            }
+
+            private static class VXGI
+            {
+                private static class Strings
+                {
+                    public static readonly DebugUI.Widget.NameAndTooltip Debug = new() { name = "Debug" };
+                    public static readonly DebugUI.Widget.NameAndTooltip Overlay = new() { name = "Overlay" };
+                }
+
+                public static class WidgetFactory
+                {
+                    public static DebugUI.Widget CreateFoldout(SettingsPanel panel) =>
+                        new DebugUI.Foldout
+                        {
+                            displayName = "Voxel GI",
+                            flags = DebugUI.Flags.FrequentlyUsed,
+                            isHeader = true,
+                            opened = true,
+                            children =
+                            {
+                                CreateDebug(panel),
+                                CreateDebugOverlay(panel),
+                            },
+                        };
+
+                    private static DebugUI.Widget CreateDebug(SettingsPanel panel) => new DebugUI.BoolField
+                    {
+                        nameAndTooltip = Strings.Debug,
+                        getter = () => panel.data.VXGIDebug,
+                        setter = value => panel.data.VXGIDebug = value,
+                    };
+
+                    private static DebugUI.Widget CreateDebugOverlay(SettingsPanel panel) => new DebugUI.BoolField
+                    {
+                        nameAndTooltip = Strings.Overlay,
+                        isHiddenCallback = () => !panel.data.VXGIDebug,
+                        getter = () => panel.data.VXGIDebugOverlay,
+                        setter = value => panel.data.VXGIDebugOverlay = value,
                     };
                 }
             }
