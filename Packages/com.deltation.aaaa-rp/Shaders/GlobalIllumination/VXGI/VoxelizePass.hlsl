@@ -9,6 +9,7 @@
 // - https://github.com/turanszkij/WickedEngine/blob/97e08abfe5f1f086a845e353c832583c89f3edd3/WickedEngine/shaders/objectPS_voxelizer.hlsl
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Math.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VXGI.hlsl"
 
@@ -127,6 +128,39 @@ void VoxelizeGS(
     }
 }
 
+struct SurfaceData
+{
+    float4 diffuseColor;
+    float3 normalWS;
+    float3 positionWS;
+    float  metallic;
+};
+
+float3 ComputeFastDiffuseBRDF(const SurfaceData surfaceData, const Light light)
+{
+    const float  NdotL = saturate(dot(surfaceData.normalWS, light.directionWS));
+    const float3 radiance = light.color;
+    const float  shadowAttenuation = light.shadowAttenuation;
+    const float  kD = saturate(1 - surfaceData.metallic);
+    return shadowAttenuation * kD * surfaceData.diffuseColor.rgb * radiance * NdotL;
+}
+
+float3 ComputeFastDiffuseLighting(const SurfaceData surfaceData)
+{
+    float3 lighting = 0;
+
+    const uint directionalLightCount = GetDirectionalLightCount();
+
+    UNITY_UNROLLX(MAX_DIRECTIONAL_LIGHTS)
+    for (uint lightIndex = 0; lightIndex < directionalLightCount; ++lightIndex)
+    {
+        const Light light = GetDirectionalLight(lightIndex, surfaceData.positionWS);
+        lighting += ComputeFastDiffuseBRDF(surfaceData, light);
+    }
+
+    return lighting;
+}
+
 void VoxelizePS(const GSOutput IN, const FRONT_FACE_TYPE frontFace : FRONT_FACE_SEMANTIC)
 {
     VXGI::Grid   grid = VXGI::Grid::Load();
@@ -159,20 +193,28 @@ void VoxelizePS(const GSOutput IN, const FRONT_FACE_TYPE frontFace : FRONT_FACE_
     const uint flatID = grid.VoxelToFlatID(voxelID);
     const uint baseAddress = VXGI::Grid::FlatIDToPackedGridAddress(flatID);
 
-    const float4 albedo = SampleAlbedo(IN.uv0, materialData);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_R, albedo.r);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_G, albedo.g);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_B, albedo.b);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_A, albedo.a);
+    SurfaceData surfaceData;
+    surfaceData.positionWS = IN.positionWS;
+    surfaceData.diffuseColor = SampleAlbedo(IN.uv0, materialData);
+    surfaceData.normalWS = SafeNormalize(IN.normalWS) * IS_FRONT_VFACE(frontFace, 1, -1);
+    surfaceData.metallic = SampleMasks(IN.uv0, materialData).metallic;
 
-    const float3 emission = albedo.rgb * materialData.Emission.rgb;
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_R, surfaceData.diffuseColor.r);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_G, surfaceData.diffuseColor.g);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_B, surfaceData.diffuseColor.b);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_A, surfaceData.diffuseColor.a);
+
+    const float3 emission = surfaceData.diffuseColor.rgb * materialData.Emission.rgb;
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_R, emission.r);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_G, emission.g);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_B, emission.b);
 
-    float3 normalWS = SafeNormalize(IN.normalWS);
-    normalWS *= IS_FRONT_VFACE(frontFace, 1, -1);
-    const float2 packedNormal = VXGI::Packing::PackNormal(normalWS);
+    const float3 directLighting = ComputeFastDiffuseLighting(surfaceData);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_DIRECT_LIGHT_R, directLighting.r);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_DIRECT_LIGHT_G, directLighting.g);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_DIRECT_LIGHT_B, directLighting.b);
+
+    const float2 packedNormal = VXGI::Packing::PackNormal(surfaceData.normalWS);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_PACKED_NORMAL_R, packedNormal.r);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_PACKED_NORMAL_G, packedNormal.g);
 

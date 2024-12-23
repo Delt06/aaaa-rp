@@ -66,6 +66,7 @@ namespace DELTation.AAAARP.Debugging
     {
         Albedo,
         Emission,
+        DirectLighting,
         Normals,
     }
 

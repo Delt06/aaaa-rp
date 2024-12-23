@@ -108,6 +108,32 @@ struct MaterialMasks
     float metallic;
 };
 
+MaterialMasks SampleMasks(const float2 uv, const AAAAMaterialData materialData)
+{
+    const uint textureIndex = materialData.MasksIndex;
+
+    MaterialMasks materialMasks;
+
+    UNITY_BRANCH
+    if (textureIndex != (uint)NO_TEXTURE_INDEX)
+    {
+        const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
+        const float4    packedMasks = SAMPLE_TEXTURE2D(texture, sampler_TrilinearRepeat_Aniso16, uv);
+        materialMasks.roughness = packedMasks.r;
+        materialMasks.metallic = packedMasks.g;
+    }
+    else
+    {
+        materialMasks.roughness = 1;
+        materialMasks.metallic = 1;
+    }
+
+    materialMasks.roughness = saturate(materialMasks.roughness * materialData.Roughness);
+    materialMasks.metallic = saturate(materialMasks.metallic * materialData.Metallic);
+
+    return materialMasks;
+}
+
 MaterialMasks SampleMasksGrad(const InterpolatedUV uv, const AAAAMaterialData materialData)
 {
     const uint textureIndex = materialData.MasksIndex;

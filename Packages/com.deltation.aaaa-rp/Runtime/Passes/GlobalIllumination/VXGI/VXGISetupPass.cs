@@ -58,6 +58,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
                     format = GraphicsFormat.B10G11R11_UFloatPack32,
                 }
             );
+            vxgiData.GridDirectLighting = renderingData.RenderGraph.CreateTexture(new TextureDesc(gridTextureDesc)
+                {
+                    name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.GridDirectLighting),
+                    format = GraphicsFormat.B10G11R11_UFloatPack32,
+                }
+            );
             vxgiData.GridNormals = renderingData.RenderGraph.CreateTexture(new TextureDesc(gridTextureDesc)
                 {
                     name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.GridNormals),
