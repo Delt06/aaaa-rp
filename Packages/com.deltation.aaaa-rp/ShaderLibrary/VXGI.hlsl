@@ -14,12 +14,12 @@ namespace VXGI
     {
         static float2 PackNormal(const float3 normal)
         {
-            return PackNormalOctQuadEncode(normal);
+            return PackNormalOctQuadEncode(normal) * 0.5 + 0.5;
         }
 
         static float3 UnpackNormal(const float2 packedNormal)
         {
-            return UnpackNormalOctQuadEncode(packedNormal);
+            return UnpackNormalOctQuadEncode(packedNormal) * 2.0 - 1.0;
         }
 
         static uint PackChannel(const float value)

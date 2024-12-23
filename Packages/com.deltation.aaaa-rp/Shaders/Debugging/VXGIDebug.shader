@@ -31,6 +31,7 @@ Shader "Hidden/AAAA/VXGIDebug"
 
             TYPED_TEXTURE3D(float4, _GridAlbedo);
             TYPED_TEXTURE3D(float3, _GridEmission);
+            TYPED_TEXTURE3D(float2, _GridNormals);
 
             uint _DebugMode;
 
@@ -70,6 +71,9 @@ Shader "Hidden/AAAA/VXGIDebug"
                     break;
                 case AAAAVXGIDEBUGMODE_EMISSION:
                     outputColor = _GridEmission[voxelID];
+                    break;
+                case AAAAVXGIDEBUGMODE_NORMALS:
+                    outputColor = VXGI::Packing::UnpackNormal(_GridNormals[voxelID]) * 0.5 + 0.5;
                     break;
                 default:
                     outputColor = 0;

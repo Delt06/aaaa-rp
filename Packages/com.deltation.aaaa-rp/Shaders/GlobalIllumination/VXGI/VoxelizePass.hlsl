@@ -127,7 +127,7 @@ void VoxelizeGS(
     }
 }
 
-void VoxelizePS(const GSOutput IN)
+void VoxelizePS(const GSOutput IN, const FRONT_FACE_TYPE frontFace : FRONT_FACE_SEMANTIC)
 {
     VXGI::Grid   grid = VXGI::Grid::Load();
     const float3 voxelID = grid.TransformWorldToGridSpace(IN.positionWS);
@@ -169,6 +169,12 @@ void VoxelizePS(const GSOutput IN)
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_R, emission.r);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_G, emission.g);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_B, emission.b);
+
+    float3 normalWS = SafeNormalize(IN.normalWS);
+    normalWS *= IS_FRONT_VFACE(frontFace, 1, -1);
+    const float2 packedNormal = VXGI::Packing::PackNormal(normalWS);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_PACKED_NORMAL_R, packedNormal.r);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_PACKED_NORMAL_G, packedNormal.g);
 
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_FRAGMENT_COUNT, 1);
 }

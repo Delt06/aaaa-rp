@@ -58,6 +58,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
                     format = GraphicsFormat.B10G11R11_UFloatPack32,
                 }
             );
+            vxgiData.GridNormals = renderingData.RenderGraph.CreateTexture(new TextureDesc(gridTextureDesc)
+                {
+                    name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.GridNormals),
+                    format = GraphicsFormat.R8G8_UNorm,
+                }
+            );
 
             passData.PackedGridBufferCount = packedBufferCount;
             passData.PackedGridBuffer = builder.WriteBuffer(vxgiData.PackedGridBuffer);

@@ -7,6 +7,7 @@
 ByteAddressBuffer   _Source;
 RWTexture3D<float4> _DestinationAlbedo;
 RWTexture3D<float3> _DestinationEmission;
+RWTexture3D<float2> _DestinationNormals;
 
 float4 FetchSource4(const uint address, const uint channel)
 {
@@ -54,6 +55,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     float4 baseColor = 0;
     float3 emission = 0;
+    float2 normals = 0;
     if (fragmentCount != 0.0)
     {
         const float invFragmentCount = rcp(fragmentCount);
@@ -68,8 +70,13 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
             channels[AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_G],
             channels[AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_B]
         );
+        normals = invFragmentCount * float2(
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_PACKED_NORMAL_R],
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_PACKED_NORMAL_G]
+        );
     }
 
     _DestinationAlbedo[voxelID] = baseColor;
     _DestinationEmission[voxelID] = emission;
+    _DestinationNormals[voxelID] = normals;
 }

@@ -33,6 +33,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             passData.Source = builder.ReadBuffer(vxgiData.PackedGridBuffer);
             passData.DestinationAlbedo = builder.WriteTexture(vxgiData.GridAlbedo);
             passData.DestinationEmission = builder.WriteTexture(vxgiData.GridEmission);
+            passData.DestinationNormals = builder.WriteTexture(vxgiData.GridNormals);
 
             builder.AllowPassCulling(false);
         }
@@ -47,6 +48,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             context.cmd.SetComputeBufferParam(_computeShader, KernelSize, ShaderID._Source, data.Source);
             context.cmd.SetComputeTextureParam(_computeShader, KernelSize, ShaderID._DestinationAlbedo, data.DestinationAlbedo);
             context.cmd.SetComputeTextureParam(_computeShader, KernelSize, ShaderID._DestinationEmission, data.DestinationEmission);
+            context.cmd.SetComputeTextureParam(_computeShader, KernelSize, ShaderID._DestinationNormals, data.DestinationNormals);
             context.cmd.DispatchCompute(_computeShader, KernelSize, data.ThreadGroups, 1, 1);
         }
 
@@ -54,6 +56,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
         {
             public TextureHandle DestinationAlbedo;
             public TextureHandle DestinationEmission;
+            public TextureHandle DestinationNormals;
             public BufferHandle Source;
             public int ThreadGroups;
         }
@@ -64,6 +67,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             public static readonly int _Source = Shader.PropertyToID(nameof(_Source));
             public static readonly int _DestinationAlbedo = Shader.PropertyToID(nameof(_DestinationAlbedo));
             public static readonly int _DestinationEmission = Shader.PropertyToID(nameof(_DestinationEmission));
+            public static readonly int _DestinationNormals = Shader.PropertyToID(nameof(_DestinationNormals));
         }
     }
 }

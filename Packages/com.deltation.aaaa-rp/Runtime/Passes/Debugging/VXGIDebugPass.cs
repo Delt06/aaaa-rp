@@ -52,6 +52,7 @@ namespace DELTation.AAAARP.Passes.Debugging
 
             passData.GridAlbedo = builder.ReadTexture(vxgiData.GridAlbedo);
             passData.GridEmission = builder.ReadTexture(vxgiData.GridEmission);
+            passData.GridNormals = builder.ReadTexture(vxgiData.GridNormals);
             passData.RenderTarget = builder.ReadWriteTexture(resourceData.CameraScaledColorBuffer);
             passData.DepthStencil = builder.ReadWriteTexture(resourceData.CameraScaledDepthBuffer);
         }
@@ -80,6 +81,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             data.PropertyBlock.Clear();
             data.PropertyBlock.SetTexture(ShaderID._GridAlbedo, data.GridAlbedo);
             data.PropertyBlock.SetTexture(ShaderID._GridEmission, data.GridEmission);
+            data.PropertyBlock.SetTexture(ShaderID._GridNormals, data.GridNormals);
             data.PropertyBlock.SetInteger(ShaderID._DebugMode, (int) data.DebugMode);
             context.cmd.DrawMeshInstancedIndirect(_mesh, subMeshIndex, _material, 0, data.IndirectArgs, 0, data.PropertyBlock);
         }
@@ -91,6 +93,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             public TextureHandle DepthStencil;
             public TextureHandle GridAlbedo;
             public TextureHandle GridEmission;
+            public TextureHandle GridNormals;
             public BufferHandle IndirectArgs;
             public bool Overlay;
             public TextureHandle RenderTarget;
@@ -102,6 +105,7 @@ namespace DELTation.AAAARP.Passes.Debugging
         {
             public static int _GridAlbedo = Shader.PropertyToID(nameof(_GridAlbedo));
             public static int _GridEmission = Shader.PropertyToID(nameof(_GridEmission));
+            public static int _GridNormals = Shader.PropertyToID(nameof(_GridNormals));
             public static int _DebugMode = Shader.PropertyToID(nameof(_DebugMode));
         }
     }
