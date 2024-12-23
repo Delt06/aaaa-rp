@@ -25,6 +25,7 @@ namespace DELTation.AAAARP.Passes
             Basic,
             Main,
             FalseNegative,
+            Voxelization,
         }
 
         [CanBeNull]
@@ -40,7 +41,7 @@ namespace DELTation.AAAARP.Passes
 
         public GPUCullingPass(PassType passType, AAAARenderPassEvent renderPassEvent, AAAARenderPipelineRuntimeShaders runtimeShaders,
             AAAARawBufferClear rawBufferClear,
-            [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings, string nameTag = null) : base(renderPassEvent)
+            [CanBeNull] AAAARenderPipelineDebugDisplaySettings debugDisplaySettings, string nameTag = null, string namePrefix = null) : base(renderPassEvent)
         {
             _passType = passType;
             _gpuInstanceCullingCS = runtimeShaders.GPUInstanceCullingCS;
@@ -52,6 +53,10 @@ namespace DELTation.AAAARP.Passes
             _debugDisplaySettings = debugDisplaySettings;
 
             Name = AutoName;
+            if (namePrefix != null)
+            {
+                Name = namePrefix + Name;
+            }
             if (nameTag != null)
             {
                 Name += "." + nameTag;
@@ -375,6 +380,7 @@ namespace DELTation.AAAARP.Passes
 
                 CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.MAIN_PASS, _passType == PassType.Main);
                 CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.FALSE_NEGATIVE_PASS, _passType == PassType.FalseNegative);
+                CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.VOXELIZATION_PASS, _passType == PassType.Voxelization);
                 CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.DISABLE_OCCLUSION_CULLING, data.DisableOcclusionCulling);
                 CoreUtils.SetKeyword(context.cmd, _gpuInstanceCullingCS, Keywords.Debug.DEBUG_GPU_CULLING, data.DebugDataBuffer.IsValid());
 
@@ -417,6 +423,8 @@ namespace DELTation.AAAARP.Passes
             using (new ProfilingScope(context.cmd, Profiling.MeshletListBuild))
             {
                 const int kernelIndex = 0;
+
+                CoreUtils.SetKeyword(context.cmd, _meshletListBuildCS, Keywords.VOXELIZATION_PASS, _passType == PassType.Voxelization);
 
                 context.cmd.SetComputeConstantBufferParam(_meshletListBuildCS,
                     ShaderID.MeshletListBuild._CullingContexts, data.GPUCullingContextBuffer,
@@ -484,6 +492,7 @@ namespace DELTation.AAAARP.Passes
 
                 CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.MAIN_PASS, _passType == PassType.Main);
                 CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.FALSE_NEGATIVE_PASS, _passType == PassType.FalseNegative);
+                CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.VOXELIZATION_PASS, _passType == PassType.Voxelization);
                 CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.DISABLE_OCCLUSION_CULLING, data.DisableOcclusionCulling);
                 CoreUtils.SetKeyword(context.cmd, _gpuMeshletCullingCS, Keywords.Debug.DEBUG_GPU_CULLING, data.DebugDataBuffer.IsValid());
 
@@ -653,6 +662,7 @@ namespace DELTation.AAAARP.Passes
         {
             public static string MAIN_PASS = nameof(MAIN_PASS);
             public static string FALSE_NEGATIVE_PASS = nameof(FALSE_NEGATIVE_PASS);
+            public static string VOXELIZATION_PASS = nameof(VOXELIZATION_PASS);
             public static string DISABLE_OCCLUSION_CULLING = nameof(DISABLE_OCCLUSION_CULLING);
 
             public static class Debug

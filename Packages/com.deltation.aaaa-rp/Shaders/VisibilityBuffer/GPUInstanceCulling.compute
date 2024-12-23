@@ -2,7 +2,7 @@
 
 #pragma use_dxc
 
-#pragma multi_compile_local _ MAIN_PASS FALSE_NEGATIVE_PASS
+#pragma multi_compile_local _ MAIN_PASS FALSE_NEGATIVE_PASS VOXELIZATION_PASS
 #pragma multi_compile_local _ DISABLE_OCCLUSION_CULLING
 
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/Debugging/GPUCullingDebugPragma.hlsl"
@@ -65,6 +65,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupID 
     const float4           boundingSphereWS = AABBToBoundingSphere(aabbWS);
     const BoundingSquareSS boundingSquareSS = OcclusionCulling::ComputeScreenSpaceBoundingSquare(aabbWS, cullingContext.ViewProjectionMatrix);
 
+    #if !defined(VOXELIZATION_PASS)
     UNITY_BRANCH
     if (!FrustumVsSphereCulling(cullingContext.FrustumPlanes, boundingSphereWS) ||
         !LightSphereCulling(cullingContext.CullingSphereLS, cullingContext.ViewMatrix, boundingSphereWS))
@@ -73,6 +74,7 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID, const uint3 groupID 
         GPUCullingDebug::OnCulled(boundingSquareSS, AAAAGPUCULLINGDEBUGGRANULARITY_INSTANCE, AAAAGPUCULLINGDEBUGTYPE_FRUSTUM);
         return;
     }
+    #endif
 
     #if defined(FALSE_NEGATIVE_PASS)
 

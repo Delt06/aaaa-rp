@@ -62,6 +62,7 @@ namespace DELTation.AAAARP
         private readonly SSRResolvePass _ssrResolvePass;
         private readonly SSRTracePass _ssrTracePass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
+        private readonly GPUCullingPass _vxgiCullingPass;
         private readonly VXGISetupPass _vxgiSetupPass;
         private readonly VXGIUnpackPass _vxgiUnpackPass;
         private readonly VXGIVoxelizePass _vxgiVoxelizePass;
@@ -122,9 +123,15 @@ namespace DELTation.AAAARP
             _lpvResolve = new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _lpvPropagatePass = new LPVPropagatePass(AAAARenderPassEvent.AfterRenderingGbuffer);
             _lpvSkyOcclusionPass = new LPVSkyOcclusionPass(AAAARenderPassEvent.AfterRenderingGbuffer);
-            _vxgiSetupPass = new VXGISetupPass(AAAARenderPassEvent.BeforeRendering, rawBufferClear);
-            _vxgiVoxelizePass = new VXGIVoxelizePass(AAAARenderPassEvent.AfterRenderingGbuffer);
-            _vxgiUnpackPass = new VXGIUnpackPass(AAAARenderPassEvent.AfterRenderingGbuffer);
+            {
+                _vxgiSetupPass = new VXGISetupPass(AAAARenderPassEvent.BeforeRendering, rawBufferClear);
+                _vxgiCullingPass = new GPUCullingPass(GPUCullingPass.PassType.Voxelization, AAAARenderPassEvent.AfterRenderingGbuffer, shaders, rawBufferClear,
+                    DebugHandler?.DisplaySettings, namePrefix: "VXGI."
+                );
+                _vxgiVoxelizePass = new VXGIVoxelizePass(AAAARenderPassEvent.AfterRenderingGbuffer);
+                _vxgiUnpackPass = new VXGIUnpackPass(AAAARenderPassEvent.AfterRenderingGbuffer);
+            }
+
 
             _drawTransparentPass = new DrawTransparentPass(AAAARenderPassEvent.BeforeRenderingTransparents);
 
@@ -190,6 +197,7 @@ namespace DELTation.AAAARP
             else if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
             {
                 EnqueuePass(_vxgiSetupPass);
+                EnqueuePass(_vxgiCullingPass);
                 EnqueuePass(_vxgiVoxelizePass);
                 EnqueuePass(_vxgiUnpackPass);
             }

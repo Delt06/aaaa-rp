@@ -2,7 +2,7 @@
 
 #pragma use_dxc
 
-#pragma multi_compile_local _ MAIN_PASS FALSE_NEGATIVE_PASS
+#pragma multi_compile_local _ MAIN_PASS FALSE_NEGATIVE_PASS VOXELIZATION_PASS
 #pragma multi_compile_local _ DISABLE_OCCLUSION_CULLING
 
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
@@ -158,10 +158,12 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     const uint             rendererListID = GetRendererListID(instanceData, materialData);
     const AAAAMeshlet      meshlet = PullMeshletData(meshletRenderRequest.MeshletID);
 
+    #if !defined(VOXELIZATION_PASS)
     if (!Culling(cullingContext, instanceData, rendererListID, meshlet))
     {
         return;
     }
+    #endif
 
     uint localRenderRequestWriteOffset = 0;
     uint drawArgsOffset = _IndirectDrawArgsOffset;
