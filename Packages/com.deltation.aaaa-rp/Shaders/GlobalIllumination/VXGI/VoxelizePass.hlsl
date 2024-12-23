@@ -49,7 +49,7 @@ GSInput VoxelizeVS(const uint svInstanceID : SV_InstanceID, const uint svIndexID
     GSInput OUT;
     OUT.positionWS = positionWS;
     OUT.uv0 = varyings.uv0;
-    OUT.normalWS = TransformObjectToWorldNormal(vertex.Normal.xyz);
+    OUT.normalWS = SafeNormalize(TransformObjectToWorldNormal(vertex.Normal.xyz));
     OUT.visibilityValue = varyings.visibilityValue;
     return OUT;
 }
@@ -71,7 +71,7 @@ void VoxelizeGS(
 
     float3 faceNormalWS = abs(IN[0].normalWS + IN[1].normalWS + IN[2].normalWS);
     uint   maxAxis = faceNormalWS[1] > faceNormalWS[0] ? 1 : 0;
-    maxAxis = faceNormalWS[1] > faceNormalWS[maxAxis] ? 2 : maxAxis;
+    maxAxis = faceNormalWS[2] > faceNormalWS[maxAxis] ? 2 : maxAxis;
 
     const float3 aabbMin = min(IN[0].positionWS.xyz, min(IN[1].positionWS.xyz, IN[2].positionWS.xyz));
     const float3 aabbMax = max(IN[0].positionWS.xyz, max(IN[1].positionWS.xyz, IN[2].positionWS.xyz));
