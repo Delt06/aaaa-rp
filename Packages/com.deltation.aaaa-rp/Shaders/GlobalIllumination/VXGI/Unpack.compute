@@ -5,7 +5,8 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VXGI.hlsl"
 
 ByteAddressBuffer   _Source;
-RWTexture3D<float4> _Destination;
+RWTexture3D<float4> _DestinationAlbedo;
+RWTexture3D<float3> _DestinationEmission;
 
 float4 FetchSource4(const uint address, const uint channel)
 {
@@ -50,15 +51,25 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     const float fragmentCount = channels[AAAAVXGIPACKEDGRIDCHANNELS_FRAGMENT_COUNT];
-    const float invFragmentCount = rcp(fragmentCount);
 
-    const float4 baseColor = fragmentCount == 0.0
-                                 ? 0
-                                 : invFragmentCount * float4(
-                                     channels[AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_R],
-                                     channels[AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_G],
-                                     channels[AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_B],
-                                     channels[AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_A]
-                                 );
-    _Destination[voxelID] = baseColor;
+    float4 baseColor = 0;
+    float3 emission = 0;
+    if (fragmentCount != 0.0)
+    {
+        const float invFragmentCount = rcp(fragmentCount);
+        baseColor = invFragmentCount * float4(
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_R],
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_G],
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_B],
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_A]
+        );
+        emission = invFragmentCount * float3(
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_R],
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_G],
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_B]
+        );
+    }
+
+    _DestinationAlbedo[voxelID] = baseColor;
+    _DestinationEmission[voxelID] = emission;
 }

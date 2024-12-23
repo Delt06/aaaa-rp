@@ -156,14 +156,20 @@ void VoxelizePS(const GSOutput IN)
     const AAAAInstanceData instanceData = PullInstanceData(visibilityBufferValue.instanceID);
     const AAAAMaterialData materialData = PullMaterialData(instanceData.MaterialIndex);
 
-    const float4 albedo = SampleAlbedo(IN.uv0, materialData);
-
     const uint flatID = grid.VoxelToFlatID(voxelID);
     const uint baseAddress = VXGI::Grid::FlatIDToPackedGridAddress(flatID);
+
+    const float4 albedo = SampleAlbedo(IN.uv0, materialData);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_R, albedo.r);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_G, albedo.g);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_B, albedo.b);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_A, albedo.a);
+
+    const float3 emission = albedo.rgb * materialData.Emission.rgb;
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_R, emission.r);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_G, emission.g);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_B, emission.b);
+
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_FRAGMENT_COUNT, 1);
 }
 

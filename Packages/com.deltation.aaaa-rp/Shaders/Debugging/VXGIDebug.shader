@@ -30,6 +30,9 @@ Shader "Hidden/AAAA/VXGIDebug"
             #include "Packages/com.deltation.aaaa-rp/Runtime/Debugging/AAAADebugDisplaySettingsRendering.cs.hlsl"
 
             TYPED_TEXTURE3D(float4, _GridAlbedo);
+            TYPED_TEXTURE3D(float3, _GridEmission);
+
+            uint _DebugMode;
 
             struct Attributes
             {
@@ -57,7 +60,23 @@ Shader "Hidden/AAAA/VXGIDebug"
 
                 Varyings OUT;
                 OUT.positionCS = TransformWorldToHClip(positionWS);
-                OUT.color = albedo.rgb;
+
+                float3 outputColor;
+
+                switch (_DebugMode)
+                {
+                case AAAAVXGIDEBUGMODE_ALBEDO:
+                    outputColor = albedo.rgb;
+                    break;
+                case AAAAVXGIDEBUGMODE_EMISSION:
+                    outputColor = _GridEmission[voxelID];
+                    break;
+                default:
+                    outputColor = 0;
+                }
+
+                OUT.color = outputColor;
+
                 return OUT;
             }
 

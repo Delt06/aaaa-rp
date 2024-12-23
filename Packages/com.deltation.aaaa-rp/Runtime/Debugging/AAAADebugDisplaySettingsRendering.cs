@@ -61,6 +61,13 @@ namespace DELTation.AAAARP.Debugging
         SkyOcclusion,
     }
 
+    [GenerateHLSL]
+    public enum AAAAVxgiDebugMode
+    {
+        Albedo,
+        Emission,
+    }
+
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData
     {
         private readonly AAAADebugStats _debugStats;
@@ -91,6 +98,7 @@ namespace DELTation.AAAARP.Debugging
         public float LightPropagationVolumesDebugClipDistance { get; private set; } = 2.0f;
         public bool VXGIDebug { get; private set; }
         public bool VXGIDebugOverlay { get; private set; } = true;
+        public AAAAVxgiDebugMode VXGIDebugMode { get; private set; } = AAAAVxgiDebugMode.Albedo;
 
         public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
                                             ForceCullingFromMainCamera ||
@@ -387,6 +395,7 @@ namespace DELTation.AAAARP.Debugging
                 private static class Strings
                 {
                     public static readonly DebugUI.Widget.NameAndTooltip Debug = new() { name = "Debug" };
+                    public static readonly DebugUI.Widget.NameAndTooltip DebugMode = new() { name = "Debug Mode" };
                     public static readonly DebugUI.Widget.NameAndTooltip Overlay = new() { name = "Overlay" };
                 }
 
@@ -402,6 +411,7 @@ namespace DELTation.AAAARP.Debugging
                             children =
                             {
                                 CreateDebug(panel),
+                                CreateDebugMode(panel),
                                 CreateDebugOverlay(panel),
                             },
                         };
@@ -411,6 +421,17 @@ namespace DELTation.AAAARP.Debugging
                         nameAndTooltip = Strings.Debug,
                         getter = () => panel.data.VXGIDebug,
                         setter = value => panel.data.VXGIDebug = value,
+                    };
+
+                    private static DebugUI.Widget CreateDebugMode(SettingsPanel panel) => new DebugUI.EnumField
+                    {
+                        nameAndTooltip = Strings.DebugMode,
+                        isHiddenCallback = () => !panel.data.VXGIDebug,
+                        autoEnum = typeof(AAAAVxgiDebugMode),
+                        getter = () => (int) panel.data.VXGIDebugMode,
+                        setter = value => panel.data.VXGIDebugMode = (AAAAVxgiDebugMode) value,
+                        getIndex = () => (int) panel.data.VXGIDebugMode,
+                        setIndex = value => panel.data.VXGIDebugMode = (AAAAVxgiDebugMode) value,
                     };
 
                     private static DebugUI.Widget CreateDebugOverlay(SettingsPanel panel) => new DebugUI.BoolField

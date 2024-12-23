@@ -3,7 +3,6 @@ using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using UnityEngine;
-using UnityEngine.Assertions;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
@@ -32,7 +31,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
                 : AAAAMathUtils.AlignUp(vxgiData.GridSize * vxgiData.GridSize * vxgiData.GridSize, (int) threadGroupSize) / (int) threadGroupSize;
 
             passData.Source = builder.ReadBuffer(vxgiData.PackedGridBuffer);
-            passData.Destination = builder.WriteTexture(vxgiData.GridAlbedo);
+            passData.DestinationAlbedo = builder.WriteTexture(vxgiData.GridAlbedo);
+            passData.DestinationEmission = builder.WriteTexture(vxgiData.GridEmission);
 
             builder.AllowPassCulling(false);
         }
@@ -45,13 +45,15 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             }
 
             context.cmd.SetComputeBufferParam(_computeShader, KernelSize, ShaderID._Source, data.Source);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelSize, ShaderID._Destination, data.Destination);
+            context.cmd.SetComputeTextureParam(_computeShader, KernelSize, ShaderID._DestinationAlbedo, data.DestinationAlbedo);
+            context.cmd.SetComputeTextureParam(_computeShader, KernelSize, ShaderID._DestinationEmission, data.DestinationEmission);
             context.cmd.DispatchCompute(_computeShader, KernelSize, data.ThreadGroups, 1, 1);
         }
 
         public class PassData : PassDataBase
         {
-            public TextureHandle Destination;
+            public TextureHandle DestinationAlbedo;
+            public TextureHandle DestinationEmission;
             public BufferHandle Source;
             public int ThreadGroups;
         }
@@ -60,7 +62,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
         private static class ShaderID
         {
             public static readonly int _Source = Shader.PropertyToID(nameof(_Source));
-            public static readonly int _Destination = Shader.PropertyToID(nameof(_Destination));
+            public static readonly int _DestinationAlbedo = Shader.PropertyToID(nameof(_DestinationAlbedo));
+            public static readonly int _DestinationEmission = Shader.PropertyToID(nameof(_DestinationEmission));
         }
     }
 }

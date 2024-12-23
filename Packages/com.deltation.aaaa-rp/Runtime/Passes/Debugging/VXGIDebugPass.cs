@@ -39,6 +39,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             passData.TotalInstanceCount = vxgiData.GridSize * vxgiData.GridSize * vxgiData.GridSize;
             AAAADebugDisplaySettingsRendering renderingSettings = _debugDisplaySettings.RenderingSettings;
 
+            passData.DebugMode = renderingSettings.VXGIDebugMode;
             passData.Overlay = renderingSettings.VXGIDebugOverlay;
             passData.IndirectArgs = builder.CreateTransientBuffer(new BufferDesc
                 {
@@ -50,6 +51,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             );
 
             passData.GridAlbedo = builder.ReadTexture(vxgiData.GridAlbedo);
+            passData.GridEmission = builder.ReadTexture(vxgiData.GridEmission);
             passData.RenderTarget = builder.ReadWriteTexture(resourceData.CameraScaledColorBuffer);
             passData.DepthStencil = builder.ReadWriteTexture(resourceData.CameraScaledDepthBuffer);
         }
@@ -77,14 +79,18 @@ namespace DELTation.AAAARP.Passes.Debugging
             }
             data.PropertyBlock.Clear();
             data.PropertyBlock.SetTexture(ShaderID._GridAlbedo, data.GridAlbedo);
+            data.PropertyBlock.SetTexture(ShaderID._GridEmission, data.GridEmission);
+            data.PropertyBlock.SetInteger(ShaderID._DebugMode, (int) data.DebugMode);
             context.cmd.DrawMeshInstancedIndirect(_mesh, subMeshIndex, _material, 0, data.IndirectArgs, 0, data.PropertyBlock);
         }
 
         public class PassData : PassDataBase
         {
             public readonly MaterialPropertyBlock PropertyBlock = new();
+            public AAAAVxgiDebugMode DebugMode;
             public TextureHandle DepthStencil;
             public TextureHandle GridAlbedo;
+            public TextureHandle GridEmission;
             public BufferHandle IndirectArgs;
             public bool Overlay;
             public TextureHandle RenderTarget;
@@ -95,7 +101,8 @@ namespace DELTation.AAAARP.Passes.Debugging
         private static class ShaderID
         {
             public static int _GridAlbedo = Shader.PropertyToID(nameof(_GridAlbedo));
+            public static int _GridEmission = Shader.PropertyToID(nameof(_GridEmission));
+            public static int _DebugMode = Shader.PropertyToID(nameof(_DebugMode));
         }
     }
-
 }

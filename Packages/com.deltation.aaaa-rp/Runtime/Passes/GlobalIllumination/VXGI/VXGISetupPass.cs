@@ -35,17 +35,27 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
                 name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.PackedGridBuffer),
             };
             vxgiData.PackedGridBuffer = renderingData.RenderGraph.CreateBuffer(vxgiData.PackedGridBufferDesc);
-            vxgiData.GridAlbedo = renderingData.RenderGraph.CreateTexture(new TextureDesc
+
+            var gridTextureDesc = new TextureDesc
+            {
+                width = vxgiData.GridSize,
+                height = vxgiData.GridSize,
+                slices = vxgiData.GridSize,
+                dimension = TextureDimension.Tex3D,
+                filterMode = FilterMode.Trilinear,
+                msaaSamples = MSAASamples.None,
+                enableRandomWrite = true,
+            };
+            vxgiData.GridAlbedo = renderingData.RenderGraph.CreateTexture(new TextureDesc(gridTextureDesc)
                 {
                     name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.GridAlbedo),
-                    width = vxgiData.GridSize,
-                    height = vxgiData.GridSize,
-                    slices = vxgiData.GridSize,
                     format = GraphicsFormat.R8G8B8A8_UNorm,
-                    dimension = TextureDimension.Tex3D,
-                    filterMode = FilterMode.Trilinear,
-                    msaaSamples = MSAASamples.None,
-                    enableRandomWrite = true,
+                }
+            );
+            vxgiData.GridEmission = renderingData.RenderGraph.CreateTexture(new TextureDesc(gridTextureDesc)
+                {
+                    name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.GridEmission),
+                    format = GraphicsFormat.B10G11R11_UFloatPack32,
                 }
             );
 
