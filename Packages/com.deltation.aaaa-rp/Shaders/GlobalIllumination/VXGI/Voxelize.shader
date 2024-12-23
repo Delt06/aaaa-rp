@@ -10,7 +10,7 @@ Shader "Hidden/AAAA/VXGI/Voxelize"
         ZTest Off
         ZWrite Off
         ColorMask 0
-        Cull [_Cull]
+        Cull Off
 
         Pass
         {

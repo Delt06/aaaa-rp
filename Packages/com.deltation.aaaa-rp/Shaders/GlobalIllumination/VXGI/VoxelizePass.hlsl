@@ -173,7 +173,7 @@ float3 ComputeFastDiffuseLighting(const SurfaceData surfaceData)
     return lighting;
 }
 
-void VoxelizePS(const GSOutput IN, const FRONT_FACE_TYPE frontFace : FRONT_FACE_SEMANTIC)
+void VoxelizePS(const GSOutput IN)
 {
     VXGI::Grid   grid = VXGI::Grid::Load();
     const float3 voxelID = grid.TransformWorldToGridSpace(IN.positionWS);
@@ -208,8 +208,15 @@ void VoxelizePS(const GSOutput IN, const FRONT_FACE_TYPE frontFace : FRONT_FACE_
     SurfaceData surfaceData;
     surfaceData.positionWS = IN.positionWS;
     surfaceData.diffuseColor = SampleAlbedo(IN.uv0, materialData);
-    surfaceData.normalWS = SafeNormalize(IN.normalWS) * IS_FRONT_VFACE(frontFace, 1, -1);
+    surfaceData.normalWS = SafeNormalize(IN.normalWS);
     surfaceData.metallic = SampleMasks(IN.uv0, materialData).metallic;
+
+    UNITY_BRANCH
+    if (surfaceData.diffuseColor.a < materialData.AlphaClipThreshold)
+    {
+        discard;
+        return;
+    }
 
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_R, surfaceData.diffuseColor.r);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_G, surfaceData.diffuseColor.g);
