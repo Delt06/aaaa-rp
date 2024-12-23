@@ -158,6 +158,18 @@ float3 ComputeFastDiffuseLighting(const SurfaceData surfaceData)
         lighting += ComputeFastDiffuseBRDF(surfaceData, light);
     }
 
+    const float4                        positionCS = TransformWorldToHClip(surfaceData.positionWS);
+    const float2                        positionNDC = positionCS.xy / positionCS.w;
+    const float2                        positionScreenUV = NDCToScreenUV(positionNDC);
+    const AAAAClusteredLightingGridCell lightGridCell = ClusteredLighting::LoadCell(surfaceData.positionWS, positionScreenUV);
+
+    for (uint i = 0; i < lightGridCell.Count; ++i)
+    {
+        const uint  punctualLightIndex = ClusteredLighting::LoadLightIndex(lightGridCell, i);
+        const Light light = GetPunctualLight(punctualLightIndex, surfaceData.positionWS);
+        lighting += light.distanceAttenuation * ComputeFastDiffuseBRDF(surfaceData, light);
+    }
+
     return lighting;
 }
 
