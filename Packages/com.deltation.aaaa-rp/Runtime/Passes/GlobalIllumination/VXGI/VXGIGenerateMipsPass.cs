@@ -1,0 +1,75 @@
+﻿using System.Diagnostics.CodeAnalysis;
+using DELTation.AAAARP.Core;
+using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.RenderPipelineResources;
+using Unity.Mathematics;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
+
+namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
+{
+    public class VXGIGenerateMipsPass : AAAARenderPass<VXGIGenerateMipsPass.PassData>
+    {
+        private const int KernelIndex = 0;
+        private readonly ComputeShader _computeShader;
+
+        public VXGIGenerateMipsPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
+        {
+            AAAAVxgiRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAAVxgiRuntimeShaders>();
+            _computeShader = shaders.GenerateMips3dCS;
+        }
+
+        public override string Name => "VXGI.GenerateMips";
+
+        protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
+        {
+            _computeShader.GetKernelThreadGroupSizes(KernelIndex,
+                out passData.ThreadGroupSize.x, out passData.ThreadGroupSize.y, out passData.ThreadGroupSize.z
+            );
+
+            AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
+            passData.Albedo = builder.ReadWriteTexture(vxgiData.GridAlbedo);
+            passData.DirectLighting = builder.ReadWriteTexture(vxgiData.GridDirectLighting);
+            passData.MipCount = vxgiData.GridMipCount;
+            passData.GridSize = vxgiData.GridSize;
+        }
+
+        protected override void Render(PassData data, RenderGraphContext context)
+        {
+            for (int srcMip = 0; srcMip < data.MipCount - 1; srcMip++)
+            {
+                int dstMip = srcMip + 1;
+                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._SrcAlbedo, data.Albedo, srcMip);
+                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DstAlbedo, data.Albedo, dstMip);
+                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._SrcDirectLighting, data.DirectLighting, srcMip);
+                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DstDirectLighting, data.DirectLighting, dstMip);
+
+                int dstSize = data.GridSize >> dstMip;
+                context.cmd.SetComputeIntParam(_computeShader, ShaderID._DstSize, dstSize);
+
+                int3 threadGroups = AAAAMathUtils.AlignUp(dstSize, (int3) data.ThreadGroupSize) / (int3) data.ThreadGroupSize;
+                context.cmd.DispatchCompute(_computeShader, KernelIndex, threadGroups.x, threadGroups.y, threadGroups.z);
+            }
+        }
+
+        public class PassData : PassDataBase
+        {
+            public TextureHandle Albedo;
+            public TextureHandle DirectLighting;
+            public int GridSize;
+            public int MipCount;
+            public uint3 ThreadGroupSize;
+        }
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        private static class ShaderID
+        {
+            public static readonly int _DstSize = Shader.PropertyToID(nameof(_DstSize));
+            public static readonly int _SrcAlbedo = Shader.PropertyToID(nameof(_SrcAlbedo));
+            public static readonly int _DstAlbedo = Shader.PropertyToID(nameof(_DstAlbedo));
+            public static readonly int _SrcDirectLighting = Shader.PropertyToID(nameof(_SrcDirectLighting));
+            public static readonly int _DstDirectLighting = Shader.PropertyToID(nameof(_DstDirectLighting));
+        }
+    }
+}

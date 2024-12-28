@@ -35,6 +35,7 @@ Shader "Hidden/AAAA/VXGIDebug"
             TYPED_TEXTURE3D(float2, _GridNormals);
 
             uint _DebugMode;
+            uint _GridMipLevel;
 
             struct Attributes
             {
@@ -49,11 +50,11 @@ Shader "Hidden/AAAA/VXGIDebug"
 
             Varyings VS(const Attributes IN, const uint instanceID : INSTANCEID_SEMANTIC)
             {
-                VXGI::Grid grid = VXGI::Grid::Load();
+                VXGI::Grid grid = VXGI::Grid::LoadLevel(_GridMipLevel);
 
                 const float3 voxelID = grid.FlatToVoxelID(instanceID);
                 const float3 positionWS = grid.voxelSizeWS * IN.positionOS + grid.TransformGridToWorldSpace(voxelID + 0.5);
-                const float4 albedo = _GridAlbedo[voxelID];
+                const float4 albedo = _GridAlbedo.mips[_GridMipLevel][voxelID];
 
                 if (albedo.a == 0)
                 {
@@ -71,13 +72,13 @@ Shader "Hidden/AAAA/VXGIDebug"
                     outputColor = albedo.rgb;
                     break;
                 case AAAAVXGIDEBUGMODE_EMISSION:
-                    outputColor = _GridEmission[voxelID];
+                    outputColor = _GridEmission.mips[_GridMipLevel][voxelID];
                     break;
                 case AAAAVXGIDEBUGMODE_DIRECT_LIGHTING:
-                    outputColor = _GridDirectLighting[voxelID];
+                    outputColor = _GridDirectLighting.mips[_GridMipLevel][voxelID];
                     break;
                 case AAAAVXGIDEBUGMODE_NORMALS:
-                    outputColor = VXGI::Packing::UnpackNormal(_GridNormals[voxelID]) * 0.5 + 0.5;
+                    outputColor = VXGI::Packing::UnpackNormal(_GridNormals.mips[_GridMipLevel][voxelID]) * 0.5 + 0.5;
                     break;
                 default:
                     outputColor = 0;

@@ -40,13 +40,15 @@ namespace VXGI
         float voxelSizeWS;
         float invVoxelSizeWS;
 
-        static Grid Load()
+        static Grid LoadLevel(uint mipLevel)
         {
             Grid grid;
-            grid.size = _VxgiGridResolution.x;
-            grid.invSize = _VxgiGridResolution.y;
-            grid.voxelSizeWS = _VxgiGridResolution.z;
-            grid.invVoxelSizeWS = _VxgiGridResolution.w;
+            const float sizeFactor = 1 << mipLevel;
+            const float invSizeFactor = 1.0f / sizeFactor;
+            grid.size = _VxgiGridResolution.x * invSizeFactor;
+            grid.invSize = _VxgiGridResolution.y * sizeFactor;
+            grid.voxelSizeWS = _VxgiGridResolution.z * sizeFactor;
+            grid.invVoxelSizeWS = _VxgiGridResolution.w * invSizeFactor;
             return grid;
         }
 

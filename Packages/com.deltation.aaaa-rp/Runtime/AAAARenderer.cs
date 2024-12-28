@@ -63,6 +63,7 @@ namespace DELTation.AAAARP
         private readonly SSRTracePass _ssrTracePass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
         private readonly GPUCullingPass _vxgiCullingPass;
+        private readonly VXGIGenerateMipsPass _vxgiGenerateMipsPass;
         private readonly VXGISetupPass _vxgiSetupPass;
         private readonly VXGIUnpackPass _vxgiUnpackPass;
         private readonly VXGIVoxelizePass _vxgiVoxelizePass;
@@ -130,6 +131,7 @@ namespace DELTation.AAAARP
                 );
                 _vxgiVoxelizePass = new VXGIVoxelizePass(AAAARenderPassEvent.AfterRenderingGbuffer);
                 _vxgiUnpackPass = new VXGIUnpackPass(AAAARenderPassEvent.AfterRenderingGbuffer);
+                _vxgiGenerateMipsPass = new VXGIGenerateMipsPass(AAAARenderPassEvent.AfterRenderingGbuffer);
             }
 
 
@@ -200,6 +202,7 @@ namespace DELTation.AAAARP
                 EnqueuePass(_vxgiCullingPass);
                 EnqueuePass(_vxgiVoxelizePass);
                 EnqueuePass(_vxgiUnpackPass);
+                EnqueuePass(_vxgiGenerateMipsPass);
             }
 
             EnqueuePass(_deferredLightingPass);

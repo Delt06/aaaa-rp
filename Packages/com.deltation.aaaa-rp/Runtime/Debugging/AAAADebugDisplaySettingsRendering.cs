@@ -101,6 +101,7 @@ namespace DELTation.AAAARP.Debugging
         public bool VXGIDebug { get; private set; }
         public bool VXGIDebugOverlay { get; private set; } = true;
         public AAAAVxgiDebugMode VXGIDebugMode { get; private set; } = AAAAVxgiDebugMode.Albedo;
+        public int VXGIMipLevel { get; private set; }
 
         public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
                                             ForceCullingFromMainCamera ||
@@ -398,6 +399,7 @@ namespace DELTation.AAAARP.Debugging
                 {
                     public static readonly DebugUI.Widget.NameAndTooltip Debug = new() { name = "Debug" };
                     public static readonly DebugUI.Widget.NameAndTooltip DebugMode = new() { name = "Debug Mode" };
+                    public static readonly DebugUI.Widget.NameAndTooltip MipLevel = new() { name = "Mip Level" };
                     public static readonly DebugUI.Widget.NameAndTooltip Overlay = new() { name = "Overlay" };
                 }
 
@@ -414,6 +416,7 @@ namespace DELTation.AAAARP.Debugging
                             {
                                 CreateDebug(panel),
                                 CreateDebugMode(panel),
+                                CreateDebugMipLevel(panel),
                                 CreateDebugOverlay(panel),
                             },
                         };
@@ -434,6 +437,15 @@ namespace DELTation.AAAARP.Debugging
                         setter = value => panel.data.VXGIDebugMode = (AAAAVxgiDebugMode) value,
                         getIndex = () => (int) panel.data.VXGIDebugMode,
                         setIndex = value => panel.data.VXGIDebugMode = (AAAAVxgiDebugMode) value,
+                    };
+
+                    private static DebugUI.Widget CreateDebugMipLevel(SettingsPanel panel) => new DebugUI.IntField
+                    {
+                        nameAndTooltip = Strings.MipLevel,
+                        getter = () => panel.data.VXGIMipLevel,
+                        setter = value => panel.data.VXGIMipLevel = value,
+                        min = () => 0,
+                        max = () => 10,
                     };
 
                     private static DebugUI.Widget CreateDebugOverlay(SettingsPanel panel) => new DebugUI.BoolField

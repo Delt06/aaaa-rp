@@ -17,6 +17,9 @@ Shader "Hidden/AAAA/VXGI/Voxelize"
             Name "VXGI: Voxelize"
 
             HLSLPROGRAM
+
+            #pragma require geometry
+
             #pragma vertex VoxelizeVS
             #pragma geometry VoxelizeGS
             #pragma fragment VoxelizePS

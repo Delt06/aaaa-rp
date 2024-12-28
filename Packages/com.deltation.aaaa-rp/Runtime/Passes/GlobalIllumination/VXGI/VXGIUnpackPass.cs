@@ -10,7 +10,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
 {
     public class VXGIUnpackPass : AAAARenderPass<VXGIUnpackPass.PassData>
     {
-        private const int KernelSize = 0;
+        private const int KernelIndex = 0;
         private readonly ComputeShader _computeShader;
 
         public VXGIUnpackPass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
@@ -25,7 +25,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
         {
             AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
 
-            _computeShader.GetKernelThreadGroupSizes(KernelSize, out uint threadGroupSize, out uint _, out uint _);
+            _computeShader.GetKernelThreadGroupSizes(KernelIndex, out uint threadGroupSize, out uint _, out uint _);
             passData.ThreadGroups = threadGroupSize == 0
                 ? 0
                 : AAAAMathUtils.AlignUp(vxgiData.GridSize * vxgiData.GridSize * vxgiData.GridSize, (int) threadGroupSize) / (int) threadGroupSize;
@@ -44,12 +44,12 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
                 return;
             }
 
-            context.cmd.SetComputeBufferParam(_computeShader, KernelSize, ShaderID._Source, data.Source);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelSize, ShaderID._DestinationAlbedo, data.DestinationAlbedo);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelSize, ShaderID._DestinationEmission, data.DestinationEmission);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelSize, ShaderID._DestinationDirectLighting, data.DestinationDirectLighting);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelSize, ShaderID._DestinationNormals, data.DestinationNormals);
-            context.cmd.DispatchCompute(_computeShader, KernelSize, data.ThreadGroups, 1, 1);
+            context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderID._Source, data.Source);
+            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationAlbedo, data.DestinationAlbedo);
+            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationEmission, data.DestinationEmission);
+            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationDirectLighting, data.DestinationDirectLighting);
+            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationNormals, data.DestinationNormals);
+            context.cmd.DispatchCompute(_computeShader, KernelIndex, data.ThreadGroups, 1, 1);
         }
 
         public class PassData : PassDataBase

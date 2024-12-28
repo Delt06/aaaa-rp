@@ -25,7 +25,7 @@ float4 FetchSource4(const uint address, const uint channel)
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     const uint  flatID = dispatchThreadID.x;
-    VXGI::Grid  grid = VXGI::Grid::Load();
+    VXGI::Grid  grid = VXGI::Grid::LoadLevel(0);
     const uint3 voxelID = grid.FlatToVoxelID(flatID);
     if (any((float3)voxelID >= grid.size))
     {

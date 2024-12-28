@@ -15,6 +15,7 @@ namespace DELTation.AAAARP.FrameData
         public int GridSize;
         public BufferHandle PackedGridBuffer;
         public BufferDesc PackedGridBufferDesc;
+        public int GridMipCount;
 
         public override void Reset()
         {
@@ -27,6 +28,7 @@ namespace DELTation.AAAARP.FrameData
             GridEmission = default;
             GridDirectLighting = default;
             GridNormals = default;
+            GridMipCount = 0;
         }
     }
 }

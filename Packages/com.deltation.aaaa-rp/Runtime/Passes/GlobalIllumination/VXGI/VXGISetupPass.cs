@@ -36,11 +36,13 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             };
             vxgiData.PackedGridBuffer = renderingData.RenderGraph.CreateBuffer(vxgiData.PackedGridBufferDesc);
 
+            vxgiData.GridMipCount = 1 + math.ceillog2(vxgiData.GridSize);
             var gridTextureDesc = new TextureDesc
             {
                 width = vxgiData.GridSize,
                 height = vxgiData.GridSize,
                 slices = vxgiData.GridSize,
+                useMipMap = true,
                 dimension = TextureDimension.Tex3D,
                 filterMode = FilterMode.Trilinear,
                 msaaSamples = MSAASamples.None,

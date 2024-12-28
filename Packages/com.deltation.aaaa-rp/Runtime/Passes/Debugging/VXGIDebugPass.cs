@@ -4,6 +4,7 @@ using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using Unity.Collections;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -35,11 +36,12 @@ namespace DELTation.AAAARP.Passes.Debugging
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
-
-            passData.TotalInstanceCount = vxgiData.GridSize * vxgiData.GridSize * vxgiData.GridSize;
             AAAADebugDisplaySettingsRendering renderingSettings = _debugDisplaySettings.RenderingSettings;
 
             passData.DebugMode = renderingSettings.VXGIDebugMode;
+            passData.GridMipLevel = math.min(vxgiData.GridMipCount - 1, renderingSettings.VXGIMipLevel);
+            int mipGridSize = vxgiData.GridSize >> passData.GridMipLevel;
+            passData.TotalInstanceCount = mipGridSize * mipGridSize * mipGridSize;
             passData.Overlay = renderingSettings.VXGIDebugOverlay;
             passData.IndirectArgs = builder.CreateTransientBuffer(new BufferDesc
                 {
@@ -81,6 +83,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             }
             data.PropertyBlock.Clear();
             data.PropertyBlock.SetInteger(ShaderID._DebugMode, (int) data.DebugMode);
+            data.PropertyBlock.SetInteger(ShaderID._GridMipLevel, data.GridMipLevel);
             data.PropertyBlock.SetTexture(ShaderID._GridAlbedo, data.GridAlbedo);
             data.PropertyBlock.SetTexture(ShaderID._GridEmission, data.GridEmission);
             data.PropertyBlock.SetTexture(ShaderID._GridDirectLighting, data.GridDirectLighting);
@@ -96,6 +99,7 @@ namespace DELTation.AAAARP.Passes.Debugging
             public TextureHandle GridAlbedo;
             public TextureHandle GridDirectLighting;
             public TextureHandle GridEmission;
+            public int GridMipLevel;
             public TextureHandle GridNormals;
             public BufferHandle IndirectArgs;
             public bool Overlay;
@@ -107,6 +111,7 @@ namespace DELTation.AAAARP.Passes.Debugging
         private static class ShaderID
         {
             public static int _DebugMode = Shader.PropertyToID(nameof(_DebugMode));
+            public static int _GridMipLevel = Shader.PropertyToID(nameof(_GridMipLevel));
             public static int _GridAlbedo = Shader.PropertyToID(nameof(_GridAlbedo));
             public static int _GridEmission = Shader.PropertyToID(nameof(_GridEmission));
             public static int _GridDirectLighting = Shader.PropertyToID(nameof(_GridDirectLighting));

@@ -67,7 +67,7 @@ void VoxelizeGS(
     inout TriangleStream<GSOutput> outputStream
 )
 {
-    VXGI::Grid grid = VXGI::Grid::Load();
+    VXGI::Grid grid = VXGI::Grid::LoadLevel(0);
 
     float3 faceNormalWS = abs(IN[0].normalWS + IN[1].normalWS + IN[2].normalWS);
     uint   maxAxis = faceNormalWS[1] > faceNormalWS[0] ? 1 : 0;
@@ -175,7 +175,7 @@ float3 ComputeFastDiffuseLighting(const SurfaceData surfaceData)
 
 void VoxelizePS(const GSOutput IN)
 {
-    VXGI::Grid   grid = VXGI::Grid::Load();
+    VXGI::Grid   grid = VXGI::Grid::LoadLevel(0);
     const float3 voxelID = grid.TransformWorldToGridSpace(IN.positionWS);
 
     UNITY_BRANCH

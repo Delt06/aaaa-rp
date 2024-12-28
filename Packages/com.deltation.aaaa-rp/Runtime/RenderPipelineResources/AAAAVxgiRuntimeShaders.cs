@@ -18,10 +18,14 @@ namespace DELTation.AAAARP.RenderPipelineResources
         [SerializeField]
         [ResourcePath(BaseResourcePath + "Voxelize.shader")]
         private Shader _voxelizePS;
-        
+
         [SerializeField]
         [ResourcePath(BaseResourcePath + "Unpack.compute")]
         private ComputeShader _unpackCS;
+
+        [SerializeField]
+        [ResourcePath(BaseResourcePath + "GenerateMips3D.compute")]
+        private ComputeShader _generateMips3dCS;
 
         public Shader VoxelizePS
         {
@@ -32,7 +36,13 @@ namespace DELTation.AAAARP.RenderPipelineResources
         public ComputeShader UnpackCS
         {
             get => _unpackCS;
-            set => _unpackCS = value;
+            set => this.SetValueAndNotify(ref _unpackCS, value, nameof(_unpackCS));
+        }
+
+        public ComputeShader GenerateMips3dCS
+        {
+            get => _generateMips3dCS;
+            set => this.SetValueAndNotify(ref _generateMips3dCS, value, nameof(_generateMips3dCS));
         }
 
         public int version => _version;

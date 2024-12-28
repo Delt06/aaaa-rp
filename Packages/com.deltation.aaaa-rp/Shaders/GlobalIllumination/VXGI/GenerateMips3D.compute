@@ -1,0 +1,40 @@
+#pragma kernel CS
+
+#pragma use_dxc
+
+#define THREAD_GROUP_SIZE 4
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VXGI.hlsl"
+
+RWTexture3D<float4> _SrcAlbedo;
+RWTexture3D<float4> _DstAlbedo;
+
+RWTexture3D<float3> _SrcDirectLighting;
+RWTexture3D<float3> _DstDirectLighting;
+
+uint _DstSize;
+
+#define LOAD_SRC_TRILINEAR(tex, coord) ((\
+                                    tex[coord + uint3(0, 0, 0)] +\
+                                    tex[coord + uint3(0, 0, 1)] +\
+                                    tex[coord + uint3(0, 1, 0)] +\
+                                    tex[coord + uint3(0, 1, 1)] +\
+                                    tex[coord + uint3(1, 0, 0)] +\
+                                    tex[coord + uint3(1, 0, 1)] +\
+                                    tex[coord + uint3(1, 1, 0)] +\
+                                    tex[coord + uint3(1, 1, 1)]\
+                                    ) * 0.125)
+
+[numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, THREAD_GROUP_SIZE)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    const uint3 dstCoord = dispatchThreadID;
+    if (any(dstCoord >= _DstSize))
+    {
+        return;
+    }
+
+    const uint3 srcCoord = dstCoord * 2;
+    _DstAlbedo[dstCoord] = LOAD_SRC_TRILINEAR(_SrcAlbedo, srcCoord);
+    _DstDirectLighting[dstCoord] = LOAD_SRC_TRILINEAR(_SrcDirectLighting, srcCoord);
+}
