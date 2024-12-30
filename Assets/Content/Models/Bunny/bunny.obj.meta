@@ -102,6 +102,6 @@ ModelImporter:
   importBlendShapeDeformPercent: 1
   remapMaterialsIfMaterialImportModeIsNone: 0
   additionalBone: 0
-  userData: 
+  userData: '{"GenerateMeshlets":true,"LODErrorScale":1.0,"ContributeGlobalIllumination":false,"GenerateMaterialAssets":true,"CleanupDefaultMaterials":true,"RemapMaterials":[],"RemapMaterialsGuids":[]}'
   assetBundleName: 
   assetBundleVariant: 

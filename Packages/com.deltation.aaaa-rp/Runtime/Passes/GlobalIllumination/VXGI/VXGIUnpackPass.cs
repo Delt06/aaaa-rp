@@ -5,6 +5,7 @@ using DELTation.AAAARP.RenderPipelineResources;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
+using static DELTation.AAAARP.Lighting.AAAAVxgiCommon;
 
 namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
 {
@@ -33,8 +34,9 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             passData.Source = builder.ReadBuffer(vxgiData.PackedGridBuffer);
             passData.DestinationAlbedo = builder.WriteTexture(vxgiData.GridAlbedo);
             passData.DestinationEmission = builder.WriteTexture(vxgiData.GridEmission);
-            passData.DestinationDirectLighting = builder.WriteTexture(vxgiData.GridDirectLighting);
+            passData.DestinationRadiance = builder.WriteTexture(vxgiData.GridRadiance);
             passData.DestinationNormals = builder.WriteTexture(vxgiData.GridNormals);
+            passData.GridMipCount = vxgiData.GridMipCount;
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
@@ -47,17 +49,21 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderID._Source, data.Source);
             context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationAlbedo, data.DestinationAlbedo);
             context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationEmission, data.DestinationEmission);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationDirectLighting, data.DestinationDirectLighting);
+            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationRadiance, data.DestinationRadiance);
             context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationNormals, data.DestinationNormals);
             context.cmd.DispatchCompute(_computeShader, KernelIndex, data.ThreadGroups, 1, 1);
+
+            context.cmd.SetGlobalInt(GlobalShaderIDs._VXGILevelCount, data.GridMipCount);
+            context.cmd.SetGlobalTexture(GlobalShaderIDs._VXGIRadiance, data.DestinationRadiance);
         }
 
         public class PassData : PassDataBase
         {
             public TextureHandle DestinationAlbedo;
-            public TextureHandle DestinationDirectLighting;
+            public TextureHandle DestinationRadiance;
             public TextureHandle DestinationEmission;
             public TextureHandle DestinationNormals;
+            public int GridMipCount;
             public BufferHandle Source;
             public int ThreadGroups;
         }
@@ -68,7 +74,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             public static readonly int _Source = Shader.PropertyToID(nameof(_Source));
             public static readonly int _DestinationAlbedo = Shader.PropertyToID(nameof(_DestinationAlbedo));
             public static readonly int _DestinationEmission = Shader.PropertyToID(nameof(_DestinationEmission));
-            public static readonly int _DestinationDirectLighting = Shader.PropertyToID(nameof(_DestinationDirectLighting));
+            public static readonly int _DestinationRadiance = Shader.PropertyToID(nameof(_DestinationRadiance));
             public static readonly int _DestinationNormals = Shader.PropertyToID(nameof(_DestinationNormals));
         }
     }

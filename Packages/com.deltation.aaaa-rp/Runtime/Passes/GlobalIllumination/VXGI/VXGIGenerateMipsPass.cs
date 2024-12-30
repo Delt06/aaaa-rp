@@ -30,7 +30,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
 
             AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
             passData.Albedo = builder.ReadWriteTexture(vxgiData.GridAlbedo);
-            passData.DirectLighting = builder.ReadWriteTexture(vxgiData.GridDirectLighting);
+            passData.Radiance = builder.ReadWriteTexture(vxgiData.GridRadiance);
             passData.MipCount = vxgiData.GridMipCount;
             passData.GridSize = vxgiData.GridSize;
         }
@@ -42,8 +42,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
                 int dstMip = srcMip + 1;
                 context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._SrcAlbedo, data.Albedo, srcMip);
                 context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DstAlbedo, data.Albedo, dstMip);
-                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._SrcDirectLighting, data.DirectLighting, srcMip);
-                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DstDirectLighting, data.DirectLighting, dstMip);
+                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._SrcRadiance, data.Radiance, srcMip);
+                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DstRadiance, data.Radiance, dstMip);
 
                 int dstSize = data.GridSize >> dstMip;
                 context.cmd.SetComputeIntParam(_computeShader, ShaderID._DstSize, dstSize);
@@ -56,7 +56,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
         public class PassData : PassDataBase
         {
             public TextureHandle Albedo;
-            public TextureHandle DirectLighting;
+            public TextureHandle Radiance;
             public int GridSize;
             public int MipCount;
             public uint3 ThreadGroupSize;
@@ -68,8 +68,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             public static readonly int _DstSize = Shader.PropertyToID(nameof(_DstSize));
             public static readonly int _SrcAlbedo = Shader.PropertyToID(nameof(_SrcAlbedo));
             public static readonly int _DstAlbedo = Shader.PropertyToID(nameof(_DstAlbedo));
-            public static readonly int _SrcDirectLighting = Shader.PropertyToID(nameof(_SrcDirectLighting));
-            public static readonly int _DstDirectLighting = Shader.PropertyToID(nameof(_DstDirectLighting));
+            public static readonly int _SrcRadiance = Shader.PropertyToID(nameof(_SrcRadiance));
+            public static readonly int _DstRadiance = Shader.PropertyToID(nameof(_DstRadiance));
         }
     }
 }

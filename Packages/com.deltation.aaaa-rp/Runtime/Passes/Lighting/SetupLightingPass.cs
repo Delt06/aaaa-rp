@@ -235,6 +235,8 @@ namespace DELTation.AAAARP.Passes.Lighting
 
             context.cmd.SetKeyword(_globalKeywords.LPV, data.RealtimeGITecninque == AAAARealtimeGITechnique.LightPropagationVolumes);
             context.cmd.SetKeyword(_globalKeywords.LPVSkyOcclusion, data.LPVSkyOcclusion);
+
+            context.cmd.SetKeyword(_globalKeywords.VXGI, data.RealtimeGITecninque == AAAARealtimeGITechnique.Voxel);
         }
 
         private struct GlobalKeywords
@@ -244,6 +246,7 @@ namespace DELTation.AAAARP.Passes.Lighting
             public GlobalKeyword GTAOBentNormals;
             public GlobalKeyword LPV;
             public GlobalKeyword LPVSkyOcclusion;
+            public GlobalKeyword VXGI;
 
             public static GlobalKeywords Create() =>
                 new()
@@ -253,6 +256,7 @@ namespace DELTation.AAAARP.Passes.Lighting
                     DirectLightingAOMicroshadows = GlobalKeyword.Create("AAAA_DIRECT_LIGHTING_AO_MICROSHADOWS"),
                     LPV = GlobalKeyword.Create("AAAA_LPV"),
                     LPVSkyOcclusion = GlobalKeyword.Create("AAAA_LPV_SKY_OCCLUSION"),
+                    VXGI = GlobalKeyword.Create("AAAA_VXGI"),
                 };
         }
 

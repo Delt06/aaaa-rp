@@ -1,4 +1,6 @@
-﻿using UnityEngine.Rendering;
+﻿using System.Diagnostics.CodeAnalysis;
+using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace DELTation.AAAARP.Lighting
 {
@@ -9,6 +11,13 @@ namespace DELTation.AAAARP.Lighting
     internal static class AAAAVxgiCommon
     {
         public const string ResourceNamePrefix = "VXGI_";
+
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        public static class GlobalShaderIDs
+        {
+            public static readonly int _VXGILevelCount = Shader.PropertyToID(nameof(_VXGILevelCount));
+            public static readonly int _VXGIRadiance = Shader.PropertyToID(nameof(_VXGIRadiance));
+        }
     }
 
     [GenerateHLSL]

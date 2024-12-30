@@ -9,7 +9,7 @@ namespace DELTation.AAAARP.FrameData
         public float3 BoundsMax;
         public float3 BoundsMin;
         public TextureHandle GridAlbedo;
-        public TextureHandle GridDirectLighting;
+        public TextureHandle GridRadiance;
         public TextureHandle GridEmission;
         public TextureHandle GridNormals;
         public int GridSize;
@@ -26,7 +26,7 @@ namespace DELTation.AAAARP.FrameData
             PackedGridBuffer = default;
             GridAlbedo = default;
             GridEmission = default;
-            GridDirectLighting = default;
+            GridRadiance = default;
             GridNormals = default;
             GridMipCount = 0;
         }

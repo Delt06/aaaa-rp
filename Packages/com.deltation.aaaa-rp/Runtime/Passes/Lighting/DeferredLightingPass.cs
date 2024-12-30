@@ -56,6 +56,13 @@ namespace DELTation.AAAARP.Passes.Lighting
 
                 passData.ApplyIndirect = true;
             }
+            else if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
+            {
+                AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
+                builder.UseTexture(vxgiData.GridRadiance, AccessFlags.Read);
+
+                passData.ApplyIndirect = true;
+            }
 
             builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.WriteAll);
         }

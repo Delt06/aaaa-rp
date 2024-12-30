@@ -7,7 +7,7 @@
 ByteAddressBuffer   _Source;
 RWTexture3D<float4> _DestinationAlbedo;
 RWTexture3D<float3> _DestinationEmission;
-RWTexture3D<float3> _DestinationDirectLighting;
+RWTexture3D<float4> _DestinationRadiance;
 RWTexture3D<float2> _DestinationNormals;
 
 float4 FetchSource4(const uint address, const uint channel)
@@ -85,6 +85,6 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     _DestinationAlbedo[voxelID] = baseColor;
     _DestinationEmission[voxelID] = emission;
-    _DestinationDirectLighting[voxelID] = directLighting;
+    _DestinationRadiance[voxelID] = float4(emission + directLighting, baseColor.a);
     _DestinationNormals[voxelID] = normals;
 }

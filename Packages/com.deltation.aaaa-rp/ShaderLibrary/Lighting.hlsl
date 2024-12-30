@@ -8,6 +8,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/LightPropagationVolumes.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PunctualLights.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VXGI.hlsl"
 
 #include "Packages/com.unity.render-pipelines.core/Runtime/Lighting/ProbeVolume/ProbeVolume.hlsl"
 
@@ -171,6 +172,11 @@ float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, c
         
     const LPVCellValue lpvCell = LPV::SampleGrid(absolutePositionWS);
     gi += LPVMath::EvaluateRadiance(lpvCell, normalWS);   
+    #endif
+
+    #if defined(AAAA_VXGI)
+    const float4 vxgiValue = VXGI::Tracing::ConeTraceDiffuse(absolutePositionWS, normalWS);
+    gi = lerp(gi, vxgiValue.rgb, vxgiValue.a);
     #endif
 
     return gi;
