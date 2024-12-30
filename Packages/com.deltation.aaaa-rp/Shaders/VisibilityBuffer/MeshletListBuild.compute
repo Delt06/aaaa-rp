@@ -61,7 +61,7 @@ float GetScreenBoundRadiusSq(const GPULODSelectionContext lodSelectionContext, c
 uint GetForcedMeshLODNodeDepth()
 {
     #if defined(VOXELIZATION_PASS)
-    return 0;
+    return 1;
     #else
     return _ForcedMeshLODNodeDepth;
     #endif
