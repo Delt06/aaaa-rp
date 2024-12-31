@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f10831efc7b542d29a3bc3dc2d78e1b8, type: 3}
   m_Name: AAAASsrVolumeComponent
   m_EditorClassIdentifier: 
-  active: 0
+  active: 1
   Enabled:
     m_OverrideState: 1
     m_Value: 1
