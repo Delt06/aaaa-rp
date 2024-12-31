@@ -309,6 +309,12 @@ namespace DELTation.AAAARP
                 cameraData.RealtimeGITechnique = AAAARealtimeGITechnique.Off;
             }
 
+            if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel &&
+                cameraData.VolumeStack.GetComponent<AAAAVXGIVolumeComponent>() is { Enabled: { value: false } })
+            {
+                cameraData.RealtimeGITechnique = AAAARealtimeGITechnique.Off;
+            }
+
             cameraData.SupportsProbeVolumes =
                 renderingData.PipelineAsset.LightingSettings.LightProbes == AAAALightingSettings.LightProbeSystem.AdaptiveProbeVolumes;
 

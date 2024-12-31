@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
+using DELTation.AAAARP.Volumes;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
@@ -24,6 +25,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
 
             _computeShader.GetKernelThreadGroupSizes(KernelIndex, out uint threadGroupSize, out uint _, out uint _);
@@ -37,6 +39,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             passData.DestinationRadiance = builder.WriteTexture(vxgiData.GridRadiance);
             passData.DestinationNormals = builder.WriteTexture(vxgiData.GridNormals);
             passData.GridMipCount = vxgiData.GridMipCount;
+            passData.OpacityFactor = cameraData.VolumeStack.GetComponent<AAAAVXGIVolumeComponent>().OpacityFactor.value;
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
@@ -53,16 +56,18 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationNormals, data.DestinationNormals);
             context.cmd.DispatchCompute(_computeShader, KernelIndex, data.ThreadGroups, 1, 1);
 
-            context.cmd.SetGlobalInt(GlobalShaderIDs._VXGILevelCount, data.GridMipCount);
             context.cmd.SetGlobalTexture(GlobalShaderIDs._VXGIRadiance, data.DestinationRadiance);
+            context.cmd.SetGlobalInt(GlobalShaderIDs._VXGILevelCount, data.GridMipCount);
+            context.cmd.SetGlobalFloat(GlobalShaderIDs._VXGIOpacityFactor, data.OpacityFactor);
         }
 
         public class PassData : PassDataBase
         {
+            public float OpacityFactor;
             public TextureHandle DestinationAlbedo;
-            public TextureHandle DestinationRadiance;
             public TextureHandle DestinationEmission;
             public TextureHandle DestinationNormals;
+            public TextureHandle DestinationRadiance;
             public int GridMipCount;
             public BufferHandle Source;
             public int ThreadGroups;

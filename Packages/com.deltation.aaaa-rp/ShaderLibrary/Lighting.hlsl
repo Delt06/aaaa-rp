@@ -175,6 +175,7 @@ float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, c
     #endif
 
     #if defined(AAAA_VXGI)
+    // gi *= VXGI::Tracing::ConeTraceSkyOcclusion(absolutePositionWS, normalWS);
     const float4 vxgiValue = VXGI::Tracing::ConeTraceDiffuse(absolutePositionWS, normalWS);
     gi = lerp(gi, vxgiValue.rgb, vxgiValue.a);
     #endif
@@ -202,6 +203,8 @@ float SampleSkyOcclusion(const float3 absolutePositionWS, const float3 normalWS,
 {
     #if defined(AAAA_LPV_SKY_OCCLUSION)
     return LPV::SampleSkyOcclusion(absolutePositionWS);
+    #elif defined(AAAA_VXGI)
+    return VXGI::Tracing::ConeTraceSkyOcclusion(absolutePositionWS, normalWS);
     #elif defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
     return SampleProbeVolumeSkyOcclusion(absolutePositionWS, normalWS, viewDir, reflectionDir, renderingLayer);
     #else

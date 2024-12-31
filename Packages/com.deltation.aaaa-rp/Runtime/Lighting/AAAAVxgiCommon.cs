@@ -15,8 +15,9 @@ namespace DELTation.AAAARP.Lighting
         [SuppressMessage("ReSharper", "InconsistentNaming")]
         public static class GlobalShaderIDs
         {
-            public static readonly int _VXGILevelCount = Shader.PropertyToID(nameof(_VXGILevelCount));
             public static readonly int _VXGIRadiance = Shader.PropertyToID(nameof(_VXGIRadiance));
+            public static readonly int _VXGILevelCount = Shader.PropertyToID(nameof(_VXGILevelCount));
+            public static readonly int _VXGIOpacityFactor = Shader.PropertyToID(nameof(_VXGIOpacityFactor));
         }
     }
 

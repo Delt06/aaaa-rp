@@ -13,6 +13,7 @@
 
 TYPED_TEXTURE3D(float4, _VXGIRadiance);
 uint _VXGILevelCount;
+float _VXGIOpacityFactor;
 
 namespace VXGI
 {
@@ -244,9 +245,14 @@ namespace VXGI
             amount /= sum;
 
             amount.rgb = max(0, amount.rgb);
-            amount.a = saturate(amount.a);
+            amount.a = saturate(amount.a * _VXGIOpacityFactor);
 
             return amount;
+        }
+
+        static float ConeTraceSkyOcclusion(const float3 positionWS, const float3 normalWS)
+        {
+            return 1 - ConeTraceDiffuse(positionWS, normalWS).a;
         }
     };
 }

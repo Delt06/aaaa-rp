@@ -66,6 +66,7 @@ Shader "Hidden/AAAA/DeferredReflections"
 
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/ProbeVolumeVariants.hlsl"
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/LPV/SkyOcclusionVariants.hlsl"
+            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/VXGI/Variants.hlsl"
 
             float4 Frag(const Varyings IN) : SV_Target
             {
