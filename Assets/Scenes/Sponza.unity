@@ -196,8 +196,8 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 1, g: 0.46893442, b: 0, a: 1}
-  m_Intensity: 13.4
-  m_Range: 1.06
+  m_Intensity: 12.84
+  m_Range: 5.9
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
@@ -208,7 +208,7 @@ Light:
     m_Strength: 1
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.1
+    m_NearPlane: 0.09
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -437,15 +437,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: d2b0c517fd9d2e444bef20c0a2b21591, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 8.1
+      value: 13.522
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d2b0c517fd9d2e444bef20c0a2b21591, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.064
+      value: -0.09
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d2b0c517fd9d2e444bef20c0a2b21591, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -1.38
+      value: -1.679
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d2b0c517fd9d2e444bef20c0a2b21591, type: 3}
       propertyPath: m_LocalRotation.w
@@ -516,8 +516,8 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 1, g: 0.46893442, b: 0, a: 1}
-  m_Intensity: 13.4
-  m_Range: 1.06
+  m_Intensity: 12.84
+  m_Range: 5.9
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
@@ -528,7 +528,7 @@ Light:
     m_Strength: 1
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.1
+    m_NearPlane: 0.09
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -670,8 +670,8 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 1, g: 0.46893442, b: 0, a: 1}
-  m_Intensity: 13.4
-  m_Range: 1.06
+  m_Intensity: 12.84
+  m_Range: 5.9
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
@@ -682,7 +682,7 @@ Light:
     m_Strength: 1
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.1
+    m_NearPlane: 0.09
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
@@ -767,8 +767,8 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 1, g: 0.46893442, b: 0, a: 1}
-  m_Intensity: 13.4
-  m_Range: 1.06
+  m_Intensity: 12.84
+  m_Range: 5.9
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
@@ -779,7 +779,7 @@ Light:
     m_Strength: 1
     m_Bias: 0.05
     m_NormalBias: 0.4
-    m_NearPlane: 0.1
+    m_NearPlane: 0.09
     m_CullingMatrixOverride:
       e00: 1
       e01: 0
