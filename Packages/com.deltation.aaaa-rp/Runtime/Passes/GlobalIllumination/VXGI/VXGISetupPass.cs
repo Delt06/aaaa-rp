@@ -21,7 +21,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
-            AAAARenderingData renderingData = frameData.GetOrCreate<AAAARenderingData>();
+            AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
+            AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
             AAAAVoxelGlobalIlluminationData vxgiData = frameData.GetOrCreate<AAAAVoxelGlobalIlluminationData>();
 
             const float boundsSize = 40.0f;
@@ -70,6 +71,14 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
                 {
                     name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.GridNormals),
                     format = GraphicsFormat.R8G8_UNorm,
+                }
+            );
+
+            vxgiData.IndirectDiffuseTexture = renderingData.RenderGraph.CreateTexture(new TextureDesc(resourceData.CameraScaledColorDesc)
+                {
+                    name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.IndirectDiffuseTexture),
+                    format = GraphicsFormat.R16G16B16A16_SFloat,
+                    clearBuffer = false,
                 }
             );
 

@@ -1,0 +1,49 @@
+﻿using System;
+using DELTation.AAAARP.FrameData;
+using DELTation.AAAARP.RenderPipelineResources;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
+using static DELTation.AAAARP.Lighting.AAAAVxgiCommon;
+
+namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
+{
+    public class VXGIConeTraceDiffusePass : AAAARasterRenderPass<VXGIConeTraceDiffusePass.PassData>, IDisposable
+    {
+        private const int PassIndex = 0;
+        private readonly Material _material;
+
+        public VXGIConeTraceDiffusePass(AAAARenderPassEvent renderPassEvent) : base(renderPassEvent)
+        {
+            AAAAVxgiRuntimeShaders shaders = GraphicsSettings.GetRenderPipelineSettings<AAAAVxgiRuntimeShaders>();
+            _material = CoreUtils.CreateEngineMaterial(shaders.ConeTracePS);
+        }
+
+        public override string Name => "VXGI.ConeTrace.Diffuse";
+
+        public void Dispose()
+        {
+            CoreUtils.Destroy(_material);
+        }
+
+        protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
+        {
+            AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
+
+            passData.ScaleBias = new Vector4(1, 1, 0, 0);
+
+            builder.SetRenderAttachment(vxgiData.IndirectDiffuseTexture, 0, AccessFlags.Write);
+            builder.SetGlobalTextureAfterPass(vxgiData.IndirectDiffuseTexture, GlobalShaderIDs._VXGIIndirectDiffuseTexture);
+        }
+
+        protected override void Render(PassData data, RasterGraphContext context)
+        {
+            Blitter.BlitTexture(context.cmd, data.ScaleBias, _material, PassIndex);
+        }
+
+        public class PassData : PassDataBase
+        {
+            public Vector4 ScaleBias;
+        }
+    }
+}

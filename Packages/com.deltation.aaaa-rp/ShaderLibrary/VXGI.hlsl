@@ -12,8 +12,9 @@
 #define VXGI_PACKING_PRECISION (1024)
 
 TYPED_TEXTURE3D(float4, _VXGIRadiance);
-uint _VXGILevelCount;
+uint  _VXGILevelCount;
 float _VXGIOpacityFactor;
+TYPED_TEXTURE2D(float4, _VXGIIndirectDiffuseTexture);
 
 namespace VXGI
 {
@@ -250,9 +251,14 @@ namespace VXGI
             return amount;
         }
 
-        static float ConeTraceSkyOcclusion(const float3 positionWS, const float3 normalWS)
+        static float4 LoadIndirectDiffuse(const float2 positionSS)
         {
-            return 1 - ConeTraceDiffuse(positionWS, normalWS).a;
+            return _VXGIIndirectDiffuseTexture[positionSS];
+        }
+
+        static float LoadSkyOcclusion(const float2 positionSS)
+        {
+            return LoadIndirectDiffuse(positionSS).a;
         }
     };
 }

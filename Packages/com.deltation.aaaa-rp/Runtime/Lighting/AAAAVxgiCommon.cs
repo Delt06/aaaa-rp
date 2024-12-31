@@ -18,6 +18,7 @@ namespace DELTation.AAAARP.Lighting
             public static readonly int _VXGIRadiance = Shader.PropertyToID(nameof(_VXGIRadiance));
             public static readonly int _VXGILevelCount = Shader.PropertyToID(nameof(_VXGILevelCount));
             public static readonly int _VXGIOpacityFactor = Shader.PropertyToID(nameof(_VXGIOpacityFactor));
+            public static readonly int _VXGIIndirectDiffuseTexture = Shader.PropertyToID(nameof(_VXGIIndirectDiffuseTexture));
         }
     }
 

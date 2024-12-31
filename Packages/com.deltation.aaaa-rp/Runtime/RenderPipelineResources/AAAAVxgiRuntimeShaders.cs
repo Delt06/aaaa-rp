@@ -27,6 +27,10 @@ namespace DELTation.AAAARP.RenderPipelineResources
         [ResourcePath(BaseResourcePath + "GenerateMips3D.compute")]
         private ComputeShader _generateMips3dCS;
 
+        [SerializeField]
+        [ResourcePath(BaseResourcePath + "ConeTrace.shader")]
+        private Shader _coneTracePS;
+
         public Shader VoxelizePS
         {
             get => _voxelizePS;
@@ -43,6 +47,12 @@ namespace DELTation.AAAARP.RenderPipelineResources
         {
             get => _generateMips3dCS;
             set => this.SetValueAndNotify(ref _generateMips3dCS, value, nameof(_generateMips3dCS));
+        }
+
+        public Shader ConeTracePS
+        {
+            get => _coneTracePS;
+            set => this.SetValueAndNotify(ref _coneTracePS, value, nameof(_coneTracePS));
         }
 
         public int version => _version;

@@ -198,3 +198,4 @@ MonoBehaviour:
         _voxelizePS: {fileID: 4800000, guid: 915a9d1cb6324501a4290c9127bcc4cf, type: 3}
         _unpackCS: {fileID: 7200000, guid: d95c70139d4c490fbd805dc7c70a94ce, type: 3}
         _generateMips3dCS: {fileID: 7200000, guid: d4a505ae7c134a1c984f4b91c4ff49c5, type: 3}
+        _coneTracePS: {fileID: 4800000, guid: bf4d3a6b1f3d470da90d7536526246f9, type: 3}

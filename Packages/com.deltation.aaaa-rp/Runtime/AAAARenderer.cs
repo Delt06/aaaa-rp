@@ -62,6 +62,7 @@ namespace DELTation.AAAARP
         private readonly SSRResolvePass _ssrResolvePass;
         private readonly SSRTracePass _ssrTracePass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
+        private readonly VXGIConeTraceDiffusePass _vxgiConeTraceDiffusePass;
         private readonly GPUCullingPass _vxgiCullingPass;
         private readonly VXGIGenerateMipsPass _vxgiGenerateMipsPass;
         private readonly VXGISetupPass _vxgiSetupPass;
@@ -132,8 +133,8 @@ namespace DELTation.AAAARP
                 _vxgiVoxelizePass = new VXGIVoxelizePass(AAAARenderPassEvent.AfterRenderingGbuffer);
                 _vxgiUnpackPass = new VXGIUnpackPass(AAAARenderPassEvent.AfterRenderingGbuffer);
                 _vxgiGenerateMipsPass = new VXGIGenerateMipsPass(AAAARenderPassEvent.AfterRenderingGbuffer);
+                _vxgiConeTraceDiffusePass = new VXGIConeTraceDiffusePass(AAAARenderPassEvent.AfterRenderingGbuffer);
             }
-
 
             _drawTransparentPass = new DrawTransparentPass(AAAARenderPassEvent.BeforeRenderingTransparents);
 
@@ -203,6 +204,7 @@ namespace DELTation.AAAARP
                 EnqueuePass(_vxgiVoxelizePass);
                 EnqueuePass(_vxgiUnpackPass);
                 EnqueuePass(_vxgiGenerateMipsPass);
+                EnqueuePass(_vxgiConeTraceDiffusePass);
             }
 
             EnqueuePass(_deferredLightingPass);
@@ -322,6 +324,7 @@ namespace DELTation.AAAARP
 
             _lpvInjectPass.Dispose();
             _vxgiVoxelizePass.Dispose();
+            _vxgiConeTraceDiffusePass.Dispose();
 
             CoreUtils.Destroy(_ssrResolveMaterial);
             CoreUtils.Destroy(_deferredReflectionsMaterial);
