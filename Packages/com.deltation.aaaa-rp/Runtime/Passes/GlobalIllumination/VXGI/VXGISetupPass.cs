@@ -2,6 +2,7 @@
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
 using DELTation.AAAARP.Utils;
+using DELTation.AAAARP.Volumes;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -23,10 +24,13 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAAVoxelGlobalIlluminationData vxgiData = frameData.GetOrCreate<AAAAVoxelGlobalIlluminationData>();
 
+            AAAAVXGIVolumeComponent volumeComponent = cameraData.VolumeStack.GetComponent<AAAAVXGIVolumeComponent>();
+
             const float boundsSize = 40.0f;
-            vxgiData.GridSize = 128;
+            vxgiData.GridSize = (int) volumeComponent.GridSize.value;
             vxgiData.BoundsMin = -boundsSize * 0.5f;
             vxgiData.BoundsMax = boundsSize * 0.5f;
 
