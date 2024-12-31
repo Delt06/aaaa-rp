@@ -97,50 +97,33 @@ namespace VXGI
         }
     };
 
-    static const uint  DIFFUSE_CONE_COUNT = 32;
+    static const uint  DIFFUSE_CONE_COUNT = 16;
     static const float DIFFUSE_CONE_APERTURE = 0.628319f;
 
     static const float3 DIFFUSE_CONE_DIRECTIONS[DIFFUSE_CONE_COUNT] = {
         float3(0.898904f, 0.435512f, 0.0479745f),
-        float3(0.898904f, -0.435512f, -0.0479745f),
-        float3(0.898904f, 0.0479745f, -0.435512f),
         float3(0.898904f, -0.0479745f, 0.435512f),
-        float3(-0.898904f, 0.435512f, -0.0479745f),
         float3(-0.898904f, -0.435512f, 0.0479745f),
         float3(-0.898904f, 0.0479745f, 0.435512f),
-        float3(-0.898904f, -0.0479745f, -0.435512f),
         float3(0.0479745f, 0.898904f, 0.435512f),
-        float3(-0.0479745f, 0.898904f, -0.435512f),
         float3(-0.435512f, 0.898904f, 0.0479745f),
-        float3(0.435512f, 0.898904f, -0.0479745f),
         float3(-0.0479745f, -0.898904f, 0.435512f),
-        float3(0.0479745f, -0.898904f, -0.435512f),
         float3(0.435512f, -0.898904f, 0.0479745f),
-        float3(-0.435512f, -0.898904f, -0.0479745f),
         float3(0.435512f, 0.0479745f, 0.898904f),
         float3(-0.435512f, -0.0479745f, 0.898904f),
         float3(0.0479745f, -0.435512f, 0.898904f),
         float3(-0.0479745f, 0.435512f, 0.898904f),
-        float3(0.435512f, -0.0479745f, -0.898904f),
-        float3(-0.435512f, 0.0479745f, -0.898904f),
-        float3(0.0479745f, 0.435512f, -0.898904f),
-        float3(-0.0479745f, -0.435512f, -0.898904f),
         float3(0.57735f, 0.57735f, 0.57735f),
-        float3(0.57735f, 0.57735f, -0.57735f),
         float3(0.57735f, -0.57735f, 0.57735f),
-        float3(0.57735f, -0.57735f, -0.57735f),
         float3(-0.57735f, 0.57735f, 0.57735f),
-        float3(-0.57735f, 0.57735f, -0.57735f),
         float3(-0.57735f, -0.57735f, 0.57735f),
-        float3(-0.57735f, -0.57735f, -0.57735f)
     };
 
     static const float MAX_DISTANCE = 50;
 
     struct Tracing
     {
-        static float4 SampleVoxelGrid(const float3 positionWS, const uint gridLevel, float stepDist, float3 faceOffsets, float3 directionWeights,
-                                      uint         precomputedDirection = 0)
+        static float4 SampleVoxelGrid(const float3 positionWS, const uint gridLevel, float stepDist)
         {
             Grid   grid = Grid::LoadLevel(gridLevel);
             float3 gridUV = grid.TransformWorldToGridUV(positionWS);
@@ -156,7 +139,7 @@ namespace VXGI
         }
 
         static float4 ConeTrace(const float3 positionWS, const float3 normalWS, const float3 coneDirection, const float coneAperture,
-                                const float  stepSize, const uint     precomputedDirection = 0)
+                                const float  stepSize)
         {
             float3 color = 0;
             float  alpha = 0;
@@ -171,17 +154,10 @@ namespace VXGI
             float  stepDist = dist;
             float3 startPos = positionWS + normalWS * grid0.voxelSizeWS;
 
-            float3 anisoDirection = -coneDirection;
-            float3 faceOffsets = float3(
-                anisoDirection.x > 0 ? 0 : 1,
-                anisoDirection.y > 0 ? 2 : 3,
-                anisoDirection.z > 0 ? 4 : 5
-            ) / (6.0 + DIFFUSE_CONE_COUNT);
-            float3 directionWeights = abs(coneDirection);
-
             // We will break off the loop if the sampling distance is too far for performance reasons:
             while (dist < MAX_DISTANCE && alpha < 1 && gridLevel0 < _VXGILevelCount)
             {
+                grid0 = Grid::LoadLevel(gridLevel0);
                 float3 p0 = startPos + coneDirection * dist;
 
                 float diameter = max(grid0.voxelSizeWS, coneCoefficient * dist);
@@ -196,17 +172,14 @@ namespace VXGI
                 if (any(gridUV < 0 || gridUV > 1))
                 {
                     gridLevel0++;
-                    grid0 = Grid::LoadLevel(gridLevel0);
                     continue;
                 }
 
-                float4 sample = SampleVoxelGrid(p0, gridIndex, stepDist, faceOffsets, directionWeights, precomputedDirection);
+                float4 sample = SampleVoxelGrid(p0, gridIndex, stepDist);
 
                 if (gridBlend > 0 && gridIndex < _VXGILevelCount - 1)
                 {
-                    sample = lerp(sample,
-                                  SampleVoxelGrid(p0, gridIndex + 1, stepDist, faceOffsets, directionWeights, precomputedDirection),
-                                  gridBlend);
+                    sample = lerp(sample, SampleVoxelGrid(p0, gridIndex + 1, stepDist), gridBlend);
                 }
 
                 // front-to back blending:
@@ -214,8 +187,7 @@ namespace VXGI
                 color += a * sample.rgb;
                 alpha += a * sample.a;
 
-                float stepSizeCurrent = stepSize;
-                stepDist = diameter * stepSizeCurrent;
+                stepDist = diameter * stepSize;
 
                 // step along ray:
                 dist += stepDist;
@@ -224,22 +196,31 @@ namespace VXGI
             return float4(color, alpha);
         }
 
+        static float3x3 CreateTangentBasis(const float3 normal)
+        {
+            // Choose an arbitrary vector to start the tangent calculation.
+            const float3 arbitrary = abs(normal.z) < 0.999f ? float3(0.0f, 0.0f, 1.0f) : float3(1.0f, 0.0f, 0.0f);
+
+            // Calculate the tangent and bitangent.
+            const float3 tangent = normalize(cross(arbitrary, normal));
+            const float3 bitangent = cross(normal, tangent);
+
+            return float3x3(tangent, bitangent, normal);
+        }
+
         static float4 ConeTraceDiffuse(const float3 positionWS, const float3 normalWS)
         {
-            float4 amount = 0;
+            const float3x3 tangentToWorld = CreateTangentBasis(normalWS);
 
-            float sum = 0;
+            float4 amount = 0;
+            float  sum = 0;
+
             for (uint i = 0; i < DIFFUSE_CONE_COUNT; ++i)
             {
-                const float3 coneDirection = DIFFUSE_CONE_DIRECTIONS[i];
-                const float  cosTheta = dot(normalWS, coneDirection);
-                if (cosTheta <= 0)
-                {
-                    continue;
-                }
-
-                const uint precomputedDirection = 6 + i;
-                amount += cosTheta * ConeTrace(positionWS, normalWS, coneDirection, DIFFUSE_CONE_APERTURE, 1, precomputedDirection);
+                const float3 coneDirectionTS = DIFFUSE_CONE_DIRECTIONS[i];
+                const float3 coneDirectionWS = normalize(TransformTangentToWorld(coneDirectionTS, tangentToWorld));
+                const float  cosTheta = dot(normalWS, coneDirectionWS);
+                amount += cosTheta * ConeTrace(positionWS, normalWS, coneDirectionWS, DIFFUSE_CONE_APERTURE, 1);
                 sum += cosTheta;
             }
 
