@@ -27,7 +27,8 @@ namespace DELTation.AAAARP.FrameData
 
         public void Init(AAAAImageBasedLightingSettings settings, RenderGraph renderGraph)
         {
-            Hash128 currentReflectionProbeHash = GetDefaultProbe().reflectionProbe.imageContentsHash;
+            Hash128 currentReflectionProbeHash = GetCurrentReflectionProbeHash();
+
             if (_previousReflectionProbeHash != currentReflectionProbeHash)
             {
                 DiffuseIrradianceIsDirty = true;
@@ -83,6 +84,16 @@ namespace DELTation.AAAARP.FrameData
 
                 PreFilteredEnvironmentMapIsDirty = true;
             }
+        }
+
+        private static Hash128 GetCurrentReflectionProbeHash()
+        {
+            Texture reflectionProbe = GetDefaultProbe().reflectionProbe;
+#if UNITY_EDITOR
+            return reflectionProbe.imageContentsHash;
+#else
+            return new Hash128(math.asuint(reflectionProbe.GetInstanceID()), 0, 0, 0);
+#endif
         }
 
         public override void Reset()
