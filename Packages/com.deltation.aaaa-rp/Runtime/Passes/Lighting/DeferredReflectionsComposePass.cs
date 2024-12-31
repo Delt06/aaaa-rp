@@ -1,3 +1,4 @@
+using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -17,9 +18,16 @@ namespace DELTation.AAAARP.Passes.Lighting
         {
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
 
             passData.Source = lightingData.DeferredReflections;
             builder.UseTexture(passData.Source, AccessFlags.Read);
+
+            if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
+            {
+                AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
+                builder.UseTexture(vxgiData.IndirectDiffuseTexture, AccessFlags.Read);
+            }
 
             builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.ReadWrite);
             builder.SetRenderAttachmentDepth(resourceData.CameraScaledDepthBuffer, AccessFlags.Read);

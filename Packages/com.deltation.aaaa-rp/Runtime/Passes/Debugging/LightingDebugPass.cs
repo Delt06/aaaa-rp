@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
+using DELTation.AAAARP.Data;
 using DELTation.AAAARP.Debugging;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
@@ -29,6 +30,7 @@ namespace DELTation.AAAARP.Passes.Debugging
         protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
 
             passData.DebugMode = _debugDisplaySettings.RenderingSettings.LightingDebugMode;
@@ -48,6 +50,12 @@ namespace DELTation.AAAARP.Passes.Debugging
             else
             {
                 passData.IndirectSpecular = TextureHandle.nullHandle;
+            }
+
+            if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
+            {
+                AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
+                builder.UseTexture(vxgiData.IndirectDiffuseTexture);
             }
 
             builder.SetRenderAttachment(resourceData.CameraScaledColorBuffer, 0, AccessFlags.ReadWrite);

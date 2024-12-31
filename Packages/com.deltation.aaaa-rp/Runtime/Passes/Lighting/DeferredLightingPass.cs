@@ -59,7 +59,7 @@ namespace DELTation.AAAARP.Passes.Lighting
             else if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
             {
                 AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
-                builder.UseTexture(vxgiData.GridRadiance, AccessFlags.Read);
+                builder.UseTexture(vxgiData.IndirectDiffuseTexture, AccessFlags.Read);
 
                 passData.ApplyIndirect = true;
             }
