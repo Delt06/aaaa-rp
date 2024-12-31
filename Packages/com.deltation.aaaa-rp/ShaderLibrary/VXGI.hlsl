@@ -158,15 +158,12 @@ namespace VXGI
             while (dist < MAX_DISTANCE && alpha < 1 && gridLevel0 < _VXGILevelCount)
             {
                 grid0 = Grid::LoadLevel(gridLevel0);
-                float3 p0 = startPos + coneDirection * dist;
 
-                float diameter = max(grid0.voxelSizeWS, coneCoefficient * dist);
-                float lod = clamp(log2(diameter * grid0.invVoxelSizeWS), gridLevel0, _VXGILevelCount - 1);
+                const float diameter = max(grid0.voxelSizeWS, coneCoefficient * dist);
+                const float lod = clamp(log2(diameter * grid0.invVoxelSizeWS), gridLevel0, _VXGILevelCount - 1);
 
-                const uint  gridIndex = floor(lod);
-                const float gridBlend = frac(lod);
-
-                Grid         grid = Grid::LoadLevel(gridIndex);
+                Grid         grid = Grid::LoadLevel(lod);
+                const float3 p0 = startPos + coneDirection * dist;
                 const float3 gridUV = grid.TransformWorldToGridUV(p0);
 
                 if (any(gridUV < 0 || gridUV > 1))
@@ -175,11 +172,11 @@ namespace VXGI
                     continue;
                 }
 
-                float4 sample = SampleVoxelGrid(p0, gridIndex, stepDist);
-
-                if (gridBlend > 0 && gridIndex < _VXGILevelCount - 1)
+                float4      sample = SampleVoxelGrid(p0, lod, stepDist);
+                const float gridBlend = frac(lod);
+                if (gridBlend > 0 && (uint)lod < _VXGILevelCount - 1)
                 {
-                    sample = lerp(sample, SampleVoxelGrid(p0, gridIndex + 1, stepDist), gridBlend);
+                    sample = lerp(sample, SampleVoxelGrid(p0, lod + 1, stepDist), gridBlend);
                 }
 
                 // front-to back blending:
@@ -215,6 +212,7 @@ namespace VXGI
             float4 amount = 0;
             float  sum = 0;
 
+            UNITY_UNROLL
             for (uint i = 0; i < DIFFUSE_CONE_COUNT; ++i)
             {
                 const float3 coneDirectionTS = DIFFUSE_CONE_DIRECTIONS[i];
