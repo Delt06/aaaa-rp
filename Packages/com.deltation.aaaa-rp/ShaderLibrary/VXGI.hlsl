@@ -123,7 +123,7 @@ namespace VXGI
 
     struct Tracing
     {
-        static float4 SampleVoxelGrid(const float3 positionWS, const uint gridLevel, float stepDist)
+        static float4 SampleVoxelGrid(const float3 positionWS, const float gridLevel, float stepDist)
         {
             Grid   grid = Grid::LoadLevel(gridLevel);
             float3 gridUV = grid.TransformWorldToGridUV(positionWS);
@@ -132,7 +132,7 @@ namespace VXGI
             const float halfTexel = 0.5f * grid.invSize;
             gridUV = clamp(gridUV, halfTexel, 1 - halfTexel);
 
-            float4 sample = SAMPLE_TEXTURE3D_LOD(_VXGIRadiance, sampler_LinearClamp, gridUV, gridLevel);
+            float4 sample = SAMPLE_TEXTURE3D_LOD(_VXGIRadiance, sampler_TrilinearClamp, gridUV, gridLevel);
             sample *= stepDist * grid.invVoxelSizeWS;
 
             return sample;
@@ -160,9 +160,9 @@ namespace VXGI
                 grid0 = Grid::LoadLevel(gridLevel0);
 
                 const float diameter = max(grid0.voxelSizeWS, coneCoefficient * dist);
-                const float lod = clamp(log2(diameter * grid0.invVoxelSizeWS), gridLevel0, _VXGILevelCount - 1);
+                const float gridLevel = clamp(log2(diameter * grid0.invVoxelSizeWS), gridLevel0, _VXGILevelCount - 1);
 
-                Grid         grid = Grid::LoadLevel(lod);
+                Grid         grid = Grid::LoadLevel(gridLevel);
                 const float3 p0 = startPos + coneDirection * dist;
                 const float3 gridUV = grid.TransformWorldToGridUV(p0);
 
@@ -172,12 +172,7 @@ namespace VXGI
                     continue;
                 }
 
-                float4      sample = SampleVoxelGrid(p0, lod, stepDist);
-                const float gridBlend = frac(lod);
-                if (gridBlend > 0 && (uint)lod < _VXGILevelCount - 1)
-                {
-                    sample = lerp(sample, SampleVoxelGrid(p0, lod + 1, stepDist), gridBlend);
-                }
+                const float4 sample = SampleVoxelGrid(p0, gridLevel, stepDist);
 
                 // front-to back blending:
                 float a = 1 - alpha;
