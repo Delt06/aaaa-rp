@@ -1,6 +1,7 @@
 #pragma kernel CS
 
 #pragma use_dxc
+#pragma editor_sync_compilation
 
 #define THREAD_GROUP_SIZE 4
 

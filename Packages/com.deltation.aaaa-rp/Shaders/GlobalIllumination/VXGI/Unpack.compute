@@ -1,5 +1,7 @@
 #pragma kernel CS
 
+#pragma editor_sync_compilation
+
 #define THREAD_GROUP_SIZE 256
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VXGI.hlsl"
