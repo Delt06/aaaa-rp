@@ -31,7 +31,7 @@ Shader "Hidden/AAAA/VXGIDebug"
 
             TYPED_TEXTURE3D(float4, _GridAlbedo);
             TYPED_TEXTURE3D(float3, _GridEmission);
-            TYPED_TEXTURE3D(float3, _GridRadiance);
+            TYPED_TEXTURE3D(float4, _GridRadiance);
             TYPED_TEXTURE3D(float2, _GridNormals);
 
             uint _DebugMode;
@@ -75,7 +75,7 @@ Shader "Hidden/AAAA/VXGIDebug"
                     outputColor = _GridEmission.mips[_GridMipLevel][voxelID];
                     break;
                 case AAAAVXGIDEBUGMODE_RADIANCE:
-                    outputColor = _GridRadiance.mips[_GridMipLevel][voxelID];
+                    outputColor = VXGI::Packing::UnpackRadiance(_GridRadiance.mips[_GridMipLevel][voxelID]).rgb;
                     break;
                 case AAAAVXGIDEBUGMODE_NORMALS:
                     outputColor = VXGI::Packing::UnpackNormal(_GridNormals.mips[_GridMipLevel][voxelID]) * 0.5 + 0.5;

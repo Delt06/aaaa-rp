@@ -11,6 +11,8 @@
 #include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAAVxgiCommon.cs.hlsl"
 
 #define VXGI_PACKING_PRECISION (1024)
+#define VXGI_RADIANCE_RANGE (32.0)
+#define VXGI_RADIANCE_RANGE_INV (1.0 / VXGI_RADIANCE_RANGE)
 
 TYPED_TEXTURE3D(float4, _VXGIRadiance);
 uint  _VXGILevelCount;
@@ -39,6 +41,16 @@ namespace VXGI
         static float UnpackChannel(const uint packedValue)
         {
             return float(packedValue) / VXGI_PACKING_PRECISION;
+        }
+
+        static float4 PackRadiance(const float4 radiance)
+        {
+            return float4(radiance.rgb * VXGI_RADIANCE_RANGE_INV, radiance.a);
+        }
+
+        static float4 UnpackRadiance(const float4 packedRadiance)
+        {
+            return float4(packedRadiance.rgb * VXGI_RADIANCE_RANGE, packedRadiance.a);
         }
     };
 
@@ -101,6 +113,8 @@ namespace VXGI
     // Source: https://github.com/godotengine/godot/blob/2582793d408ade0b6ed42f913ae33e7da5fb9184/servers/rendering/renderer_rd/shaders/environment/voxel_gi.glsl#L397
     static const uint  DIFFUSE_CONE_COUNT = 6;
     static const float DIFFUSE_CONE_TAN_HALF_ANGLE = 0.577;
+    static const float DIFFUSE_CONE_MAX_DISTANCE = 50;
+    static const float DIFFUSE_CONE_ALPHA_THRESHOLD = 1;
 
     static const float3 DIFFUSE_CONE_DIRECTIONS[DIFFUSE_CONE_COUNT] =
     {
@@ -111,8 +125,6 @@ namespace VXGI
         float3(-0.700629, -0.509037, 0.5),
         float3(0.267617, -0.823639, 0.5),
     };
-
-    static const float MAX_DISTANCE = 50;
 
     struct Tracing
     {
@@ -125,7 +137,7 @@ namespace VXGI
             const float halfTexel = 0.5f * grid.invSize;
             gridUV = clamp(gridUV, halfTexel, 1 - halfTexel);
 
-            float4 sample = SAMPLE_TEXTURE3D_LOD(_VXGIRadiance, sampler_TrilinearClamp, gridUV, gridLevel);
+            float4 sample = Packing::UnpackRadiance(SAMPLE_TEXTURE3D_LOD(_VXGIRadiance, sampler_TrilinearClamp, gridUV, gridLevel));
             sample *= stepDist * grid.invVoxelSizeWS;
 
             return sample;
@@ -145,7 +157,7 @@ namespace VXGI
             float3 startPos = positionWS + normalWS * grid0.voxelSizeWS;
 
             // We will break off the loop if the sampling distance is too far for performance reasons:
-            while (dist < MAX_DISTANCE && alpha < 1 && gridLevel0 < _VXGILevelCount)
+            while (dist < DIFFUSE_CONE_MAX_DISTANCE && alpha < DIFFUSE_CONE_ALPHA_THRESHOLD && gridLevel0 < _VXGILevelCount)
             {
                 grid0 = Grid::LoadLevel(gridLevel0);
 

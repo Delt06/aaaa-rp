@@ -68,7 +68,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             vxgiData.GridRadiance = renderingData.RenderGraph.CreateTexture(new TextureDesc(gridTextureDesc)
                 {
                     name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.GridRadiance),
-                    format = GraphicsFormat.R16G16B16A16_SFloat,
+                    format = GraphicsFormat.R8G8B8A8_UNorm,
                 }
             );
             vxgiData.GridNormals = renderingData.RenderGraph.CreateTexture(new TextureDesc(gridTextureDesc)

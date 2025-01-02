@@ -85,6 +85,6 @@ void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 
     _DestinationAlbedo[voxelID] = baseColor;
     _DestinationEmission[voxelID] = emission;
-    _DestinationRadiance[voxelID] = float4(emission + directLighting, baseColor.a);
+    _DestinationRadiance[voxelID] = VXGI::Packing::PackRadiance(float4(emission + directLighting, baseColor.a));
     _DestinationNormals[voxelID] = normals;
 }
