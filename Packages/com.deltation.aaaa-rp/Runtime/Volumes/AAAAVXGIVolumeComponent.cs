@@ -14,6 +14,7 @@ namespace DELTation.AAAARP.Volumes
             _32 = 32,
             _64 = 64,
             _128 = 128,
+            _256 = 256,
         }
 
         public enum RenderScalePreset

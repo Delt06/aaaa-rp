@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
 using DELTation.AAAARP.RenderPipelineResources;
 using Unity.Collections;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Rendering;
@@ -45,13 +46,33 @@ namespace DELTation.AAAARP.Utils
 
         public void DispatchClear(CommandBuffer cmd, GraphicsBuffer buffer, int itemCount, int writeOffset, int clearValue)
         {
+            if (itemCount == 0)
+            {
+                return;
+            }
+
             cmd.SetComputeBufferParam(_rawBufferClearCS, KernelIndex, ShaderID._Buffer, buffer);
-            cmd.SetComputeIntParam(_rawBufferClearCS, ShaderID._ItemCount, itemCount);
-            cmd.SetComputeIntParam(_rawBufferClearCS, ShaderID._WriteOffset, writeOffset);
             cmd.SetComputeIntParam(_rawBufferClearCS, ShaderID._ClearValue, clearValue);
 
+            const int maxItemsPerDispatch = ComputeUtils.MaxThreadGroups * ThreadGroupSize;
+
+            while (itemCount > 0)
+            {
+                int dispatchItemCount = math.min(maxItemsPerDispatch, itemCount);
+                DispatchClearImpl(cmd, dispatchItemCount, writeOffset);
+
+                itemCount -= dispatchItemCount;
+                writeOffset += dispatchItemCount;
+            }
+        }
+
+        private void DispatchClearImpl(CommandBuffer cmd, int itemCount, int writeOffset)
+        {
+            cmd.SetComputeIntParam(_rawBufferClearCS, ShaderID._ItemCount, itemCount);
+            cmd.SetComputeIntParam(_rawBufferClearCS, ShaderID._WriteOffset, writeOffset);
+
             int threadGroups = AAAAMathUtils.AlignUp(itemCount, ThreadGroupSize) / ThreadGroupSize;
-            Assert.IsTrue(threadGroups < 65535);
+            Assert.IsTrue(threadGroups <= ComputeUtils.MaxThreadGroups, "Raw Buffer Clear: passed item count requires more too many thread groups.");
             cmd.DispatchCompute(_rawBufferClearCS, KernelIndex, threadGroups, 1, 1);
         }
 
