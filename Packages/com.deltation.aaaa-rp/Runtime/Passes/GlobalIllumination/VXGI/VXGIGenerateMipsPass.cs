@@ -29,7 +29,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             );
 
             AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
-            passData.Albedo = builder.ReadWriteTexture(vxgiData.GridAlbedo);
             passData.Radiance = builder.ReadWriteTexture(vxgiData.GridRadiance);
             passData.MipCount = vxgiData.GridMipCount;
             passData.GridSize = vxgiData.GridSize;
@@ -40,8 +39,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             for (int srcMip = 0; srcMip < data.MipCount - 1; srcMip++)
             {
                 int dstMip = srcMip + 1;
-                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._SrcAlbedo, data.Albedo, srcMip);
-                context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DstAlbedo, data.Albedo, dstMip);
                 context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._SrcRadiance, data.Radiance, srcMip);
                 context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DstRadiance, data.Radiance, dstMip);
 
@@ -55,7 +52,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
 
         public class PassData : PassDataBase
         {
-            public TextureHandle Albedo;
             public TextureHandle Radiance;
             public int GridSize;
             public int MipCount;
@@ -66,8 +62,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
         private static class ShaderID
         {
             public static readonly int _DstSize = Shader.PropertyToID(nameof(_DstSize));
-            public static readonly int _SrcAlbedo = Shader.PropertyToID(nameof(_SrcAlbedo));
-            public static readonly int _DstAlbedo = Shader.PropertyToID(nameof(_DstAlbedo));
             public static readonly int _SrcRadiance = Shader.PropertyToID(nameof(_SrcRadiance));
             public static readonly int _DstRadiance = Shader.PropertyToID(nameof(_DstRadiance));
         }

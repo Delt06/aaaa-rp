@@ -53,18 +53,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
                 msaaSamples = MSAASamples.None,
                 enableRandomWrite = true,
             };
-            vxgiData.GridAlbedo = renderingData.RenderGraph.CreateTexture(new TextureDesc(gridTextureDesc)
-                {
-                    name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.GridAlbedo),
-                    format = GraphicsFormat.R8G8B8A8_UNorm,
-                }
-            );
-            vxgiData.GridEmission = renderingData.RenderGraph.CreateTexture(new TextureDesc(gridTextureDesc)
-                {
-                    name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.GridEmission),
-                    format = GraphicsFormat.B10G11R11_UFloatPack32,
-                }
-            );
             vxgiData.GridRadiance = renderingData.RenderGraph.CreateTexture(new TextureDesc(gridTextureDesc)
                 {
                     name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.GridRadiance),

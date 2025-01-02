@@ -29,8 +29,6 @@ Shader "Hidden/AAAA/VXGIDebug"
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VXGI.hlsl"
             #include "Packages/com.deltation.aaaa-rp/Runtime/Debugging/AAAADebugDisplaySettingsRendering.cs.hlsl"
 
-            TYPED_TEXTURE3D(float4, _GridAlbedo);
-            TYPED_TEXTURE3D(float3, _GridEmission);
             TYPED_TEXTURE3D(float4, _GridRadiance);
             TYPED_TEXTURE3D(float2, _GridNormals);
 
@@ -54,9 +52,9 @@ Shader "Hidden/AAAA/VXGIDebug"
 
                 const float3 voxelID = grid.FlatToVoxelID(instanceID);
                 const float3 positionWS = grid.voxelSizeWS * IN.positionOS + grid.TransformGridToWorldSpace(voxelID + 0.5);
-                const float4 albedo = _GridAlbedo.mips[_GridMipLevel][voxelID];
+                const float4 radiance = VXGI::Packing::UnpackRadiance(_GridRadiance.mips[_GridMipLevel][voxelID]);
 
-                if (albedo.a == 0)
+                if (radiance.a == 0)
                 {
                     return (Varyings)0;
                 }
@@ -68,14 +66,8 @@ Shader "Hidden/AAAA/VXGIDebug"
 
                 switch (_DebugMode)
                 {
-                case AAAAVXGIDEBUGMODE_ALBEDO:
-                    outputColor = albedo.rgb;
-                    break;
-                case AAAAVXGIDEBUGMODE_EMISSION:
-                    outputColor = _GridEmission.mips[_GridMipLevel][voxelID];
-                    break;
                 case AAAAVXGIDEBUGMODE_RADIANCE:
-                    outputColor = VXGI::Packing::UnpackRadiance(_GridRadiance.mips[_GridMipLevel][voxelID]).rgb;
+                    outputColor = radiance.rgb;
                     break;
                 case AAAAVXGIDEBUGMODE_NORMALS:
                     outputColor = VXGI::Packing::UnpackNormal(_GridNormals.mips[_GridMipLevel][voxelID]) * 0.5 + 0.5;

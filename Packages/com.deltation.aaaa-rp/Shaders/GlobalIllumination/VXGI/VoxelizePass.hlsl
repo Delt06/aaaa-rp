@@ -218,20 +218,14 @@ void VoxelizePS(const GSOutput IN)
         return;
     }
 
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_R, surfaceData.diffuseColor.r);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_G, surfaceData.diffuseColor.g);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_B, surfaceData.diffuseColor.b);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_BASE_COLOR_A, surfaceData.diffuseColor.a);
-
-    const float3 emission = surfaceData.diffuseColor.rgb * materialData.Emission.rgb;
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_R, emission.r);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_G, emission.g);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_EMISSIVE_B, emission.b);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_ALPHA, surfaceData.diffuseColor.a);
 
     const float3 directLighting = ComputeFastDiffuseLighting(surfaceData);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_DIRECT_LIGHT_R, directLighting.r);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_DIRECT_LIGHT_G, directLighting.g);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_DIRECT_LIGHT_B, directLighting.b);
+    const float3 emission = surfaceData.diffuseColor.rgb * materialData.Emission.rgb;
+    const float3 radiance = directLighting + emission;
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_R, radiance.r);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_G, radiance.g);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_B, radiance.b);
 
     const float2 packedNormal = VXGI::Packing::PackNormal(surfaceData.normalWS);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_PACKED_NORMAL_R, packedNormal.r);

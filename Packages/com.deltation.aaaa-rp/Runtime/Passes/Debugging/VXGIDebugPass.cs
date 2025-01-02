@@ -52,8 +52,6 @@ namespace DELTation.AAAARP.Passes.Debugging
                 }
             );
 
-            passData.GridAlbedo = builder.ReadTexture(vxgiData.GridAlbedo);
-            passData.GridEmission = builder.ReadTexture(vxgiData.GridEmission);
             passData.GridRadiance = builder.ReadTexture(vxgiData.GridRadiance);
             passData.GridNormals = builder.ReadTexture(vxgiData.GridNormals);
             passData.RenderTarget = builder.ReadWriteTexture(resourceData.CameraScaledColorBuffer);
@@ -84,8 +82,6 @@ namespace DELTation.AAAARP.Passes.Debugging
             data.PropertyBlock.Clear();
             data.PropertyBlock.SetInteger(ShaderID._DebugMode, (int) data.DebugMode);
             data.PropertyBlock.SetInteger(ShaderID._GridMipLevel, data.GridMipLevel);
-            data.PropertyBlock.SetTexture(ShaderID._GridAlbedo, data.GridAlbedo);
-            data.PropertyBlock.SetTexture(ShaderID._GridEmission, data.GridEmission);
             data.PropertyBlock.SetTexture(ShaderID._GridRadiance, data.GridRadiance);
             data.PropertyBlock.SetTexture(ShaderID._GridNormals, data.GridNormals);
             context.cmd.DrawMeshInstancedIndirect(_mesh, subMeshIndex, _material, 0, data.IndirectArgs, 0, data.PropertyBlock);
@@ -96,8 +92,6 @@ namespace DELTation.AAAARP.Passes.Debugging
             public readonly MaterialPropertyBlock PropertyBlock = new();
             public AAAAVxgiDebugMode DebugMode;
             public TextureHandle DepthStencil;
-            public TextureHandle GridAlbedo;
-            public TextureHandle GridEmission;
             public int GridMipLevel;
             public TextureHandle GridNormals;
             public TextureHandle GridRadiance;
@@ -112,8 +106,6 @@ namespace DELTation.AAAARP.Passes.Debugging
         {
             public static int _DebugMode = Shader.PropertyToID(nameof(_DebugMode));
             public static int _GridMipLevel = Shader.PropertyToID(nameof(_GridMipLevel));
-            public static int _GridAlbedo = Shader.PropertyToID(nameof(_GridAlbedo));
-            public static int _GridEmission = Shader.PropertyToID(nameof(_GridEmission));
             public static int _GridRadiance = Shader.PropertyToID(nameof(_GridRadiance));
             public static int _GridNormals = Shader.PropertyToID(nameof(_GridNormals));
         }

@@ -35,8 +35,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             passData.ItemCount = vxgiData.GridSize * vxgiData.GridSize * vxgiData.GridSize;
 
             passData.Source = builder.ReadBuffer(vxgiData.PackedGridBuffer);
-            passData.DestinationAlbedo = builder.WriteTexture(vxgiData.GridAlbedo);
-            passData.DestinationEmission = builder.WriteTexture(vxgiData.GridEmission);
             passData.DestinationRadiance = builder.WriteTexture(vxgiData.GridRadiance);
             passData.DestinationNormals = builder.WriteTexture(vxgiData.GridNormals);
             passData.GridMipCount = vxgiData.GridMipCount;
@@ -60,8 +58,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
         private void DispatchUnpack(PassData data, RenderGraphContext context)
         {
             context.cmd.SetComputeBufferParam(_computeShader, KernelIndex, ShaderID._Source, data.Source);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationAlbedo, data.DestinationAlbedo);
-            context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationEmission, data.DestinationEmission);
             context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationRadiance, data.DestinationRadiance);
             context.cmd.SetComputeTextureParam(_computeShader, KernelIndex, ShaderID._DestinationNormals, data.DestinationNormals);
 
@@ -85,8 +81,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
 
         public class PassData : PassDataBase
         {
-            public TextureHandle DestinationAlbedo;
-            public TextureHandle DestinationEmission;
             public TextureHandle DestinationNormals;
             public TextureHandle DestinationRadiance;
             public int GridMipCount;
@@ -100,8 +94,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
         private static class ShaderID
         {
             public static readonly int _Source = Shader.PropertyToID(nameof(_Source));
-            public static readonly int _DestinationAlbedo = Shader.PropertyToID(nameof(_DestinationAlbedo));
-            public static readonly int _DestinationEmission = Shader.PropertyToID(nameof(_DestinationEmission));
             public static readonly int _DestinationRadiance = Shader.PropertyToID(nameof(_DestinationRadiance));
             public static readonly int _DestinationNormals = Shader.PropertyToID(nameof(_DestinationNormals));
             public static readonly int _FlatIDOffset = Shader.PropertyToID(nameof(_FlatIDOffset));

@@ -25,16 +25,10 @@ namespace DELTation.AAAARP.Lighting
     [GenerateHLSL]
     internal enum AAAAVxgiPackedGridChannels
     {
-        BaseColorR = 0,
-        BaseColorG,
-        BaseColorB,
-        BaseColorA,
-        EmissiveR,
-        EmissiveG,
-        EmissiveB,
-        DirectLightR,
-        DirectLightG,
-        DirectLightB,
+        RadianceR = 0,
+        RadianceG,
+        RadianceB,
+        Alpha,
         PackedNormalR,
         PackedNormalG,
         FragmentCount,

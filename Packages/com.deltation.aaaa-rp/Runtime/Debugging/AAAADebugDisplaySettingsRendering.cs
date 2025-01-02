@@ -64,8 +64,6 @@ namespace DELTation.AAAARP.Debugging
     [GenerateHLSL]
     public enum AAAAVxgiDebugMode
     {
-        Albedo,
-        Emission,
         Radiance,
         Normals,
     }
@@ -100,7 +98,7 @@ namespace DELTation.AAAARP.Debugging
         public float LightPropagationVolumesDebugClipDistance { get; private set; } = 2.0f;
         public bool VXGIDebug { get; private set; }
         public bool VXGIDebugOverlay { get; private set; } = true;
-        public AAAAVxgiDebugMode VXGIDebugMode { get; private set; } = AAAAVxgiDebugMode.Albedo;
+        public AAAAVxgiDebugMode VXGIDebugMode { get; private set; } = AAAAVxgiDebugMode.Radiance;
         public int VXGIMipLevel { get; private set; }
 
         public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
