@@ -7,7 +7,6 @@ Shader "Hidden/AAAA/VXGI/ConeTrace"
     #pragma editor_sync_compilation
 
     #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
-    #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/XeGTAO/GTAOPragma.hlsl"
     #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/VXGI/Variants.hlsl"
 
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
@@ -16,24 +15,8 @@ Shader "Hidden/AAAA/VXGI/ConeTrace"
     #include "Packages/com.deltation.aaaa-rp/Runtime/AAAAStructs.cs.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GBuffer.hlsl"
-    #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/GTAO.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Lighting.hlsl"
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PBR.hlsl"
-
-    void InitializeSurfaceData(const GBufferValue gbuffer,
-                               const Varyings     IN,
-                               const float        deviceDepth,
-                               out SurfaceData    surfaceData)
-    {
-        surfaceData.albedo = gbuffer.albedo;
-        surfaceData.roughness = gbuffer.roughness;
-        surfaceData.metallic = gbuffer.metallic;
-        surfaceData.normalWS = gbuffer.normalWS;
-        surfaceData.positionWS = ComputeWorldSpacePosition(IN.texcoord, deviceDepth, UNITY_MATRIX_I_VP);
-        surfaceData.positionCS = IN.positionCS;
-
-        SampleGTAO(IN.positionCS.xy, surfaceData.normalWS, surfaceData.aoVisibility, surfaceData.bentNormalWS);
-    }
 
     Varyings OverrideVert(Attributes input)
     {
@@ -64,18 +47,53 @@ Shader "Hidden/AAAA/VXGI/ConeTrace"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
+            #pragma multi_compile_fragment _ GATHER
+
+            struct MinSurfaceData
+            {
+                float3 positionWS;
+                float3 normalWS;
+                uint   materialFlags;
+            };
+
+            float3 ComputeWorldSpacePosition(const float2 screenUV, const float deviceDepth)
+            {
+                return ComputeWorldSpacePosition(screenUV, deviceDepth, UNITY_MATRIX_I_VP);
+            }
+
+            MinSurfaceData FetchSurfaceData(const float2 screenUV)
+            {
+                MinSurfaceData result;
+
+                #ifdef GATHER
+                const GBufferValue gbuffer = SampleGBufferLinear(screenUV);
+                #else
+                const GBufferValue gbuffer = SampleGBuffer(screenUV);
+                #endif
+                result.normalWS = gbuffer.normalWS;
+                result.materialFlags = gbuffer.materialFlags;
+
+                #ifdef GATHER
+                const float4 deviceDepths = GatherDeviceDepth(screenUV);
+                result.positionWS = 0.25f * (
+                    ComputeWorldSpacePosition(screenUV, deviceDepths[0]) + ComputeWorldSpacePosition(screenUV, deviceDepths[1]) +
+                    ComputeWorldSpacePosition(screenUV, deviceDepths[2]) + ComputeWorldSpacePosition(screenUV, deviceDepths[3]));
+                #else
+                const float deviceDepth = SampleDeviceDepth(screenUV);
+                result.positionWS = ComputeWorldSpacePosition(screenUV, deviceDepth);
+                #endif
+
+                return result;
+            }
+
             float4 Frag(const Varyings IN) : SV_Target
             {
-                const GBufferValue gbuffer = SampleGBuffer(IN.texcoord);
+                const MinSurfaceData surfaceData = FetchSurfaceData(IN.texcoord);
 
-                if (gbuffer.materialFlags & AAAAMATERIALFLAGS_UNLIT)
+                if (surfaceData.materialFlags & AAAAMATERIALFLAGS_UNLIT)
                 {
                     return 0;
                 }
-
-                const float deviceDepth = SampleDeviceDepth(IN.texcoord);
-                SurfaceData surfaceData;
-                InitializeSurfaceData(gbuffer, IN, deviceDepth, surfaceData);
 
                 return VXGI::Tracing::ConeTraceDiffuse(surfaceData.positionWS, surfaceData.normalWS);
             }

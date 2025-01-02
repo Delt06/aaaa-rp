@@ -17,6 +17,7 @@ namespace DELTation.AAAARP.FrameData
         public TextureHandle IndirectDiffuseTexture;
         public BufferHandle PackedGridBuffer;
         public BufferDesc PackedGridBufferDesc;
+        public int RenderScale;
 
         public override void Reset()
         {
@@ -31,6 +32,7 @@ namespace DELTation.AAAARP.FrameData
             GridNormals = default;
             GridMipCount = 0;
             IndirectDiffuseTexture = default;
+            RenderScale = 0;
         }
     }
 }

@@ -229,7 +229,7 @@ namespace VXGI
 
         static float4 LoadIndirectDiffuse(const float2 positionSS)
         {
-            return _VXGIIndirectDiffuseTexture[positionSS];
+            return SAMPLE_TEXTURE2D_LOD(_VXGIIndirectDiffuseTexture, sampler_LinearClamp, positionSS * _ScreenSize.zw, 0);
         }
 
         static float LoadSkyOcclusion(const float2 positionSS)

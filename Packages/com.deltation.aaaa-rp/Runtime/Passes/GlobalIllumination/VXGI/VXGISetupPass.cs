@@ -78,13 +78,8 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
                 }
             );
 
-            vxgiData.IndirectDiffuseTexture = renderingData.RenderGraph.CreateTexture(new TextureDesc(resourceData.CameraScaledColorDesc)
-                {
-                    name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.IndirectDiffuseTexture),
-                    format = GraphicsFormat.R16G16B16A16_SFloat,
-                    clearBuffer = false,
-                }
-            );
+            vxgiData.RenderScale = (int) volumeComponent.RenderScale.value;
+            vxgiData.IndirectDiffuseTexture = renderingData.RenderGraph.CreateTexture(CreateIndirectDiffuseTextureDesc(resourceData, vxgiData.RenderScale));
 
             passData.PackedGridBufferCount = packedBufferCount;
             passData.PackedGridBuffer = builder.WriteBuffer(vxgiData.PackedGridBuffer);
@@ -93,6 +88,19 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
                 _VxgiGridBoundsMin = math.float4(vxgiData.BoundsMin, 0),
                 _VxgiGridBoundsMax = math.float4(vxgiData.BoundsMax, 0),
                 _VxgiGridResolution = math.float4(vxgiData.GridSize, 1.0f / vxgiData.GridSize, boundsSize / vxgiData.GridSize, vxgiData.GridSize / boundsSize),
+            };
+        }
+
+        private static TextureDesc CreateIndirectDiffuseTextureDesc(AAAAResourceData resourceData, int renderScale)
+        {
+            TextureDesc cameraScaledColorDesc = resourceData.CameraScaledColorDesc;
+            return new TextureDesc(cameraScaledColorDesc)
+            {
+                width = math.max(1, cameraScaledColorDesc.width / renderScale),
+                height = math.max(1, cameraScaledColorDesc.height / renderScale),
+                name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.IndirectDiffuseTexture),
+                format = GraphicsFormat.R16G16B16A16_SFloat,
+                clearBuffer = false,
             };
         }
 

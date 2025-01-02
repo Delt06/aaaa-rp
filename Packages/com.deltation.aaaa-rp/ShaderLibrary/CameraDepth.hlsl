@@ -8,7 +8,12 @@ SAMPLER(sampler_CameraDepth);
 
 float SampleDeviceDepth(const float2 screenUV)
 {
-    return SAMPLE_TEXTURE2D_LOD(_CameraDepth, sampler_CameraDepth, screenUV, 0).r;
+    return SAMPLE_TEXTURE2D_LOD(_CameraDepth, sampler_PointClamp, screenUV, 0).r;
+}
+
+float4 GatherDeviceDepth(const float2 screenUV)
+{
+    return GATHER_TEXTURE2D(_CameraDepth, sampler_PointClamp, screenUV);
 }
 
 float SampleLinearDepth(const float2 screenUV)
