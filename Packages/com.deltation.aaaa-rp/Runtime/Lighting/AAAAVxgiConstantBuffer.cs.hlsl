@@ -10,6 +10,9 @@ CBUFFER_START(AAAAVxgiConstantBuffer)
     float4 _VxgiGridBoundsMin;
     float4 _VxgiGridBoundsMax;
     float4 _VxgiGridResolution;
+    uint _VxgiLevelCount;
+    float _VxgiDiffuseOpacityFactor;
+    float _VxgiSpecularOpacityFactor;
 CBUFFER_END
 
 

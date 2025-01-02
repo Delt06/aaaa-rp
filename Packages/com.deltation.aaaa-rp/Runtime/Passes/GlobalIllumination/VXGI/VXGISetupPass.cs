@@ -83,6 +83,9 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
                 _VxgiGridBoundsMin = math.float4(vxgiData.BoundsMin, 0),
                 _VxgiGridBoundsMax = math.float4(vxgiData.BoundsMax, 0),
                 _VxgiGridResolution = math.float4(vxgiData.GridSize, 1.0f / vxgiData.GridSize, boundsSize / vxgiData.GridSize, vxgiData.GridSize / boundsSize),
+                _VxgiLevelCount = (uint) vxgiData.GridMipCount,
+                _VxgiDiffuseOpacityFactor = volumeComponent.DiffuseOpacityFactor.value,
+                _VxgiSpecularOpacityFactor = volumeComponent.SpecularOpacityFactor.value,
             };
         }
 

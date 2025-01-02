@@ -16,8 +16,6 @@
 #define VXGI_RADIANCE_RANGE_INV (1.0 / VXGI_RADIANCE_RANGE)
 
 TYPED_TEXTURE3D(float4, _VXGIRadiance);
-uint  _VXGILevelCount;
-float _VXGIOpacityFactor;
 TYPED_TEXTURE2D(float4, _VXGIIndirectDiffuseTexture);
 TYPED_TEXTURE2D(float4, _VXGIIndirectSpecularTexture);
 
@@ -161,12 +159,12 @@ namespace VXGI
             float3 startPos = positionWS + normalWS * grid0.voxelSizeWS;
 
             // We will break off the loop if the sampling distance is too far for performance reasons:
-            while (dist < TRACE_MAX_DISTANCE && alpha < TRACE_ALPHA_THRESHOLD && gridLevel0 < _VXGILevelCount)
+            while (dist < TRACE_MAX_DISTANCE && alpha < TRACE_ALPHA_THRESHOLD && gridLevel0 < _VxgiLevelCount)
             {
                 grid0 = Grid::LoadLevel(gridLevel0);
 
                 const float diameter = max(grid0.voxelSizeWS, 2.0 * apertureTanHalfAngle * dist);
-                const float gridLevel = clamp(log2(diameter * grid0.invVoxelSizeWS), gridLevel0, _VXGILevelCount - 1);
+                const float gridLevel = clamp(log2(diameter * grid0.invVoxelSizeWS), gridLevel0, _VxgiLevelCount - 1);
 
                 Grid         grid = Grid::LoadLevel(gridLevel);
                 const float3 p0 = startPos + coneDirection * dist;
@@ -224,7 +222,7 @@ namespace VXGI
             }
 
             amount /= sum;
-            amount.a = saturate(amount.a * _VXGIOpacityFactor);
+            amount.a = saturate(amount.a * _VxgiDiffuseOpacityFactor);
 
             return amount;
         }
@@ -237,7 +235,7 @@ namespace VXGI
             const float  apertureTanHalfAngle = tan(roughness * 0.5);
 
             float4 amount = ConeTrace(positionWS + reflectionWS * 0.5, normalWS, reflectionWS, apertureTanHalfAngle, 1);
-            amount.a = saturate(amount.a * _VXGIOpacityFactor);
+            amount.a = saturate(amount.a * _VxgiSpecularOpacityFactor);
 
             return amount;
         }

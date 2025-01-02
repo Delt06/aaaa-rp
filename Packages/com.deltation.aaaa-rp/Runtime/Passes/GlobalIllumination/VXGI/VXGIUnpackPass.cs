@@ -3,7 +3,6 @@ using DELTation.AAAARP.Core;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using DELTation.AAAARP.Utils;
-using DELTation.AAAARP.Volumes;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -28,7 +27,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
-            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
 
             _computeShader.GetKernelThreadGroupSizes(KernelIndex, out passData.ThreadGroupSize, out uint _, out uint _);
@@ -37,8 +35,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             passData.Source = builder.ReadBuffer(vxgiData.PackedGridBuffer);
             passData.DestinationRadiance = builder.WriteTexture(vxgiData.GridRadiance);
             passData.DestinationNormals = builder.WriteTexture(vxgiData.GridNormals);
-            passData.GridMipCount = vxgiData.GridMipCount;
-            passData.OpacityFactor = cameraData.VolumeStack.GetComponent<AAAAVXGIVolumeComponent>().OpacityFactor.value;
         }
 
         protected override void Render(PassData data, RenderGraphContext context)
@@ -51,8 +47,6 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             DispatchUnpack(data, context);
 
             context.cmd.SetGlobalTexture(GlobalShaderIDs._VXGIRadiance, data.DestinationRadiance);
-            context.cmd.SetGlobalInt(GlobalShaderIDs._VXGILevelCount, data.GridMipCount);
-            context.cmd.SetGlobalFloat(GlobalShaderIDs._VXGIOpacityFactor, data.OpacityFactor);
         }
 
         private void DispatchUnpack(PassData data, RenderGraphContext context)
@@ -83,9 +77,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
         {
             public TextureHandle DestinationNormals;
             public TextureHandle DestinationRadiance;
-            public int GridMipCount;
             public int ItemCount;
-            public float OpacityFactor;
             public BufferHandle Source;
             public uint ThreadGroupSize;
         }

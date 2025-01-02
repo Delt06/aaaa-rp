@@ -203,13 +203,19 @@ namespace DELTation.AAAARP
             }
             else if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
             {
+                AAAAVXGIVolumeComponent vxgi = cameraData.VolumeStack.GetComponent<AAAAVXGIVolumeComponent>();
+
                 EnqueuePass(_vxgiSetupPass);
                 EnqueuePass(_vxgiCullingPass);
                 EnqueuePass(_vxgiVoxelizePass);
                 EnqueuePass(_vxgiUnpackPass);
                 EnqueuePass(_vxgiGenerateMipsPass);
                 EnqueuePass(_vxgiConeTraceDiffusePass);
-                EnqueuePass(_vxgiConeTraceSpecularPass);
+
+                if (vxgi.IndirectSpecular.value)
+                {
+                    EnqueuePass(_vxgiConeTraceSpecularPass);
+                }
             }
 
             EnqueuePass(_deferredLightingPass);
@@ -230,7 +236,11 @@ namespace DELTation.AAAARP
 
                 if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
                 {
-                    EnqueuePass(_vxgiConeTraceSpecularComposePass);
+                    AAAAVXGIVolumeComponent vxgi = cameraData.VolumeStack.GetComponent<AAAAVXGIVolumeComponent>();
+                    if (vxgi.IndirectSpecular.value)
+                    {
+                        EnqueuePass(_vxgiConeTraceSpecularComposePass);
+                    }
                 }
 
                 if (ssr.Enabled.value)

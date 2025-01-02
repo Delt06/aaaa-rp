@@ -30,8 +30,10 @@ namespace DELTation.AAAARP.Volumes
         public EnumParameter<GridSizePreset> GridSize = new(GridSizePreset._64);
 
         [Header("Lighting")]
+        public BoolParameter IndirectSpecular = new(true);
         public EnumParameter<RenderScalePreset> RenderScale = new(RenderScalePreset.Half);
-        public ClampedFloatParameter OpacityFactor = new(1.5f, 0.0f, 10.0f);
+        public ClampedFloatParameter DiffuseOpacityFactor = new(1.0f, 0.0f, 10.0f);
+        public ClampedFloatParameter SpecularOpacityFactor = new(1.0f, 0.0f, 10.0f);
 
         public AAAAVXGIVolumeComponent() => displayName = "AAAA Voxel Global Illumination";
     }

@@ -144,10 +144,16 @@ MonoBehaviour:
   GridSize:
     m_OverrideState: 1
     m_Value: 128
+  IndirectSpecular:
+    m_OverrideState: 1
+    m_Value: 1
   RenderScale:
     m_OverrideState: 1
     m_Value: 2
-  OpacityFactor:
+  DiffuseOpacityFactor:
+    m_OverrideState: 1
+    m_Value: 1
+  SpecularOpacityFactor:
     m_OverrideState: 1
     m_Value: 1
 --- !u!114 &3626235199010158688

@@ -11,5 +11,8 @@ namespace DELTation.AAAARP.Lighting
         public float4 _VxgiGridBoundsMin;
         public float4 _VxgiGridBoundsMax;
         public float4 _VxgiGridResolution;
+        public uint _VxgiLevelCount;
+        public float _VxgiDiffuseOpacityFactor;
+        public float _VxgiSpecularOpacityFactor;
     }
 }
