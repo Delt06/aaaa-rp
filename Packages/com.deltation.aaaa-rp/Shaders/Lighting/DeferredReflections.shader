@@ -29,6 +29,7 @@ Shader "Hidden/AAAA/DeferredReflections"
         surfaceData.metallic = gbuffer.metallic;
         surfaceData.normalWS = gbuffer.normalWS;
         surfaceData.positionWS = ComputeWorldSpacePosition(IN.texcoord, deviceDepth, UNITY_MATRIX_I_VP);
+        surfaceData.positionCS = IN.positionCS;
 
         SampleGTAO(IN.positionCS.xy, surfaceData.normalWS, surfaceData.aoVisibility, surfaceData.bentNormalWS);
     }
