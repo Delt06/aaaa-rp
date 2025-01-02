@@ -13,6 +13,7 @@ namespace DELTation.AAAARP.FrameData
         public TextureHandle GridRadiance;
         public int GridSize;
         public TextureHandle IndirectDiffuseTexture;
+        public TextureHandle IndirectSpecularTexture;
         public BufferHandle PackedGridBuffer;
         public BufferDesc PackedGridBufferDesc;
         public int RenderScale;
@@ -28,6 +29,7 @@ namespace DELTation.AAAARP.FrameData
             GridNormals = default;
             GridMipCount = 0;
             IndirectDiffuseTexture = default;
+            IndirectSpecularTexture = default;
             RenderScale = 0;
         }
     }

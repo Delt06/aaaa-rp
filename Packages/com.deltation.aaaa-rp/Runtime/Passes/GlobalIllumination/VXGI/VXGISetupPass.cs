@@ -67,7 +67,14 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             );
 
             vxgiData.RenderScale = (int) volumeComponent.RenderScale.value;
-            vxgiData.IndirectDiffuseTexture = renderingData.RenderGraph.CreateTexture(CreateIndirectDiffuseTextureDesc(resourceData, vxgiData.RenderScale));
+            vxgiData.IndirectDiffuseTexture = renderingData.RenderGraph.CreateTexture(CreateFullscreenIndirectTextureDesc(resourceData, vxgiData.RenderScale,
+                    AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.IndirectDiffuseTexture)
+                )
+            );
+            vxgiData.IndirectSpecularTexture = renderingData.RenderGraph.CreateTexture(CreateFullscreenIndirectTextureDesc(resourceData, vxgiData.RenderScale,
+                    AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.IndirectSpecularTexture)
+                )
+            );
 
             passData.PackedGridBufferCount = packedBufferCount;
             passData.PackedGridBuffer = builder.WriteBuffer(vxgiData.PackedGridBuffer);
@@ -79,14 +86,14 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
             };
         }
 
-        private static TextureDesc CreateIndirectDiffuseTextureDesc(AAAAResourceData resourceData, int renderScale)
+        private static TextureDesc CreateFullscreenIndirectTextureDesc(AAAAResourceData resourceData, int renderScale, string name)
         {
             TextureDesc cameraScaledColorDesc = resourceData.CameraScaledColorDesc;
             return new TextureDesc(cameraScaledColorDesc)
             {
                 width = math.max(1, cameraScaledColorDesc.width / renderScale),
                 height = math.max(1, cameraScaledColorDesc.height / renderScale),
-                name = AAAAVxgiCommon.ResourceNamePrefix + nameof(AAAAVoxelGlobalIlluminationData.IndirectDiffuseTexture),
+                name = name,
                 format = GraphicsFormat.R16G16B16A16_SFloat,
                 clearBuffer = false,
             };

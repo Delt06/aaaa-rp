@@ -63,6 +63,8 @@ namespace DELTation.AAAARP
         private readonly SSRTracePass _ssrTracePass;
         private readonly UberPostProcessingPass _uberPostProcessingPass;
         private readonly VXGIConeTraceDiffusePass _vxgiConeTraceDiffusePass;
+        private readonly VXGIConeTraceSpecularComposePass _vxgiConeTraceSpecularComposePass;
+        private readonly VXGIConeTraceSpecularPass _vxgiConeTraceSpecularPass;
         private readonly GPUCullingPass _vxgiCullingPass;
         private readonly VXGIGenerateMipsPass _vxgiGenerateMipsPass;
         private readonly VXGISetupPass _vxgiSetupPass;
@@ -134,6 +136,8 @@ namespace DELTation.AAAARP
                 _vxgiUnpackPass = new VXGIUnpackPass(AAAARenderPassEvent.AfterRenderingGbuffer);
                 _vxgiGenerateMipsPass = new VXGIGenerateMipsPass(AAAARenderPassEvent.AfterRenderingGbuffer);
                 _vxgiConeTraceDiffusePass = new VXGIConeTraceDiffusePass(AAAARenderPassEvent.AfterRenderingGbuffer);
+                _vxgiConeTraceSpecularPass = new VXGIConeTraceSpecularPass(AAAARenderPassEvent.AfterRenderingGbuffer);
+                _vxgiConeTraceSpecularComposePass = new VXGIConeTraceSpecularComposePass(deferredReflectionsRenderPassEvent);
             }
 
             _drawTransparentPass = new DrawTransparentPass(AAAARenderPassEvent.BeforeRenderingTransparents);
@@ -205,6 +209,7 @@ namespace DELTation.AAAARP
                 EnqueuePass(_vxgiUnpackPass);
                 EnqueuePass(_vxgiGenerateMipsPass);
                 EnqueuePass(_vxgiConeTraceDiffusePass);
+                EnqueuePass(_vxgiConeTraceSpecularPass);
             }
 
             EnqueuePass(_deferredLightingPass);
@@ -222,6 +227,11 @@ namespace DELTation.AAAARP
                 }
 
                 EnqueuePass(_deferredReflectionsSetupPass);
+
+                if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
+                {
+                    EnqueuePass(_vxgiConeTraceSpecularComposePass);
+                }
 
                 if (ssr.Enabled.value)
                 {
@@ -325,6 +335,8 @@ namespace DELTation.AAAARP
             _lpvInjectPass.Dispose();
             _vxgiVoxelizePass.Dispose();
             _vxgiConeTraceDiffusePass.Dispose();
+            _vxgiConeTraceSpecularPass.Dispose();
+            _vxgiConeTraceSpecularComposePass.Dispose();
 
             CoreUtils.Destroy(_ssrResolveMaterial);
             CoreUtils.Destroy(_deferredReflectionsMaterial);

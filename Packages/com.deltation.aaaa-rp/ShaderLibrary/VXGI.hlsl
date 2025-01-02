@@ -6,6 +6,7 @@
 // - https://github.com/godotengine/godot/blob/2582793d408ade0b6ed42f913ae33e7da5fb9184/servers/rendering/renderer_rd/shaders/environment/voxel_gi.glsl
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/BRDFCore.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAAVxgiConstantBuffer.cs.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Runtime/Lighting/AAAAVxgiCommon.cs.hlsl"
@@ -18,6 +19,7 @@ TYPED_TEXTURE3D(float4, _VXGIRadiance);
 uint  _VXGILevelCount;
 float _VXGIOpacityFactor;
 TYPED_TEXTURE2D(float4, _VXGIIndirectDiffuseTexture);
+TYPED_TEXTURE2D(float4, _VXGIIndirectSpecularTexture);
 
 namespace VXGI
 {
@@ -110,11 +112,12 @@ namespace VXGI
         }
     };
 
+    static const float TRACE_MAX_DISTANCE = 50;
+    static const float TRACE_ALPHA_THRESHOLD = 1;
+
     // Source: https://github.com/godotengine/godot/blob/2582793d408ade0b6ed42f913ae33e7da5fb9184/servers/rendering/renderer_rd/shaders/environment/voxel_gi.glsl#L397
     static const uint  DIFFUSE_CONE_COUNT = 6;
     static const float DIFFUSE_CONE_TAN_HALF_ANGLE = 0.577;
-    static const float DIFFUSE_CONE_MAX_DISTANCE = 50;
-    static const float DIFFUSE_CONE_ALPHA_THRESHOLD = 1;
 
     static const float3 DIFFUSE_CONE_DIRECTIONS[DIFFUSE_CONE_COUNT] =
     {
@@ -143,7 +146,8 @@ namespace VXGI
             return sample;
         }
 
-        static float4 ConeTrace(const float3 positionWS, const float3 normalWS, const float3 coneDirection, const float stepSize)
+        static float4 ConeTrace(const float3 positionWS, const float3 normalWS, const float3 coneDirection, const float apertureTanHalfAngle,
+                                const float  stepSize)
         {
             float3 color = 0;
             float  alpha = 0;
@@ -157,11 +161,11 @@ namespace VXGI
             float3 startPos = positionWS + normalWS * grid0.voxelSizeWS;
 
             // We will break off the loop if the sampling distance is too far for performance reasons:
-            while (dist < DIFFUSE_CONE_MAX_DISTANCE && alpha < DIFFUSE_CONE_ALPHA_THRESHOLD && gridLevel0 < _VXGILevelCount)
+            while (dist < TRACE_MAX_DISTANCE && alpha < TRACE_ALPHA_THRESHOLD && gridLevel0 < _VXGILevelCount)
             {
                 grid0 = Grid::LoadLevel(gridLevel0);
 
-                const float diameter = max(grid0.voxelSizeWS, 2.0 * DIFFUSE_CONE_TAN_HALF_ANGLE * dist);
+                const float diameter = max(grid0.voxelSizeWS, 2.0 * apertureTanHalfAngle * dist);
                 const float gridLevel = clamp(log2(diameter * grid0.invVoxelSizeWS), gridLevel0, _VXGILevelCount - 1);
 
                 Grid         grid = Grid::LoadLevel(gridLevel);
@@ -215,7 +219,7 @@ namespace VXGI
                 const float3 coneDirectionTS = DIFFUSE_CONE_DIRECTIONS[i];
                 const float3 coneDirectionWS = normalize(TransformTangentToWorld(coneDirectionTS, tangentToWorld));
                 const float  cosTheta = dot(normalWS, coneDirectionWS);
-                amount += cosTheta * ConeTrace(positionWS, normalWS, coneDirectionWS, 1);
+                amount += cosTheta * ConeTrace(positionWS, normalWS, coneDirectionWS, DIFFUSE_CONE_TAN_HALF_ANGLE, 1);
                 sum += cosTheta;
             }
 
@@ -225,9 +229,27 @@ namespace VXGI
             return amount;
         }
 
+        static float4 ConeTraceSpecular(const float3 positionWS, const float3 normalWS, const float roughness)
+        {
+            const float3 cameraPositionWS = GetCameraPositionWS();
+            const float3 eyeWS = normalize(cameraPositionWS - positionWS);
+            const float3 reflectionWS = ComputeBRDFReflectionVector(normalWS, eyeWS);
+            const float  apertureTanHalfAngle = tan(roughness * 0.5);
+
+            float4 amount = ConeTrace(positionWS + reflectionWS * 0.5, normalWS, reflectionWS, apertureTanHalfAngle, 1);
+            amount.a = saturate(amount.a * _VXGIOpacityFactor);
+
+            return amount;
+        }
+
         static float4 LoadIndirectDiffuse(const float2 positionSS)
         {
             return SAMPLE_TEXTURE2D_LOD(_VXGIIndirectDiffuseTexture, sampler_LinearClamp, positionSS * _ScreenSize.zw, 0);
+        }
+
+        static float4 LoadIndirectSpecular(const float2 screenUV)
+        {
+            return SAMPLE_TEXTURE2D_LOD(_VXGIIndirectSpecularTexture, sampler_LinearClamp, screenUV, 0);
         }
 
         static float LoadSkyOcclusion(const float2 positionSS)

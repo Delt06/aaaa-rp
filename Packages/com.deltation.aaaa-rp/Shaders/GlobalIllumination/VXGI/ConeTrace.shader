@@ -26,6 +26,45 @@ Shader "Hidden/AAAA/VXGI/ConeTrace"
 
         return output;
     }
+
+    struct MinSurfaceData
+    {
+        float3 positionWS;
+        float3 normalWS;
+        float  roughness;
+        uint   materialFlags;
+    };
+
+    float3 ComputeWorldSpacePosition(const float2 screenUV, const float deviceDepth)
+    {
+        return ComputeWorldSpacePosition(screenUV, deviceDepth, UNITY_MATRIX_I_VP);
+    }
+
+    MinSurfaceData FetchSurfaceData(const float2 screenUV)
+    {
+        MinSurfaceData result;
+
+        #ifdef GATHER
+        const GBufferValue gbuffer = SampleGBufferLinear(screenUV);
+        #else
+        const GBufferValue gbuffer = SampleGBuffer(screenUV);
+        #endif
+        result.normalWS = gbuffer.normalWS;
+        result.roughness = gbuffer.roughness;
+        result.materialFlags = gbuffer.materialFlags;
+
+        #ifdef GATHER
+        const float4 deviceDepths = GatherDeviceDepth(screenUV);
+        result.positionWS = 0.25f * (
+            ComputeWorldSpacePosition(screenUV, deviceDepths[0]) + ComputeWorldSpacePosition(screenUV, deviceDepths[1]) +
+            ComputeWorldSpacePosition(screenUV, deviceDepths[2]) + ComputeWorldSpacePosition(screenUV, deviceDepths[3]));
+        #else
+        const float deviceDepth = SampleDeviceDepth(screenUV);
+        result.positionWS = ComputeWorldSpacePosition(screenUV, deviceDepth);
+        #endif
+
+        return result;
+    }
     ENDHLSL
 
     SubShader
@@ -49,43 +88,6 @@ Shader "Hidden/AAAA/VXGI/ConeTrace"
 
             #pragma multi_compile_fragment _ GATHER
 
-            struct MinSurfaceData
-            {
-                float3 positionWS;
-                float3 normalWS;
-                uint   materialFlags;
-            };
-
-            float3 ComputeWorldSpacePosition(const float2 screenUV, const float deviceDepth)
-            {
-                return ComputeWorldSpacePosition(screenUV, deviceDepth, UNITY_MATRIX_I_VP);
-            }
-
-            MinSurfaceData FetchSurfaceData(const float2 screenUV)
-            {
-                MinSurfaceData result;
-
-                #ifdef GATHER
-                const GBufferValue gbuffer = SampleGBufferLinear(screenUV);
-                #else
-                const GBufferValue gbuffer = SampleGBuffer(screenUV);
-                #endif
-                result.normalWS = gbuffer.normalWS;
-                result.materialFlags = gbuffer.materialFlags;
-
-                #ifdef GATHER
-                const float4 deviceDepths = GatherDeviceDepth(screenUV);
-                result.positionWS = 0.25f * (
-                    ComputeWorldSpacePosition(screenUV, deviceDepths[0]) + ComputeWorldSpacePosition(screenUV, deviceDepths[1]) +
-                    ComputeWorldSpacePosition(screenUV, deviceDepths[2]) + ComputeWorldSpacePosition(screenUV, deviceDepths[3]));
-                #else
-                const float deviceDepth = SampleDeviceDepth(screenUV);
-                result.positionWS = ComputeWorldSpacePosition(screenUV, deviceDepth);
-                #endif
-
-                return result;
-            }
-
             float4 Frag(const Varyings IN) : SV_Target
             {
                 const MinSurfaceData surfaceData = FetchSurfaceData(IN.texcoord);
@@ -96,6 +98,48 @@ Shader "Hidden/AAAA/VXGI/ConeTrace"
                 }
 
                 return VXGI::Tracing::ConeTraceDiffuse(surfaceData.positionWS, surfaceData.normalWS);
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "VXGI Cone Trace: Specular"
+
+            HLSLPROGRAM
+            #pragma vertex OverrideVert
+            #pragma fragment Frag
+
+            #pragma multi_compile_fragment _ GATHER
+
+            float4 Frag(const Varyings IN) : SV_Target
+            {
+                const MinSurfaceData surfaceData = FetchSurfaceData(IN.texcoord);
+
+                if (surfaceData.materialFlags & AAAAMATERIALFLAGS_UNLIT)
+                {
+                    return 0;
+                }
+
+                return VXGI::Tracing::ConeTraceSpecular(surfaceData.positionWS, surfaceData.normalWS, surfaceData.roughness);
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "VXGI Cone Trace: Specular, Compose"
+
+            ZTest Greater
+            Blend SrcAlpha OneMinusSrcAlpha
+
+            HLSLPROGRAM
+            #pragma vertex OverrideVert
+            #pragma fragment Frag
+
+            float4 Frag(const Varyings IN) : SV_Target
+            {
+                return VXGI::Tracing::LoadIndirectSpecular(IN.texcoord);
             }
             ENDHLSL
         }
