@@ -220,8 +220,6 @@ namespace VXGI
             }
 
             amount /= sum;
-
-            amount.rgb = max(0, amount.rgb);
             amount.a = saturate(amount.a * _VXGIOpacityFactor);
 
             return amount;
