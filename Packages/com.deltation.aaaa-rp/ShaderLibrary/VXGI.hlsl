@@ -3,6 +3,7 @@
 
 // Sources:
 // - https://github.com/turanszkij/WickedEngine/blob/4db6c94b2246c298087f10f861c00d9adea13b1d/WickedEngine/shaders/voxelConeTracingHF.hlsli
+// - https://github.com/godotengine/godot/blob/2582793d408ade0b6ed42f913ae33e7da5fb9184/servers/rendering/renderer_rd/shaders/environment/voxel_gi.glsl
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
@@ -97,26 +98,18 @@ namespace VXGI
         }
     };
 
-    static const uint  DIFFUSE_CONE_COUNT = 16;
-    static const float DIFFUSE_CONE_APERTURE = 0.628319f;
+    // Source: https://github.com/godotengine/godot/blob/2582793d408ade0b6ed42f913ae33e7da5fb9184/servers/rendering/renderer_rd/shaders/environment/voxel_gi.glsl#L397
+    static const uint  DIFFUSE_CONE_COUNT = 6;
+    static const float DIFFUSE_CONE_TAN_HALF_ANGLE = 0.577;
 
-    static const float3 DIFFUSE_CONE_DIRECTIONS[DIFFUSE_CONE_COUNT] = {
-        float3(0.898904f, 0.435512f, 0.0479745f),
-        float3(0.898904f, -0.0479745f, 0.435512f),
-        float3(-0.898904f, -0.435512f, 0.0479745f),
-        float3(-0.898904f, 0.0479745f, 0.435512f),
-        float3(0.0479745f, 0.898904f, 0.435512f),
-        float3(-0.435512f, 0.898904f, 0.0479745f),
-        float3(-0.0479745f, -0.898904f, 0.435512f),
-        float3(0.435512f, -0.898904f, 0.0479745f),
-        float3(0.435512f, 0.0479745f, 0.898904f),
-        float3(-0.435512f, -0.0479745f, 0.898904f),
-        float3(0.0479745f, -0.435512f, 0.898904f),
-        float3(-0.0479745f, 0.435512f, 0.898904f),
-        float3(0.57735f, 0.57735f, 0.57735f),
-        float3(0.57735f, -0.57735f, 0.57735f),
-        float3(-0.57735f, 0.57735f, 0.57735f),
-        float3(-0.57735f, -0.57735f, 0.57735f),
+    static const float3 DIFFUSE_CONE_DIRECTIONS[DIFFUSE_CONE_COUNT] =
+    {
+        float3(0.0, 0.0, 1.0),
+        float3(0.866025, 0.0, 0.5),
+        float3(0.267617, 0.823639, 0.5),
+        float3(-0.700629, 0.509037, 0.5),
+        float3(-0.700629, -0.509037, 0.5),
+        float3(0.267617, -0.823639, 0.5),
     };
 
     static const float MAX_DISTANCE = 50;
@@ -138,16 +131,13 @@ namespace VXGI
             return sample;
         }
 
-        static float4 ConeTrace(const float3 positionWS, const float3 normalWS, const float3 coneDirection, const float coneAperture,
-                                const float  stepSize)
+        static float4 ConeTrace(const float3 positionWS, const float3 normalWS, const float3 coneDirection, const float stepSize)
         {
             float3 color = 0;
             float  alpha = 0;
 
             uint gridLevel0 = 0;
             Grid grid0 = Grid::LoadLevel(gridLevel0);
-
-            const float coneCoefficient = 2 * tan(coneAperture * 0.5);
 
             // We need to offset the cone start position to avoid sampling its own voxel (self-occlusion):
             float  dist = grid0.voxelSizeWS; // offset by cone dir so that first sample of all cones are not the same
@@ -159,7 +149,7 @@ namespace VXGI
             {
                 grid0 = Grid::LoadLevel(gridLevel0);
 
-                const float diameter = max(grid0.voxelSizeWS, coneCoefficient * dist);
+                const float diameter = max(grid0.voxelSizeWS, 2.0 * DIFFUSE_CONE_TAN_HALF_ANGLE * dist);
                 const float gridLevel = clamp(log2(diameter * grid0.invVoxelSizeWS), gridLevel0, _VXGILevelCount - 1);
 
                 Grid         grid = Grid::LoadLevel(gridLevel);
@@ -213,7 +203,7 @@ namespace VXGI
                 const float3 coneDirectionTS = DIFFUSE_CONE_DIRECTIONS[i];
                 const float3 coneDirectionWS = normalize(TransformTangentToWorld(coneDirectionTS, tangentToWorld));
                 const float  cosTheta = dot(normalWS, coneDirectionWS);
-                amount += cosTheta * ConeTrace(positionWS, normalWS, coneDirectionWS, DIFFUSE_CONE_APERTURE, 1);
+                amount += cosTheta * ConeTrace(positionWS, normalWS, coneDirectionWS, 1);
                 sum += cosTheta;
             }
 
