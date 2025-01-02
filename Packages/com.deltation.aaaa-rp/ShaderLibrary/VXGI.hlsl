@@ -234,7 +234,7 @@ namespace VXGI
 
         static float LoadSkyOcclusion(const float2 positionSS)
         {
-            return LoadIndirectDiffuse(positionSS).a;
+            return 1 - LoadIndirectDiffuse(positionSS).a;
         }
     };
 }
