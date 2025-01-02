@@ -1,4 +1,3 @@
-using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -17,7 +16,6 @@ namespace DELTation.AAAARP.Passes.Lighting
         protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
-            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAALightingData lightingData = frameData.Get<AAAALightingData>();
             AAAAResourceData resourceData = frameData.Get<AAAAResourceData>();
 
@@ -28,12 +26,6 @@ namespace DELTation.AAAARP.Passes.Lighting
             lightingData.DeferredReflections = renderingData.RenderGraph.CreateTexture(textureDesc);
 
             passData.ApplyEnvironment = lightingData.AmbientIntensity > 0.0f;
-
-            if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
-            {
-                AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
-                builder.UseTexture(vxgiData.IndirectDiffuseTexture, AccessFlags.Read);
-            }
 
             builder.SetRenderAttachment(lightingData.DeferredReflections, 0, AccessFlags.ReadWrite);
             builder.SetRenderAttachmentDepth(resourceData.CameraScaledDepthBuffer, AccessFlags.Read);

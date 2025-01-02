@@ -203,8 +203,6 @@ float SampleSkyOcclusion(const float3 absolutePositionWS, const float3 normalWS,
 {
     #if defined(AAAA_LPV_SKY_OCCLUSION)
     return LPV::SampleSkyOcclusion(absolutePositionWS);
-    #elif defined(AAAA_VXGI)
-    return VXGI::Tracing::LoadSkyOcclusion(positionSS);
     #elif defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
     return SampleProbeVolumeSkyOcclusion(absolutePositionWS, normalWS, viewDir, reflectionDir, renderingLayer);
     #else

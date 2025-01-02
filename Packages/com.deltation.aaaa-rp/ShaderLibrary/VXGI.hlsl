@@ -251,11 +251,6 @@ namespace VXGI
         {
             return SAMPLE_TEXTURE2D_LOD(_VXGIIndirectSpecularTexture, sampler_LinearClamp, screenUV, 0);
         }
-
-        static float LoadSkyOcclusion(const float2 positionSS)
-        {
-            return 1 - LoadIndirectDiffuse(positionSS).a;
-        }
     };
 }
 
