@@ -232,7 +232,7 @@ namespace VXGI
             const float3 cameraPositionWS = GetCameraPositionWS();
             const float3 eyeWS = normalize(cameraPositionWS - positionWS);
             const float3 reflectionWS = ComputeBRDFReflectionVector(normalWS, eyeWS);
-            const float  apertureTanHalfAngle = tan(roughness * 0.5);
+            const float  apertureTanHalfAngle = tan(roughness * roughness * 0.5);
 
             float4 amount = ConeTrace(positionWS + reflectionWS * 0.5, normalWS, reflectionWS, apertureTanHalfAngle, 1);
             amount.a = saturate(amount.a * _VxgiSpecularOpacityFactor);
