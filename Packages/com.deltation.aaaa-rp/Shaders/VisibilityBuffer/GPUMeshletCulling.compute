@@ -119,6 +119,9 @@ bool Culling(const GPUCullingContext cullingContext, const AAAAInstanceData inst
 
 uint GetRendererListID(const AAAAInstanceData instanceData, const AAAAMaterialData materialData)
 {
+    #ifdef VOXELIZATION_PASS
+    return AAAARENDERERLISTID_DEFAULT;
+    #else
     uint rendererListID = materialData.RendererListID;
 
     if (instanceData.Flags & AAAAINSTANCEFLAGS_FLIP_WINDING_ORDER &&
@@ -135,6 +138,7 @@ uint GetRendererListID(const AAAAInstanceData instanceData, const AAAAMaterialDa
     }
 
     return rendererListID;
+    #endif
 }
 
 [numthreads(THREAD_GROUP_SIZE, 1, 1)]

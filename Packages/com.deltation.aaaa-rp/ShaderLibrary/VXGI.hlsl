@@ -140,7 +140,7 @@ namespace VXGI
             const float halfTexel = 0.5f * grid.invSize;
             gridUV = clamp(gridUV, halfTexel, 1 - halfTexel);
 
-            float4 sample = Packing::UnpackRadiance(SAMPLE_TEXTURE3D_LOD(_VXGIRadiance, sampler_TrilinearClamp, gridUV, gridLevel));
+            float4 sample = Packing::UnpackRadiance(SAMPLE_TEXTURE3D_LOD(_VXGIRadiance, sampler_LinearClamp, gridUV, (uint)gridLevel));
             sample *= stepDist * grid.invVoxelSizeWS;
 
             return sample;
@@ -178,7 +178,12 @@ namespace VXGI
                     continue;
                 }
 
-                const float4 sample = SampleVoxelGrid(p0, gridLevel, stepDist);
+                float4 sample = SampleVoxelGrid(p0, gridLevel, stepDist);
+                const float gridLevelBlend = frac(gridLevel);
+                if (gridLevelBlend > 0 && gridLevel < (float)_VxgiLevelCount - 1)
+                {
+                    sample = lerp(sample, SampleVoxelGrid(p0, gridLevel + 1, stepDist), gridLevelBlend);
+                }
 
                 // front-to back blending:
                 float a = 1 - alpha;

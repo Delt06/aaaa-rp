@@ -144,6 +144,15 @@ MonoBehaviour:
   GridSize:
     m_OverrideState: 1
     m_Value: 128
+  BoundsSize:
+    m_OverrideState: 1
+    m_Value: 75
+  BoundsForwardBias:
+    m_OverrideState: 1
+    m_Value: 0.2
+  BoundsVerticalForwardBias:
+    m_OverrideState: 1
+    m_Value: 0
   IndirectSpecular:
     m_OverrideState: 1
     m_Value: 1

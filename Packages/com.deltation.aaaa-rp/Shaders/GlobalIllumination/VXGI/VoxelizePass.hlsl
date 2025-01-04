@@ -213,14 +213,15 @@ void VoxelizePS(const GSOutput IN)
     surfaceData.normalWS = SafeNormalize(IN.normalWS);
     surfaceData.metallic = SampleMasksLOD(IN.uv0, materialData, forcedMipLevel).metallic;
 
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_ALPHA, surfaceData.diffuseColor.a);
+    const float alpha = materialData.RendererListID & AAAARENDERERLISTID_ALPHA_TEST ? surfaceData.diffuseColor.a : 1;
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_ALPHA, alpha);
 
     const float3 directLighting = ComputeFastDiffuseLighting(surfaceData);
     const float3 emission = surfaceData.diffuseColor.rgb * materialData.Emission.rgb;
     const float3 radiance = directLighting + emission;
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_R, radiance.r);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_G, radiance.g);
-    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_B, radiance.b);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_R, radiance.r * alpha);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_G, radiance.g * alpha);
+    AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_B, radiance.b * alpha);
 
     const float2 packedNormal = VXGI::Packing::PackNormal(surfaceData.normalWS);
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_PACKED_NORMAL_R, packedNormal.r);

@@ -11,14 +11,15 @@ Shader "Hidden/AAAA/VXGI/Voxelize"
         ZWrite Off
         ColorMask 0
         Cull Off
-        Conservative On
+
+        // Optional, might solve some gaps
+        // Conservative On
 
         Pass
         {
             Name "VXGI: Voxelize"
 
             HLSLPROGRAM
-
             #pragma require geometry
             #pragma editor_sync_compilation
 
