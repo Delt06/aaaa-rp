@@ -11,27 +11,52 @@ RWTexture3D<float4> _SrcRadiance;
 RWTexture3D<float4> _DstRadiance;
 
 uint _DstSize;
+uint _DstMip;
 
-#define LOAD_SRC_TRILINEAR(tex, coord) ((\
-                                    tex[coord + uint3(0, 0, 0)] +\
-                                    tex[coord + uint3(0, 0, 1)] +\
-                                    tex[coord + uint3(0, 1, 0)] +\
-                                    tex[coord + uint3(0, 1, 1)] +\
-                                    tex[coord + uint3(1, 0, 0)] +\
-                                    tex[coord + uint3(1, 0, 1)] +\
-                                    tex[coord + uint3(1, 1, 0)] +\
-                                    tex[coord + uint3(1, 1, 1)]\
-                                    ) * 0.125)
+float4 TrilinearSample(const RWTexture3D<float4> tex, const float3 texCoord)
+{
+    // Compute integer and fractional parts
+    const uint3 baseCoord = uint3(floor(texCoord));
+    const float3 fracCoord = texCoord - baseCoord;
+
+    // Sample the 8 neighbors
+    const float4 c000 = tex[baseCoord];
+    const float4 c100 = tex[baseCoord + uint3(1, 0, 0)];
+    const float4 c010 = tex[baseCoord + uint3(0, 1, 0)];
+    const float4 c110 = tex[baseCoord + uint3(1, 1, 0)];
+    const float4 c001 = tex[baseCoord + uint3(0, 0, 1)];
+    const float4 c101 = tex[baseCoord + uint3(1, 0, 1)];
+    const float4 c011 = tex[baseCoord + uint3(0, 1, 1)];
+    const float4 c111 = tex[baseCoord + uint3(1, 1, 1)];
+
+    // Interpolate along x
+    const float4 c00 = lerp(c000, c100, fracCoord.x);
+    const float4 c10 = lerp(c010, c110, fracCoord.x);
+    const float4 c01 = lerp(c001, c101, fracCoord.x);
+    const float4 c11 = lerp(c011, c111, fracCoord.x);
+
+    // Interpolate along y
+    const float4 c0 = lerp(c00, c10, fracCoord.y);
+    const float4 c1 = lerp(c01, c11, fracCoord.y);
+
+    // Interpolate along z
+    return lerp(c0, c1, fracCoord.z);
+}
 
 [numthreads(THREAD_GROUP_SIZE, THREAD_GROUP_SIZE, THREAD_GROUP_SIZE)]
 void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    const uint3 dstCoord = dispatchThreadID;
-    if (any(dstCoord >= _DstSize))
+    const float3 dstVoxel = dispatchThreadID;
+
+    if (any(dstVoxel >= (float)_DstSize))
     {
         return;
     }
 
-    const uint3 srcCoord = dstCoord * 2;
-    _DstRadiance[dstCoord] = LOAD_SRC_TRILINEAR(_SrcRadiance, srcCoord);
+    VXGI::Grid dstGrid = VXGI::Grid::LoadLevel(_DstMip);
+    const float3 dstCenterWS = dstGrid.TransformGridToWorldSpace(dstVoxel + 0.25);
+
+    VXGI::Grid srcGrid = VXGI::Grid::LoadLevel(_DstMip - 1);
+    const float3 srcTexCoord = srcGrid.TransformWorldToGridSpace(dstCenterWS);
+    _DstRadiance[dstVoxel] = TrilinearSample(_SrcRadiance, srcTexCoord);
 }

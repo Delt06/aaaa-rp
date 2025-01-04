@@ -11,6 +11,7 @@ Shader "Hidden/AAAA/VXGI/Voxelize"
         ZWrite Off
         ColorMask 0
         Cull Off
+        Conservative On
 
         Pass
         {

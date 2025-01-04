@@ -44,6 +44,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
 
                 int dstSize = data.GridSize >> dstMip;
                 context.cmd.SetComputeIntParam(_computeShader, ShaderID._DstSize, dstSize);
+                context.cmd.SetComputeIntParam(_computeShader, ShaderID._DstMip, dstMip);
 
                 int3 threadGroups = AAAAMathUtils.AlignUp(dstSize, (int3) data.ThreadGroupSize) / (int3) data.ThreadGroupSize;
                 context.cmd.DispatchCompute(_computeShader, KernelIndex, threadGroups.x, threadGroups.y, threadGroups.z);
@@ -62,6 +63,7 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
         private static class ShaderID
         {
             public static readonly int _DstSize = Shader.PropertyToID(nameof(_DstSize));
+            public static readonly int _DstMip = Shader.PropertyToID(nameof(_DstMip));
             public static readonly int _SrcRadiance = Shader.PropertyToID(nameof(_SrcRadiance));
             public static readonly int _DstRadiance = Shader.PropertyToID(nameof(_DstRadiance));
         }

@@ -56,10 +56,11 @@ namespace VXGI
 
     struct Grid
     {
-        float size;
-        float invSize;
-        float voxelSizeWS;
-        float invVoxelSizeWS;
+        float  size;
+        float  invSize;
+        float  voxelSizeWS;
+        float  invVoxelSizeWS;
+        float3 boundsMin;
 
         static Grid LoadLevel(uint mipLevel)
         {
@@ -70,22 +71,23 @@ namespace VXGI
             grid.invSize = _VxgiGridResolution.y * sizeFactor;
             grid.voxelSizeWS = _VxgiGridResolution.z * sizeFactor;
             grid.invVoxelSizeWS = _VxgiGridResolution.w * invSizeFactor;
+            grid.boundsMin = _VxgiGridBoundsMin[mipLevel].xyz;
             return grid;
         }
 
         float3 TransformWorldToGridSpace(const float3 positionWS)
         {
-            return (positionWS - _VxgiGridBoundsMin.xyz) * invVoxelSizeWS;
+            return (positionWS - boundsMin) * invVoxelSizeWS;
         }
 
         float3 TransformWorldToGridUV(const float3 positionWS)
         {
-            return (positionWS - _VxgiGridBoundsMin.xyz) * (invVoxelSizeWS * invSize);
+            return (positionWS - boundsMin) * (invVoxelSizeWS * invSize);
         }
 
         float3 TransformGridToWorldSpace(const float3 voxelID)
         {
-            return voxelID * voxelSizeWS + _VxgiGridBoundsMin.xyz;
+            return voxelID * voxelSizeWS + boundsMin;
         }
 
         int VoxelToFlatID(const uint3 voxelID)

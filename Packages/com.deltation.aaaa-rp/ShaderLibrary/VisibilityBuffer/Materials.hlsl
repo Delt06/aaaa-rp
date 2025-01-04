@@ -14,6 +14,8 @@ AAAAMaterialData PullMaterialData(const uint materialIndex)
     return _MaterialData[materialIndex];
 }
 
+#define MATERIAL_DEFAULT_SAMPLER (sampler_TrilinearRepeat_Aniso16)
+
 struct InterpolatedUV
 {
     float2 uv;
@@ -51,7 +53,27 @@ float4 SampleAlbedo(const float2 uv, const AAAAMaterialData materialData)
     if (textureIndex != (uint)NO_TEXTURE_INDEX)
     {
         const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
-        textureAlbedo = SAMPLE_TEXTURE2D(texture, sampler_TrilinearRepeat_Aniso16, uv);
+        textureAlbedo = SAMPLE_TEXTURE2D(texture, MATERIAL_DEFAULT_SAMPLER, uv);
+    }
+    else
+    {
+        textureAlbedo = float4(1, 1, 1, 1);
+    }
+
+    return materialData.AlbedoColor * textureAlbedo;
+}
+
+float4 SampleAlbedoLOD(const float2 uv, const AAAAMaterialData materialData, const float lod)
+{
+    const uint textureIndex = materialData.AlbedoIndex;
+
+    float4 textureAlbedo;
+
+    UNITY_BRANCH
+    if (textureIndex != (uint)NO_TEXTURE_INDEX)
+    {
+        const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
+        textureAlbedo = SAMPLE_TEXTURE2D_LOD(texture, MATERIAL_DEFAULT_SAMPLER, uv, lod);
     }
     else
     {
@@ -71,7 +93,7 @@ float4 SampleAlbedoTextureGrad(const InterpolatedUV uv, const AAAAMaterialData m
     if (textureIndex != (uint)NO_TEXTURE_INDEX)
     {
         const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
-        textureAlbedo = SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearRepeat_Aniso16, uv.uv, uv.ddx, uv.ddy);
+        textureAlbedo = SAMPLE_TEXTURE2D_GRAD(texture, MATERIAL_DEFAULT_SAMPLER, uv.uv, uv.ddx, uv.ddy);
     }
     else
     {
@@ -91,7 +113,7 @@ float3 SampleNormalTSGrad(const InterpolatedUV uv, const AAAAMaterialData materi
     if (textureIndex != (uint)NO_TEXTURE_INDEX)
     {
         const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
-        const float4    packedNormal = SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearRepeat_Aniso16, uv.uv, uv.ddx, uv.ddy);
+        const float4    packedNormal = SAMPLE_TEXTURE2D_GRAD(texture, MATERIAL_DEFAULT_SAMPLER, uv.uv, uv.ddx, uv.ddy);
         normalTS = UnpackNormalScale(packedNormal, materialData.NormalsStrength);
     }
     else
@@ -118,7 +140,33 @@ MaterialMasks SampleMasks(const float2 uv, const AAAAMaterialData materialData)
     if (textureIndex != (uint)NO_TEXTURE_INDEX)
     {
         const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
-        const float4    packedMasks = SAMPLE_TEXTURE2D(texture, sampler_TrilinearRepeat_Aniso16, uv);
+        const float4    packedMasks = SAMPLE_TEXTURE2D(texture, MATERIAL_DEFAULT_SAMPLER, uv);
+        materialMasks.roughness = packedMasks.r;
+        materialMasks.metallic = packedMasks.g;
+    }
+    else
+    {
+        materialMasks.roughness = 1;
+        materialMasks.metallic = 1;
+    }
+
+    materialMasks.roughness = saturate(materialMasks.roughness * materialData.Roughness);
+    materialMasks.metallic = saturate(materialMasks.metallic * materialData.Metallic);
+
+    return materialMasks;
+}
+
+MaterialMasks SampleMasksLOD(const float2 uv, const AAAAMaterialData materialData, const float lod)
+{
+    const uint textureIndex = materialData.MasksIndex;
+
+    MaterialMasks materialMasks;
+
+    UNITY_BRANCH
+    if (textureIndex != (uint)NO_TEXTURE_INDEX)
+    {
+        const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
+        const float4    packedMasks = SAMPLE_TEXTURE2D_LOD(texture, MATERIAL_DEFAULT_SAMPLER, uv, lod);
         materialMasks.roughness = packedMasks.r;
         materialMasks.metallic = packedMasks.g;
     }
@@ -144,7 +192,7 @@ MaterialMasks SampleMasksGrad(const InterpolatedUV uv, const AAAAMaterialData ma
     if (textureIndex != (uint)NO_TEXTURE_INDEX)
     {
         const Texture2D texture = GetBindlessTexture2D(NonUniformResourceIndex(textureIndex));
-        const float4    packedMasks = SAMPLE_TEXTURE2D_GRAD(texture, sampler_TrilinearRepeat_Aniso16, uv.uv, uv.ddx, uv.ddy);
+        const float4    packedMasks = SAMPLE_TEXTURE2D_GRAD(texture, MATERIAL_DEFAULT_SAMPLER, uv.uv, uv.ddx, uv.ddy);
         materialMasks.roughness = packedMasks.r;
         materialMasks.metallic = packedMasks.g;
     }

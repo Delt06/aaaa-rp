@@ -108,7 +108,7 @@ void VoxelizeGS(
     for (uint i = 0; i < 3; ++i)
     {
         // voxel space -> normalized screen -> NDC
-        OUT[i].positionCS.xy = (OUT[i].positionCS.xy * grid.invSize) * 2 - 1;
+        OUT[i].positionCS.xy = ((OUT[i].positionCS.xy + 0.5) * grid.invSize) * 2 - 1;
         #ifdef UNITY_UV_STARTS_AT_TOP
         OUT[i].positionCS.xy *= -1;
         #endif
@@ -205,18 +205,13 @@ void VoxelizePS(const GSOutput IN)
     const uint flatID = grid.VoxelToFlatID(voxelID);
     const uint baseAddress = VXGI::Grid::FlatIDToPackedGridAddress(flatID);
 
+    const float forcedMipLevel = 5;
+
     SurfaceData surfaceData;
     surfaceData.positionWS = IN.positionWS;
-    surfaceData.diffuseColor = SampleAlbedo(IN.uv0, materialData);
+    surfaceData.diffuseColor = SampleAlbedoLOD(IN.uv0, materialData, forcedMipLevel);
     surfaceData.normalWS = SafeNormalize(IN.normalWS);
-    surfaceData.metallic = SampleMasks(IN.uv0, materialData).metallic;
-
-    UNITY_BRANCH
-    if (surfaceData.diffuseColor.a < materialData.AlphaClipThreshold)
-    {
-        discard;
-        return;
-    }
+    surfaceData.metallic = SampleMasksLOD(IN.uv0, materialData, forcedMipLevel).metallic;
 
     AccumulateResult(baseAddress, AAAAVXGIPACKEDGRIDCHANNELS_ALPHA, surfaceData.diffuseColor.a);
 

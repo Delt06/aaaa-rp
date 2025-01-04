@@ -10,6 +10,7 @@ namespace DELTation.AAAARP.Lighting
     /// </summary>
     internal static class AAAAVxgiCommon
     {
+        public const int MaxMipLevels = 16;
         public const string ResourceNamePrefix = "VXGI_";
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]

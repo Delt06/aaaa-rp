@@ -28,6 +28,9 @@ namespace DELTation.AAAARP.Volumes
 
         [Header("Grid")]
         public EnumParameter<GridSizePreset> GridSize = new(GridSizePreset._64);
+        public ClampedFloatParameter BoundsSize = new(40.0f, 1.0f, 100.0f);
+        public ClampedFloatParameter BoundsForwardBias = new(0.5f, 0.0f, 1.0f);
+        public ClampedFloatParameter BoundsVerticalForwardBias = new(0.5f, 0.0f, 1.0f);
 
         [Header("Lighting")]
         public BoolParameter IndirectSpecular = new(true);
