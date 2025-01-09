@@ -24,7 +24,7 @@ MonoBehaviour:
     m_Value: 35
   BoundsForwardBias:
     m_OverrideState: 1
-    m_Value: 0.25
+    m_Value: 0
   BoundsVerticalForwardBias:
     m_OverrideState: 1
     m_Value: 0
