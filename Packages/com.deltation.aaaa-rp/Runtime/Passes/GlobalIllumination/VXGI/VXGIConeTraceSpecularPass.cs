@@ -1,4 +1,5 @@
 ﻿using System;
+using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.RenderPipelineResources;
 using UnityEngine;
@@ -32,10 +33,21 @@ namespace DELTation.AAAARP.Passes.GlobalIllumination.VXGI
 
         protected override void Setup(IRasterRenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
+            AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
 
             passData.ScaleBias = new Vector4(1, 1, 0, 0);
             passData.Material = vxgiData.RenderScale > 1 ? _gatherMaterial : _material;
+
+            if (cameraData.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO)
+            {
+                AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
+                if (renderingData.PipelineAsset.LightingSettings.GTAOSettings.BentNormals)
+                {
+                    AAAALightingData lightingData = frameData.Get<AAAALightingData>();
+                    builder.UseTexture(lightingData.GTAOTerm);
+                }
+            }
 
             builder.SetRenderAttachment(vxgiData.IndirectSpecularTexture, 0, AccessFlags.Write);
             builder.SetGlobalTextureAfterPass(vxgiData.IndirectSpecularTexture, GlobalShaderIDs._VXGIIndirectSpecularTexture);

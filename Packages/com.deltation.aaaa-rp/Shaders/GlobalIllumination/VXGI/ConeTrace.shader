@@ -8,6 +8,7 @@ Shader "Hidden/AAAA/VXGI/ConeTrace"
 
     #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
     #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/VXGI/Variants.hlsl"
+    #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/XeGTAO/GTAOPragma.hlsl"
 
     #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
@@ -62,6 +63,10 @@ Shader "Hidden/AAAA/VXGI/ConeTrace"
         const float deviceDepth = SampleDeviceDepth(screenUV);
         result.positionWS = ComputeWorldSpacePosition(screenUV, deviceDepth);
         #endif
+
+        const float3 normalWS = result.normalWS;
+        float aoVisibility;
+        SampleGTAO(screenUV * _ScreenSize.xy, normalWS, aoVisibility, result.normalWS);
 
         return result;
     }
