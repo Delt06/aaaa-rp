@@ -2,6 +2,7 @@
 #define AAAA_VXGI_VOXELIZE_PASS_INCLUDED
 
 #define VXGI_CONSERVATIVE_RASTERIZATION
+#define VXGI_CONSERVATIVE_RASTERIZATION_PADDING (1.5)
 
 // Sources:
 // - https://github.com/turanszkij/WickedEngine/blob/97e08abfe5f1f086a845e353c832583c89f3edd3/WickedEngine/shaders/objectVS_voxelizer.hlsl
@@ -49,16 +50,17 @@ GSInput VoxelizeVS(const uint svInstanceID : SV_InstanceID, const uint svIndexID
     GSInput OUT;
     OUT.positionWS = positionWS;
     OUT.uv0 = varyings.uv0;
-    OUT.normalWS = SafeNormalize(TransformObjectToWorldNormal(vertex.Normal.xyz));
+    OUT.normalWS = SafeNormalize(TransformObjectToWorldNormal(vertex.Normal.xyz, instanceData.WorldToObjectMatrix));
     OUT.visibilityValue = varyings.visibilityValue;
     return OUT;
 }
 
-void AccumulateResult(const uint baseAddress, const uint channel, const float value)
+uint FindMaxAxis(const GSInput IN[3])
 {
-    const uint fullAddress = channel * 4 + baseAddress;
-    const uint packedValue = VXGI::Packing::PackChannel(value);
-    _Result.InterlockedAdd(fullAddress, packedValue);
+    const float3 faceNormalWS = abs(IN[0].normalWS + IN[1].normalWS + IN[2].normalWS);
+    uint         maxAxis = faceNormalWS[1] > faceNormalWS[0] ? 1 : 0;
+    maxAxis = faceNormalWS[2] > faceNormalWS[maxAxis] ? 2 : maxAxis;
+    return maxAxis;
 }
 
 [maxvertexcount(3)]
@@ -69,10 +71,7 @@ void VoxelizeGS(
 {
     VXGI::Grid grid = VXGI::Grid::LoadLevel(0);
 
-    float3 faceNormalWS = abs(IN[0].normalWS + IN[1].normalWS + IN[2].normalWS);
-    uint   maxAxis = faceNormalWS[1] > faceNormalWS[0] ? 1 : 0;
-    maxAxis = faceNormalWS[2] > faceNormalWS[maxAxis] ? 2 : maxAxis;
-
+    const uint   maxAxis = FindMaxAxis(IN);
     const float3 aabbMin = min(IN[0].positionWS.xyz, min(IN[1].positionWS.xyz, IN[2].positionWS.xyz));
     const float3 aabbMax = max(IN[0].positionWS.xyz, max(IN[1].positionWS.xyz, IN[2].positionWS.xyz));
 
@@ -99,9 +98,9 @@ void VoxelizeGS(
         const float2 side0N = normalize(OUT[1].positionCS.xy - OUT[0].positionCS.xy);
         const float2 side1N = normalize(OUT[2].positionCS.xy - OUT[1].positionCS.xy);
         const float2 side2N = normalize(OUT[0].positionCS.xy - OUT[2].positionCS.xy);
-        OUT[0].positionCS.xy += normalize(side2N - side0N);
-        OUT[1].positionCS.xy += normalize(side0N - side1N);
-        OUT[2].positionCS.xy += normalize(side1N - side2N);
+        OUT[0].positionCS.xy += normalize(side2N - side0N) * VXGI_CONSERVATIVE_RASTERIZATION_PADDING;
+        OUT[1].positionCS.xy += normalize(side0N - side1N) * VXGI_CONSERVATIVE_RASTERIZATION_PADDING;
+        OUT[2].positionCS.xy += normalize(side1N - side2N) * VXGI_CONSERVATIVE_RASTERIZATION_PADDING;
     }
     #endif
 
@@ -128,6 +127,13 @@ void VoxelizeGS(
     }
 }
 
+void AccumulateResult(const uint baseAddress, const uint channel, const float value)
+{
+    const uint fullAddress = channel * 4 + baseAddress;
+    const uint packedValue = VXGI::Packing::PackChannel(value);
+    _Result.InterlockedAdd(fullAddress, packedValue);
+}
+
 struct SurfaceData
 {
     float4 diffuseColor;
@@ -142,7 +148,7 @@ float3 ComputeFastDiffuseBRDF(const SurfaceData surfaceData, const Light light)
     const float3 radiance = light.color;
     const float  shadowAttenuation = light.shadowAttenuation;
     const float  kD = saturate(1 - surfaceData.metallic);
-    return shadowAttenuation * kD * surfaceData.diffuseColor.rgb * radiance * NdotL;
+    return shadowAttenuation * kD * NdotL * surfaceData.diffuseColor.rgb * radiance;
 }
 
 float3 ComputeFastDiffuseLighting(const SurfaceData surfaceData)
