@@ -134,7 +134,6 @@ namespace DELTation.AAAARP
             public const string SCREEN_COORD_OVERRIDE = nameof(SCREEN_COORD_OVERRIDE);
             public const string PROBE_VOLUMES_L1 = nameof(PROBE_VOLUMES_L1);
             public const string PROBE_VOLUMES_L2 = nameof(PROBE_VOLUMES_L2);
-            public const string AAAA_LPV_REFLECTIVE_SHADOW_MAPS = nameof(AAAA_LPV_REFLECTIVE_SHADOW_MAPS);
         }
     }
 }

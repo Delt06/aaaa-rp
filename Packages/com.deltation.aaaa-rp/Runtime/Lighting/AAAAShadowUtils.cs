@@ -12,7 +12,7 @@ namespace DELTation.AAAARP.Lighting
     public static class AAAAShadowUtils
     {
         public static void ComputeDirectionalLightShadowMatrices(NativeArray<float3> cameraFrustumCorners, float3 cameraPosition, float cameraFarPlane,
-            int resolution, quaternion lightRotation, float splitNear, float splitFar, int texelSnapStep,
+            int resolution, quaternion lightRotation, float splitNear, float splitFar,
             out float4x4 lightView, out float4x4 lightProjection)
         {
             // From Wicked Engine: https://github.com/turanszkij/WickedEngine/blob/84adc794752a4b12d2551fef383d4872726a9255/WickedEngine/wiRenderer.cpp#L2735
@@ -56,7 +56,7 @@ namespace DELTation.AAAARP.Lighting
 
             // Snap cascade to texel grid:
             float3 extent = aabbMax - aabbMin;
-            float3 texelSize = texelSnapStep * extent / resolution;
+            float3 texelSize = extent / resolution;
             aabbMin = floor(aabbMin / texelSize) * texelSize;
             aabbMax = floor(aabbMax / texelSize) * texelSize;
             center = (aabbMin + aabbMax) * 0.5f;

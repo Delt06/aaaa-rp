@@ -1,16 +1,15 @@
 #ifndef AAAA_VISIBILITY_BUFFER_SHADOW_CASTER_PASS_INCLUDED
 #define AAAA_VISIBILITY_BUFFER_SHADOW_CASTER_PASS_INCLUDED
 
-#if defined(_ALPHATEST_ON) || defined(AAAA_LPV_REFLECTIVE_SHADOW_MAPS)
+#if defined(_ALPHATEST_ON)
 #define REQUIRE_VISIBILITY_VALUE_INTERPOLATOR
 #endif
 
-#if defined(_ALPHATEST_ON) || defined(AAAA_LPV_REFLECTIVE_SHADOW_MAPS)
+#if defined(_ALPHATEST_ON)
 #define REQUIRE_UV0_INTERPOLATOR
 #endif
 
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows/ShadowRendering.hlsl"
-#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/LightPropagationVolumes.hlsl"
 #include "Packages/com.deltation.aaaa-rp/Shaders/VisibilityBuffer/VisibilityBufferPass.hlsl"
 
 struct ShadowCasterVaryings
@@ -21,36 +20,10 @@ struct ShadowCasterVaryings
     VISIBILITY_VALUE_VARYING
     #endif
 
-    #ifdef AAAA_LPV_REFLECTIVE_SHADOW_MAPS
-    float3 positionWS : POSITION_WS;
-    float3 normalWS : NORMAL_WS;
-    #endif
-
     #ifdef REQUIRE_UV0_INTERPOLATOR
     float2 uv0 : TEXCOORD0;
     #endif
 };
-
-struct DummyOutput
-{
-};
-
-#ifdef AAAA_LPV_REFLECTIVE_SHADOW_MAPS
-#define SHADOW_CASTER_FRAGMENT_OUTPUT RsmOutput
-#else
-#define SHADOW_CASTER_FRAGMENT_OUTPUT DummyOutput
-#endif
-
-void TransferOutput(const ShadowCasterVaryings IN, const float4 albedo, inout SHADOW_CASTER_FRAGMENT_OUTPUT OUT)
-{
-    #ifdef AAAA_LPV_REFLECTIVE_SHADOW_MAPS
-    RsmValue rsmValue;
-    rsmValue.positionWS = IN.positionWS;
-    rsmValue.normalWS = SafeNormalize(IN.normalWS);
-    rsmValue.flux = albedo.rgb;
-    OUT = rsmValue.Pack();
-    #endif
-}
 
 ShadowCasterVaryings ShadowCasterVS(const uint svInstanceID : SV_InstanceID, const uint svIndexID : SV_VertexID)
 {
@@ -76,18 +49,11 @@ ShadowCasterVaryings ShadowCasterVS(const uint svInstanceID : SV_InstanceID, con
     OUT.uv0 = varyings.uv0;
     #endif
 
-    #ifdef AAAA_LPV_REFLECTIVE_SHADOW_MAPS
-    OUT.positionWS = positionWS;
-    OUT.normalWS = normalWS;
-    #endif
-
     return OUT;
 }
 
-SHADOW_CASTER_FRAGMENT_OUTPUT ShadowCasterPS(const ShadowCasterVaryings IN)
+void ShadowCasterPS(const ShadowCasterVaryings IN)
 {
-    SHADOW_CASTER_FRAGMENT_OUTPUT OUT = (SHADOW_CASTER_FRAGMENT_OUTPUT)0;
-
     float4 albedo;
 
     #if defined(REQUIRE_VISIBILITY_VALUE_INTERPOLATOR) && defined(REQUIRE_UV0_INTERPOLATOR)
@@ -102,10 +68,6 @@ SHADOW_CASTER_FRAGMENT_OUTPUT ShadowCasterPS(const ShadowCasterVaryings IN)
     #if defined(_ALPHATEST_ON)
     AlphaClip(materialData, albedo);
     #endif
-
-    TransferOutput(IN, albedo, OUT);
-
-    return OUT;
 }
 
 #endif // AAAA_VISIBILITY_BUFFER_SHADOW_CASTER_PASS_INCLUDED

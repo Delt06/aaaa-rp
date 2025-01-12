@@ -1,13 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using DELTation.AAAARP.Core;
-using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
 using DELTation.AAAARP.Renderers;
 using Unity.Collections;
 using UnityEngine;
-using UnityEngine.Assertions;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
 
@@ -23,8 +21,6 @@ namespace DELTation.AAAARP.Passes.Shadows
 
         protected override void Setup(RenderGraphBuilder builder, PassData passData, ContextContainer frameData)
         {
-            passData.Reset();
-
             AAAARenderingData renderingData = frameData.Get<AAAARenderingData>();
             AAAACameraData cameraData = frameData.Get<AAAACameraData>();
             AAAAShadowsData shadowsData = frameData.Get<AAAAShadowsData>();
@@ -63,19 +59,6 @@ namespace DELTation.AAAARP.Passes.Shadows
             RenderTexture shadowMap = shadowMapPool.LookupRenderTexture(shadowLightSplit.ShadowMapAllocation);
             passData.ShadowMap = shadowMap;
 
-            if (cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.LightPropagationVolumes && SplitIndex == shadowLight.Splits.Length - 1)
-            {
-                AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
-                if (lpvData.ShadowLightToRSMLightMapping.TryGetValue(ShadowLightIndex, out int rsmLightIndex))
-                {
-                    ref readonly AAAALPVCommon.RsmLight rsmLight = ref lpvData.Lights.ElementAtRefReadonly(rsmLightIndex);
-                    ref readonly AAAALPVCommon.RsmAttachmentAllocation renderedAllocation = ref rsmLight.RenderedAllocation;
-                    Assert.IsTrue(renderedAllocation.IsValid);
-                    renderingData.RtPoolSet.LookupRsmAttachments(renderedAllocation, passData.RsmAttachments);
-                    passData.UseRsm = true;
-                }
-            }
-
             builder.AllowPassCulling(false);
         }
 
@@ -83,17 +66,8 @@ namespace DELTation.AAAARP.Passes.Shadows
         {
             using var _ = new ProfilingScope(context.cmd, Profiling.GetShadowLightPassSampler(ShadowLightIndex, SplitIndex));
 
-            if (data.UseRsm)
-            {
-                context.cmd.SetRenderTarget(data.RsmAttachments, data.ShadowMap);
-                context.cmd.ClearRenderTarget(RTClearFlags.Color | RTClearFlags.Depth, data.RsmClearColors, 1.0f, 0);
-                CoreUtils.SetKeyword(context.cmd, AAAARenderPipelineCore.ShaderKeywordStrings.AAAA_LPV_REFLECTIVE_SHADOW_MAPS, true);
-            }
-            else
-            {
-                context.cmd.SetRenderTarget(data.ShadowMap);
-                context.cmd.ClearRenderTarget(RTClearFlags.Depth, Color.clear, 1.0f, 0);
-            }
+            context.cmd.SetRenderTarget(data.ShadowMap);
+            context.cmd.ClearRenderTarget(RTClearFlags.Depth, Color.clear, 1.0f, 0);
 
             // these values match HDRP defaults (see https://github.com/Unity-Technologies/Graphics/blob/9544b8ed2f98c62803d285096c91b44e9d8cbc47/com.unity.render-pipelines.high-definition/Runtime/Lighting/Shadow/HDShadowAtlas.cs#L197 )
             context.cmd.SetGlobalDepthBias(1.0f, data.SlopeBias);
@@ -103,11 +77,6 @@ namespace DELTation.AAAARP.Passes.Shadows
             data.RendererContainer.Draw(data.CameraType, context.cmd, AAAARendererContainer.PassType.ShadowCaster, ContextIndex);
 
             context.cmd.SetGlobalDepthBias(0.0f, 0.0f);
-
-            if (data.UseRsm)
-            {
-                CoreUtils.SetKeyword(context.cmd, AAAARenderPipelineCore.ShaderKeywordStrings.AAAA_LPV_REFLECTIVE_SHADOW_MAPS, false);
-            }
         }
 
         private static class Profiling
@@ -128,24 +97,12 @@ namespace DELTation.AAAARP.Passes.Shadows
 
         public class PassData : PassDataBase
         {
-            public readonly RenderTargetIdentifier[] RsmAttachments = new RenderTargetIdentifier[AAAALPVCommon.RsmAttachmentsCount];
-            public readonly Color[] RsmClearColors = { Color.clear, Color.clear, Color.clear };
             public CameraType CameraType;
             public AAAARendererContainer RendererContainer;
             public RenderTargetIdentifier ShadowMap;
             public AAAAShadowRenderingConstantBuffer ShadowRenderingConstantBuffer;
             public float SlopeBias;
-            public bool UseRsm;
             public float ZClip;
-
-            public void Reset()
-            {
-                for (int index = 0; index < RsmAttachments.Length; index++)
-                {
-                    RsmAttachments[index] = default;
-                }
-                UseRsm = false;
-            }
         }
 
         [SuppressMessage("ReSharper", "InconsistentNaming")]

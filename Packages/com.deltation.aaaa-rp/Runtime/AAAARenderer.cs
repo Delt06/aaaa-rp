@@ -7,7 +7,6 @@ using DELTation.AAAARP.Passes;
 using DELTation.AAAARP.Passes.AntiAliasing;
 using DELTation.AAAARP.Passes.ClusteredLighting;
 using DELTation.AAAARP.Passes.GlobalIllumination.AO;
-using DELTation.AAAARP.Passes.GlobalIllumination.LPV;
 using DELTation.AAAARP.Passes.GlobalIllumination.SSR;
 using DELTation.AAAARP.Passes.GlobalIllumination.VXGI;
 using DELTation.AAAARP.Passes.IBL;
@@ -43,14 +42,8 @@ namespace DELTation.AAAARP
         private readonly GPUCullingPass _gpuCullingFalseNegativePass;
         private readonly HZBGenerationPass _gpuCullingHzbGenerationPass;
         private readonly GPUCullingPass _gpuCullingMainPass;
-        private readonly LPVInjectPass _lpvInjectPass;
-        private readonly LPVPropagatePass _lpvPropagatePass;
-        private readonly LPVResolvePass _lpvResolve;
-        private readonly LPVSetupPass _lpvSetupPass;
-        private readonly LPVSkyOcclusionPass _lpvSkyOcclusionPass;
         private readonly PreFilterEnvironmentPass _preFilterEnvironmentPass;
         private readonly ResolveVisibilityBufferPass _resolveVisibilityBufferPass;
-        private readonly RSMDownsamplePass _rsmDownsamplePass;
         private readonly SetupLightingPass _setupLightingPass;
         private readonly SetupProbeVolumesPass _setupProbeVolumesPass;
         private readonly ShadowPassPool _shadowPassPool;
@@ -121,12 +114,6 @@ namespace DELTation.AAAARP
             _skyboxPass = new SkyboxPass(AAAARenderPassEvent.AfterRenderingOpaques);
             _colorHistoryPass = new ColorHistoryPass(AAAARenderPassEvent.AfterRenderingTransparents);
             _setupProbeVolumesPass = new SetupProbeVolumesPass(AAAARenderPassEvent.BeforeRendering);
-            _lpvSetupPass = new LPVSetupPass(AAAARenderPassEvent.BeforeRendering);
-            _rsmDownsamplePass = new RSMDownsamplePass(AAAARenderPassEvent.AfterRenderingShadows);
-            _lpvInjectPass = new LPVInjectPass(AAAARenderPassEvent.AfterRenderingGbuffer);
-            _lpvResolve = new LPVResolvePass(AAAARenderPassEvent.AfterRenderingGbuffer);
-            _lpvPropagatePass = new LPVPropagatePass(AAAARenderPassEvent.AfterRenderingGbuffer);
-            _lpvSkyOcclusionPass = new LPVSkyOcclusionPass(AAAARenderPassEvent.AfterRenderingGbuffer);
             {
                 _vxgiSetupPass = new VXGISetupPass(AAAARenderPassEvent.BeforeRendering, rawBufferClear);
                 _vxgiCullingPass = new GPUCullingPass(GPUCullingPass.PassType.Voxelization, AAAARenderPassEvent.AfterRenderingGbuffer, shaders, rawBufferClear,
@@ -185,23 +172,7 @@ namespace DELTation.AAAARP
                 EnqueuePass(_xeGTAOPass);
             }
 
-            if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.LightPropagationVolumes)
-            {
-                AAAALPVVolumeComponent lpv = cameraData.VolumeStack.GetComponent<AAAALPVVolumeComponent>();
-
-                EnqueuePass(_lpvSetupPass);
-                EnqueuePass(_rsmDownsamplePass);
-                EnqueuePass(_lpvInjectPass);
-                EnqueuePass(_lpvResolve);
-
-                if (lpv.Occlusion.value && lpv.SkyOcclusion.value)
-                {
-                    EnqueuePass(_lpvSkyOcclusionPass);
-                }
-
-                EnqueuePass(_lpvPropagatePass);
-            }
-            else if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
+            if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
             {
                 AAAAVXGIVolumeComponent vxgi = cameraData.VolumeStack.GetComponent<AAAAVXGIVolumeComponent>();
 
@@ -342,7 +313,6 @@ namespace DELTation.AAAARP
             _uberPostProcessingPass.Dispose();
             _smaaPass.Dispose();
 
-            _lpvInjectPass.Dispose();
             _vxgiVoxelizePass.Dispose();
             _vxgiConeTraceDiffusePass.Dispose();
             _vxgiConeTraceSpecularPass.Dispose();

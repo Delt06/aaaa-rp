@@ -126,7 +126,6 @@ Shader "Hidden/AAAA/DeferredLighting"
             #pragma vertex OverrideVert
             #pragma fragment Frag
 
-            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/LPV/Variants.hlsl"
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/VXGI/Variants.hlsl"
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/ProbeVolumeVariants.hlsl"
 

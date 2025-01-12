@@ -42,21 +42,7 @@ namespace DELTation.AAAARP.Passes.Lighting
                 builder.UseTexture(lightingData.GTAOTerm, AccessFlags.Read);
             }
 
-            if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.LightPropagationVolumes)
-            {
-                AAAALightPropagationVolumesData lpvData = frameData.Get<AAAALightPropagationVolumesData>();
-                builder.UseTexture(lpvData.UnpackedGridTextures.RedSH, AccessFlags.Read);
-                builder.UseTexture(lpvData.UnpackedGridTextures.BlueSH, AccessFlags.Read);
-                builder.UseTexture(lpvData.UnpackedGridTextures.GreenSH, AccessFlags.Read);
-
-                if (lpvData.SkyOcclusionTexture.IsValid())
-                {
-                    builder.UseTexture(lpvData.SkyOcclusionTexture, AccessFlags.Read);
-                }
-
-                passData.ApplyIndirect = true;
-            }
-            else if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
+            if (cameraData.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel)
             {
                 AAAAVoxelGlobalIlluminationData vxgiData = frameData.Get<AAAAVoxelGlobalIlluminationData>();
                 builder.UseTexture(vxgiData.IndirectDiffuseTexture, AccessFlags.Read);

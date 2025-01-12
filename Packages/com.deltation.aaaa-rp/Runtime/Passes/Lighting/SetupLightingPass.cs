@@ -3,7 +3,6 @@ using DELTation.AAAARP.Core;
 using DELTation.AAAARP.Data;
 using DELTation.AAAARP.FrameData;
 using DELTation.AAAARP.Lighting;
-using DELTation.AAAARP.Volumes;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
@@ -50,10 +49,7 @@ namespace DELTation.AAAARP.Passes.Lighting
             passData.PreFilteredEnvironmentMap = builder.ReadTexture(imageBasedLightingData.PreFilteredEnvironmentMap);
             passData.PreFilteredEnvironmentMapMaxLOD = imageBasedLightingData.PreFilteredEnvironmentMapDesc.mipCount - 1;
             passData.AmbientOcclusionTechnique = cameraData.AmbientOcclusionTechnique;
-            passData.RealtimeGITecninque = cameraData.RealtimeGITechnique;
-            AAAALPVVolumeComponent lpvVolumeComponent = cameraData.VolumeStack.GetComponent<AAAALPVVolumeComponent>();
-            passData.LPVSkyOcclusion = cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.LightPropagationVolumes &&
-                                       lpvVolumeComponent.Occlusion.value && lpvVolumeComponent.SkyOcclusion.value;
+            passData.RealtimeGITechnique = cameraData.RealtimeGITechnique;
             passData.XeGTAOBentNormals = renderingData.PipelineAsset.LightingSettings.GTAOSettings.BentNormals;
             passData.XeGTAODirectLightingMicroshadows = renderingData.PipelineAsset.LightingSettings.GTAOSettings.DirectLightingMicroshadows;
 
@@ -233,10 +229,7 @@ namespace DELTation.AAAARP.Passes.Lighting
                 data.AmbientOcclusionTechnique == AAAAAmbientOcclusionTechnique.XeGTAO && data.XeGTAODirectLightingMicroshadows
             );
 
-            context.cmd.SetKeyword(_globalKeywords.LPV, data.RealtimeGITecninque == AAAARealtimeGITechnique.LightPropagationVolumes);
-            context.cmd.SetKeyword(_globalKeywords.LPVSkyOcclusion, data.LPVSkyOcclusion);
-
-            context.cmd.SetKeyword(_globalKeywords.VXGI, data.RealtimeGITecninque == AAAARealtimeGITechnique.Voxel);
+            context.cmd.SetKeyword(_globalKeywords.VXGI, data.RealtimeGITechnique == AAAARealtimeGITechnique.Voxel);
         }
 
         private struct GlobalKeywords
@@ -244,8 +237,6 @@ namespace DELTation.AAAARP.Passes.Lighting
             public GlobalKeyword DirectLightingAOMicroshadows;
             public GlobalKeyword GTAO;
             public GlobalKeyword GTAOBentNormals;
-            public GlobalKeyword LPV;
-            public GlobalKeyword LPVSkyOcclusion;
             public GlobalKeyword VXGI;
 
             public static GlobalKeywords Create() =>
@@ -254,8 +245,6 @@ namespace DELTation.AAAARP.Passes.Lighting
                     GTAO = GlobalKeyword.Create("AAAA_GTAO"),
                     GTAOBentNormals = GlobalKeyword.Create("AAAA_GTAO_BENT_NORMALS"),
                     DirectLightingAOMicroshadows = GlobalKeyword.Create("AAAA_DIRECT_LIGHTING_AO_MICROSHADOWS"),
-                    LPV = GlobalKeyword.Create("AAAA_LPV"),
-                    LPVSkyOcclusion = GlobalKeyword.Create("AAAA_LPV_SKY_OCCLUSION"),
                     VXGI = GlobalKeyword.Create("AAAA_VXGI"),
                 };
         }
@@ -266,12 +255,11 @@ namespace DELTation.AAAARP.Passes.Lighting
             public TextureHandle BRDFLut;
             public TextureHandle DiffuseIrradianceCubemap;
             public AAAALightingData LightingData;
-            public bool LPVSkyOcclusion;
             public TextureHandle PreFilteredEnvironmentMap;
             public float PreFilteredEnvironmentMapMaxLOD;
             public NativeArray<AAAAPunctualLightData> PunctualLights;
             public BufferHandle PunctualLightsBuffer;
-            public AAAARealtimeGITechnique RealtimeGITecninque;
+            public AAAARealtimeGITechnique RealtimeGITechnique;
             public NativeArray<AAAAShadowLightSlice> ShadowLightSlices;
             public BufferHandle ShadowLightSlicesBuffer;
             public bool XeGTAOBentNormals;

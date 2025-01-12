@@ -38,8 +38,7 @@ namespace DELTation.AAAARP.Data
     public enum AAAARealtimeGITechnique
     {
         Off,
-        LightPropagationVolumes,
-        Voxel,
+        Voxel = 2,
     }
 
     [Serializable]

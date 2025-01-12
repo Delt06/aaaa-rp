@@ -27,8 +27,6 @@ namespace DELTation.AAAARP.Debugging
         [CanBeNull]
         private readonly LightingDebugPass _lightingDebugPass;
         [CanBeNull]
-        private readonly LightPropagationVolumesDebugPass _lightPropagationVolumesDebugPass;
-        [CanBeNull]
         private readonly VisibilityBufferDebugPass _visibilityBufferDebugPass;
         [CanBeNull]
         private readonly VXGIDebugPass _vxgiDebugPass;
@@ -42,8 +40,6 @@ namespace DELTation.AAAARP.Debugging
                 _visibilityBufferDebugPass = new VisibilityBufferDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
                 _gBufferDebugPass = new GBufferDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
                 _lightingDebugPass = new LightingDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
-                _lightPropagationVolumesDebugPass =
-                    new LightPropagationVolumesDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
                 _vxgiDebugPass = new VXGIDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
 
                 _gpuCullingDebugSetupPass = new GPUCullingDebugSetupPass(AAAARenderPassEvent.BeforeRendering, rawBufferClear);
@@ -61,7 +57,6 @@ namespace DELTation.AAAARP.Debugging
             _visibilityBufferDebugPass?.Dispose();
             _gBufferDebugPass?.Dispose();
             _lightingDebugPass?.Dispose();
-            _lightPropagationVolumesDebugPass?.Dispose();
             _vxgiDebugPass?.Dispose();
         }
 
@@ -106,13 +101,6 @@ namespace DELTation.AAAARP.Debugging
                 DisplaySettings.RenderingSettings.LightingDebugMode != AAAALightingDebugMode.None)
             {
                 renderer.EnqueuePass(_lightingDebugPass);
-            }
-
-            if (_lightPropagationVolumesDebugPass != null &&
-                DisplaySettings.RenderingSettings.LightPropagationVolumesDebug &&
-                cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.LightPropagationVolumes)
-            {
-                renderer.EnqueuePass(_lightPropagationVolumesDebugPass);
             }
 
             if (_vxgiDebugPass != null &&

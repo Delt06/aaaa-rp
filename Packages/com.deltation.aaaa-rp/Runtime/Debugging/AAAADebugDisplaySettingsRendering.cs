@@ -54,14 +54,6 @@ namespace DELTation.AAAARP.Debugging
     }
 
     [GenerateHLSL]
-    public enum AAAALightPropagationVolumesDebugMode
-    {
-        Radiance,
-        BlockingPotential,
-        SkyOcclusion,
-    }
-
-    [GenerateHLSL]
     public enum AAAAVxgiDebugMode
     {
         Radiance,
@@ -91,11 +83,6 @@ namespace DELTation.AAAARP.Debugging
         public Vector2 LightingDebugCountRemap { get; private set; } = new(1, 128);
         public int LightingDebugLightIndex { get; private set; }
 
-        public bool LightPropagationVolumesDebug { get; private set; }
-        public AAAALightPropagationVolumesDebugMode LightPropagationVolumesDebugMode { get; private set; }
-        public float LightPropagationVolumesDebugSize { get; private set; } = 0.1f;
-        public float LightPropagationVolumesDebugIntensity { get; private set; } = 1.0f;
-        public float LightPropagationVolumesDebugClipDistance { get; private set; } = 2.0f;
         public bool VXGIDebug { get; private set; }
         public bool VXGIDebugOverlay { get; private set; } = true;
         public AAAAVxgiDebugMode VXGIDebugMode { get; private set; } = AAAAVxgiDebugMode.Radiance;
@@ -348,7 +335,6 @@ namespace DELTation.AAAARP.Debugging
                                 CreateLightingDebugMode(panel),
                                 CreateLightCountRemap(panel),
                                 CreateLightIndex(panel),
-                                LightPropagationVolumes.WidgetFactory.CreateFoldout(panel),
                                 VXGI.WidgetFactory.CreateFoldout(panel),
                             },
                         };
@@ -452,86 +438,6 @@ namespace DELTation.AAAARP.Debugging
                         isHiddenCallback = () => !panel.data.VXGIDebug,
                         getter = () => panel.data.VXGIDebugOverlay,
                         setter = value => panel.data.VXGIDebugOverlay = value,
-                    };
-                }
-            }
-
-            private static class LightPropagationVolumes
-            {
-                private static class Strings
-                {
-                    public static readonly DebugUI.Widget.NameAndTooltip Debug = new() { name = "Debug" };
-                    public static readonly DebugUI.Widget.NameAndTooltip DebugMode = new() { name = "Debug Mode" };
-                    public static readonly DebugUI.Widget.NameAndTooltip DebugSize = new() { name = "Debug Size" };
-                    public static readonly DebugUI.Widget.NameAndTooltip DebugIntensity = new() { name = "Debug Intensity" };
-                    public static readonly DebugUI.Widget.NameAndTooltip DebugClipDistance = new() { name = "Debug Clip Distance" };
-                }
-
-                public static class WidgetFactory
-                {
-                    public static DebugUI.Widget CreateFoldout(SettingsPanel panel) =>
-                        new DebugUI.Foldout
-                        {
-                            displayName = "Light Propagation Volumes",
-                            flags = DebugUI.Flags.FrequentlyUsed,
-                            isHeader = true,
-                            opened = true,
-                            children =
-                            {
-                                CreateDebug(panel),
-                                CreateDebugMode(panel),
-                                CreateDebugSize(panel),
-                                CreateDebugIntensity(panel),
-                                CreateDebugClipDistance(panel),
-                            },
-                        };
-
-                    private static DebugUI.Widget CreateDebug(SettingsPanel panel) => new DebugUI.BoolField
-                    {
-                        nameAndTooltip = Strings.Debug,
-                        getter = () => panel.data.LightPropagationVolumesDebug,
-                        setter = value => panel.data.LightPropagationVolumesDebug = value,
-                    };
-
-                    private static DebugUI.Widget CreateDebugMode(SettingsPanel panel) => new DebugUI.EnumField
-                    {
-                        nameAndTooltip = Strings.DebugMode,
-                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
-                        autoEnum = typeof(AAAALightPropagationVolumesDebugMode),
-                        getter = () => (int) panel.data.LightPropagationVolumesDebugMode,
-                        setter = value => panel.data.LightPropagationVolumesDebugMode = (AAAALightPropagationVolumesDebugMode) value,
-                        getIndex = () => (int) panel.data.LightPropagationVolumesDebugMode,
-                        setIndex = value => panel.data.LightPropagationVolumesDebugMode = (AAAALightPropagationVolumesDebugMode) value,
-                    };
-
-                    private static DebugUI.Widget CreateDebugSize(SettingsPanel panel) => new DebugUI.FloatField
-                    {
-                        nameAndTooltip = Strings.DebugSize,
-                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
-                        getter = () => panel.data.LightPropagationVolumesDebugSize,
-                        setter = value => panel.data.LightPropagationVolumesDebugSize = value,
-                        min = () => 0.0f,
-                        max = () => 1.0f,
-                    };
-
-                    private static DebugUI.Widget CreateDebugIntensity(SettingsPanel panel) => new DebugUI.FloatField
-                    {
-                        nameAndTooltip = Strings.DebugIntensity,
-                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
-                        getter = () => panel.data.LightPropagationVolumesDebugIntensity,
-                        setter = value => panel.data.LightPropagationVolumesDebugIntensity = value,
-                        min = () => 0.0f,
-                        max = () => 10.0f,
-                    };
-
-                    private static DebugUI.Widget CreateDebugClipDistance(SettingsPanel panel) => new DebugUI.FloatField
-                    {
-                        nameAndTooltip = Strings.DebugClipDistance,
-                        isHiddenCallback = () => !panel.data.LightPropagationVolumesDebug,
-                        getter = () => panel.data.LightPropagationVolumesDebugClipDistance,
-                        setter = value => panel.data.LightPropagationVolumesDebugClipDistance = value,
-                        min = () => 0.0f,
-                        max = () => 10.0f,
                     };
                 }
             }
