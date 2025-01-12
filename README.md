@@ -20,7 +20,7 @@ The main goals of the project are:
 ## Rendering Techniques
 
 - GPU Driven pipeline
-  - Hierarchical meshlet LODs
+  - Hierarhical Cluster Rendering (Virtualized Geometry)
   - Frustum, Cone, and Occlusion Culling (Two-Pass)
 - Visibility Buffer + GBuffer
 - PBR lighting
