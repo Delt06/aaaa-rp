@@ -39,6 +39,7 @@ namespace DELTation.AAAARP.Data
     {
         Off,
         LightPropagationVolumes,
+        Voxel,
     }
 
     [Serializable]

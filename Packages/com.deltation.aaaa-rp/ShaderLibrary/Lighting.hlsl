@@ -8,6 +8,7 @@
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/LightPropagationVolumes.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/PunctualLights.hlsl"
 #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/Shadows.hlsl"
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VXGI.hlsl"
 
 #include "Packages/com.unity.render-pipelines.core/Runtime/Lighting/ProbeVolume/ProbeVolume.hlsl"
 
@@ -173,6 +174,11 @@ float3 SampleDiffuseGI(const float3 absolutePositionWS, const float3 normalWS, c
     gi += LPVMath::EvaluateRadiance(lpvCell, normalWS);   
     #endif
 
+    #if defined(AAAA_VXGI)
+    const float4 vxgiValue = VXGI::Tracing::LoadIndirectDiffuse(positionSS);
+    gi = lerp(gi, vxgiValue.rgb, vxgiValue.a);
+    #endif
+
     return gi;
 }
 
@@ -191,7 +197,8 @@ float SampleProbeVolumeSkyOcclusion(const float3 absolutePositionWS, const float
     return 1;
 }
 
-float SampleSkyOcclusion(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir, const float3 reflectionDir,
+float SampleSkyOcclusion(const float3 absolutePositionWS, const float3 normalWS, const float3 viewDir,
+                         const float3 reflectionDir, const float2      positionSS,
                          const uint   renderingLayer)
 {
     #if defined(AAAA_LPV_SKY_OCCLUSION)

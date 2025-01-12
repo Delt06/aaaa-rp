@@ -48,6 +48,23 @@ struct AABB
         aabb.boundsMax = boundsMax;
         return aabb;
     }
+
+    static AABB CreateFromCenterSize(const float3 center, const float3 size)
+    {
+        AABB aabb;
+        const float3 extents = size / 2.0f;
+        aabb.boundsMin = center - extents;
+        aabb.boundsMax = center + extents;
+        return aabb;
+    }
+
+    static bool Intersect(const AABB a, const AABB b)
+    {
+        return
+        (a.boundsMin.x <= b.boundsMax.x && a.boundsMax.x >= b.boundsMin.x) &&
+        (a.boundsMin.y <= b.boundsMax.y && a.boundsMax.y >= b.boundsMin.y) &&
+        (a.boundsMin.z <= b.boundsMax.z && a.boundsMax.z >= b.boundsMin.z);
+    }
 };
 
 // Based on:

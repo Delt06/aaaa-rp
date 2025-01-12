@@ -1,0 +1,20 @@
+//
+// This file was automatically generated. Please don't edit by hand. Execute Editor command [ Edit > Rendering > Generate Shader Includes ] instead
+//
+
+#ifndef AAAAVXGICOMMON_CS_HLSL
+#define AAAAVXGICOMMON_CS_HLSL
+//
+// DELTation.AAAARP.Lighting.AAAAVxgiPackedGridChannels:  static fields
+//
+#define AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_R (0)
+#define AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_G (1)
+#define AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_B (2)
+#define AAAAVXGIPACKEDGRIDCHANNELS_ALPHA (3)
+#define AAAAVXGIPACKEDGRIDCHANNELS_PACKED_NORMAL_R (4)
+#define AAAAVXGIPACKEDGRIDCHANNELS_PACKED_NORMAL_G (5)
+#define AAAAVXGIPACKEDGRIDCHANNELS_FRAGMENT_COUNT (6)
+#define AAAAVXGIPACKEDGRIDCHANNELS_TOTAL_COUNT (7)
+
+
+#endif

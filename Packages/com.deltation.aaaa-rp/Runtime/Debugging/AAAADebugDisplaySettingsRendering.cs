@@ -61,6 +61,13 @@ namespace DELTation.AAAARP.Debugging
         SkyOcclusion,
     }
 
+    [GenerateHLSL]
+    public enum AAAAVxgiDebugMode
+    {
+        Radiance,
+        Normals,
+    }
+
     public class AAAADebugDisplaySettingsRendering : IDebugDisplaySettingsData
     {
         private readonly AAAADebugStats _debugStats;
@@ -89,6 +96,10 @@ namespace DELTation.AAAARP.Debugging
         public float LightPropagationVolumesDebugSize { get; private set; } = 0.1f;
         public float LightPropagationVolumesDebugIntensity { get; private set; } = 1.0f;
         public float LightPropagationVolumesDebugClipDistance { get; private set; } = 2.0f;
+        public bool VXGIDebug { get; private set; }
+        public bool VXGIDebugOverlay { get; private set; } = true;
+        public AAAAVxgiDebugMode VXGIDebugMode { get; private set; } = AAAAVxgiDebugMode.Radiance;
+        public int VXGIMipLevel { get; private set; }
 
         public bool AreAnySettingsActive => GetOverridenVisibilityBufferDebugMode() != AAAAVisibilityBufferDebugMode.None ||
                                             ForceCullingFromMainCamera ||
@@ -338,6 +349,7 @@ namespace DELTation.AAAARP.Debugging
                                 CreateLightCountRemap(panel),
                                 CreateLightIndex(panel),
                                 LightPropagationVolumes.WidgetFactory.CreateFoldout(panel),
+                                VXGI.WidgetFactory.CreateFoldout(panel),
                             },
                         };
 
@@ -375,6 +387,71 @@ namespace DELTation.AAAARP.Debugging
                         isHiddenCallback = () => panel.data.LightingDebugMode is not AAAALightingDebugMode.DirectionalLightCascades,
                         min = () => 0,
                         max = () => AAAALightingConstantBuffer.MaxDirectionalLights - 1,
+                    };
+                }
+            }
+
+            private static class VXGI
+            {
+                private static class Strings
+                {
+                    public static readonly DebugUI.Widget.NameAndTooltip Debug = new() { name = "Debug" };
+                    public static readonly DebugUI.Widget.NameAndTooltip DebugMode = new() { name = "Debug Mode" };
+                    public static readonly DebugUI.Widget.NameAndTooltip MipLevel = new() { name = "Mip Level" };
+                    public static readonly DebugUI.Widget.NameAndTooltip Overlay = new() { name = "Overlay" };
+                }
+
+                public static class WidgetFactory
+                {
+                    public static DebugUI.Widget CreateFoldout(SettingsPanel panel) =>
+                        new DebugUI.Foldout
+                        {
+                            displayName = "Voxel GI",
+                            flags = DebugUI.Flags.FrequentlyUsed,
+                            isHeader = true,
+                            opened = true,
+                            children =
+                            {
+                                CreateDebug(panel),
+                                CreateDebugMode(panel),
+                                CreateDebugMipLevel(panel),
+                                CreateDebugOverlay(panel),
+                            },
+                        };
+
+                    private static DebugUI.Widget CreateDebug(SettingsPanel panel) => new DebugUI.BoolField
+                    {
+                        nameAndTooltip = Strings.Debug,
+                        getter = () => panel.data.VXGIDebug,
+                        setter = value => panel.data.VXGIDebug = value,
+                    };
+
+                    private static DebugUI.Widget CreateDebugMode(SettingsPanel panel) => new DebugUI.EnumField
+                    {
+                        nameAndTooltip = Strings.DebugMode,
+                        isHiddenCallback = () => !panel.data.VXGIDebug,
+                        autoEnum = typeof(AAAAVxgiDebugMode),
+                        getter = () => (int) panel.data.VXGIDebugMode,
+                        setter = value => panel.data.VXGIDebugMode = (AAAAVxgiDebugMode) value,
+                        getIndex = () => (int) panel.data.VXGIDebugMode,
+                        setIndex = value => panel.data.VXGIDebugMode = (AAAAVxgiDebugMode) value,
+                    };
+
+                    private static DebugUI.Widget CreateDebugMipLevel(SettingsPanel panel) => new DebugUI.IntField
+                    {
+                        nameAndTooltip = Strings.MipLevel,
+                        getter = () => panel.data.VXGIMipLevel,
+                        setter = value => panel.data.VXGIMipLevel = value,
+                        min = () => 0,
+                        max = () => 10,
+                    };
+
+                    private static DebugUI.Widget CreateDebugOverlay(SettingsPanel panel) => new DebugUI.BoolField
+                    {
+                        nameAndTooltip = Strings.Overlay,
+                        isHiddenCallback = () => !panel.data.VXGIDebug,
+                        getter = () => panel.data.VXGIDebugOverlay,
+                        setter = value => panel.data.VXGIDebugOverlay = value,
                     };
                 }
             }

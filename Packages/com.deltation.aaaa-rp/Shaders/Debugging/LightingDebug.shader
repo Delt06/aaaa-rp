@@ -31,6 +31,7 @@ Shader "Hidden/AAAA/LightingDebug"
 
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/XeGTAO/GTAOPragma.hlsl"
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/LPV/Variants.hlsl"
+            #include_with_pragmas "Packages/com.deltation.aaaa-rp/Shaders/GlobalIllumination/VXGI/Variants.hlsl"
             #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/ProbeVolumeVariants.hlsl"
 
             #include "Packages/com.deltation.aaaa-rp/ShaderLibrary/CameraDepth.hlsl"

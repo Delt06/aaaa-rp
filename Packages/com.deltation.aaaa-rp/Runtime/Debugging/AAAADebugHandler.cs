@@ -30,6 +30,8 @@ namespace DELTation.AAAARP.Debugging
         private readonly LightPropagationVolumesDebugPass _lightPropagationVolumesDebugPass;
         [CanBeNull]
         private readonly VisibilityBufferDebugPass _visibilityBufferDebugPass;
+        [CanBeNull]
+        private readonly VXGIDebugPass _vxgiDebugPass;
 
         public AAAADebugHandler(AAAARawBufferClear rawBufferClear)
         {
@@ -42,6 +44,7 @@ namespace DELTation.AAAARP.Debugging
                 _lightingDebugPass = new LightingDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
                 _lightPropagationVolumesDebugPass =
                     new LightPropagationVolumesDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
+                _vxgiDebugPass = new VXGIDebugPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
 
                 _gpuCullingDebugSetupPass = new GPUCullingDebugSetupPass(AAAARenderPassEvent.BeforeRendering, rawBufferClear);
                 _gpuCullingDebugViewPass = new GPUCullingDebugViewPass(AAAARenderPassEvent.AfterRenderingTransparents, debugShaders, DisplaySettings);
@@ -59,6 +62,7 @@ namespace DELTation.AAAARP.Debugging
             _gBufferDebugPass?.Dispose();
             _lightingDebugPass?.Dispose();
             _lightPropagationVolumesDebugPass?.Dispose();
+            _vxgiDebugPass?.Dispose();
         }
 
         [CanBeNull] public Camera GetGPUCullingCameraOverride()
@@ -109,6 +113,13 @@ namespace DELTation.AAAARP.Debugging
                 cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.LightPropagationVolumes)
             {
                 renderer.EnqueuePass(_lightPropagationVolumesDebugPass);
+            }
+
+            if (_vxgiDebugPass != null &&
+                DisplaySettings.RenderingSettings.VXGIDebug &&
+                cameraData.RealtimeGITechnique is AAAARealtimeGITechnique.Voxel)
+            {
+                renderer.EnqueuePass(_vxgiDebugPass);
             }
 
             if (_gpuCullingDebugSetupPass != null &&

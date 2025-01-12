@@ -2,6 +2,8 @@
 
 #pragma use_dxc
 
+#pragma multi_compile_local _ VOXELIZATION_PASS
+
 #include_with_pragmas "Packages/com.deltation.aaaa-rp/ShaderLibrary/Bindless.hlsl"
 
 #include "Packages/com.deltation.aaaa-rp/Runtime/Meshlets/AAAAMeshletComputeShaders.cs.hlsl"
@@ -56,16 +58,27 @@ float GetScreenBoundRadiusSq(const GPULODSelectionContext lodSelectionContext, c
     return max(dot(v0, v0), dot(v1, v1));
 }
 
+uint GetForcedMeshLODNodeDepth()
+{
+    #if defined(VOXELIZATION_PASS)
+    return 1;
+    #else
+    return _ForcedMeshLODNodeDepth;
+    #endif
+}
+
 bool ShouldPushMeshletRenderRequests(const GPULODSelectionContext lodSelectionContext, const AAAAMeshLODNode meshLODNode,
                                      const AAAAInstanceData       instanceData, const float                  distanceToViewSq)
 {
     bool result;
 
+    const uint forcedMeshLODNodeDepth = GetForcedMeshLODNodeDepth();
+
     UNITY_BRANCH
-    if (_ForcedMeshLODNodeDepth != UINT_MAX)
+    if (forcedMeshLODNodeDepth != UINT_MAX)
     {
         const bool isLeaf = meshLODNode.LevelIndex == instanceData.MeshLODLevelCount - 1;
-        result = meshLODNode.LevelIndex == _ForcedMeshLODNodeDepth || meshLODNode.LevelIndex < _ForcedMeshLODNodeDepth && isLeaf;
+        result = meshLODNode.LevelIndex == forcedMeshLODNodeDepth || meshLODNode.LevelIndex < forcedMeshLODNodeDepth && isLeaf;
     }
     else
     {

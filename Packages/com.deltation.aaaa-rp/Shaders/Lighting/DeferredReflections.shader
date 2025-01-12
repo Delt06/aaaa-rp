@@ -29,6 +29,7 @@ Shader "Hidden/AAAA/DeferredReflections"
         surfaceData.metallic = gbuffer.metallic;
         surfaceData.normalWS = gbuffer.normalWS;
         surfaceData.positionWS = ComputeWorldSpacePosition(IN.texcoord, deviceDepth, UNITY_MATRIX_I_VP);
+        surfaceData.positionCS = IN.positionCS;
 
         SampleGTAO(IN.positionCS.xy, surfaceData.normalWS, surfaceData.aoVisibility, surfaceData.bentNormalWS);
     }
@@ -83,7 +84,8 @@ Shader "Hidden/AAAA/DeferredReflections"
 
                 const float3 eyeWS = normalize(cameraPositionWS - surfaceData.positionWS);
                 const float3 reflectionWS = ComputeBRDFReflectionVector(surfaceData.bentNormalWS, eyeWS);
-                const float  skyOcclusion = SampleSkyOcclusion(surfaceData.positionWS, surfaceData.bentNormalWS, eyeWS, reflectionWS, 0xFFFFFFFFu);
+                const float  skyOcclusion = SampleSkyOcclusion(surfaceData.positionWS, surfaceData.bentNormalWS, eyeWS, reflectionWS,
+                                                               surfaceData.positionCS.xy, 0xFFFFFFFFu);
                 return float4(skyOcclusion * aaaa_AmbientIntensity * SamplePrefilteredEnvironment(reflectionWS, surfaceData.roughness), 1);
             }
             ENDHLSL

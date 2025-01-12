@@ -8,7 +8,7 @@
 // DELTation.AAAARP.Utils.AAAARawBufferClear:  static fields
 //
 #define KERNEL_INDEX (0)
-#define THREAD_GROUP_SIZE (32)
+#define THREAD_GROUP_SIZE (1024)
 
 
 #endif

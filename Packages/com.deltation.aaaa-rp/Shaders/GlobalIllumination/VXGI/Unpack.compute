@@ -1,0 +1,78 @@
+#pragma kernel CS
+
+#pragma editor_sync_compilation
+
+#define THREAD_GROUP_SIZE 256
+
+#include "Packages/com.deltation.aaaa-rp/ShaderLibrary/VXGI.hlsl"
+
+uint _FlatIDOffset;
+
+ByteAddressBuffer   _Source;
+RWTexture3D<float4> _DestinationRadiance;
+RWTexture3D<float2> _DestinationNormals;
+
+float4 FetchSource4(const uint address, const uint channel)
+{
+    const uint4 packedValue = _Source.Load4(address + (channel << 2));
+    return float4(
+        VXGI::Packing::UnpackChannel(packedValue.x),
+        VXGI::Packing::UnpackChannel(packedValue.y),
+        VXGI::Packing::UnpackChannel(packedValue.z),
+        VXGI::Packing::UnpackChannel(packedValue.w)
+    );
+}
+
+[numthreads(THREAD_GROUP_SIZE, 1, 1)]
+void CS(const uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    const uint  flatID = dispatchThreadID.x + _FlatIDOffset;
+    VXGI::Grid  grid = VXGI::Grid::LoadLevel(0);
+    const uint3 voxelID = grid.FlatToVoxelID(flatID);
+    if (any((float3)voxelID >= grid.size))
+    {
+        return;
+    }
+
+    const uint baseAddress = VXGI::Grid::FlatIDToPackedGridAddress(flatID);
+    const uint channelsCount = uint(AAAAVXGIPACKEDGRIDCHANNELS_TOTAL_COUNT);
+    float      channels[channelsCount];
+
+    UNITY_UNROLL
+    for (uint baseChannel = 0; baseChannel < channelsCount; baseChannel += 4)
+    {
+        const float4 channels4 = FetchSource4(baseAddress, baseChannel);
+
+        UNITY_UNROLL
+        for (uint i = 0; i < 4; ++i)
+        {
+            const uint channel = baseChannel + i;
+            if (channel < channelsCount)
+            {
+                channels[channel] = channels4[i];
+            }
+        }
+    }
+
+    const float fragmentCount = channels[AAAAVXGIPACKEDGRIDCHANNELS_FRAGMENT_COUNT];
+
+    float4 radiance = 0;
+    float2 normals = 0;
+    if (fragmentCount != 0.0)
+    {
+        const float invFragmentCount = rcp(fragmentCount);
+        radiance = invFragmentCount * float4(
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_R],
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_G],
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_RADIANCE_B],
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_ALPHA]
+        );
+        normals = invFragmentCount * float2(
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_PACKED_NORMAL_R],
+            channels[AAAAVXGIPACKEDGRIDCHANNELS_PACKED_NORMAL_G]
+        );
+    }
+
+    _DestinationRadiance[voxelID] = VXGI::Packing::PackRadiance(radiance);
+    _DestinationNormals[voxelID] = normals;
+}

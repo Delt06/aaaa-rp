@@ -44,7 +44,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4492dc8a18b24f9eb49f2b35a40ba4d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _mesh: {fileID: 3011140483919618359, guid: bc8cbb740e9973347896f8df6e804d6d, type: 3}
+  _mesh: {fileID: 8605620957416578855, guid: bc8cbb740e9973347896f8df6e804d6d, type: 3}
   _material: {fileID: 11400000, guid: 74362ab7a33a5ea429454bf3549f1298, type: 2}
   _lodErrorScale: 0.01
   _shadowCastingMode: 1
+  _contributeToBakedGlobalIllumination: 0
